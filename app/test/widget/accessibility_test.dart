@@ -9,6 +9,8 @@ library;
 import 'package:codeforge/design_system/components/file_tree.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/design_system/tokens/geometry.dart';
+import 'package:codeforge/features/settings/about_screen.dart';
+import 'package:codeforge/features/settings/appearance_screen.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
@@ -59,17 +61,33 @@ Future<void> _pump(WidgetTester tester, _Scenario scenario) async {
 Future<void> _flush(WidgetTester tester) =>
     tester.pump(const Duration(milliseconds: 500));
 
-const List<String> _settingsPages = ['Appearance', 'About CodeForge'];
+typedef _SettingsPage = ({String title, Type screen});
 
-Future<void> _openSettingsPage(WidgetTester tester, String title) async {
+const List<_SettingsPage> _settingsPages = [
+  (title: 'Appearance', screen: AppearanceScreen),
+  (title: 'About CodeForge', screen: AboutScreen),
+];
+
+Future<void> _openSettingsPage(WidgetTester tester, _SettingsPage page) async {
   await _pump(tester, _settings);
+  final tile = find.text(page.title);
   await tester.scrollUntilVisible(
-    find.text(title),
+    tile,
     120,
     scrollable: find.byType(Scrollable).first,
   );
-  await tester.tap(find.text(title));
+  // Built is not the same as on screen (lists build ahead of the viewport):
+  // bring the tile fully into view before tapping, then prove the
+  // destination really opened, so a missed tap cannot make a check vacuous.
+  await tester.ensureVisible(tile);
   await tester.pumpAndSettle();
+  await tester.tap(tile);
+  await tester.pumpAndSettle();
+  expect(
+    find.byType(page.screen),
+    findsOneWidget,
+    reason: 'opened ${page.title}',
+  );
 }
 
 Future<void> _openPalette(WidgetTester tester) async {
@@ -182,9 +200,13 @@ void main() {
       for (final (width, height) in _gateSizes) {
         setSurface(tester, width, height);
         final at = '${width.toInt()}x${height.toInt()}';
-        for (final title in _settingsPages) {
-          await _openSettingsPage(tester, title);
-          expect(tester.takeException(), isNull, reason: '$title at $at');
+        for (final page in _settingsPages) {
+          await _openSettingsPage(tester, page);
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: '${page.title} at $at',
+          );
         }
         await _openPalette(tester);
         expect(tester.takeException(), isNull, reason: 'palette at $at');
@@ -228,8 +250,8 @@ void main() {
     testWidgets('settings sub-pages', (tester) async {
       final semantics = tester.ensureSemantics();
       setSurface(tester, 412, 915);
-      for (final title in _settingsPages) {
-        await _openSettingsPage(tester, title);
+      for (final page in _settingsPages) {
+        await _openSettingsPage(tester, page);
         await _expectAccessibleTargets(tester);
       }
       await _flush(tester);
