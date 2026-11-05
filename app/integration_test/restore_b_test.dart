@@ -18,7 +18,10 @@ void main() {
   testWidgets('restore B: state survives process death', (tester) async {
     final prefs = await SharedPreferences.getInstance();
     // Precondition: part A ran and persisted.
-    expect(prefs.getString(settingsStorageKey), contains('"themeMode":"light"'));
+    expect(
+      prefs.getString(settingsStorageKey),
+      contains('"themeMode":"light"'),
+    );
 
     await pumpRealApp(tester, prefs);
 

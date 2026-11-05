@@ -34,11 +34,7 @@ class TerminalPane extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.terminal,
-                  size: 14,
-                  color: colors.textSecondary,
-                ),
+                Icon(Icons.terminal, size: 14, color: colors.textSecondary),
                 const SizedBox(width: CfSpacing.sm),
                 Text(
                   'TERMINAL',
@@ -76,16 +72,18 @@ class TerminalPane extends ConsumerWidget {
                 children: [
                   Text(
                     r'codeforge:~$ ',
-                    style: CfTypography.code(colors, fontSize: 13).copyWith(
-                      color: colors.accentEmber,
-                    ),
+                    style: CfTypography.code(
+                      colors,
+                      fontSize: 13,
+                    ).copyWith(color: colors.accentEmber),
                   ),
                   const SizedBox(height: CfSpacing.sm),
                   Text(
                     terminal.unavailableReason,
-                    style: CfTypography.code(colors, fontSize: 12).copyWith(
-                      color: colors.syntaxComment,
-                    ),
+                    style: CfTypography.code(
+                      colors,
+                      fontSize: 12,
+                    ).copyWith(color: colors.syntaxComment),
                   ),
                 ],
               ),

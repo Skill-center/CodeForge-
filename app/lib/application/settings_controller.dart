@@ -24,7 +24,11 @@ final class SettingsController extends Notifier<AppSettings> {
       await ref.read(settingsStoreProvider).save(next);
     } on Object catch (error) {
       // Persistence failure must not lose the in-memory state or crash.
-      appLogger.error('settings', 'persist_failed', fields: {'error': '$error'});
+      appLogger.error(
+        'settings',
+        'persist_failed',
+        fields: {'error': '$error'},
+      );
     }
   }
 

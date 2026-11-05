@@ -88,9 +88,7 @@ void main() {
     );
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
-    final media = MediaQuery.of(
-      tester.element(find.byType(Scaffold).first),
-    );
+    final media = MediaQuery.of(tester.element(find.byType(Scaffold).first));
     expect(media.disableAnimations, isTrue);
   });
 }

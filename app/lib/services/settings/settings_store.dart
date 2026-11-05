@@ -39,9 +39,11 @@ AppSettings decodeSettings(String? raw) {
     }
     final version = parsed['schemaVersion'];
     if (version is! int || version > settingsSchemaVersion) {
-      appLogger.warn('settings', 'envelope_version_unsupported', fields: {
-        'version': version,
-      });
+      appLogger.warn(
+        'settings',
+        'envelope_version_unsupported',
+        fields: {'version': version},
+      );
       return const AppSettings();
     }
     final data = parsed['data'];
@@ -50,9 +52,11 @@ AppSettings decodeSettings(String? raw) {
     }
     return AppSettings.fromJson(data);
   } on FormatException catch (error) {
-    appLogger.warn('settings', 'envelope_corrupt', fields: {
-      'error': error.message,
-    });
+    appLogger.warn(
+      'settings',
+      'envelope_corrupt',
+      fields: {'error': error.message},
+    );
     return const AppSettings();
   }
 }

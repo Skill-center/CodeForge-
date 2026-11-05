@@ -55,7 +55,10 @@ class CfBanner extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: CfSpacing.xs),
-              child: Text(message, style: Theme.of(context).textTheme.bodySmall),
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
           ),
           if (actionLabel != null)
@@ -116,7 +119,11 @@ class CfEmptyState extends StatelessWidget {
               child: Icon(icon, size: 28, color: colors.accentEmber),
             ),
             const SizedBox(height: CfSpacing.lg),
-            Text(title, style: textTheme.titleMedium, textAlign: TextAlign.center),
+            Text(
+              title,
+              style: textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: CfSpacing.sm),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 320),
@@ -182,7 +189,9 @@ class CfStatusChip extends StatelessWidget {
             ],
             Text(
               label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: fg),
             ),
           ],
         ),

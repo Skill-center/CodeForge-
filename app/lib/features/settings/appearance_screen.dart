@@ -26,9 +26,8 @@ class AppearanceScreen extends ConsumerWidget {
         leading: CfIconButton(
           icon: Icons.arrow_back,
           tooltip: 'Back',
-          onPressed: () => context.canPop()
-              ? context.pop()
-              : context.go('/settings'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/settings'),
         ),
         title: const Text('Appearance'),
       ),

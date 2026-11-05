@@ -83,7 +83,9 @@ class GalleryBody extends StatelessWidget {
           const SizedBox(height: CfSpacing.lg),
           Text('Banners', style: textTheme.titleMedium),
           const SizedBox(height: CfSpacing.sm),
-          const CfBanner(message: 'Info: the shell is real, the editor is next.'),
+          const CfBanner(
+            message: 'Info: the shell is real, the editor is next.',
+          ),
           const SizedBox(height: CfSpacing.sm),
           const CfBanner(
             message: 'Warning: runtime not installed.',
@@ -130,11 +132,7 @@ class GalleryBody extends StatelessWidget {
           Text('Tree rows', style: textTheme.titleMedium),
           const SizedBox(height: CfSpacing.sm),
           CfTreeRow(
-            node: const CfFileNode(
-              name: 'src',
-              path: 'src',
-              isFile: false,
-            ),
+            node: const CfFileNode(name: 'src', path: 'src', isFile: false),
             depth: 0,
             expanded: true,
             onTap: () {},

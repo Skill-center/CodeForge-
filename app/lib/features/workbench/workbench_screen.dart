@@ -101,7 +101,8 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     final size = MediaQuery.sizeOf(context);
     final form = formFactorFor(size.width);
     final compactPortrait =
-        form == CfFormFactor.compact && !isLandscapeSurface(size.width, size.height);
+        form == CfFormFactor.compact &&
+        !isLandscapeSurface(size.width, size.height);
     if (compactPortrait) {
       // Re-tapping the active activity closes its sheet.
       if (shell.activity == activity && _sheetOpen) {
@@ -170,8 +171,12 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
 
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyP, control: true, shift: true):
-            () => showCommandPalette(context),
+        const SingleActivator(
+          LogicalKeyboardKey.keyP,
+          control: true,
+          shift: true,
+        ): () =>
+            showCommandPalette(context),
       },
       child: Focus(
         autofocus: true,
@@ -221,15 +226,12 @@ class _CompactPortraitLayout extends ConsumerWidget {
     // Clamp so the editor always keeps space even at the full stop on
     // short screens — the zero-overflow gate covers every stop.
     final maxTerminal = (height - 320).clamp(0.0, double.infinity).toDouble();
-    final terminalHeight =
-        switch (shell.terminalStop) {
-              TerminalStop.closed => 0.0,
-              TerminalStop.peek => 96.0,
-              TerminalStop.half => height * 0.4,
-              TerminalStop.full => height * 0.7,
-            }
-            .clamp(0.0, maxTerminal)
-            .toDouble();
+    final terminalHeight = switch (shell.terminalStop) {
+      TerminalStop.closed => 0.0,
+      TerminalStop.peek => 96.0,
+      TerminalStop.half => height * 0.4,
+      TerminalStop.full => height * 0.7,
+    }.clamp(0.0, maxTerminal).toDouble();
     return Column(
       children: [
         _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
@@ -390,8 +392,8 @@ class _StatusStripRow extends ConsumerWidget {
         : tabs.documents[tabs.activePath];
     return CfStatusStrip(
       children: [
-        CfStatusChip(
-          key: const ValueKey('status_branch'),
+        const CfStatusChip(
+          key: ValueKey('status_branch'),
           icon: Icons.fork_right,
           label: 'main',
           tooltip: 'Git arrives in Phase 6',

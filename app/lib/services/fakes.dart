@@ -99,7 +99,12 @@ final class FakeFileService implements FileService {
   @override
   Future<Result<WorkspaceRef>> openDemoWorkspace() async {
     _opened = true;
-    return const Ok(WorkspaceRef(id: DemoWorkspace.id, displayName: DemoWorkspace.displayName));
+    return const Ok(
+      WorkspaceRef(
+        id: DemoWorkspace.id,
+        displayName: DemoWorkspace.displayName,
+      ),
+    );
   }
 
   void _requireOpen() {
@@ -231,7 +236,8 @@ final class FakeTerminalService implements TerminalService {
 
 final class FakeRuntimeService implements RuntimeService {
   @override
-  Future<Result<RuntimeState>> state() async => const Ok(RuntimeState.notInstalled);
+  Future<Result<RuntimeState>> state() async =>
+      const Ok(RuntimeState.notInstalled);
 }
 
 final class FakeGitService implements GitService {
@@ -254,7 +260,9 @@ final class FakeSearchService implements SearchService {
     return switch (listing) {
       Ok<List<FileEntry>>(:final value) => Ok(
         value
-            .where((e) => !e.isDirectory && e.name.contains(query.toLowerCase()))
+            .where(
+              (e) => !e.isDirectory && e.name.contains(query.toLowerCase()),
+            )
             .map((e) => e.path)
             .toList(),
       ),

@@ -87,17 +87,29 @@ final class CfLogger {
     _sink?.call(record);
   }
 
-  void debug(String tag, String event, {Map<String, Object?> fields = const {}}) =>
-      log(LogLevel.debug, tag, event, fields: fields);
+  void debug(
+    String tag,
+    String event, {
+    Map<String, Object?> fields = const {},
+  }) => log(LogLevel.debug, tag, event, fields: fields);
 
-  void info(String tag, String event, {Map<String, Object?> fields = const {}}) =>
-      log(LogLevel.info, tag, event, fields: fields);
+  void info(
+    String tag,
+    String event, {
+    Map<String, Object?> fields = const {},
+  }) => log(LogLevel.info, tag, event, fields: fields);
 
-  void warn(String tag, String event, {Map<String, Object?> fields = const {}}) =>
-      log(LogLevel.warn, tag, event, fields: fields);
+  void warn(
+    String tag,
+    String event, {
+    Map<String, Object?> fields = const {},
+  }) => log(LogLevel.warn, tag, event, fields: fields);
 
-  void error(String tag, String event, {Map<String, Object?> fields = const {}}) =>
-      log(LogLevel.error, tag, event, fields: fields);
+  void error(
+    String tag,
+    String event, {
+    Map<String, Object?> fields = const {},
+  }) => log(LogLevel.error, tag, event, fields: fields);
 }
 
 /// The process-wide logger instance.

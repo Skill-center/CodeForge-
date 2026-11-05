@@ -80,11 +80,12 @@ class CfTabStrip extends StatelessWidget {
                       child: Text(
                         tab.label,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: active
-                              ? colors.textPrimary
-                              : colors.textSecondary,
-                        ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: active
+                                  ? colors.textPrimary
+                                  : colors.textSecondary,
+                            ),
                       ),
                     ),
                     Semantics(
@@ -264,10 +265,9 @@ class _ActivityButton extends StatelessWidget {
                 Text(
                   activity.label,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontSize: 10,
-                    color: fg,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(fontSize: 10, color: fg),
                 ),
               ],
             ),
@@ -310,7 +310,20 @@ class CfSymbolToolbar extends StatelessWidget {
   });
 
   static const List<String> symbols = [
-    'Esc', 'Tab', '{', '}', '[', ']', '(', ')', '<', '>', ';', '=', '_', '-',
+    'Esc',
+    'Tab',
+    '{',
+    '}',
+    '[',
+    ']',
+    '(',
+    ')',
+    '<',
+    '>',
+    ';',
+    '=',
+    '_',
+    '-',
   ];
 
   final bool enabled;
@@ -352,10 +365,7 @@ class CfSymbolToolbar extends StatelessWidget {
                       ),
                       child: Text(
                         symbol,
-                        style: CfTypography.code(
-                          colors,
-                          fontSize: 13,
-                        ).copyWith(
+                        style: CfTypography.code(colors, fontSize: 13).copyWith(
                           color: enabled
                               ? colors.textPrimary
                               : colors.textDisabled,

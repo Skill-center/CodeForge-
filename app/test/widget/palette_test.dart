@@ -1,4 +1,3 @@
-import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

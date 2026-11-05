@@ -36,8 +36,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         leading: CfIconButton(
           icon: Icons.arrow_back,
           tooltip: 'Back',
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/'),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
         title: const Text('Settings'),
       ),
@@ -68,20 +67,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   .setReducedMotion(!settings.reducedMotion),
             ),
             const CfSectionHeader('Coming in later phases'),
-            CfSettingsTile(
-              leading: const Icon(Icons.folder_outlined),
+            const CfSettingsTile(
+              leading: Icon(Icons.folder_outlined),
               title: 'Storage & folders',
               subtitle: 'Phase 3 — SAF workspace access',
               onTap: null,
             ),
-            CfSettingsTile(
-              leading: const Icon(Icons.memory),
+            const CfSettingsTile(
+              leading: Icon(Icons.memory),
               title: 'Linux runtime',
               subtitle: 'Phase 4 — install and health',
               onTap: null,
             ),
-            CfSettingsTile(
-              leading: const Icon(Icons.extension_outlined),
+            const CfSettingsTile(
+              leading: Icon(Icons.extension_outlined),
               title: 'Extensions',
               subtitle: 'Phase 7 — curated catalog',
               onTap: null,

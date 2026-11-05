@@ -37,15 +37,14 @@ void main() {
     });
 
     test('future schema version yields defaults', () {
-      final raw = '{"schemaVersion":99,"data":{"themeMode":"light"}}';
+      const raw = '{"schemaVersion":99,"data":{"themeMode":"light"}}';
       expect(decodeSettings(raw), const AppSettings());
     });
 
     test('invalid field values fall back per-field', () {
-      final raw = encodeSettings(const AppSettings()).replaceAll(
-        '"themeMode":"dark"',
-        '"themeMode":"neon"',
-      );
+      final raw = encodeSettings(
+        const AppSettings(),
+      ).replaceAll('"themeMode":"dark"', '"themeMode":"neon"');
       final decoded = decodeSettings(raw);
       expect(decoded.themeMode, ThemeMode.dark);
     });

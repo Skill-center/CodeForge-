@@ -84,10 +84,9 @@ class CfTreeRow extends StatelessWidget {
                 child: Text(
                   node.name,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: fg,
-                    fontSize: 13,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: fg, fontSize: 13),
                 ),
               ),
             ],

@@ -59,10 +59,11 @@ final class EditorTabsController extends Notifier<EditorTabsState> {
           documents: {...state.documents, path: value},
         );
       case Err<EditorDocument>(:final failure):
-        appLogger.warn('editor', 'open_failed', fields: {
-          'path': path,
-          'error': failure.message,
-        });
+        appLogger.warn(
+          'editor',
+          'open_failed',
+          fields: {'path': path, 'error': failure.message},
+        );
     }
   }
 
@@ -120,10 +121,11 @@ final class EditorTabsController extends Notifier<EditorTabsState> {
         }
         appLogger.info('editor', 'demo_save', fields: {'path': path});
       case Err<void>(:final failure):
-        appLogger.warn('editor', 'save_failed', fields: {
-          'path': path,
-          'error': failure.message,
-        });
+        appLogger.warn(
+          'editor',
+          'save_failed',
+          fields: {'path': path, 'error': failure.message},
+        );
     }
   }
 }

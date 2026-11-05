@@ -36,7 +36,10 @@ void main() {
     for (final (width, height, _) in _gateSizes) {
       setSurface(tester, width, height);
       final harness = TestHarness(
-        settings: const AppSettings(welcomeSeen: true, themeMode: ThemeMode.light),
+        settings: const AppSettings(
+          welcomeSeen: true,
+          themeMode: ThemeMode.light,
+        ),
         shell: const ShellState(
           lastRoute: '/workspace',
           terminalStop: TerminalStop.half,
@@ -52,9 +55,7 @@ void main() {
     tester,
   ) async {
     setSurface(tester, 360, 800);
-    final phone = TestHarness(
-      shell: const ShellState(lastRoute: '/workspace'),
-    );
+    final phone = TestHarness(shell: const ShellState(lastRoute: '/workspace'));
     await tester.pumpWidget(phone.app());
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('activity_explorer')), findsOneWidget);

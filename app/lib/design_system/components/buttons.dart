@@ -53,7 +53,9 @@ class CfButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(CfRadius.sm),
         child: Container(
-          constraints: const BoxConstraints(minHeight: CfSpacing.minTouchTarget),
+          constraints: const BoxConstraints(
+            minHeight: CfSpacing.minTouchTarget,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: CfSpacing.lg),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(CfRadius.sm),
@@ -64,11 +66,7 @@ class CfButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 18,
-                  color: enabled ? fg : colors.textDisabled,
-                ),
+                Icon(icon, size: 18, color: enabled ? fg : colors.textDisabled),
                 const SizedBox(width: CfSpacing.sm),
               ],
               Flexible(
@@ -85,9 +83,7 @@ class CfButton extends StatelessWidget {
         ),
       ),
     );
-    return expanded
-        ? SizedBox(width: double.infinity, child: button)
-        : button;
+    return expanded ? SizedBox(width: double.infinity, child: button) : button;
   }
 }
 

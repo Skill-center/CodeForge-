@@ -30,9 +30,11 @@ Future<void> bootstrap() async {
       // so errors are logged AND still surface to the test framework.
       final previousOnError = FlutterError.onError;
       FlutterError.onError = (details) {
-        appLogger.error('flutter', 'framework_error', fields: {
-          'error': details.exceptionAsString(),
-        });
+        appLogger.error(
+          'flutter',
+          'framework_error',
+          fields: {'error': details.exceptionAsString()},
+        );
         (previousOnError ?? FlutterError.presentError)(details);
       };
       PlatformDispatcher.instance.onError = (error, stack) {
@@ -43,9 +45,11 @@ Future<void> bootstrap() async {
       final prefs = await SharedPreferences.getInstance();
       final settingsStore = PrefsSettingsStore(prefs);
       final shellStore = PrefsShellStateStore(prefs);
-      appLogger.info('bootstrap', 'stores_ready', fields: {
-        'restoredRoute': shellStore.load().lastRoute,
-      });
+      appLogger.info(
+        'bootstrap',
+        'stores_ready',
+        fields: {'restoredRoute': shellStore.load().lastRoute},
+      );
 
       runApp(
         ProviderScope(

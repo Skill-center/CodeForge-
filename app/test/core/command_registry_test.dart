@@ -30,24 +30,30 @@ void main() {
     setUp(() {
       executed.clear();
       registry = CommandRegistry();
-      registry.register(CfCommand(
-        id: 'nav.home',
-        title: 'Go to Home',
-        category: 'Navigate',
-        onExecute: () => executed.add('nav.home'),
-      ));
-      registry.register(CfCommand(
-        id: 'theme.dark',
-        title: 'Use Dark Theme',
-        category: 'Appearance',
-        onExecute: () => executed.add('theme.dark'),
-      ));
-      registry.register(CfCommand(
-        id: 'theme.light',
-        title: 'Use Light Theme',
-        category: 'Appearance',
-        onExecute: () => executed.add('theme.light'),
-      ));
+      registry.register(
+        CfCommand(
+          id: 'nav.home',
+          title: 'Go to Home',
+          category: 'Navigate',
+          onExecute: () => executed.add('nav.home'),
+        ),
+      );
+      registry.register(
+        CfCommand(
+          id: 'theme.dark',
+          title: 'Use Dark Theme',
+          category: 'Appearance',
+          onExecute: () => executed.add('theme.dark'),
+        ),
+      );
+      registry.register(
+        CfCommand(
+          id: 'theme.light',
+          title: 'Use Light Theme',
+          category: 'Appearance',
+          onExecute: () => executed.add('theme.light'),
+        ),
+      );
     });
 
     test('empty query lists all commands', () {

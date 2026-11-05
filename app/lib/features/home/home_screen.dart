@@ -139,8 +139,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     onPressed: _openDemo,
                   ),
                   const SizedBox(height: CfSpacing.sm),
-                  CfButton(
-                    key: const ValueKey('open_folder_disabled'),
+                  const CfButton(
+                    key: ValueKey('open_folder_disabled'),
                     label: 'Open Folder…',
                     icon: Icons.folder_open_outlined,
                     variant: CfButtonVariant.ghost,

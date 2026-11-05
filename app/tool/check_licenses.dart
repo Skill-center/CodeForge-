@@ -94,7 +94,9 @@ void main() {
         if (_allowlist.containsKey(name)) {
           reviewed.add('$name (allowlisted: ${_allowlist[name]})');
         } else {
-          failures.add('$name: unclassified license — review ${licenseFile.path}');
+          failures.add(
+            '$name: unclassified license — review ${licenseFile.path}',
+          );
         }
       }
     }

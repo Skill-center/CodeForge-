@@ -73,7 +73,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Esc'), findsOneWidget);
-    expect(find.text('Read-only preview — editing arrives in Phase 2.'),
-        findsOneWidget);
+    expect(
+      find.text('Read-only preview — editing arrives in Phase 2.'),
+      findsOneWidget,
+    );
   });
 }

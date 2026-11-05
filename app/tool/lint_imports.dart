@@ -47,11 +47,21 @@ void main() {
       }
 
       if (rel.startsWith('design_system/') &&
-          (_startsWithAny(resolved, ['features/', 'services/', 'application/']))) {
-        violations.add('$rel: design_system must stay dependency-free → $target');
+          (_startsWithAny(resolved, [
+            'features/',
+            'services/',
+            'application/',
+          ]))) {
+        violations.add(
+          '$rel: design_system must stay dependency-free → $target',
+        );
       }
       if (rel.startsWith('services/') &&
-          _startsWithAny(resolved, ['features/', 'application/', 'design_system/'])) {
+          _startsWithAny(resolved, [
+            'features/',
+            'application/',
+            'design_system/',
+          ])) {
         violations.add('$rel: services must not depend upward → $target');
       }
       if (rel.startsWith('core/')) {
@@ -59,7 +69,9 @@ void main() {
             !target.startsWith('package:flutter/foundation') &&
             !target.startsWith('package:flutter/animation') &&
             !rel.startsWith('core/platform/')) {
-          violations.add('$rel: core stays pure Dart (foundation/animation ok) → $target');
+          violations.add(
+            '$rel: core stays pure Dart (foundation/animation ok) → $target',
+          );
         }
         if (_startsWithAny(resolved, [
           'features/',
@@ -89,8 +101,10 @@ void main() {
 
   // Version constant must match pubspec (no package_info dependency yet).
   final pubspec = File('pubspec.yaml').readAsStringSync();
-  final versionMatch = RegExp(r'^version:\s*([0-9.]+)', multiLine: true)
-      .firstMatch(pubspec);
+  final versionMatch = RegExp(
+    r'^version:\s*([0-9.]+)',
+    multiLine: true,
+  ).firstMatch(pubspec);
   final versionFile = File('lib/core/version.dart').readAsStringSync();
   final constMatch = RegExp("appVersion = '([^']+)'").firstMatch(versionFile);
   if (versionMatch == null ||

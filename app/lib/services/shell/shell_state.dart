@@ -116,9 +116,11 @@ ShellState decodeShellState(String? raw) {
     }
     final version = parsed['schemaVersion'];
     if (version is! int || version > shellStateSchemaVersion) {
-      appLogger.warn('shell', 'envelope_version_unsupported', fields: {
-        'version': version,
-      });
+      appLogger.warn(
+        'shell',
+        'envelope_version_unsupported',
+        fields: {'version': version},
+      );
       return const ShellState();
     }
     final data = parsed['data'];
@@ -127,9 +129,11 @@ ShellState decodeShellState(String? raw) {
     }
     return ShellState.fromJson(data);
   } on FormatException catch (error) {
-    appLogger.warn('shell', 'envelope_corrupt', fields: {
-      'error': error.message,
-    });
+    appLogger.warn(
+      'shell',
+      'envelope_corrupt',
+      fields: {'error': error.message},
+    );
     return const ShellState();
   }
 }

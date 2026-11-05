@@ -25,9 +25,8 @@ class AboutScreen extends ConsumerWidget {
         leading: CfIconButton(
           icon: Icons.arrow_back,
           tooltip: 'Back',
-          onPressed: () => context.canPop()
-              ? context.pop()
-              : context.go('/settings'),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/settings'),
         ),
         title: const Text('About CodeForge'),
       ),
@@ -44,7 +43,11 @@ class AboutScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(CfRadius.lg),
                   border: Border.all(color: colors.borderSubtle),
                 ),
-                child: Icon(Icons.hardware, size: 32, color: colors.accentEmber),
+                child: Icon(
+                  Icons.hardware,
+                  size: 32,
+                  color: colors.accentEmber,
+                ),
               ),
             ),
             const SizedBox(height: CfSpacing.lg),
@@ -156,9 +159,9 @@ class _LogsScreen extends StatelessWidget {
               final text = records.map((r) => r.render()).join('\n');
               await Clipboard.setData(ClipboardData(text: text));
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logs copied')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Logs copied')));
               }
             },
           ),
@@ -186,9 +189,10 @@ class _LogsScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text(
                     record.render(),
-                    style: CfTypography.code(colors, fontSize: 10).copyWith(
-                      color: color,
-                    ),
+                    style: CfTypography.code(
+                      colors,
+                      fontSize: 10,
+                    ).copyWith(color: color),
                   ),
                 );
               },

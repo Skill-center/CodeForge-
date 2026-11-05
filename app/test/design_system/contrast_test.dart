@@ -10,7 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 double _channel(double c) {
-  return c <= 0.04045 ? c / 12.92 : math.pow((c + 0.055) / 1.055, 2.4).toDouble();
+  return c <= 0.04045
+      ? c / 12.92
+      : math.pow((c + 0.055) / 1.055, 2.4).toDouble();
 }
 
 double _luminance(Color color) {

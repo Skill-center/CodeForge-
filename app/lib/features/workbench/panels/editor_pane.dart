@@ -92,7 +92,7 @@ class EditorPane extends ConsumerWidget {
             ),
           ),
         if (settings.toolbarPreset != ToolbarPreset.none)
-          CfSymbolToolbar(
+          const CfSymbolToolbar(
             enabled: false,
             phaseNote: 'Editor arrives in Phase 2',
           ),
@@ -174,7 +174,12 @@ class _CodeSpecimen extends StatelessWidget {
           : match.group(4) != null
           ? colors.syntaxKeyword
           : colors.syntaxType;
-      spans.add(TextSpan(text: match.group(0), style: TextStyle(color: color)));
+      spans.add(
+        TextSpan(
+          text: match.group(0),
+          style: TextStyle(color: color),
+        ),
+      );
       last = match.end;
     }
     if (last < line.length) {

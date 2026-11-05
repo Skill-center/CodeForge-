@@ -15,13 +15,16 @@ void main() {
         terminalHeight: 260,
         demoWorkspaceOpened: true,
       );
-      expect(decodeShellState(encodeShellState(state)), isA<ShellState>()
-        ..having((s) => s.lastRoute, 'lastRoute', '/workspace')
-        ..having((s) => s.activity, 'activity', ShellActivity.git)
-        ..having((s) => s.terminalStop, 'terminalStop', TerminalStop.half)
-        ..having((s) => s.sidebarWidth, 'sidebarWidth', 300)
-        ..having((s) => s.terminalHeight, 'terminalHeight', 260)
-        ..having((s) => s.demoWorkspaceOpened, 'demoWorkspaceOpened', true));
+      expect(
+        decodeShellState(encodeShellState(state)),
+        isA<ShellState>()
+          ..having((s) => s.lastRoute, 'lastRoute', '/workspace')
+          ..having((s) => s.activity, 'activity', ShellActivity.git)
+          ..having((s) => s.terminalStop, 'terminalStop', TerminalStop.half)
+          ..having((s) => s.sidebarWidth, 'sidebarWidth', 300)
+          ..having((s) => s.terminalHeight, 'terminalHeight', 260)
+          ..having((s) => s.demoWorkspaceOpened, 'demoWorkspaceOpened', true),
+      );
     });
 
     test('corrupt payloads yield defaults', () {
