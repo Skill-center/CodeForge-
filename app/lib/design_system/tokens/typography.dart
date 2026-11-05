@@ -70,15 +70,20 @@ abstract final class CfTypography {
     return base.apply(fontFamily: uiFamily);
   }
 
-  /// Code specimen / future editor style. Ligatures off by default on mobile
-  /// for cursor clarity.
+  /// Code specimen / future editor style. Programming ligatures are off by
+  /// default on mobile for cursor clarity (UI_DESIGN_SYSTEM.md §2); JetBrains
+  /// Mono implements them as contextual alternates, so `calt` is disabled
+  /// along with standard `liga`.
   static TextStyle code(CfColors colors, {double fontSize = 14}) {
     return TextStyle(
       fontFamily: codeFamily,
       fontSize: fontSize,
       height: 1.5,
       color: colors.textPrimary,
-      fontFeatures: const [FontFeature.proportionalFigures()],
+      fontFeatures: const [
+        FontFeature.disable('calt'),
+        FontFeature.disable('liga'),
+      ],
     );
   }
 
