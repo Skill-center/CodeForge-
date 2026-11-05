@@ -101,8 +101,14 @@ flutter test integration_test/smoke_test.dart -d emulator-5554 \
 echo "::endgroup::"
 
 echo "::group::Integration — restore A (establish state)"
+# --no-uninstall is essential: `flutter test integration_test` uninstalls the
+# app by default when the run ends, which wipes the very state the restore
+# gate must verify. Keep it installed so force-stop is a pure process death.
 flutter test integration_test/restore_a_test.dart -d emulator-5554 \
-  --reporter expanded --timeout=300s 2>&1 | tee "$RESULTS/restore_a.txt" || fail=1
+  --no-uninstall --reporter expanded --timeout=300s 2>&1 | tee "$RESULTS/restore_a.txt" || fail=1
+# Evidence: the persisted envelope actually on disk before the process kill.
+"$ADB" shell run-as dev.codeforge.app cat shared_prefs/FlutterSharedPreferences.xml \
+  > "$RESULTS/prefs_after_a.txt" 2>&1 || true
 echo "::endgroup::"
 
 echo "::group::Process kill"

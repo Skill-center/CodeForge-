@@ -46,6 +46,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('palette_theme.light')));
     await tester.pumpAndSettle();
+    // The palette executes setThemeMode without awaiting it; give the
+    // platform channel time to flush the write to disk before CI force-stops
+    // the process (reading prefs here would only see the in-memory cache).
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    await tester.pumpAndSettle();
 
     final reloaded = await SharedPreferences.getInstance();
     final settingsRaw = reloaded.getString(settingsStorageKey);
