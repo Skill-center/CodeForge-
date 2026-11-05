@@ -46,14 +46,17 @@ fi
 echo "::endgroup::"
 
 echo "::group::System image"
-SYSTEM_IMAGE="system-images;android-36;aosp_atd;x86_64"
+# Full image, NOT an ATD. ATD ("automated test device") images strip system
+# services and the GPU stack: the first gate run showed package/storage
+# service crashes ("Can't find service: package", StorageManagerService NPE)
+# and a Flutter surface that never sized. google_apis is the full-featured
+# image used for UI/integration testing; `default` (AOSP) is the fallback.
+SYSTEM_IMAGE="system-images;android-36;google_apis;x86_64"
 yes | "$SDKMANAGER" --licenses > "$RESULTS/licenses.txt" 2>&1 || true
 if ! "$SDKMANAGER" "emulator" "platform-tools" "$SYSTEM_IMAGE" \
     > "$RESULTS/sysimg.txt" 2>&1; then
-  # Not every API level publishes aosp_atd; google_atd is the sibling
-  # flavour (same fallback the t1 audit used). Record the substitution.
-  FALLBACK="${SYSTEM_IMAGE/;aosp_atd;/;google_atd;}"
-  echo "aosp_atd unavailable — falling back to $FALLBACK"
+  FALLBACK="${SYSTEM_IMAGE/;google_apis;/;default;}"
+  echo "google_apis unavailable — falling back to $FALLBACK"
   "$SDKMANAGER" "emulator" "platform-tools" "$FALLBACK" \
     >> "$RESULTS/sysimg.txt" 2>&1 || { tail -30 "$RESULTS/sysimg.txt"; exit 1; }
   SYSTEM_IMAGE="$FALLBACK"
@@ -94,12 +97,12 @@ fail=0
 
 echo "::group::Integration — smoke"
 flutter test integration_test/smoke_test.dart -d emulator-5554 \
-  --reporter expanded 2>&1 | tee "$RESULTS/smoke.txt" || fail=1
+  --reporter expanded --timeout=300s 2>&1 | tee "$RESULTS/smoke.txt" || fail=1
 echo "::endgroup::"
 
 echo "::group::Integration — restore A (establish state)"
 flutter test integration_test/restore_a_test.dart -d emulator-5554 \
-  --reporter expanded 2>&1 | tee "$RESULTS/restore_a.txt" || fail=1
+  --reporter expanded --timeout=300s 2>&1 | tee "$RESULTS/restore_a.txt" || fail=1
 echo "::endgroup::"
 
 echo "::group::Process kill"
@@ -111,7 +114,7 @@ echo "::endgroup::"
 
 echo "::group::Integration — restore B (verify survival)"
 flutter test integration_test/restore_b_test.dart -d emulator-5554 \
-  --reporter expanded 2>&1 | tee "$RESULTS/restore_b.txt" || fail=1
+  --reporter expanded --timeout=300s 2>&1 | tee "$RESULTS/restore_b.txt" || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start measurement (G6, recorded not hard-failed)"
