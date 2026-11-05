@@ -1,6 +1,8 @@
 # CodeForge UI Design System — "Forge"
 
-**Status:** v1 spec for Phase 1 implementation · Original identity, not a VS Code clone (spec §4)
+**Status:** v1.1 — synchronized with the Phase 1 implementation (2026-11-05) · Original identity, not a VS Code clone (spec §4)
+
+**Source of truth:** the token files in `app/lib/design_system/tokens/` (`colors.dart`, `geometry.dart`, `typography.dart`). This document describes them; if the two ever disagree, the code wins and this file is corrected. Contrast is enforced by `app/test/design_system/contrast_test.dart` (G4), targets and labels by `app/test/widget/accessibility_test.dart` (G7).
 
 Direction: **a precision instrument.** Graphite surfaces, ember accent, mono-spaced soul. Calm, dense-but-breathing, zero decoration that doesn't earn its pixels. Think professional workstation hardware, not a neon hacker theme.
 
@@ -19,14 +21,30 @@ Direction: **a precision instrument.** Graphite surfaces, ember accent, mono-spa
 | `text.primary` | `#E8EAF0` | `#1B1E24` | body |
 | `text.secondary` | `#9AA1B0` | `#5B6068` | labels, metadata |
 | `text.disabled` | `#5C6270` | `#A6A9AE` | inactive |
-| `accent.ember` | `#FF7A45` | `#E85D2A` | primary actions, active states, brand |
-| `accent.emberSoft` | `#FF7A4524` | `#E85D2A1F` | active tab underline glow, selection chips |
-| `success` | `#4ADE80` | `#16A34A` | git added, tests pass |
-| `warning` | `#FBBF24` | `#B45309` | dirty state, degraded runtime |
-| `danger` | `#F87171` | `#DC2626` | errors, deletions |
-| `info` | `#60A5FA` | `#2563EB` | links, info diagnostics |
+| `accent.ember` | `#FF7A45` | `#B93E0C` | primary actions, active states, brand |
+| `accent.emberSoft` | `#FF7A4524` | `#B93E0C1F` | active tab underline glow, selection chips |
+| `on.accent` | `#1A0E06` | `#FFFFFF` | text/icons on ember fills (7.32:1 dark, 5.59:1 light) |
+| `success` | `#4ADE80` | `#166534` | git added, tests pass |
+| `warning` | `#FBBF24` | `#92400E` | dirty state, degraded runtime |
+| `danger` | `#F87171` | `#B91C1C` | errors, deletions |
+| `info` | `#60A5FA` | `#1D4ED8` | links, info diagnostics |
 
-Syntax palette (editor + diff, WCAG AA on `surface.sunken`): keywords `#C792EA`, strings `#A5D6A7`, numbers `#F78C6C`, functions `#82AAFF`, types `#FFCB6B`, comments `#6B7280` italic, operators `#89DDFF`, variables `#E8EAF0`. Light theme variants defined in the same token file. **Contrast rule:** all text tokens ≥ 4.5:1 on their surfaces; automated check in CI (Phase 1 G4).
+Syntax palette (editor + diff, WCAG AA on `surface.sunken`):
+
+| Role | Dark | Light |
+|---|---|---|
+| keyword | `#C792EA` | `#7C3AED` |
+| string | `#A5D6A7` | `#166534` |
+| number | `#F78C6C` | `#B93E0C` |
+| function | `#82AAFF` | `#1D4ED8` |
+| type | `#FFCB6B` | `#92400E` |
+| comment (italic) | `#8A93A6` | `#5B6068` |
+| operator | `#89DDFF` | `#0E7490` |
+| variable | `text.primary` | `text.primary` |
+
+**Contrast rule:** all text tokens ≥ 4.5:1 on every surface they can appear on; automated check in CI (Phase 1 G4).
+
+> **v1.1 changes (Phase 1 contrast audit, 2026-11-05).** Several v1 values failed WCAG AA and were darkened in code; minimum ratios over the four light surfaces: ember `#E85D2A` 2.98 → `#B93E0C` 4.78 · success `#16A34A` 2.82 → `#166534` 6.09 · warning `#B45309` 4.29 → `#92400E` 6.06 · danger `#DC2626` 4.13 → `#B91C1C` 5.53 · info `#2563EB` 4.42 → `#1D4ED8` 5.73. Dark comment `#6B7280` (4.02 on sunken, 3.34 on raised) → `#8A93A6` (6.30 / 5.23). Added `on.accent`; the light syntax palette is now specified (lowest: operator 4.58 on sunken).
 
 ## 2. Typography
 
@@ -36,20 +54,23 @@ Syntax palette (editor + diff, WCAG AA on `surface.sunken`): keywords `#C792EA`,
 
 ## 3. Spacing, radius, elevation, motion
 
-- **Spacing:** 4 dp grid — `xs 4, sm 8, md 12, lg 16, xl 24, xxl 32`. Touch targets ≥ 48 dp regardless of visual size.
+- **Spacing:** 4 dp grid — `xs 4, sm 8, md 12, lg 16, xl 24, xxl 32`. Touch targets ≥ 48 dp regardless of visual size (`CfSpacing.minTouchTarget`).
+- **Chrome metrics (as built):** top bar, tab strip and terminal header are a 48 dp touch row + 1 px hairline (`CfSpacing.hairline`; a border insets its children, so bars holding targets add it on top) · tab close 48×48 · explorer tree rows 48 · palette rows ≥ 48 · settings rows ≥ 48 · activity bar 56 (items fill their slot) · nav rail 64 wide (items fill the rail) · symbol toolbar 44 · status strip 24. The active-tab indicator is painted as a foreground decoration so it never shrinks the tab. v1.1 raised the tab strip (40), tree rows (36), terminal header (36) and top-bar buttons (40) to 48 for G7.
 - **Radius:** `sm 6` (chips, inputs), `md 10` (cards, sheets), `lg 14` (dialogs). Never > 14; no pill cards.
 - **Elevation:** dark theme uses **borders + surface steps, not shadows**; light theme 1-level soft shadow for overlays only.
 - **Motion:** durations `fast 120 ms, base 200 ms, slow 320 ms`; curves: standard `easeOutCubic`, entrance `easeOutQuart`, exit `easeInCubic`. Sheet springs critically damped. **Reduc-motion setting** disables non-essential animation. No decorative loops.
 
 ## 4. Layout & breakpoints
 
-`compact < 600 dp · medium 600–840 · expanded > 840` (ARCHITECTURE.md §5). Phone portrait: editor-first, bottom activity bar (Explorer · Search · Run · Git · More), terminal bottom-sheet. Landscape: icon rail. Tablet: persistent sidebar + docked panels + resizable dividers. Status strip (22 dp): branch, runtime status dot, cursor Ln/Col, language, errors count — tappable segments.
+`compact < 600 dp · medium 600–840 · expanded > 840` (ARCHITECTURE.md §5). Phone portrait: editor-first, bottom activity bar (Explorer · Search · Run · Git · More), terminal bottom-sheet. Landscape: icon rail. Tablet: persistent sidebar + docked panels + resizable dividers. Status strip (24 dp): branch, runtime status dot, cursor Ln/Col, language, errors count. In Phase 1 the segments are informational (tooltips, no tap action — so they are not touch targets); each becomes tappable in the phase that delivers its feature, and must then meet the 48 dp target rule (e.g. via a bottom sheet of actions rather than 24 dp hit areas).
 
 ## 5. Component inventory (Phase 1 builds all with states)
 
 `CfScaffold` (adaptive) · `CfActivityBar` / `CfNavRail` · `CfTabStrip` (scrollable, dirty dot, close) · `CfPanel` + `CfDivider` (draggable) · `CfBottomSheet` (3-stop) · `CfButton` (primary/ghost/danger, loading) · `CfIconButton` · `CfInput` + `CfSearchField` · `CfListItem` (file row: icon, name, meta, trailing) · `CfTreeTile` · `CfChip` · `CfBanner` (info/warn/error, dismissible) · `CfEmptyState` (illustration-free: icon + title + one action) · `CfDialog` · `CfSnackbar` · `CfSymbolToolbar` (editor/terminal presets) · `CfStatusStrip` · `CfCommandPalette` (Phase 1 skeleton, fuzzy list) · `CfSettingsTile`.
 
 Every component: default/hover(hardware)/pressed/focused/disabled/loading/error states as applicable; semantics labels; golden tests at 3 breakpoints.
+
+**As built in Phase 1:** `CfButton` · `CfIconButton` · `CfBanner` · `CfEmptyState` · `CfStatusChip` · `CfSectionHeader` · `CfSettingsTile` · `CfTreeRow` · `CfTabStrip` · `CfActivityBar` / `CfNavRail` · `CfStatusStrip` · `CfSymbolToolbar` (keys disabled until Phase 2; they are 36 dp tall and must reach 48 dp targets when enabled) · command palette (`features/palette`). Golden coverage: the component gallery (dark + light) and screen goldens for home / workspace / settings at the G3 gate sizes (`app/test/goldens/`). The remaining inventory items (`CfPanel`/`CfDivider` as standalone widgets, `CfBottomSheet`, `CfInput`/`CfSearchField`, `CfChip`, `CfDialog`, `CfSnackbar`) land with the features that need them.
 
 ## 6. Iconography
 
@@ -62,3 +83,7 @@ Copy: concise, technical, never cute. Errors say what happened + what to do ("Ru
 ## 8. Accessibility
 
 Contrast gates in CI; text scale 1.0–2.0 without clipping (tested at 1.3); TalkBack labels on all interactive elements; focus order for hardware keyboards; reduced-motion honored; color never the only signal (icons + text accompany status colors).
+
+- **Automated (G7):** `accessibility_test.dart` runs Flutter's `androidTapTargetGuideline` and `labeledTapTargetGuideline` on every Phase 1 screen at all gate sizes, plus a direct ≥ 48×48 dp measurement of every enabled `InkWell` — the stock guideline skips targets touching a scrollable or screen edge, which would otherwise exempt tabs, tree rows, palette rows and the top bar.
+- **Rows with a trailing control** (switch, checkbox) are one semantics node: `CfSettingsTile` wraps its row in `MergeSemantics`, as `SwitchListTile` does, so a screen reader announces title, subtitle and switch state as one item instead of focusing an unlabeled switch.
+- **Manual:** a TalkBack spot-check on a device is part of each phase exit (owner).

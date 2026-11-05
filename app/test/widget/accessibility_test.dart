@@ -96,6 +96,21 @@ bool _insideMaterialButton(Element element) {
 String _describe(Element element) {
   final key = element.widget.key;
   if (key is ValueKey<String>) return key.value;
+  // Unkeyed InkWells (e.g. inside CfIconButton): name the nearest keyed or
+  // tooltipped ancestor a few levels up.
+  String? owner;
+  var depth = 0;
+  element.visitAncestorElements((ancestor) {
+    final widget = ancestor.widget;
+    final ancestorKey = widget.key;
+    if (ancestorKey is ValueKey<String>) {
+      owner = ancestorKey.value;
+    } else if (widget is Tooltip && widget.message != null) {
+      owner = 'tooltip "${widget.message}"';
+    }
+    return owner == null && ++depth < 8;
+  });
+  if (owner != null) return owner!;
   String? text;
   void visit(Element child) {
     if (text != null) return;

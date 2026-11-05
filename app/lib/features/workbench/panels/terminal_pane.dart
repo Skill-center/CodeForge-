@@ -26,7 +26,7 @@ class TerminalPane extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            height: CfSpacing.minTouchTarget,
+            height: CfSpacing.minTouchTarget + CfSpacing.hairline,
             padding: const EdgeInsets.only(left: CfSpacing.md),
             decoration: BoxDecoration(
               color: colors.surfacePanel,

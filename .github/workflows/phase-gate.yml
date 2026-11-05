@@ -57,7 +57,7 @@ jobs:
 
       # Cold start (G6) is timed on a release build for the emulator ABI; if
       # this step fails the gate falls back to the plain debug APK and says so
-      # in ci-results/perf.json.
+      # in ci-results/gate/perf.json.
       - name: Build release APK (x86_64, cold-start measurement)
         continue-on-error: true
         run: |
@@ -69,35 +69,20 @@ jobs:
         continue-on-error: true
         run: bash tool/ci/emulator_gate.sh
 
+      # Key evidence also goes out as check-run annotations (readable via the
+      # API) in case the commit-back below fails.
+      - name: Evidence annotations
+        if: always()
+        continue-on-error: true
+        run: bash tool/ci/annotate_gate_evidence.sh
+
       # Log/artifact download hosts are unreachable from the authoring
-      # sandbox, so commit the gate evidence back to the branch.
+      # sandbox, so commit the gate evidence (app/ci-results/gate/) back.
       - name: Commit gate evidence back
         if: always()
         continue-on-error: true
         working-directory: ${{ github.workspace }}
-        run: |
-          git config user.name "codeforge-ci"
-          git config user.email "ci@codeforge.invalid"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No evidence changes to commit."
-            exit 0
-          fi
-          git commit -m "chore(ci): phase-gate evidence [skip ci]"
-          pushed=0
-          for attempt in 1 2 3 4 5; do
-            if git push origin "HEAD:${{ github.ref_name }}" 2>&1; then
-              pushed=1; break
-            fi
-            echo "evidence push attempt $attempt failed; fetch + rebase, retry"
-            git fetch origin "${{ github.ref_name }}"
-            git rebase "origin/${{ github.ref_name }}" || git rebase --abort
-            sleep 10
-          done
-          if [ "$pushed" != "1" ]; then
-            echo "::error::Failed to push gate evidence after 5 attempts."
-            exit 1
-          fi
+        run: bash app/tool/ci/commit_gate_evidence.sh "${{ github.ref_name }}"
 
       - name: Summary
         if: always()
@@ -105,12 +90,12 @@ jobs:
           {
             echo "## Phase gate results"
             echo '```'
-            cat ci-results/host.txt 2>/dev/null || true
-            cat ci-results/system-image.txt 2>/dev/null || true
-            cat ci-results/readiness.txt 2>/dev/null || true
-            cat ci-results/attempts.txt 2>/dev/null || true
-            cat ci-results/coldstart-summary.txt 2>/dev/null || true
-            cat ci-results/gate-result.txt 2>/dev/null || true
+            cat ci-results/gate/host.txt 2>/dev/null || true
+            cat ci-results/gate/system-image.txt 2>/dev/null || true
+            cat ci-results/gate/readiness.txt 2>/dev/null || true
+            cat ci-results/gate/attempts.txt 2>/dev/null || true
+            cat ci-results/gate/coldstart-summary.txt 2>/dev/null || true
+            cat ci-results/gate/gate-result.txt 2>/dev/null || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -119,13 +104,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: phase-gate-results
-          path: app/ci-results/
+          path: app/ci-results/gate/
           if-no-files-found: ignore
 
       - name: Enforce gate
         if: always()
         run: |
           if [ "${{ steps.gate.outcome }}" != "success" ]; then
-            echo "Emulator gate failed — see committed ci-results/ evidence."
+            echo "Emulator gate failed — see committed app/ci-results/gate/ evidence."
             exit 1
           fi

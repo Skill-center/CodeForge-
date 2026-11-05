@@ -42,7 +42,7 @@ class CfTabStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
     return Container(
-      height: CfSpacing.tabStripHeight,
+      height: CfSpacing.tabStripHeight + CfSpacing.hairline,
       decoration: BoxDecoration(
         color: colors.surfacePanel,
         border: Border(bottom: BorderSide(color: colors.borderSubtle)),
@@ -60,7 +60,9 @@ class CfTabStrip extends StatelessWidget {
               child: Container(
                 constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
                 padding: const EdgeInsets.only(left: CfSpacing.md),
-                decoration: BoxDecoration(
+                // Painted over the tab instead of insetting it, so the tab
+                // and its close button stay a full 48 dp tall.
+                foregroundDecoration: BoxDecoration(
                   border: Border(
                     top: BorderSide(
                       color: active ? colors.accentEmber : Colors.transparent,
@@ -246,8 +248,11 @@ class _ActivityButton extends StatelessWidget {
         : selected
         ? colors.accentEmber
         : colors.textSecondary;
+    // The visible caption is the label: the tooltip and the caption Text are
+    // excluded from semantics so screen readers announce it once.
     return Tooltip(
       message: activity.label,
+      excludeFromSemantics: true,
       child: Semantics(
         button: true,
         selected: selected,
@@ -255,19 +260,23 @@ class _ActivityButton extends StatelessWidget {
         child: InkWell(
           key: ValueKey('activity_${activity.id}'),
           onTap: activity.enabled ? () => onSelect(activity.id) : null,
+          // Full width of the bar slot / rail, not just the caption (G7).
           child: SizedBox(
+            width: double.infinity,
             height: CfSpacing.activityBarHeight,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(activity.icon, size: 20, color: fg),
                 const SizedBox(height: 2),
-                Text(
-                  activity.label,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(fontSize: 10, color: fg),
+                ExcludeSemantics(
+                  child: Text(
+                    activity.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(fontSize: 10, color: fg),
+                  ),
                 ),
               ],
             ),

@@ -335,7 +335,7 @@ class _WorkbenchTopBar extends ConsumerWidget {
     final colors = CfColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     return Container(
-      height: 48,
+      height: CfSpacing.minTouchTarget + CfSpacing.hairline,
       padding: const EdgeInsets.symmetric(horizontal: CfSpacing.sm),
       decoration: BoxDecoration(
         color: colors.surfacePanel,

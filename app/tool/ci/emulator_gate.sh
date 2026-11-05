@@ -6,7 +6,8 @@
 # B — then measures cold start on a dedicated release APK.
 # Run from app/ on a Linux CI runner with ANDROID_HOME set.
 #
-# Evidence lands in ci-results/ (committed back by phase-gate.yml):
+# Evidence lands in ci-results/gate/ — a directory owned by this script, so
+# phase-gate.yml can commit it back without touching CI's own diagnostics:
 #   host.txt         runner CPU/RAM, /dev/kvm, acceleration actually used
 #   readiness.txt    boot + framework-readiness timings
 #   attempts.txt     every integration-test attempt and its exit code
@@ -32,11 +33,15 @@ AVDMANAGER="$(command -v avdmanager || echo "$SDK/cmdline-tools/avdmanager")"
 [ -x "$AVDMANAGER" ] || AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager"
 ADB="$(command -v adb || echo "$SDK/platform-tools/adb")"
 APP_ID="dev.codeforge.app"
-RESULTS="ci-results"
+RESULTS="ci-results/gate"
+# Fresh evidence only: the directory belongs to this script.
+rm -rf "$RESULTS"
 mkdir -p "$RESULTS"
-# Fresh evidence only: drop per-attempt files a previous run may have left.
-rm -f "$RESULTS"/*.attempt*.txt "$RESULTS/attempts.txt" \
-  "$RESULTS/readiness.txt" "$RESULTS/process_after_kill.txt"
+# The emulator logs OUTSIDE the workspace: a dying emulator must never write
+# into the tree the commit-back step is committing (gate-7 lost its evidence
+# that way). A tail is copied into the evidence once the emulator is dead.
+EMU_LOG="${RUNNER_TEMP:-/tmp}/codeforge-emulator.log"
+: > "$EMU_LOG"
 
 EMU_PID=""
 fail=0
@@ -49,7 +54,16 @@ finish() {
     # Keep only the tail — full logcat is large and not needed as evidence.
     "$ADB" logcat -d 2>&1 | tail -400 > "$RESULTS/logcat.txt" || true
     kill "$EMU_PID" >/dev/null 2>&1 || true
+    # Wait for it to really exit (then force) so nothing outlives the step.
+    for _ in $(seq 1 20); do
+      kill -0 "$EMU_PID" >/dev/null 2>&1 || break
+      sleep 1
+    done
+    kill -9 "$EMU_PID" >/dev/null 2>&1 || true
   fi
+  pkill -9 -f qemu-system >/dev/null 2>&1 || true
+  "$ADB" kill-server >/dev/null 2>&1 || true
+  tail -200 "$EMU_LOG" > "$RESULTS/emulator.txt" 2>/dev/null || true
   [ "$code" -ne 0 ] && fail=1
   echo "gate_result=$([ "$fail" -eq 0 ] && echo pass || echo fail)" \
     | tee "$RESULTS/gate-result.txt"
@@ -157,7 +171,7 @@ echo no | "$AVDMANAGER" create avd -n gate -k "$SYSTEM_IMAGE" -d pixel_6 \
 # shellcheck disable=SC2086 # ACCEL_ARGS is intentionally word-split.
 "$EMU_BIN" -avd gate -no-window -gpu swiftshader_indirect -no-snapshot \
   -noaudio -no-boot-anim -dns-server 8.8.8.8,1.1.1.1 $ACCEL_ARGS \
-  -memory 4096 -cores "$CORES" > "$RESULTS/emulator.txt" 2>&1 &
+  -memory 4096 -cores "$CORES" > "$EMU_LOG" 2>&1 &
 EMU_PID=$!
 boot_start=$(date +%s)
 booted=""
@@ -171,7 +185,7 @@ for _ in $(seq 1 180); do
   sleep 10
 done
 if [ -z "$booted" ]; then
-  echo "BOOT FAILED"; tail -60 "$RESULTS/emulator.txt"; exit 1
+  echo "BOOT FAILED"; tail -60 "$EMU_LOG"; exit 1
 fi
 echo "boot_completed_after_s=$(($(date +%s) - boot_start)) accel=$ACCEL" \
   | tee -a "$RESULTS/readiness.txt"

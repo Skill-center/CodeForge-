@@ -13,6 +13,11 @@ abstract final class CfSpacing {
   static const double xxl = 32;
 
   static const double minTouchTarget = 48;
+
+  /// Chrome bars draw a 1 px hairline border inside their box, which insets
+  /// their children; bars holding touch targets add it on top of 48 dp so
+  /// the targets keep a full [minTouchTarget] (G7).
+  static const double hairline = 1;
   static const double statusStripHeight = 24;
   static const double activityBarHeight = 56;
   static const double navRailWidth = 64;
