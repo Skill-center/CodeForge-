@@ -7,9 +7,49 @@ Got dependencies!
 3 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/restore_a_test.dart
-Running Gradle task 'assembleDebug'...                             31.9s
+Running Gradle task 'assembleDebug'...                             25.0s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        1,036ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...          842ms
 00:00 +0: restore A: set light theme + workspace + terminal half
-00:08 +1: (tearDownAll)
-00:08 +1: All tests passed!
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 79 pixels on the bottom.
+
+The relevant error-causing widget was:
+  Column
+  Column:file:///home/runner/work/CodeForge-/CodeForge-/app/lib/features/workbench/panels/editor_pane.dart:29:12
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#8d937 relayoutBoundary=up3:
+  needs compositing
+  creator: Column ← EditorPane ← Expanded ← Column ← _CompactPortraitLayout ← MediaQuery ← Padding ←
+    SafeArea ← KeyedSubtree-[GlobalKey#ea806] ← _BodyBuilder ← MediaQuery ←
+    LayoutId-[<_ScaffoldSlot.body>] ← ⋯
+  parentData: offset=Offset(0.0, 49.0); flex=1; fit=FlexFit.tight (can use size)
+  constraints: BoxConstraints(0.0<=w<=411.4, h=346.8)
+  size: Size(411.4, 346.8)
+  direction: vertical
+  mainAxisAlignment: start
+  mainAxisSize: max
+  crossAxisAlignment: stretch
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:08 +0 -1: restore A: set light theme + workspace + terminal half [E]
+  Test failed. See exception logs above.
+  The test description was: restore A: set light theme + workspace + terminal half
+  
+00:08 +0 -1: (tearDownAll)
+00:08 +0 -1: Some tests failed.
+
+Failing tests:
+  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/restore_a_test.dart: restore A: set light theme + workspace + terminal half
