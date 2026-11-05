@@ -169,7 +169,16 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     final compactPortrait = form == CfFormFactor.compact && !landscape;
     final shell = ref.watch(shellControllerProvider);
 
-    return CallbackShortcuts(
+    // Top-level routes are reached with go(), so there is nothing beneath
+    // them to pop: system back (incl. predictive back) returns home, like the
+    // home button, instead of leaving the app (G2). Sheets and dialogs are
+    // routes of their own and still close first.
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/');
+      },
+      child: CallbackShortcuts(
       bindings: {
         const SingleActivator(
           LogicalKeyboardKey.keyP,
@@ -206,6 +215,7 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
               : null,
         ),
       ),
+    ),
     );
   }
 }

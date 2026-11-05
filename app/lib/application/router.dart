@@ -21,6 +21,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   final initialRoute = ref.read(shellControllerProvider).lastRoute;
   final router = GoRouter(
     initialLocation: initialRoute,
+    // Unknown locations (a stale or malformed deep link) land on home
+    // instead of an error page (PHASE_1_PLAN 2.4).
+    onException: (context, state, router) => router.go('/'),
     routes: [
       GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
       GoRoute(

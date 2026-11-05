@@ -31,7 +31,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsControllerProvider);
-    return Scaffold(
+    // Nothing beneath a go()-reached top-level route: system back returns
+    // home, matching the app-bar back button (G2).
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go('/');
+      },
+      child: Scaffold(
       appBar: AppBar(
         leading: CfIconButton(
           icon: Icons.arrow_back,
@@ -106,6 +113,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
