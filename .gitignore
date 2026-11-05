@@ -1,0 +1,44 @@
+# Root hygiene — generated artifacts never enter Git (docs/REPOSITORY_STRUCTURE.md).
+.DS_Store
+Thumbs.db
+*.log
+
+# Flutter / Dart
+app/.dart_tool/
+app/.flutter-plugins*
+app/build/
+app/.pub-cache/
+app/.pub/
+app/coverage/
+app/doc/api/
+*.iml
+.idea/
+.vscode/
+
+# Android
+app/android/.gradle/
+app/android/local.properties
+app/android/app/debug/
+app/android/app/profile/
+app/android/app/release/
+app/android/captures/
+app/android/GeneratedPluginRegistrant.java
+app/android/.cxx/
+**/*.keystore
+**/*.jks
+keystore.properties
+key.properties
+
+# Node (editor workspace, Phase 2+)
+node_modules/
+editor/dist/
+
+# Runtime payloads (Phase 4+) — generated, SHA-verified, never committed
+native/**/build/
+runtime/generated/
+*.apk
+*.aab
+
+# Local env
+.env
+.env.*
