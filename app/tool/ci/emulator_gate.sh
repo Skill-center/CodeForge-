@@ -95,6 +95,40 @@ echo "::endgroup::"
 
 fail=0
 
+echo "::group::Cold start measurement (G6, recorded not hard-failed)"
+# Measured FIRST, on a fresh emulator: after several integration-test
+# installs the package service can flake ("Broken pipe"). This is a
+# record-only measurement (docs/PERFORMANCE.md) and never fails the gate.
+# TCG numbers are environment-relative; the absolute budget is judged on
+# real hardware in later phases.
+installed=0
+for attempt in 1 2 3; do
+  if "$ADB" install -r build/app/outputs/flutter-apk/app-debug.apk \
+      > "$RESULTS/install.txt" 2>&1; then
+    installed=1; break
+  fi
+  echo "cold-start install attempt $attempt failed; retrying"
+  sleep 5
+done
+: > "$RESULTS/coldstart.txt"
+if [ "$installed" = "1" ]; then
+  for run in 1 2 3 4 5; do
+    "$ADB" shell am force-stop dev.codeforge.app
+    sleep 2
+    "$ADB" shell am start -W -n dev.codeforge.app/.MainActivity \
+      | tr -d '\r' | tee -a "$RESULTS/coldstart.txt"
+  done
+  median=$(grep 'TotalTime:' "$RESULTS/coldstart.txt" | awk '{print $2}' \
+    | sort -n | awk '{a[NR]=$1} END {if (NR==0) print 0; else print (NR%2) ? a[(NR+1)/2] : int((a[NR/2]+a[NR/2+1])/2)}')
+  echo "cold_start_median_ms=${median:-0}" | tee "$RESULTS/coldstart-summary.txt"
+else
+  echo "cold_start_median_ms=0 install_failed_record_only=true" \
+    | tee "$RESULTS/coldstart-summary.txt"
+fi
+# Leave the app stopped so the smoke test installs cleanly.
+"$ADB" shell am force-stop dev.codeforge.app || true
+echo "::endgroup::"
+
 echo "::group::Integration — smoke"
 flutter test integration_test/smoke_test.dart -d emulator-5554 \
   --reporter expanded --timeout=300s 2>&1 | tee "$RESULTS/smoke.txt" || fail=1
@@ -121,24 +155,6 @@ echo "::endgroup::"
 echo "::group::Integration — restore B (verify survival)"
 flutter test integration_test/restore_b_test.dart -d emulator-5554 \
   --reporter expanded --timeout=300s 2>&1 | tee "$RESULTS/restore_b.txt" || fail=1
-echo "::endgroup::"
-
-echo "::group::Cold start measurement (G6, recorded not hard-failed)"
-# Measure the plain debug APK (no test harness). TCG emulator numbers are
-# environment-relative; the absolute budget is judged on real hardware in
-# later phases (docs/PERFORMANCE.md).
-"$ADB" install -r build/app/outputs/flutter-apk/app-debug.apk \
-  > "$RESULTS/install.txt" 2>&1 || { tail -20 "$RESULTS/install.txt"; fail=1; }
-: > "$RESULTS/coldstart.txt"
-for run in 1 2 3 4 5; do
-  "$ADB" shell am force-stop dev.codeforge.app
-  sleep 2
-  "$ADB" shell am start -W -n dev.codeforge.app/.MainActivity \
-    | tr -d '\r' | tee -a "$RESULTS/coldstart.txt"
-done
-median=$(grep 'TotalTime:' "$RESULTS/coldstart.txt" | awk '{print $2}' \
-  | sort -n | awk '{a[NR]=$1} END {print (NR%2) ? a[(NR+1)/2] : int((a[NR/2]+a[NR/2+1])/2)}')
-echo "cold_start_median_ms=$median" | tee "$RESULTS/coldstart-summary.txt"
 echo "::endgroup::"
 
 # Keep only the tail — full logcat is large and not needed as evidence.
