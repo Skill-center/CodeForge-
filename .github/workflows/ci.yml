@@ -84,26 +84,65 @@ jobs:
             git push origin HEAD:${{ github.ref_name }}
           fi
 
-      # ── Quality gates (always) ────────────────────────────────────────
+      # ── Quality gates ─────────────────────────────────────────────────
+      # Each gate captures its full output to ci-results/ and is allowed to
+      # fail independently so a single run reports ALL problems. In bootstrap
+      # mode the diagnostics are committed back (log download hosts are not
+      # reachable from the authoring sandbox). A final step enforces the gates.
+      - name: Prepare diagnostics dir
+        run: mkdir -p ci-results
+
       - name: Lockfile drift check
+        id: lockfile
+        continue-on-error: true
         run: |
           flutter pub get
-          git diff --exit-code -- pubspec.lock
+          git diff --exit-code -- pubspec.lock > ci-results/lockfile.txt 2>&1
 
       - name: Format check
-        run: dart format --output=none --set-exit-if-changed .
+        id: format
+        continue-on-error: true
+        run: dart format --output=none --set-exit-if-changed . > ci-results/format.txt 2>&1
 
       - name: Analyze
-        run: flutter analyze
+        id: analyze
+        continue-on-error: true
+        run: flutter analyze > ci-results/analyze.txt 2>&1
 
       - name: Architecture import lint
-        run: dart run tool/lint_imports.dart
+        id: imports
+        continue-on-error: true
+        run: dart run tool/lint_imports.dart > ci-results/imports.txt 2>&1
 
       - name: Dependency license gate
-        run: dart run tool/check_licenses.dart
+        id: licenses
+        continue-on-error: true
+        run: dart run tool/check_licenses.dart > ci-results/licenses.txt 2>&1
 
       - name: Tests (with coverage)
-        run: flutter test --coverage --reporter expanded
+        id: tests
+        continue-on-error: true
+        run: flutter test --coverage --reporter expanded > ci-results/test.txt 2>&1
+
+      - name: Build debug APK
+        id: build
+        continue-on-error: true
+        run: flutter build apk --debug > ci-results/build.txt 2>&1
+
+      - name: APK checksum + size
+        if: steps.build.outcome == 'success'
+        run: |
+          apk=build/app/outputs/flutter-apk/app-debug.apk
+          sha=$(sha256sum "$apk" | cut -d' ' -f1)
+          size=$(stat -c%s "$apk")
+          {
+            echo "apk_sha256=$sha"
+            echo "apk_bytes=$size"
+          } | tee ci-results/apk.txt
+          {
+            echo "apk_sha256=$sha"
+            echo "apk_bytes=$size"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Coverage summary
         if: always()
@@ -112,23 +151,22 @@ jobs:
             total=$(grep -c '^DA:' coverage/lcov.info || true)
             hit=$(awk -F, '/^DA:/ && $2 > 0' coverage/lcov.info | wc -l)
             echo "Line coverage: $hit/$total" >> "$GITHUB_STEP_SUMMARY"
+            echo "line_coverage=$hit/$total" > ci-results/coverage.txt
           fi
 
-      # ── Android build (G1) ────────────────────────────────────────────
-      - name: Build debug APK
-        run: flutter build apk --debug
-
-      - name: APK checksum + size
+      # ── Commit diagnostics back (bootstrap only) ──────────────────────
+      - name: Commit diagnostics back
+        if: always() && contains(github.event.head_commit.message, '[bootstrap]')
+        working-directory: ${{ github.workspace }}
         run: |
-          apk=build/app/outputs/flutter-apk/app-debug.apk
-          sha=$(sha256sum "$apk" | cut -d' ' -f1)
-          size=$(stat -c%s "$apk")
-          echo "apk_sha256=$sha" >> "$GITHUB_STEP_SUMMARY"
-          echo "apk_bytes=$size" >> "$GITHUB_STEP_SUMMARY"
-          echo "APK sha256: $sha"
-          echo "APK size: $size bytes"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ci): gate diagnostics [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
 
       - name: Upload APK
+        if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: codeforge-debug-apk
@@ -142,3 +180,22 @@ jobs:
           name: coverage
           path: app/coverage/lcov.info
           if-no-files-found: ignore
+
+      - name: Enforce quality gates
+        if: always()
+        run: |
+          fail=0
+          for gate in lockfile format analyze imports licenses tests build; do
+            case "$gate" in
+              lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
+              format) outcome="${{ steps.format.outcome }}" ;;
+              analyze) outcome="${{ steps.analyze.outcome }}" ;;
+              imports) outcome="${{ steps.imports.outcome }}" ;;
+              licenses) outcome="${{ steps.licenses.outcome }}" ;;
+              tests) outcome="${{ steps.tests.outcome }}" ;;
+              build) outcome="${{ steps.build.outcome }}" ;;
+            esac
+            echo "$gate: $outcome"
+            [ "$outcome" = "success" ] || fail=1
+          done
+          exit $fail
