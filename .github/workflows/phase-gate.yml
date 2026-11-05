@@ -48,7 +48,21 @@ jobs:
         run: flutter pub get
 
       - name: Build debug APK
-        run: flutter build apk --debug
+        run: |
+          flutter build apk --debug
+          # `flutter test integration_test` rebuilds app-debug.apk with the
+          # test entrypoint, so keep the plain app aside.
+          mkdir -p build/gate
+          cp build/app/outputs/flutter-apk/app-debug.apk build/gate/app-plain-debug.apk
+
+      # Cold start (G6) is timed on a release build for the emulator ABI; if
+      # this step fails the gate falls back to the plain debug APK and says so
+      # in ci-results/perf.json.
+      - name: Build release APK (x86_64, cold-start measurement)
+        continue-on-error: true
+        run: |
+          flutter build apk --release --target-platform android-x64
+          cp build/app/outputs/flutter-apk/app-release.apk build/gate/app-release-x64.apk
 
       - name: Run emulator gate
         id: gate
@@ -90,9 +104,14 @@ jobs:
         run: |
           {
             echo "## Phase gate results"
+            echo '```'
+            cat ci-results/host.txt 2>/dev/null || true
             cat ci-results/system-image.txt 2>/dev/null || true
+            cat ci-results/readiness.txt 2>/dev/null || true
+            cat ci-results/attempts.txt 2>/dev/null || true
             cat ci-results/coldstart-summary.txt 2>/dev/null || true
             cat ci-results/gate-result.txt 2>/dev/null || true
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload gate results
