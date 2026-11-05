@@ -59,23 +59,30 @@ jobs:
       # sandbox, so commit the gate evidence back to the branch.
       - name: Commit gate evidence back
         if: always()
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: |
           git config user.name "codeforge-ci"
           git config user.email "ci@codeforge.invalid"
           git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(ci): phase-gate evidence [skip ci]"
-            # Retry to survive a transient push rejection / concurrent update.
-            for attempt in 1 2 3; do
-              if git pull --rebase origin "${{ github.ref_name }}" \
-                 && git push origin "HEAD:${{ github.ref_name }}"; then
-                break
-              fi
-              echo "evidence push attempt $attempt failed; retrying"
-              sleep 5
-              if [ "$attempt" = "3" ]; then exit 1; fi
-            done
+          if git diff --cached --quiet; then
+            echo "No evidence changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(ci): phase-gate evidence [skip ci]"
+          pushed=0
+          for attempt in 1 2 3 4 5; do
+            if git push origin "HEAD:${{ github.ref_name }}" 2>&1; then
+              pushed=1; break
+            fi
+            echo "evidence push attempt $attempt failed; fetch + rebase, retry"
+            git fetch origin "${{ github.ref_name }}"
+            git rebase "origin/${{ github.ref_name }}" || git rebase --abort
+            sleep 10
+          done
+          if [ "$pushed" != "1" ]; then
+            echo "::error::Failed to push gate evidence after 5 attempts."
+            exit 1
           fi
 
       - name: Summary
