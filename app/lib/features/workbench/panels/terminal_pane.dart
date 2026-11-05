@@ -26,7 +26,7 @@ class TerminalPane extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            height: 36,
+            height: CfSpacing.minTouchTarget,
             padding: const EdgeInsets.only(left: CfSpacing.md),
             decoration: BoxDecoration(
               color: colors.surfacePanel,
@@ -51,8 +51,8 @@ class TerminalPane extends ConsumerWidget {
                       key: const ValueKey('terminal_close'),
                       onTap: onClose,
                       child: SizedBox(
-                        width: 36,
-                        height: 36,
+                        width: CfSpacing.minTouchTarget,
+                        height: CfSpacing.minTouchTarget,
                         child: Icon(
                           Icons.keyboard_arrow_down,
                           size: 18,

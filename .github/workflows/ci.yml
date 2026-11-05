@@ -67,7 +67,7 @@ jobs:
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): bootstrap lockfile, fixes, format [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
           fi
 
       - name: Bootstrap — generate golden baselines
@@ -81,7 +81,7 @@ jobs:
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): golden baselines [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
           fi
 
       # ── Quality gates ─────────────────────────────────────────────────
@@ -162,7 +162,7 @@ jobs:
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): gate diagnostics [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
+            bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
           fi
 
       - name: Upload APK

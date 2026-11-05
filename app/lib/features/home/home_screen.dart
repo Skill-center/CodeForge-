@@ -177,8 +177,10 @@ class _WelcomeSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = CfColors.of(context);
     final textTheme = Theme.of(context).textTheme;
+    // Scrollable so large text scales never overflow on short landscape
+    // screens (G3); the sheet still sizes to its content.
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(CfSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,

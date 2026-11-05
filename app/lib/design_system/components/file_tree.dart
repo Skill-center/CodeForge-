@@ -64,7 +64,7 @@ class CfTreeRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          height: 36,
+          height: CfSpacing.minTouchTarget,
           padding: EdgeInsets.only(left: CfSpacing.sm + depth * 16.0),
           child: Row(
             children: [

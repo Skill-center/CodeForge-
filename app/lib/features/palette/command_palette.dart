@@ -133,7 +133,10 @@ class _CommandPaletteDialogState extends ConsumerState<_CommandPaletteDialog> {
                           child: InkWell(
                             key: ValueKey('palette_${command.id}'),
                             onTap: () => _execute(command),
-                            child: Padding(
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minHeight: CfSpacing.minTouchTarget,
+                              ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: CfSpacing.lg,
                                 vertical: CfSpacing.md,

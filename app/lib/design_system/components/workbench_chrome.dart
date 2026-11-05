@@ -95,7 +95,7 @@ class CfTabStrip extends StatelessWidget {
                         key: ValueKey('tab_close_${tab.id}'),
                         onTap: () => onClose(tab.id),
                         child: SizedBox(
-                          width: 32,
+                          width: CfSpacing.minTouchTarget,
                           height: CfSpacing.tabStripHeight,
                           child: Center(
                             child: tab.dirty

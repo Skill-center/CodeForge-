@@ -348,7 +348,6 @@ class _WorkbenchTopBar extends ConsumerWidget {
             icon: Icons.hardware,
             tooltip: 'CodeForge home',
             size: 18,
-            dimension: 40,
             onPressed: () => context.go('/'),
           ),
           Expanded(
@@ -363,7 +362,6 @@ class _WorkbenchTopBar extends ConsumerWidget {
             icon: Icons.chevron_right,
             tooltip: 'Command palette (Ctrl+Shift+P)',
             size: 18,
-            dimension: 40,
             onPressed: () => showCommandPalette(context),
           ),
           CfIconButton(
@@ -371,7 +369,6 @@ class _WorkbenchTopBar extends ConsumerWidget {
             icon: Icons.terminal,
             tooltip: 'Toggle terminal',
             size: 18,
-            dimension: 40,
             onPressed: onToggleTerminal,
           ),
         ],

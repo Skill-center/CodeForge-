@@ -16,7 +16,8 @@ abstract final class CfSpacing {
   static const double statusStripHeight = 24;
   static const double activityBarHeight = 56;
   static const double navRailWidth = 64;
-  static const double tabStripHeight = 40;
+  /// Tabs and their close buttons are touch targets, so the strip is 48 (G7).
+  static const double tabStripHeight = 48;
   static const double symbolToolbarHeight = 44;
 }
 

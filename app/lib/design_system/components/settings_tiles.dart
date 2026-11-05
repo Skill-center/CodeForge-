@@ -26,40 +26,47 @@ class CfSettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
     final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: CfSpacing.minTouchTarget),
-        padding: const EdgeInsets.symmetric(
-          horizontal: CfSpacing.lg,
-          vertical: CfSpacing.md,
-        ),
-        child: Row(
-          children: [
-            if (leading != null) ...[
-              IconTheme(
-                data: IconThemeData(color: colors.textSecondary, size: 20),
-                child: leading!,
-              ),
-              const SizedBox(width: CfSpacing.lg),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: textTheme.bodyMedium),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(subtitle!, style: textTheme.bodySmall),
+    // One semantics node per row (like SwitchListTile): an interactive
+    // trailing control (e.g. a Switch) is announced with the row's title
+    // instead of as an unlabeled, separately focusable widget (G7).
+    return MergeSemantics(
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(
+            minHeight: CfSpacing.minTouchTarget,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: CfSpacing.lg,
+            vertical: CfSpacing.md,
+          ),
+          child: Row(
+            children: [
+              if (leading != null) ...[
+                IconTheme(
+                  data: IconThemeData(color: colors.textSecondary, size: 20),
+                  child: leading!,
+                ),
+                const SizedBox(width: CfSpacing.lg),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: textTheme.bodyMedium),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(subtitle!, style: textTheme.bodySmall),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            if (trailing != null) ...[
-              const SizedBox(width: CfSpacing.md),
-              trailing!,
+              if (trailing != null) ...[
+                const SizedBox(width: CfSpacing.md),
+                trailing!,
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
