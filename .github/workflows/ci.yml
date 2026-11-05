@@ -152,6 +152,15 @@ jobs:
             hit=$(awk -F, '/^DA:/ && $2 > 0' coverage/lcov.info | wc -l)
             echo "Line coverage: $hit/$total" >> "$GITHUB_STEP_SUMMARY"
             echo "line_coverage=$hit/$total" > ci-results/coverage.txt
+            # Per-layer breakdown (first directory under lib/), so phase
+            # targets such as "core/services >= 90%" are checkable.
+            awk -F'[:,]' '
+              /^SF:/ { f = $2; sub(/^.*lib\//, "", f); n = split(f, part, "/")
+                       layer = (n > 1) ? part[1] : "(root)"; next }
+              /^DA:/ { total[layer]++; if ($3 > 0) hit[layer]++ }
+              END { for (l in total)
+                      printf "layer_coverage %s=%d/%d (%.1f%%)\n", l, hit[l], total[l], 100 * hit[l] / total[l] }
+            ' coverage/lcov.info | sort | tee -a ci-results/coverage.txt >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # ── Commit diagnostics back (bootstrap only) ──────────────────────
