@@ -247,7 +247,7 @@ void main() {
       final node = tester.getSemantics(find.byType(Switch));
       expect(
         node,
-        containsSemantics(
+        isSemantics(
           hasTapAction: true,
           hasToggledState: true,
           isToggled: false,
