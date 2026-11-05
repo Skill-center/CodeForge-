@@ -1,0 +1,70 @@
+name: Phase gate
+
+# Full phase exit gate: emulator integration tests + process-death restore +
+# cold-start measurement. Triggered by a commit message containing
+# [phase-gate] (workflow_dispatch is unavailable until this file reaches the
+# default branch).
+
+on:
+  push:
+    branches: [main, "arena/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  emulator-gate:
+    name: Emulator gate (API 36)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[phase-gate]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .flutter-version
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Run emulator gate
+        run: bash tool/ci/emulator_gate.sh
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Phase gate results"
+            cat ci-results/system-image.txt 2>/dev/null || true
+            cat ci-results/coldstart-summary.txt 2>/dev/null || true
+            cat ci-results/gate-result.txt 2>/dev/null || true
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload gate results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-gate-results
+          path: app/ci-results/
+          if-no-files-found: ignore

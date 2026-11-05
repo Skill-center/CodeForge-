@@ -1,0 +1,54 @@
+name: codeforge
+description: "CodeForge — a premium, mobile-first Android development environment."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.0-0
+
+# Dependency policy: docs/TECH_STACK.md §4 — exact pins, committed lockfile,
+# justification required for every addition. Versions verified 2026-11-05.
+dependencies:
+  flutter:
+    sdk: flutter
+  # State management + DI (ADR-0003). Compile-safe reactive controllers.
+  flutter_riverpod: 3.4.3
+  # Declarative routing with deep links + restoration (ADR-0003).
+  go_router: 18.1.3
+  # Settings persistence only; structured state moves to Drift in Phase 2 (ADR-0008).
+  shared_preferences: 2.5.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/Inter-OFL.txt
+    - assets/fonts/JetBrainsMono-OFL.txt
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter_400Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter_700Bold.ttf
+          weight: 700
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono_400Regular.ttf
+          weight: 400
+        - asset: assets/fonts/JetBrainsMono_400Regular_Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/JetBrainsMono_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/JetBrainsMono_700Bold.ttf
+          weight: 700
