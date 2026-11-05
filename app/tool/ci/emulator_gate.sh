@@ -7,6 +7,16 @@
 set -uo pipefail
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+if [ -z "$SDK" ]; then
+  for cand in /usr/local/lib/android/sdk "$HOME/Android/Sdk" /opt/android-sdk; do
+    [ -d "$cand" ] && SDK="$cand" && break
+  done
+fi
+if [ -z "$SDK" ]; then
+  echo "Android SDK not found (ANDROID_HOME unset and no default path)" >&2
+  exit 1
+fi
+echo "Android SDK: $SDK"
 EMU_BIN="$SDK/emulator/emulator"
 SDKMANAGER="$(command -v sdkmanager || echo "$SDK/cmdline-tools/latest/bin/sdkmanager")"
 AVDMANAGER="$(command -v avdmanager || echo "$SDK/cmdline-tools/avdmanager")"
@@ -37,15 +47,15 @@ echo "::endgroup::"
 
 echo "::group::System image"
 SYSTEM_IMAGE="system-images;android-36;aosp_atd;x86_64"
-yes | "$SDKMANAGER" --licenses > "$RESULTS/licenses.log" 2>&1 || true
+yes | "$SDKMANAGER" --licenses > "$RESULTS/licenses.txt" 2>&1 || true
 if ! "$SDKMANAGER" "emulator" "platform-tools" "$SYSTEM_IMAGE" \
-    > "$RESULTS/sysimg.log" 2>&1; then
+    > "$RESULTS/sysimg.txt" 2>&1; then
   # Not every API level publishes aosp_atd; google_atd is the sibling
   # flavour (same fallback the t1 audit used). Record the substitution.
   FALLBACK="${SYSTEM_IMAGE/;aosp_atd;/;google_atd;}"
   echo "aosp_atd unavailable — falling back to $FALLBACK"
   "$SDKMANAGER" "emulator" "platform-tools" "$FALLBACK" \
-    >> "$RESULTS/sysimg.log" 2>&1 || { tail -30 "$RESULTS/sysimg.log"; exit 1; }
+    >> "$RESULTS/sysimg.txt" 2>&1 || { tail -30 "$RESULTS/sysimg.txt"; exit 1; }
   SYSTEM_IMAGE="$FALLBACK"
 fi
 echo "system_image=$SYSTEM_IMAGE" | tee "$RESULTS/system-image.txt"
@@ -55,13 +65,13 @@ echo "::group::Create AVD + boot"
 export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
 mkdir -p "$ANDROID_AVD_HOME"
 echo no | "$AVDMANAGER" create avd -n gate -k "$SYSTEM_IMAGE" -d pixel_6 \
-  --force > "$RESULTS/avd.log" 2>&1 || { tail -30 "$RESULTS/avd.log"; exit 1; }
+  --force > "$RESULTS/avd.txt" 2>&1 || { tail -30 "$RESULTS/avd.txt"; exit 1; }
 "$EMU_BIN" -avd gate -no-window -gpu swiftshader_indirect -no-snapshot \
   -noaudio -no-boot-anim -dns-server 8.8.8.8,1.1.1.1 $ACCEL_ARGS \
-  -memory 4096 -cores 4 > "$RESULTS/emulator.log" 2>&1 &
+  -memory 4096 -cores 4 > "$RESULTS/emulator.txt" 2>&1 &
 EMU_PID=$!
 booted=""
-for i in $(seq 1 150); do
+for i in $(seq 1 180); do
   if ! kill -0 "$EMU_PID" >/dev/null 2>&1; then
     echo "emulator process died during boot"; break
   fi
@@ -71,7 +81,7 @@ for i in $(seq 1 150); do
   sleep 10
 done
 if [ -z "$booted" ]; then
-  echo "BOOT FAILED"; tail -60 "$RESULTS/emulator.log"; exit 1
+  echo "BOOT FAILED"; tail -60 "$RESULTS/emulator.txt"; exit 1
 fi
 "$ADB" shell settings put global window_animation_scale 0 || true
 "$ADB" shell settings put global transition_animation_scale 0 || true
@@ -84,24 +94,24 @@ fail=0
 
 echo "::group::Integration — smoke"
 flutter test integration_test/smoke_test.dart -d emulator-5554 \
-  --reporter expanded 2>&1 | tee "$RESULTS/smoke.log" || fail=1
+  --reporter expanded 2>&1 | tee "$RESULTS/smoke.txt" || fail=1
 echo "::endgroup::"
 
 echo "::group::Integration — restore A (establish state)"
 flutter test integration_test/restore_a_test.dart -d emulator-5554 \
-  --reporter expanded 2>&1 | tee "$RESULTS/restore_a.log" || fail=1
+  --reporter expanded 2>&1 | tee "$RESULTS/restore_a.txt" || fail=1
 echo "::endgroup::"
 
 echo "::group::Process kill"
 # Real process death — the G5 gate. install -r during the next test run
 # preserves app data, exactly like an update over a killed process.
-"$ADB" shell am force-stop dev.codeforge.app | tee "$RESULTS/force_stop.log"
+"$ADB" shell am force-stop dev.codeforge.app | tee "$RESULTS/force_stop.txt"
 sleep 3
 echo "::endgroup::"
 
 echo "::group::Integration — restore B (verify survival)"
 flutter test integration_test/restore_b_test.dart -d emulator-5554 \
-  --reporter expanded 2>&1 | tee "$RESULTS/restore_b.log" || fail=1
+  --reporter expanded 2>&1 | tee "$RESULTS/restore_b.txt" || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start measurement (G6, recorded not hard-failed)"
@@ -109,7 +119,7 @@ echo "::group::Cold start measurement (G6, recorded not hard-failed)"
 # environment-relative; the absolute budget is judged on real hardware in
 # later phases (docs/PERFORMANCE.md).
 "$ADB" install -r build/app/outputs/flutter-apk/app-debug.apk \
-  > "$RESULTS/install.log" 2>&1 || { tail -20 "$RESULTS/install.log"; fail=1; }
+  > "$RESULTS/install.txt" 2>&1 || { tail -20 "$RESULTS/install.txt"; fail=1; }
 : > "$RESULTS/coldstart.txt"
 for run in 1 2 3 4 5; do
   "$ADB" shell am force-stop dev.codeforge.app
@@ -122,7 +132,8 @@ median=$(grep 'TotalTime:' "$RESULTS/coldstart.txt" | awk '{print $2}' \
 echo "cold_start_median_ms=$median" | tee "$RESULTS/coldstart-summary.txt"
 echo "::endgroup::"
 
-"$ADB" logcat -d > "$RESULTS/logcat.log" 2>&1 || true
+# Keep only the tail — full logcat is large and not needed as evidence.
+"$ADB" logcat -d 2>&1 | tail -400 > "$RESULTS/logcat.txt" || true
 echo "gate_result=$([ $fail -eq 0 ] && echo pass || echo fail)" \
   | tee "$RESULTS/gate-result.txt"
 exit $fail

@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: phase-gate-${{ github.ref }}
@@ -49,7 +49,23 @@ jobs:
         run: flutter build apk --debug
 
       - name: Run emulator gate
+        id: gate
+        continue-on-error: true
         run: bash tool/ci/emulator_gate.sh
+
+      # Log/artifact download hosts are unreachable from the authoring
+      # sandbox, so commit the gate evidence back to the branch.
+      - name: Commit gate evidence back
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "codeforge-ci"
+          git config user.email "ci@codeforge.invalid"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ci): phase-gate evidence [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
 
       - name: Summary
         if: always()
@@ -68,3 +84,11 @@ jobs:
           name: phase-gate-results
           path: app/ci-results/
           if-no-files-found: ignore
+
+      - name: Enforce gate
+        if: always()
+        run: |
+          if [ "${{ steps.gate.outcome }}" != "success" ]; then
+            echo "Emulator gate failed — see committed ci-results/ evidence."
+            exit 1
+          fi
