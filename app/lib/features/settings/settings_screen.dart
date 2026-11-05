@@ -39,81 +39,81 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (!didPop) context.go('/');
       },
       child: Scaffold(
-      appBar: AppBar(
-        leading: CfIconButton(
-          icon: Icons.arrow_back,
-          tooltip: 'Back',
-          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+        appBar: AppBar(
+          leading: CfIconButton(
+            icon: Icons.arrow_back,
+            tooltip: 'Back',
+            onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+          ),
+          title: const Text('Settings'),
         ),
-        title: const Text('Settings'),
-      ),
-      body: SafeArea(
-        child: ListView(
-          children: [
-            const CfSectionHeader('Workspace'),
-            CfSettingsTile(
-              leading: const Icon(Icons.palette_outlined),
-              title: 'Appearance',
-              subtitle: 'Theme, editor font, motion, toolbar',
-              trailing: const Icon(Icons.chevron_right, size: 18),
-              onTap: () => context.go('/settings/appearance'),
-            ),
-            CfSettingsTile(
-              key: const ValueKey('settings_reduced_motion'),
-              leading: const Icon(Icons.motion_photos_off_outlined),
-              title: 'Reduced motion',
-              subtitle: 'Minimize non-essential animation',
-              trailing: Switch(
-                value: settings.reducedMotion,
-                onChanged: (value) => ref
-                    .read(settingsControllerProvider.notifier)
-                    .setReducedMotion(value),
-              ),
-              onTap: () => ref
-                  .read(settingsControllerProvider.notifier)
-                  .setReducedMotion(!settings.reducedMotion),
-            ),
-            const CfSectionHeader('Coming in later phases'),
-            const CfSettingsTile(
-              leading: Icon(Icons.folder_outlined),
-              title: 'Storage & folders',
-              subtitle: 'Phase 3 — SAF workspace access',
-              onTap: null,
-            ),
-            const CfSettingsTile(
-              leading: Icon(Icons.memory),
-              title: 'Linux runtime',
-              subtitle: 'Phase 4 — install and health',
-              onTap: null,
-            ),
-            const CfSettingsTile(
-              leading: Icon(Icons.extension_outlined),
-              title: 'Extensions',
-              subtitle: 'Phase 7 — curated catalog',
-              onTap: null,
-            ),
-            const CfSectionHeader('About'),
-            CfSettingsTile(
-              leading: const Icon(Icons.info_outline),
-              title: 'About CodeForge',
-              subtitle: 'Version, licenses, diagnostics',
-              trailing: const Icon(Icons.chevron_right, size: 18),
-              onTap: () => context.go('/settings/about'),
-            ),
-            if (kDebugMode)
+        body: SafeArea(
+          child: ListView(
+            children: [
+              const CfSectionHeader('Workspace'),
               CfSettingsTile(
-                key: const ValueKey('settings_gallery'),
-                leading: const Icon(Icons.design_services_outlined),
-                title: 'Component gallery',
-                subtitle: 'Debug only — Forge design system',
+                leading: const Icon(Icons.palette_outlined),
+                title: 'Appearance',
+                subtitle: 'Theme, editor font, motion, toolbar',
                 trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () => context.go('/settings/gallery'),
+                onTap: () => context.go('/settings/appearance'),
               ),
-            const SizedBox(height: CfSpacing.xl),
-          ],
+              CfSettingsTile(
+                key: const ValueKey('settings_reduced_motion'),
+                leading: const Icon(Icons.motion_photos_off_outlined),
+                title: 'Reduced motion',
+                subtitle: 'Minimize non-essential animation',
+                trailing: Switch(
+                  value: settings.reducedMotion,
+                  onChanged: (value) => ref
+                      .read(settingsControllerProvider.notifier)
+                      .setReducedMotion(value),
+                ),
+                onTap: () => ref
+                    .read(settingsControllerProvider.notifier)
+                    .setReducedMotion(!settings.reducedMotion),
+              ),
+              const CfSectionHeader('Coming in later phases'),
+              const CfSettingsTile(
+                leading: Icon(Icons.folder_outlined),
+                title: 'Storage & folders',
+                subtitle: 'Phase 3 — SAF workspace access',
+                onTap: null,
+              ),
+              const CfSettingsTile(
+                leading: Icon(Icons.memory),
+                title: 'Linux runtime',
+                subtitle: 'Phase 4 — install and health',
+                onTap: null,
+              ),
+              const CfSettingsTile(
+                leading: Icon(Icons.extension_outlined),
+                title: 'Extensions',
+                subtitle: 'Phase 7 — curated catalog',
+                onTap: null,
+              ),
+              const CfSectionHeader('About'),
+              CfSettingsTile(
+                leading: const Icon(Icons.info_outline),
+                title: 'About CodeForge',
+                subtitle: 'Version, licenses, diagnostics',
+                trailing: const Icon(Icons.chevron_right, size: 18),
+                onTap: () => context.go('/settings/about'),
+              ),
+              if (kDebugMode)
+                CfSettingsTile(
+                  key: const ValueKey('settings_gallery'),
+                  leading: const Icon(Icons.design_services_outlined),
+                  title: 'Component gallery',
+                  subtitle: 'Debug only — Forge design system',
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => context.go('/settings/gallery'),
+                ),
+              const SizedBox(height: CfSpacing.xl),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }

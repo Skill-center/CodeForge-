@@ -179,43 +179,43 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         if (!didPop) context.go('/');
       },
       child: CallbackShortcuts(
-      bindings: {
-        const SingleActivator(
-          LogicalKeyboardKey.keyP,
-          control: true,
-          shift: true,
-        ): () =>
-            showCommandPalette(context),
-      },
-      child: Focus(
-        autofocus: true,
-        child: Scaffold(
-          body: SafeArea(
-            child: compactPortrait
-                ? _CompactPortraitLayout(
-                    shell: shell,
-                    onToggleTerminal: _toggleTerminal,
+        bindings: {
+          const SingleActivator(
+            LogicalKeyboardKey.keyP,
+            control: true,
+            shift: true,
+          ): () =>
+              showCommandPalette(context),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            body: SafeArea(
+              child: compactPortrait
+                  ? _CompactPortraitLayout(
+                      shell: shell,
+                      onToggleTerminal: _toggleTerminal,
+                    )
+                  : _DockedLayout(
+                      shell: shell,
+                      form: form,
+                      onActivitySelected: _onActivitySelected,
+                      onToggleTerminal: _toggleTerminal,
+                    ),
+            ),
+            bottomNavigationBar: compactPortrait
+                ? SafeArea(
+                    top: false,
+                    child: CfActivityBar(
+                      activities: _activities,
+                      activeId: shell.activity.name,
+                      onSelect: _onActivitySelected,
+                    ),
                   )
-                : _DockedLayout(
-                    shell: shell,
-                    form: form,
-                    onActivitySelected: _onActivitySelected,
-                    onToggleTerminal: _toggleTerminal,
-                  ),
+                : null,
           ),
-          bottomNavigationBar: compactPortrait
-              ? SafeArea(
-                  top: false,
-                  child: CfActivityBar(
-                    activities: _activities,
-                    activeId: shell.activity.name,
-                    onSelect: _onActivitySelected,
-                  ),
-                )
-              : null,
         ),
       ),
-    ),
     );
   }
 }

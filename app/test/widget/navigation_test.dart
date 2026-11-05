@@ -56,7 +56,9 @@ List<String> _recordAppExits(WidgetTester tester) {
 
 Future<void> _start(WidgetTester tester, String route) async {
   setSurface(tester, 412, 915);
-  await tester.pumpWidget(TestHarness(shell: ShellState(lastRoute: route)).app());
+  await tester.pumpWidget(
+    TestHarness(shell: ShellState(lastRoute: route)).app(),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -124,9 +126,7 @@ void main() {
       await _flush(tester);
     });
 
-    testWidgets('a dialog closes before the page handles back', (
-      tester,
-    ) async {
+    testWidgets('a dialog closes before the page handles back', (tester) async {
       final exits = _recordAppExits(tester);
       await _start(tester, '/workspace');
       await tester.tap(find.byKey(const ValueKey('palette_button')));
