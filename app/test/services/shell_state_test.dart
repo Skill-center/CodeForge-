@@ -18,12 +18,12 @@ void main() {
       expect(
         decodeShellState(encodeShellState(state)),
         isA<ShellState>()
-          .having((s) => s.lastRoute, 'lastRoute', '/workspace')
-          .having((s) => s.activity, 'activity', ShellActivity.git)
-          .having((s) => s.terminalStop, 'terminalStop', TerminalStop.half)
-          .having((s) => s.sidebarWidth, 'sidebarWidth', 300)
-          .having((s) => s.terminalHeight, 'terminalHeight', 260)
-          .having((s) => s.demoWorkspaceOpened, 'demoWorkspaceOpened', true),
+            .having((s) => s.lastRoute, 'lastRoute', '/workspace')
+            .having((s) => s.activity, 'activity', ShellActivity.git)
+            .having((s) => s.terminalStop, 'terminalStop', TerminalStop.half)
+            .having((s) => s.sidebarWidth, 'sidebarWidth', 300)
+            .having((s) => s.terminalHeight, 'terminalHeight', 260)
+            .having((s) => s.demoWorkspaceOpened, 'demoWorkspaceOpened', true),
       );
     });
 
