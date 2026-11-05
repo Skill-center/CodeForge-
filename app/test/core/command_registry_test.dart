@@ -13,8 +13,11 @@ void main() {
     });
 
     test('contiguous runs score higher than scattered hits', () {
-      final contiguous = fuzzyScore('theme', 'Use Dark Theme')!;
-      final scattered = fuzzyScore('theme', 'The Hidden Menu Entry')!;
+      // 'term' is a contiguous run in 'Terminal' but scattered mid-word in
+      // 'The Error Room Map' (no word-boundary bonuses), so it must score
+      // strictly higher in the former.
+      final contiguous = fuzzyScore('term', 'Terminal')!;
+      final scattered = fuzzyScore('term', 'The Error Room Map')!;
       expect(contiguous, greaterThan(scattered));
     });
 

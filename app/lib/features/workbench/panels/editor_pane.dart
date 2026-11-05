@@ -20,7 +20,6 @@ class EditorPane extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = CfColors.of(context);
     final tabs = ref.watch(editorTabsProvider);
     final settings = ref.watch(settingsControllerProvider);
     final activeDoc = tabs.activePath == null
