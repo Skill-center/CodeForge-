@@ -50,9 +50,9 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Results copied as JSON')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Results copied as JSON')));
   }
 
   @override

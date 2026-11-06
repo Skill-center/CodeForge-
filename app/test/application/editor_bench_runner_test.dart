@@ -68,12 +68,10 @@ void main() {
 
       expect(runner.phase, BenchPhase.idle);
       expect(runner.errors, isEmpty);
-      expect([for (final run in runner.runs) run['engine']], [
-        'codemirror',
-        'monaco',
-        'monaco',
-        'codemirror',
-      ]);
+      expect(
+        [for (final run in runner.runs) run['engine']],
+        ['codemirror', 'monaco', 'monaco', 'codemirror'],
+      );
       // One fresh page per run, each closed again.
       expect(surfaces, hasLength(4));
       expect(surfaces.every((s) => s.disposed), isTrue);
@@ -99,10 +97,10 @@ void main() {
       final runner = fakeBenchRunner(engines: ['codemirror', 'monaco']);
       await runner.init();
       await runner.runAll(only: ['monaco'], runsPerEngine: 2);
-      expect([for (final run in runner.runs) run['engine']], [
-        'monaco',
-        'monaco',
-      ]);
+      expect(
+        [for (final run in runner.runs) run['engine']],
+        ['monaco', 'monaco'],
+      );
       runner.dispose();
     });
 

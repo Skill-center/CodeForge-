@@ -57,84 +57,77 @@ Future<void> printReport(String engine, String json) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets(
-    'editor benchmark: $_engine',
-    (tester) async {
-      EditorBenchRunner? captured;
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            editorBenchRunnerFactoryProvider.overrideWithValue(() {
-              final runner = EditorBenchRunner(
-                loadManifest: () => loadBenchManifest(rootBundle),
-                loadPage: (info) => loadBenchPage(rootBundle, info),
-                createSurface: WebViewBenchSurface.new,
-              );
-              captured = runner;
-              return runner;
-            }),
-          ],
-          child: MaterialApp(
-            theme: CfTheme.dark(),
-            home: const EditorBenchmarkScreen(),
-          ),
+  testWidgets('editor benchmark: $_engine', (tester) async {
+    EditorBenchRunner? captured;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          editorBenchRunnerFactoryProvider.overrideWithValue(() {
+            final runner = EditorBenchRunner(
+              loadManifest: () => loadBenchManifest(rootBundle),
+              loadPage: (info) => loadBenchPage(rootBundle, info),
+              createSurface: WebViewBenchSurface.new,
+            );
+            captured = runner;
+            return runner;
+          }),
+        ],
+        child: MaterialApp(
+          theme: CfTheme.dark(),
+          home: const EditorBenchmarkScreen(),
         ),
-      );
-      final runner = captured!;
-      await pumpUntil(
-        tester,
-        () => runner.phase != BenchPhase.loading,
-        what: 'the benchmark manifest',
-      );
-      expect(runner.phase, BenchPhase.idle, reason: runner.message);
-      expect(runner.engines, contains(_engine));
+      ),
+    );
+    final runner = captured!;
+    await pumpUntil(
+      tester,
+      () => runner.phase != BenchPhase.loading,
+      what: 'the benchmark manifest',
+    );
+    expect(runner.phase, BenchPhase.idle, reason: runner.message);
+    expect(runner.engines, contains(_engine));
 
-      var finished = false;
-      final watch = Stopwatch()..start();
+    var finished = false;
+    final watch = Stopwatch()..start();
+    runner.runAll(only: [_engine], runsPerEngine: _runs).whenComplete(() {
+      finished = true;
+    }).ignore();
+    await pumpUntil(
+      tester,
+      () => finished,
+      what: 'the $_engine benchmark runs',
+      timeout: const Duration(minutes: 12),
+    );
+    debugPrint(
+      'editor-bench: $_engine ${runner.runs.length}/$_runs runs in '
+      '${watch.elapsed.inSeconds} s',
+    );
+
+    if (_driver) {
+      var driven = false;
       runner
-          .runAll(only: [_engine], runsPerEngine: _runs)
+          .driverPhase(_engine, timeout: const Duration(minutes: 4))
           .whenComplete(() {
-            finished = true;
+            driven = true;
           })
           .ignore();
       await pumpUntil(
         tester,
-        () => finished,
-        what: 'the $_engine benchmark runs',
-        timeout: const Duration(minutes: 12),
+        () => driven,
+        what: 'the DevTools driver phase',
+        timeout: const Duration(minutes: 5),
       );
-      debugPrint(
-        'editor-bench: $_engine ${runner.runs.length}/$_runs runs in '
-        '${watch.elapsed.inSeconds} s',
-      );
+    }
 
-      if (_driver) {
-        var driven = false;
-        runner
-            .driverPhase(_engine, timeout: const Duration(minutes: 4))
-            .whenComplete(() {
-              driven = true;
-            })
-            .ignore();
-        await pumpUntil(
-          tester,
-          () => driven,
-          what: 'the DevTools driver phase',
-          timeout: const Duration(minutes: 5),
-        );
-      }
+    await printReport(_engine, runner.reportJson());
 
-      await printReport(_engine, runner.reportJson());
-
-      expect(runner.errors, isEmpty, reason: runner.errors.join('\n'));
-      expect(runner.runs, hasLength(_runs));
-      final summary = runner.summary()[_engine];
-      if (summary is! Map<String, Object?>) {
-        fail('no summary for $_engine');
-      }
-      expect(summary['featuresOk'], isTrue, reason: 'scope checks');
-      expect(summary['highlightOk'], isTrue, reason: 'highlighting');
-    },
-    timeout: const Timeout(Duration(minutes: 20)),
-  );
+    expect(runner.errors, isEmpty, reason: runner.errors.join('\n'));
+    expect(runner.runs, hasLength(_runs));
+    final summary = runner.summary()[_engine];
+    if (summary is! Map<String, Object?>) {
+      fail('no summary for $_engine');
+    }
+    expect(summary['featuresOk'], isTrue, reason: 'scope checks');
+    expect(summary['highlightOk'], isTrue, reason: 'highlighting');
+  }, timeout: const Timeout(Duration(minutes: 20)));
 }

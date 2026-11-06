@@ -433,9 +433,7 @@ final class EditorBenchRunner extends ChangeNotifier {
       }
       final medians = <String, Object?>{
         for (final MapEntry(key: name, value: path) in benchMetrics.entries)
-          name: median([
-            for (final result in results) ?numAt(result, path),
-          ]),
+          name: median([for (final result in results) ?numAt(result, path)]),
       };
       final first = results.first;
       out[engine] = {

@@ -160,7 +160,8 @@ EditorBenchRunner fakeBenchRunner({
   Duration runTimeout = const Duration(seconds: 5),
 }) {
   return EditorBenchRunner(
-    loadManifest: () async => Ok([for (final e in engines) fakeBenchPageInfo(e)]),
+    loadManifest: () async =>
+        Ok([for (final e in engines) fakeBenchPageInfo(e)]),
     // The fake page's HTML is its engine id: the surface answers as it.
     loadPage: (info) async => Ok(BenchPage(info: info, html: info.engine)),
     createSurface: () {

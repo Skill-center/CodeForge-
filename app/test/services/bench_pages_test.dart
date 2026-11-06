@@ -127,10 +127,10 @@ void main() {
       final entries = await benchLicenses(
         _MemoryBundle({benchNoticesAsset: notices}),
       ).toList();
-      expect([for (final e in entries) e.packages.single], [
-        'monaco-editor',
-        'crelt',
-      ]);
+      expect(
+        [for (final e in entries) e.packages.single],
+        ['monaco-editor', 'crelt'],
+      );
     });
   });
 }

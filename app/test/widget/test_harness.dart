@@ -27,11 +27,10 @@ final class TestHarness {
     ShellState? shell,
     this.editorPageLoader,
     this.benchRunnerFactory,
-  })
-    : settingsStore = InMemorySettingsStore(
-        settings ?? const AppSettings(welcomeSeen: true),
-      ),
-      shellStore = InMemoryShellStateStore(shell);
+  }) : settingsStore = InMemorySettingsStore(
+         settings ?? const AppSettings(welcomeSeen: true),
+       ),
+       shellStore = InMemoryShellStateStore(shell);
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;

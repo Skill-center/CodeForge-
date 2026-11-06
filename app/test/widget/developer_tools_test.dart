@@ -114,7 +114,10 @@ void main() {
     await tester.pumpAndSettle();
     final page = surfaces.single;
     expect(page.engine, 'monaco');
-    expect(find.byKey(const ValueKey('fake_bench_view_monaco')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('fake_bench_view_monaco')),
+      findsOneWidget,
+    );
     final phrase = tester.widget<SelectableText>(
       find.byKey(const ValueKey('bench_phrase_text')),
     );
@@ -130,7 +133,9 @@ void main() {
     expect(page.disposed, isTrue);
     expect(
       _results(tester),
-      contains('typing monaco code: match (editcontext, input p95 14.5 ms over 26)'),
+      contains(
+        'typing monaco code: match (editcontext, input p95 14.5 ms over 26)',
+      ),
     );
   });
 
