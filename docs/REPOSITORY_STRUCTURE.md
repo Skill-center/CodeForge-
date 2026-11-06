@@ -72,7 +72,8 @@ CodeForge-/
 │
 ├── docs/                         # all project documentation (spec §13)
 │   ├── adr/                      # architecture decision records
-│   ├── phases/                   # per-phase plans + exit reports
+│   ├── phases/                   # per-phase plans + exit reports, phone checklists;
+│   │                             #   evidence/: owner device runs (screenshots, raw results)
 │   └── *.md
 │
 ├── .github/

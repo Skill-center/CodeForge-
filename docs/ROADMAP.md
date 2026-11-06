@@ -51,8 +51,8 @@ On 2026-11-06 the owner parked every check that needs their phone. Each one has 
 | Check | From | What it needs | Emulator counterpart |
 |---|---|---|---|
 | TalkBack spot-check (10 items) | Phase 1 report §8 | a phone with TalkBack, the CI debug APK | `accessibility_test` (tap targets, labels, 1.3× text) |
-| Navigation frame profile in profile mode | Phase 1 G6 | a phone (Flutter refuses profile mode on emulators) | none: emulator frame times are not meaningful |
-| Editor engine benchmark on arm64 (ADR-0004) | Phase 2 G1 | a phone, the in-app benchmark screen (debug APK) | the same benchmark on the KVM emulator in the phase gate |
+| ~~Navigation frame profile in profile mode~~ **done 2026-11-06** | Phase 1 G6 | a phone (Flutter refuses profile mode on emulators) | result: 3.4 % of frames over 32 ms on a realme C51 (PHASE_1_REPORT §7) |
+| ~~Editor engine benchmark on arm64 (ADR-0004)~~ **done 2026-11-06** | Phase 2 G1 | a phone, the in-app benchmark screen (profile APK) | result: CodeMirror 6 chosen (ADR-0004 Accepted); the emulator runs the same benchmark in every phase gate |
 | Gboard IME matrix (swipe, voice, CJK, emoji) | Phase 2 G1 | a phone with Gboard | scripted composition events on the emulator |
 
 ## Owner decision queue (non-blocking for P1–P3)

@@ -1,10 +1,10 @@
 # Editor Architecture
 
-**Status:** Phase 2 in progress: the CodeMirror 6 page (W1) and its WebView host (W2) are built; the W3 benchmark of both engines is built and the engine decision waits for its numbers (ADR-0004)
+**Status:** Phase 2 in progress: the CodeMirror 6 page (W1) and its WebView host (W2) are built. **The engine is decided: CodeMirror 6** (ADR-0004 Accepted 2026-11-06, after the W3 benchmark on the emulator and the owner's low-end phone)
 
 ---
 
-## 1. Engine decision: CodeMirror 6 primary, Monaco challenged
+## 1. Engine decision: CodeMirror 6 (decided in W3; Monaco challenged and measured)
 
 Spec §3 requires evaluating Monaco first, then choosing on **actual Android device testing**. Desk evaluation (2026-11-05):
 
@@ -80,6 +80,7 @@ Flutter (Dart)                      WebView (bundled assets only)
 ## 3. Mobile editing experience (spec §4.4)
 
 - **Symbol toolbar** (Flutter widget above IME): customizable row — `Tab ⇥ {} [] () ; : = > < " ' | & $ # ~ \` _ /` + undo/redo + cursor arrows + dismiss-keyboard. Long-press for paired variants. Config per language; hardware keyboard attached → toolbar collapses to a slim strip.
+- **Selection visibility:** the active line is highlighted only around a plain cursor, never while text on it is selected (`editor/src/editor/active_line.ts`). The host sends the active-line colour as an opaque, contrast-tested token, and CodeMirror draws selections beneath the lines, so a highlighted line would hide its own selection. The phone run in W3 found exactly that.
 - **IME integration:** CM6 runs in contentEditable mode; Flutter side uses `SystemChannels.textInput` awareness only for toolbar insets — the WebView owns its IME session (no double-IME). Tested matrix: Gboard swipe, voice, CJK, RTL, emoji, physical keyboard.
 - **Shortcuts (hardware):** Ctrl+S/P/F/H/Z/Y/Shift+Z, Ctrl+G, Ctrl+/, Ctrl+D, Alt+↑/↓ handled in CM6 keymap; app-level (Ctrl+Shift+P palette, Ctrl+W close tab) handled in Flutter via `HardwareKeyboard`/`Shortcuts`.
 - **Tabs & dirty state:** Flutter tab strip (scrollable, close buttons, dirty dot); state in EditorService; restoration after process death from journal (Phase 2 acceptance: kill mid-edit → reopen → zero loss).

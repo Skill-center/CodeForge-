@@ -122,11 +122,30 @@ void main() {
       find.byKey(const ValueKey('bench_phrase_text')),
     );
     expect(phrase.data, benchPhrases.first.text);
+    // The person is told what to do, and nothing is judged yet.
+    expect(find.byKey(const ValueKey('bench_typing_help')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bench_typing_result')), findsNothing);
+
+    page.typed = 'const';
+    await tester.tap(find.byKey(const ValueKey('bench_check')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('bench_typing_result')))
+          .data,
+      'Differs at character 0. The editor has: "const"',
+    );
 
     page.typed = benchPhrases.first.text;
     await tester.tap(find.byKey(const ValueKey('bench_check')));
     await tester.pumpAndSettle();
     expect(find.textContaining('match.'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('bench_typing_result')))
+          .data,
+      'Match',
+    );
 
     await tester.tap(find.byKey(const ValueKey('bench_typing_done')));
     await tester.pumpAndSettle();

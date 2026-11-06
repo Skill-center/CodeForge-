@@ -1,6 +1,6 @@
 # Phase 2 phone checklist: editor engines (ADR-0004) and frame timing
 
-**Status:** Ready for the owner's run. Non-blocking for Phase 2 acceptance (PHASE_2_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of phase gate [42206498197](https://github.com/Skill-center/CodeForge-/actions/runs/42206498197), kept until 2026-12-06 · **Time:** about 10 minutes
+**Status:** Run 1 done on 2026-11-06 (§7), and the checklist is reusable for later builds. Non-blocking for Phase 2 acceptance (PHASE_2_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of phase gate [42206498197](https://github.com/Skill-center/CodeForge-/actions/runs/42206498197), kept until 2026-12-06 · **Time:** about 10 minutes
 
 The emulator gate measures both editor engines under scripted input. A phone adds what an emulator can't: a real ARM CPU and GPU, the real Android System WebView, and your keyboard with its predictions, autocorrect, emoji and (optionally) Chinese input. Nothing here needs a computer except the download.
 
@@ -31,7 +31,7 @@ This is a profile build: optimised like a release, but with a Developer section 
 Do this for **CodeMirror**, then for **Monaco** (the selector next to the buttons):
 
 1. Tap **Typing check**. An empty editor opens, with the phrase to type underneath.
-2. For each phrase in the dropdown: tap into the editor, type the phrase exactly as shown, the way you normally type (suggestions and autocorrect on), then tap **Check**. The status line says "match" or "differs at N". **Clear** empties the editor for another try.
+2. For each phrase in the dropdown: tap into the editor, type the phrase exactly as shown, the way you normally type (suggestions and autocorrect on), then tap **Check**. The screen repeats this instruction above the phrase. Under the buttons it shows **Match**, or **Differs at character N** with what the editor actually contains. **Clear** empties the editor for another try.
 
    | Phrase | Type |
    |---|---|
@@ -67,3 +67,9 @@ Tap the **copy icon** at the top right ("Copy results"), then paste into the cha
 
 - A profile build exposes no DevTools connection, so the phone gives in-page timings and your typing checks. Memory and the scripted composition cases come from the emulator gate.
 - **Optional:** the parked Phase 1 TalkBack checklist (PHASE_1_REPORT.md §8) runs on this same APK if you have a few more minutes.
+
+## 7. Runs
+
+| Run | Date | Phone | Build | Result |
+|---|---|---|---|---|
+| 1 | 2026-11-06 | realme C51 (RMX3830: Unisoc T612, 4 GB, Android 13) | gate 42206498197, profile arm64 | Benchmark: CodeMirror 6 met cold load and typing on this low-end phone, and Monaco did not beat it (ADR-0004, now Accepted). Frame timing: 3.4 % of frames over 32 ms, which completes Phase 1 G6. The selection bug found here was fixed. The typing check's instructions were unclear and are now on screen. Evidence: [phase2-phone-2026-11-06](evidence/phase2-phone-2026-11-06/README.md) |

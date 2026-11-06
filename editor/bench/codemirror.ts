@@ -33,7 +33,6 @@ import {
   drawSelection,
   dropCursor,
   EditorView,
-  highlightActiveLine,
   highlightActiveLineGutter,
   highlightSpecialChars,
   keymap,
@@ -41,6 +40,7 @@ import {
   rectangularSelection,
 } from '@codemirror/view';
 
+import { cursorLineHighlight } from '../src/editor/active_line';
 import { languageExtension } from '../src/editor/languages';
 import { DEFAULT_PALETTE, fontSizeTheme, forgeTheme } from '../src/editor/theme';
 import { type BenchEngine, type BenchLanguage, STUB_COMPLETIONS } from './engine';
@@ -69,7 +69,7 @@ function extensions(language: BenchLanguage): Extension[] {
     closeBrackets(),
     autocompletion({ override: [stubCompletions], activateOnTyping: false }),
     rectangularSelection(),
-    highlightActiveLine(),
+    cursorLineHighlight(),
     highlightSelectionMatches(),
     search({ top: true }),
     keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...foldKeymap, indentWithTab]),

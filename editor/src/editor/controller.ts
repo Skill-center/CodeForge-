@@ -47,7 +47,6 @@ import {
   drawSelection,
   dropCursor,
   EditorView,
-  highlightActiveLine,
   highlightActiveLineGutter,
   highlightSpecialChars,
   type KeyBinding,
@@ -74,6 +73,7 @@ import type {
   Selection,
   SnapshotResult,
 } from '../protocol/types';
+import { cursorLineHighlight } from './active_line';
 import { browserScheduler, ChangeBatcher, type Scheduler } from './batcher';
 import { languageExtension } from './languages';
 import { DEFAULT_PALETTE, fontSizeTheme, forgeTheme } from './theme';
@@ -495,7 +495,7 @@ export class EditorController {
       bracketMatching(),
       closeBrackets(),
       rectangularSelection(),
-      highlightActiveLine(),
+      cursorLineHighlight(),
       highlightSelectionMatches(),
       search({ top: true }),
       keymap.of([

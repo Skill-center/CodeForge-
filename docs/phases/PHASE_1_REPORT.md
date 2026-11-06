@@ -16,7 +16,7 @@ Phase 1 delivers a real, compilable Android app, built and tested only by GitHub
 | G3 Adaptive | ✅ met | goldens at six sizes; zero overflow at every gate size and terminal stop, at 1.3× text and with the soft keyboard up (CI 42147979279) |
 | G4 Themes | ✅ met | persisted theme + automated WCAG contrast gate (CI 42147979279) |
 | G5 Restore | ✅ met | emulator process-death restore pair, first attempt (gates 42106688923, 42109146834, 42147046358) |
-| G6 Performance | ◐ **partially met** | cold start **1148 ms** median vs 1500 ms budget, APK sizes in `perf.json`; **navigation frame profile not measured** (§7) |
+| G6 Performance | ◐ **partially met** at acceptance; **completed 2026-11-06** | cold start **1148 ms** median vs 1500 ms budget, APK sizes in `perf.json`; navigation frames measured afterwards on the owner's phone: **3.4 %** over 32 ms (§7) |
 | G7 Accessibility | ◐ automated part met | tap-target, label and text-scale suites green; **TalkBack spot-check is an owner action** (§8) |
 | G8 Docs | ✅ met | this report, CHANGELOG, README, ROADMAP and as-built doc sync |
 
@@ -113,11 +113,13 @@ No binary is published. The licence is still TBD (ADR-0011), and the BUILD_AND_R
 | Earlier medians, same method | 1124 ms (42106688923) · 1112 ms (42109146834) · 1001 ms (42110297015) | — | single samples vary: gate 9 had one at 1614 ms; the budget applies to the median |
 | Release x86_64 APK | 21,218,206 B | — | `perf.json`; the same size in every KVM gate (8–11), although each run builds it fresh from its own commit |
 | Debug APK | 169,812,582 B | — | `perf.json` (debug build of the gate run) |
-| Navigation frames > 32 ms | **not measured** | ≤ 5 % | see below |
+| Navigation frames > 32 ms | **3.4 %** (11 of 319), measured 2026-11-06 on hardware | ≤ 5 % | addendum below |
 
 **Environment:** API 36 `google_apis` x86_64 emulator on a GitHub-hosted runner (4 vCPU, 16 GB), **KVM-accelerated** (`host.txt`: "KVM (version 12) is installed and usable"), software GPU (SwiftShader), boot ≈ 60 s. This is indicative, not a device measurement: the CPU is a fast x86 host and the GPU is software. The arm64 hardware measurement belongs to the Phase 4 device lab, or earlier on the owner's phone.
 
 **Why the frame profile is missing:** meaningful frame timing needs a profile or release build, and Flutter's tooling refuses profile mode on emulators. Frame times rendered by a software GPU would not mean anything against a 32 ms budget anyway. The plan anticipated this (risk table: software emulation → relative budgets). **Proposal:** measure navigation frames in profile mode on hardware at the start of Phase 2 (the editor makes frame time matter most), and treat it as a Phase 2 entry check.
+
+**Addendum, 2026-11-06 (Phase 2 W3): G6 completed on hardware.** The owner used a realme C51 (Unisoc T612, 4 GB RAM, Android 13), a deliberately low-end phone, with the profile arm64 APK from phase gate 42206498197. They opened Settings → Developer → Frame timing, tapped Reset, navigated for about 30 s, then copied the result: **319 frames, 11 over 32 ms = 3.4 %** (budget ≤ 5 %). The rest: p50 6.2 ms, p90 17.3 ms, p99 111.5 ms, max 384.7 ms; build p95 9.3 ms, raster p95 9.4 ms; 37 frames over 16.7 ms. The raw JSON is in `docs/phases/evidence/phase2-phone-2026-11-06/README.md`. With this, every G6 criterion has evidence.
 
 ## 8. Device checklist — TalkBack spot-check (owner, parked 2026-11-06)
 
@@ -148,7 +150,7 @@ Record the device, Android version, build hash and the date. Any failure becomes
 ### 9.2 Known limitations, carried forward
 | Item | Impact | Where it goes |
 |---|---|---|
-| G6 navigation frame profile not measured | G6 partially met | Phase 2 entry check, profile mode on hardware |
+| G6 navigation frame profile not measured | G6 partially met | **Done 2026-11-06:** 3.4 % on the owner's phone (§7 addendum) |
 | Cold start measured on an emulator | indicative only | Phase 4 device lab, or the owner's phone earlier |
 | TalkBack spot-check not yet run | G7 manual part open | owner, §8 |
 | Symbol-toolbar keys are disabled in Phase 1 and only 36 dp tall (≥ 40 dp wide) | will fail the 48 dp rule once enabled | Phase 2: resize when the editor enables them |

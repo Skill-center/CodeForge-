@@ -77,7 +77,7 @@
   - An unknown type or version is rejected and logged.
 - **Recovery:** whenever the page announces itself again (a reload or a restart), documents reopen from Dart's shadow buffers. A renderer crash cannot be caught in-app: `webview_flutter_android` 4.14.1 exposes no `onRenderProcessGone`, so Android ends the app process, and the text comes back from the W5 journal on the next start. G4 therefore treats a renderer crash as process death.
 
-### W3 — Engine gate, ADR-0004 (1–2 sessions) → gate G1
+### W3 — Engine gate, ADR-0004 (1–2 sessions) → gate G1 · **done 2026-11-06: CodeMirror 6**
 
 **The harness:** benchmark pages for CM6 and Monaco 0.57.0 at identical scope:
 - highlighting for JS/TS/Python/JSON/HTML/CSS;
@@ -106,7 +106,12 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
 - **Debug and profile builds:** the developer screens exist in every build except release (`!kReleaseMode`), because the phone build is a profile build. This differs from the "debug-only" wording above. The gate also uploads the `codeforge-phone-profile-arm64` APK with the pages bundled, kept for 30 days. Steps: [PHASE_2_PHONE_CHECKLIST.md](PHASE_2_PHONE_CHECKLIST.md).
 - **Frame timing:** Settings → Developer → Frame timing records build and raster times per frame (`SchedulerBinding.addTimingsCallback`). This serves Phase 1's parked G6 check of navigation frames on hardware.
 - **Results** (ADR-0004 has the tables): the desk run, and phase gate 42206498197 on the emulator. On the emulator, CM6 is ahead of Monaco on every metric except engine-path typing p50, and both pass all 9 composition cases. Cold load (364.8 ms), composition and size are within budget for CM6. Its typing, input, scrolling and memory numbers are over budget, but they are bounded by the emulator's software rendering, which reached about 7 fps for both engines.
-- **Open:** G1 asks for the budgets "on the KVM emulator", and the frame-timed ones can't be met there by either engine. Judging them on the owner's phone run is the owner's decision, and G1 is not claimed until then.
+- **Phone run (2026-11-06):** the owner used a realme C51 (Unisoc T612, 4 GB) with the profile APK. On it, CM6 met cold load (217–228 ms) and typing p95 (21.7–22.4 ms). Its 1 MiB scrolling was 1.7 % and 9.8 % slow frames in two sessions, against Monaco's 36–37 %; ADR-0004 and the evidence folder have the details. G1 asks for the budgets "on the KVM emulator", where no engine can meet the frame-timed ones. The owner took the low-end phone as the reference instead: "I use a low phone for tests it means app will work on every phone".
+- **ADR-0004 is Accepted: CodeMirror 6.** G1 status:
+  - **Met:** cold load, typing p95, composition (9/9 on the emulator), size, and the 1 MiB file opening without OOM.
+  - **Carried to W7:** CM6's mid-file typing in a 1 MiB file (133–136 ms p95 on the phone), scrolling on the low-end phone (1.7–9.8 %), and memory measured on a release-like build.
+  - **Carried to W6:** the selection matrix (handle placement at line boundaries).
+- **Fixed from the phone run:** selected text on the cursor's line was invisible, because the active line's opaque background covered CodeMirror's selection layer. A line is now highlighted only around a plain cursor (`editor/src/editor/active_line.ts`). The typing check now says what to do and shows each result next to its buttons.
 
 ### W4 — Real files, documents & tabs (2 sessions)
 

@@ -176,6 +176,12 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
             }
           },
         ),
+        Text(
+          'Tap the editor, type this line exactly with your keyboard, then '
+          'tap Check. Do each phrase in the list.',
+          key: const ValueKey('bench_typing_help'),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: CfSpacing.xs),
           child: SelectableText(
@@ -208,8 +214,37 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
             ),
           ],
         ),
+        if (_lastCheck(runner) case final check?)
+          Padding(
+            padding: const EdgeInsets.only(top: CfSpacing.xs),
+            child: Text(
+              check['match'] == true
+                  ? 'Match'
+                  : 'Differs at character ${check['firstDifference']}. '
+                        'The editor has: "${check['actual']}"',
+              key: const ValueKey('bench_typing_result'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: check['match'] == true
+                    ? colors.success
+                    : colors.danger,
+              ),
+            ),
+          ),
       ],
     );
+  }
+
+  /// The latest check of the selected phrase on the open engine page.
+  Map<String, Object?>? _lastCheck(EditorBenchRunner runner) {
+    for (final check in runner.typingChecks.reversed) {
+      if (check['phrase'] == _phrase.id &&
+          check['engine'] == runner.surfaceEngine) {
+        return check;
+      }
+    }
+    return null;
   }
 }
 
