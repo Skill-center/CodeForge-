@@ -229,7 +229,11 @@ final class EditorHost {
     if (!_ready && _status.phase != EditorHostPhase.loading) {
       return start();
     }
-    appLogger.warn(_tag, 'page_reload', fields: {'documents': _documents.length});
+    appLogger.warn(
+      _tag,
+      'page_reload',
+      fields: {'documents': _documents.length},
+    );
     _failPending('The editor page is reloading.');
     _setStatus(const EditorHostStatus(EditorHostPhase.loading));
     _armReadyTimer();
@@ -343,11 +347,9 @@ final class EditorHost {
         EditorSnapshot(docId: docId, text: doc.text, version: doc.version),
       );
     }
-    final result = await _request(
-      'doc.snapshot',
-      {'docId': docId},
-      timeout: _timeoutFor(doc.text.length),
-    );
+    final result = await _request('doc.snapshot', {
+      'docId': docId,
+    }, timeout: _timeoutFor(doc.text.length));
     switch (result) {
       case Err<Object?>(:final failure):
         return Err(failure);
@@ -355,16 +357,25 @@ final class EditorHost {
         if (value is! Map<String, Object?> ||
             value['text'] is! String ||
             value['version'] is! num) {
-          return const Err(BridgeFailure('The editor sent a malformed snapshot.'));
+          return const Err(
+            BridgeFailure('The editor sent a malformed snapshot.'),
+          );
         }
         final text = value.string('text');
         final version = value.integer('version');
         if (text.contains('\r')) {
-          return const Err(BridgeFailure('The editor sent a malformed snapshot.'));
+          return const Err(
+            BridgeFailure('The editor sent a malformed snapshot.'),
+          );
         }
         if (identical(_documents[docId], doc) &&
             (doc.version != version || doc.text != text)) {
-          _resync(doc, text: text, version: version, reason: 'snapshot differs');
+          _resync(
+            doc,
+            text: text,
+            version: version,
+            reason: 'snapshot differs',
+          );
         }
         return Ok(EditorSnapshot(docId: docId, text: text, version: version));
     }
@@ -375,9 +386,7 @@ final class EditorHost {
     if (!_ready) {
       return const Ok(null);
     }
-    return _done(
-      await _request('doc.flush', {if (docId != null) 'docId': docId}),
-    );
+    return _done(await _request('doc.flush', {'docId': ?docId}));
   }
 
   /// Inserts [text] at every cursor of the active document.
@@ -388,7 +397,7 @@ final class EditorHost {
     return _done(
       await _request('cmd.insert', {
         'text': text,
-        if (cursorOffset != null) 'cursorOffset': cursorOffset,
+        'cursorOffset': ?cursorOffset,
       }),
     );
   }
@@ -413,10 +422,14 @@ final class EditorHost {
     }
     _nextRequestId += 1;
     final id = 'h$_nextRequestId';
-    final encoded = BridgeMessage(id: id, type: type, payload: payload).encode();
+    final encoded = BridgeMessage(
+      id: id,
+      type: type,
+      payload: payload,
+    ).encode();
     if (encoded.length > maxMessageChars) {
       return Future.value(
-        Err(
+        const Err(
           BridgeFailure(
             'This document is too large for the editor.',
             cause: 'too_large',
@@ -694,7 +707,11 @@ final class EditorHost {
     final doc = _documents[docId];
     if (doc == null) {
       // Edits flushed while a document closes arrive after it is gone.
-      appLogger.debug(_tag, 'change_for_closed_document', fields: {'docId': docId});
+      appLogger.debug(
+        _tag,
+        'change_for_closed_document',
+        fields: {'docId': docId},
+      );
       return;
     }
     final problem = doc.applyChange(
@@ -757,11 +774,19 @@ final class EditorHost {
       case SurfacePageLoaded():
         appLogger.debug(_tag, 'page_loaded');
       case SurfaceLoadFailed(:final description):
-        appLogger.error(_tag, 'page_resource_error', fields: {'error': description});
+        appLogger.error(
+          _tag,
+          'page_resource_error',
+          fields: {'error': description},
+        );
       case SurfaceNavigationBlocked(:final url):
         appLogger.warn(_tag, 'navigation_blocked', fields: {'url': _clip(url)});
       case SurfaceConsoleMessage(:final level, :final message):
-        appLogger.debug('editor.console', level, fields: {'message': _clip(message)});
+        appLogger.debug(
+          'editor.console',
+          level,
+          fields: {'message': _clip(message)},
+        );
     }
   }
 

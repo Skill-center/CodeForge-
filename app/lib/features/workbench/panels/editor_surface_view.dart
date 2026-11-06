@@ -76,8 +76,9 @@ class _EditorSurfaceViewState extends ConsumerState<EditorSurfaceView> {
                       child: Text(
                         'Starting the editor…',
                         key: const ValueKey('editor_starting'),
-                        style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(color: colors.textSecondary),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colors.textSecondary,
+                        ),
                       ),
                     ),
             ),

@@ -126,22 +126,18 @@ void main() {
         refillPerSecond: 2,
         nowMicros: () => now,
       );
-      expect([for (var i = 0; i < 4; i++) limiter.tryAcquire()], [
-        true,
-        true,
-        true,
-        false,
-      ]);
+      expect(
+        [for (var i = 0; i < 4; i++) limiter.tryAcquire()],
+        [true, true, true, false],
+      );
       now += Duration.microsecondsPerSecond ~/ 2; // one token back
       expect(limiter.tryAcquire(), isTrue);
       expect(limiter.tryAcquire(), isFalse);
       now += 10 * Duration.microsecondsPerSecond; // refills to capacity only
-      expect([for (var i = 0; i < 4; i++) limiter.tryAcquire()], [
-        true,
-        true,
-        true,
-        false,
-      ]);
+      expect(
+        [for (var i = 0; i < 4; i++) limiter.tryAcquire()],
+        [true, true, true, false],
+      );
     });
   });
 }

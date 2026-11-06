@@ -241,10 +241,11 @@ final class EditorTabsController extends Notifier<EditorTabsState> {
 
   void _report(String event, String path, Result<void> result) {
     if (result case Err<void>(:final failure)) {
-      appLogger.warn('editor', event, fields: {
-        'path': path,
-        'error': failure.message,
-      });
+      appLogger.warn(
+        'editor',
+        event,
+        fields: {'path': path, 'error': failure.message},
+      );
     }
   }
 }

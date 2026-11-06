@@ -388,15 +388,12 @@ final _Check _palette = _obj({
 });
 
 final Map<String, _Check> _hostToEditor = {
-  'editor.configure': _obj(
-    {},
-    {
-      'palette': _palette,
-      'fontSize': _num(min: 8, max: 40),
-      'lineWrapping': _bool,
-      'tabSize': _int(min: 1, max: 8),
-    },
-  ),
+  'editor.configure': _obj({}, {
+    'palette': _palette,
+    'fontSize': _num(min: 8, max: 40),
+    'lineWrapping': _bool,
+    'tabSize': _int(min: 1, max: 8),
+  }),
   'doc.open': _obj(
     {
       'docId': _docId,
@@ -480,11 +477,7 @@ final Map<String, _Check> _editorToHost = {
     'selection': _selection,
     'scrollTop': _num(min: 0),
   }),
-  'editor.history': _obj({
-    'docId': _docId,
-    'canUndo': _bool,
-    'canRedo': _bool,
-  }),
+  'editor.history': _obj({'docId': _docId, 'canUndo': _bool, 'canRedo': _bool}),
   'editor.focus': _obj({'focused': _bool}),
   'ime.composition': _obj({'docId': _docId, 'composing': _bool}),
   'app.shortcut': _obj({'shortcut': _oneOf(appShortcuts)}),
@@ -550,11 +543,7 @@ ParseResult validateMessage(Object? value, MessageDirection direction) {
     return RejectedMessage('bad_payload', error, id: id);
   }
   return ParsedMessage(
-    BridgeMessage(
-      id: id,
-      type: type,
-      payload: payload as Map<String, Object?>,
-    ),
+    BridgeMessage(id: id, type: type, payload: payload as Map<String, Object?>),
   );
 }
 

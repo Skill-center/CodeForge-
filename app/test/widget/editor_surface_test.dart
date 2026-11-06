@@ -48,8 +48,11 @@ void main() {
 
     test('font sizes clamp to what the page accepts', () {
       double size(double requested) =>
-          editorConfiguration(CfColors.dark, dark: true, fontSize: requested)
-                  ['fontSize']!
+          editorConfiguration(
+                CfColors.dark,
+                dark: true,
+                fontSize: requested,
+              )['fontSize']!
               as double;
       expect(size(100), maxEditorFontSize);
       expect(size(2), minEditorFontSize);
@@ -94,7 +97,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final palette =
-        harness.editorSurface.configuration!['palette']! as Map<String, Object?>;
+        harness.editorSurface.configuration!['palette']!
+            as Map<String, Object?>;
     expect(palette['dark'], isFalse);
     expect(palette['background'], cssHex(CfColors.light.surfaceSunken));
   });

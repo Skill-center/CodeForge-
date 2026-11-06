@@ -171,60 +171,69 @@ void main() {
       expect(container.read(editorTabsProvider).activePath, 'main.js');
     });
 
-    test('editor edits mark the tab dirty; save writes the editor text', () async {
-      FakeEditorSurface? surface;
-      final container = _container(onEditorSurface: (s) => surface = s);
-      final files = container.read(fileServiceProvider);
-      await files.openDemoWorkspace();
-      final notifier = container.read(editorTabsProvider.notifier);
-      await notifier.open('main.js');
+    test(
+      'editor edits mark the tab dirty; save writes the editor text',
+      () async {
+        FakeEditorSurface? surface;
+        final container = _container(onEditorSurface: (s) => surface = s);
+        final files = container.read(fileServiceProvider);
+        await files.openDemoWorkspace();
+        final notifier = container.read(editorTabsProvider.notifier);
+        await notifier.open('main.js');
 
-      // The document waits in its shadow until the page starts, then opens.
-      await container.read(editorHostProvider).start();
-      await _drain();
-      final page = surface!;
-      final docId = container.read(editorTabsProvider).docIds['main.js']!;
-      expect(page.documents[docId]?.language, 'javascript');
-      expect(page.activeDocId, docId);
+        // The document waits in its shadow until the page starts, then opens.
+        await container.read(editorHostProvider).start();
+        await _drain();
+        final page = surface!;
+        final docId = container.read(editorTabsProvider).docIds['main.js']!;
+        expect(page.documents[docId]?.language, 'javascript');
+        expect(page.activeDocId, docId);
 
-      page.typeText('// edited\n');
-      await _drain();
-      final edited = container.read(editorTabsProvider).documents['main.js']!;
-      expect(edited.dirty, isTrue);
-      expect(edited.content, endsWith('// edited\n'));
+        page.typeText('// edited\n');
+        await _drain();
+        final edited = container.read(editorTabsProvider).documents['main.js']!;
+        expect(edited.dirty, isTrue);
+        expect(edited.content, endsWith('// edited\n'));
 
-      await notifier.saveActive();
-      expect(
-        container.read(editorTabsProvider).documents['main.js']!.dirty,
-        isFalse,
-      );
-      expect((await files.readTextFile('main.js')).orThrow, endsWith('// edited\n'));
-    });
+        await notifier.saveActive();
+        expect(
+          container.read(editorTabsProvider).documents['main.js']!.dirty,
+          isFalse,
+        );
+        expect(
+          (await files.readTextFile('main.js')).orThrow,
+          endsWith('// edited\n'),
+        );
+      },
+    );
 
-    test('typing that races a save stays unsaved, and the tab says so', () async {
-      FakeEditorSurface? surface;
-      final container = _container(onEditorSurface: (s) => surface = s);
-      final files = container.read(fileServiceProvider);
-      await files.openDemoWorkspace();
-      final notifier = container.read(editorTabsProvider.notifier);
-      await notifier.open('main.js');
-      await container.read(editorHostProvider).start();
-      await _drain();
-      surface!
-        ..typeText('// one\n')
-        ..typeAfterSnapshot = '// two\n';
-      await _drain();
+    test(
+      'typing that races a save stays unsaved, and the tab says so',
+      () async {
+        FakeEditorSurface? surface;
+        final container = _container(onEditorSurface: (s) => surface = s);
+        final files = container.read(fileServiceProvider);
+        await files.openDemoWorkspace();
+        final notifier = container.read(editorTabsProvider.notifier);
+        await notifier.open('main.js');
+        await container.read(editorHostProvider).start();
+        await _drain();
+        surface!
+          ..typeText('// one\n')
+          ..typeAfterSnapshot = '// two\n';
+        await _drain();
 
-      await notifier.saveActive();
-      await _drain();
+        await notifier.saveActive();
+        await _drain();
 
-      final onDisk = (await files.readTextFile('main.js')).orThrow;
-      expect(onDisk, endsWith('// one\n'));
-      expect(onDisk, isNot(contains('// two')));
-      final doc = container.read(editorTabsProvider).documents['main.js']!;
-      expect(doc.dirty, isTrue);
-      expect(doc.content, endsWith('// one\n// two\n'));
-    });
+        final onDisk = (await files.readTextFile('main.js')).orThrow;
+        expect(onDisk, endsWith('// one\n'));
+        expect(onDisk, isNot(contains('// two')));
+        final doc = container.read(editorTabsProvider).documents['main.js']!;
+        expect(doc.dirty, isTrue);
+        expect(doc.content, endsWith('// one\n// two\n'));
+      },
+    );
 
     test('closing a tab closes its document in the editor', () async {
       FakeEditorSurface? surface;

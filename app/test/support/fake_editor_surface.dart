@@ -305,11 +305,8 @@ final class FakeEditorSurface implements EditorSurface {
     _changed();
   }
 
-  void _ok(String id, [Object? result]) => emit('response', {
-    're': id,
-    'ok': true,
-    if (result != null) 'result': result,
-  });
+  void _ok(String id, [Object? result]) =>
+      emit('response', {'re': id, 'ok': true, 'result': ?result});
 
   void _error(String id, String code, String message) => emit('response', {
     're': id,

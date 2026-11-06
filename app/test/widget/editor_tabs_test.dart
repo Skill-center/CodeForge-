@@ -92,7 +92,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Esc'), findsOneWidget);
-    expect(find.byTooltip('Symbol keys arrive later in Phase 2'), findsOneWidget);
+    expect(
+      find.byTooltip('Symbol keys arrive later in Phase 2'),
+      findsOneWidget,
+    );
     // The Phase 1 read-only preview is gone: the pane hosts the editor.
     expect(find.textContaining('Read-only preview'), findsNothing);
     expect(find.byKey(const ValueKey('editor_surface')), findsOneWidget);

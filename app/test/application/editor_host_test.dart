@@ -104,10 +104,10 @@ void main() {
 
     expect(host.textOf('d1'), 'ab\nc');
     expect(host.versionOf('d1'), 2);
-    expect([for (final e in events.whereType<DocumentEdited>()) e.version], [
-      1,
-      2,
-    ]);
+    expect(
+      [for (final e in events.whereType<DocumentEdited>()) e.version],
+      [1, 2],
+    );
     final snapshot = (await host.snapshot('d1')).orThrow;
     expect(snapshot.text, 'ab\nc');
     expect(snapshot.version, 2);
@@ -206,11 +206,10 @@ void main() {
 
     expect(events, hasLength(4));
     final history = events[0] as HistoryChanged;
-    expect([history.docId, history.canUndo, history.canRedo], [
-      'd1',
-      true,
-      false,
-    ]);
+    expect(
+      [history.docId, history.canUndo, history.canRedo],
+      ['d1', true, false],
+    );
     expect((events[1] as FocusChanged).focused, isTrue);
     expect((events[2] as CompositionChanged).composing, isTrue);
     expect((events[3] as ShortcutPressed).shortcut, 'save');
@@ -331,7 +330,12 @@ void main() {
       tester,
       start: false,
       loadPage: () async => const Ok(
-        EditorPage(html: '<p></p>', sha256: 'x', engineVersion: '9', protocol: 2),
+        EditorPage(
+          html: '<p></p>',
+          sha256: 'x',
+          engineVersion: '9',
+          protocol: 2,
+        ),
       ),
     );
     await host.start();

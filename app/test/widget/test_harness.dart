@@ -45,10 +45,7 @@ final class TestHarness {
   ];
 
   Widget app() {
-    return ProviderScope(
-      overrides: _overrides(),
-      child: const CodeForgeApp(),
-    );
+    return ProviderScope(overrides: _overrides(), child: const CodeForgeApp());
   }
 
   /// [child] alone under the app's dark theme, over the same stores and
