@@ -54,9 +54,7 @@ void main() {
   for (final scale in const [1.0, 1.3]) {
     group('keyboard up at ${scale}x text', () {
       for (final (width, height, label) in _gateSizes) {
-        testWidgets('$label: no overflow at any terminal stop', (
-          tester,
-        ) async {
+        testWidgets('$label: no overflow at any terminal stop', (tester) async {
           tester.platformDispatcher.textScaleFactorTestValue = scale;
           addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
           setSurface(tester, width, height);
