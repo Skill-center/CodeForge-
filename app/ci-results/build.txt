@@ -99,6 +99,14 @@ Loading local repository...
 [=====================                  ] 55% Unzipping... android-ndk-r28c/CHAN
 [=======================================] 100% Unzipping... android-ndk-r28c/CHA
 
+lib/features/workbench/workbench_screen.dart:98:29: Error: The getter 'isOk' isn't defined for the type 'Result<WorkspaceRef>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+ - 'WorkspaceRef' is from 'package:codeforge/services/contracts.dart' ('lib/services/contracts.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+    if (!mounted || !opened.isOk) {
+                            ^^^^
+Target kernel_snapshot_program failed: Exception
+
 Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
 License for package CMake 3.22.1 accepted.
 Preparing "Install CMake 3.22.1 v.3.22.1".
@@ -106,5 +114,19 @@ Preparing "Install CMake 3.22.1 v.3.22.1".
 Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
-Running Gradle task 'assembleDebug'...                            244.9s
-✓ Built build/app/outputs/flutter-apk/app-debug.apk
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command '/opt/hostedtoolcache/flutter/stable-3.47.9-x64/flutter/bin/flutter'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2m 28s
+Running Gradle task 'assembleDebug'...                            149.3s
+Gradle task assembleDebug failed with exit code 1
