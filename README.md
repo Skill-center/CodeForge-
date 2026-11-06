@@ -2,7 +2,7 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 1 built and CI-verified — awaiting owner acceptance.** A navigable, adaptive Flutter shell (home · workbench · command palette · settings) on the "Forge" design system, with dark/light themes and state that survives process death. Editing, real files, the runtime and the terminal arrive in Phases 2–5, and the Phase 1 screens say so honestly. Every claim is backed by a CI run — see the **[Phase 1 Report](docs/phases/PHASE_1_REPORT.md)**.
+> **Status: Phase 1 accepted (2026-11-06); Phase 2, the workbench and code editor, is in progress ([plan](docs/phases/PHASE_2_PLAN.md)).** Phase 1 delivered a navigable, adaptive Flutter shell (home · workbench · command palette · settings) on the "Forge" design system, with dark/light themes and state that survives process death. Editing, real files, the runtime and the terminal arrive in Phases 2–5, and the Phase 1 screens say so honestly. Every claim is backed by a CI run — see the **[Phase 1 Report](docs/phases/PHASE_1_REPORT.md)**.
 
 ---
 

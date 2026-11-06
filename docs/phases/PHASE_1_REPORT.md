@@ -1,6 +1,6 @@
 # Phase 1 Report — Flutter Foundation & Design System
 
-**Status:** Built and CI-verified · **awaiting owner acceptance** (plan §4 DoD) · **Date:** 2026-11-06 · **Branch:** `arena/f57c33ee-codeforge`
+**Status:** **Accepted by the owner on 2026-11-06**, with the phone checks parked (see below) · **Date:** 2026-11-06 · **Branch:** `arena/f57c33ee-codeforge`
 **Plan:** [PHASE_1_PLAN.md](PHASE_1_PLAN.md) · **Spec:** §8 Phase 1 · **Rule:** every claim below cites a CI run or an evidence commit. Where something was not measured or not built, this report says so.
 
 ---
@@ -22,7 +22,7 @@ Phase 1 delivers a real, compilable Android app, built and tested only by GitHub
 
 **The emulator gate earned its place.** On `915ec70` it failed `restore_a` with a genuine 79 px layout overflow. Gboard opened while the test typed into the command palette, and the workbench sized its terminal from the screen height instead of the space the keyboard left. No widget test had ever raised a keyboard. `dcae041` fixes the layouts and adds a 13-test soft-keyboard suite, and the gate passed again on the fixed tree (§9.3).
 
-**Owner decisions requested:** (1) accept G6 as partially met, with frame profiling carried to Phase 2 on hardware; (2) run the device checklist in §8; (3) accept Phase 1.
+**Owner decisions (2026-11-06):** Phase 1 is accepted, with G6 as partially met. The phone checks (the §8 TalkBack checklist and the navigation frame profile on hardware) are **parked** until the owner has time for them. They are tracked in [ROADMAP.md](../ROADMAP.md) under "Parked owner checks".
 
 ## 2. Evidence index
 
@@ -119,7 +119,7 @@ No binary is published. The licence is still TBD (ADR-0011), and the BUILD_AND_R
 
 **Why the frame profile is missing:** meaningful frame timing needs a profile or release build, and Flutter's tooling refuses profile mode on emulators. Frame times rendered by a software GPU would not mean anything against a 32 ms budget anyway. The plan anticipated this (risk table: software emulation → relative budgets). **Proposal:** measure navigation frames in profile mode on hardware at the start of Phase 2 (the editor makes frame time matter most), and treat it as a Phase 2 entry check.
 
-## 8. Device checklist — TalkBack spot-check (owner)
+## 8. Device checklist — TalkBack spot-check (owner, parked 2026-11-06)
 
 Automated coverage is in §4 (G7). Run the manual check on a phone with TalkBack on, using the APK from §6:
 
@@ -172,4 +172,4 @@ Record the device, Android version, build hash and the date. Any failure becomes
 
 **Ready:** editor pane and tab controller seams; `EditorService` / `FileService` contracts with fakes; design tokens and chrome metrics frozen (UI_DESIGN_SYSTEM v1.1, contrast-gated); keyboard-safe layout rules (panels size from the body's real constraints) for the editor's IME work to build on; CI with commit-back diagnostics; a KVM emulator gate that runs integration tests and measures cold start in about 13 minutes; restore machinery ready to extend to tabs.
 
-**Phase 2 entry items:** owner acceptance of Phase 1 (with the G6 and TalkBack decisions above); a navigation frame profile on hardware; ADR-0004 decided with numbers (the CM6 gate); `editor/` workspace pins (Node 24 LTS, esbuild 0.28.2, TypeScript 5.9.x, CodeMirror 6); routing feature → service access through controllers; 48 dp symbol-toolbar keys; on-disk log sink with storage.
+**Phase 2 entry items:** owner acceptance of Phase 1 (done 2026-11-06); a navigation frame profile on hardware (parked with the phone checks); ADR-0004 decided with numbers (the CM6 gate); `editor/` workspace pins (Node 24 LTS, esbuild 0.28.2, TypeScript 5.9.x, CodeMirror 6); routing feature → service access through controllers; 48 dp symbol-toolbar keys; on-disk log sink with storage.

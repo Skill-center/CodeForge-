@@ -25,8 +25,8 @@ P6 and P7 can run in parallel after P5/P4 respectively; P8 after P2+P5. P1–P3 
 | Phase | Objective | MVP exit (measurable) | Key gates/decisions |
 |---|---|---|---|
 | **0 — Audit & feasibility** ✅ | Understand t1; validate architecture | This doc set: audit + 11 ADRs + Phase 1 plan | Corrections: sealed≠Seald, 136 MB≠50 MB; Node 26 verified |
-| **1 — Foundation & design system** 🟡 built, awaiting acceptance | Premium navigable shell, CI alive | Home/workbench/settings + placeholders, adaptive 3 breakpoints, dark/light, goldens green, ci.yml green | Design tokens frozen (UI_DESIGN_SYSTEM v1.1, contrast-gated); G6 nav-frame profiling carried to Phase 2; ADR-0004 prep carried to Phase 2 |
-| **2 — Workbench & editor** | Real editing of local files | CM6 gate passed; multi-tab, save/restore, IME suite, kill-mid-edit zero loss, 1 MB perf | **ADR-0004 decided with numbers** |
+| **1 — Foundation & design system** ✅ accepted 2026-11-06 (phone checks parked) | Premium navigable shell, CI alive | Home/workbench/settings + placeholders, adaptive 3 breakpoints, dark/light, goldens green, ci.yml green | Design tokens frozen (UI_DESIGN_SYSTEM v1.1, contrast-gated); G6 nav-frame profiling carried to Phase 2; ADR-0004 prep carried to Phase 2 |
+| **2 — Workbench & editor** 🟡 in progress ([plan](phases/PHASE_2_PLAN.md)) | Real editing of local files | CM6 gate passed; multi-tab, save/restore, IME suite, kill-mid-edit zero loss, 1 MB perf | **ADR-0004 decided with numbers** |
 | **3 — Workspace & files** | Project-based IDE | SAF open-folder, explorer CRUD, file watch, state survives restart, recents | Storage scoping security review |
 | **4 — Runtime integration** | Sealed userland alive | ExecModel+SealedShell gates green incl. **arm64 device**; versions via UI; ExecAudit=0; warm start ≤100 ms | **ADR-0006 terminal frontend**, **ADR-0007 minSdk**, **ADR-0011 license** resolved |
 | **5 — Terminal & execution** | Write→run→output loop | Multi-session, Run File/Project (JS/Py/sh), flood-safe, kill-clean, E2E scenario part 1 | Native-addon limitation UX shipped |
@@ -43,6 +43,17 @@ P6 and P7 can run in parallel after P5/P4 respectively; P8 after P2+P5. P1–P3 
 - **Security:** review at each boundary introduction (SECURITY.md); supply-chain pins from Phase 4.
 - **Docs:** every PR updates its doc; phase exit writes `docs/phases/PHASE_N_REPORT.md`; CHANGELOG per release.
 - **Upstream:** track t1 PR #81 merge; re-vendor procedure in native/PROVENANCE.md; contribute fixes upstream where generic.
+
+## Parked owner checks
+
+On 2026-11-06 the owner parked every check that needs their phone. Each one has an automated emulator counterpart that keeps running in CI, and each will be run when the owner resumes phone testing.
+
+| Check | From | What it needs | Emulator counterpart |
+|---|---|---|---|
+| TalkBack spot-check (10 items) | Phase 1 report §8 | a phone with TalkBack, the CI debug APK | `accessibility_test` (tap targets, labels, 1.3× text) |
+| Navigation frame profile in profile mode | Phase 1 G6 | a phone (Flutter refuses profile mode on emulators) | none: emulator frame times are not meaningful |
+| Editor engine benchmark on arm64 (ADR-0004) | Phase 2 G1 | a phone, the in-app benchmark screen (debug APK) | the same benchmark on the KVM emulator in the phase gate |
+| Gboard IME matrix (swipe, voice, CJK, emoji) | Phase 2 G1 | a phone with Gboard | scripted composition events on the emulator |
 
 ## Owner decision queue (non-blocking for P1–P3)
 
