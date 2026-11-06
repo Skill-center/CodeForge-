@@ -82,11 +82,20 @@ class _CommandPaletteDialogState extends ConsumerState<_CommandPaletteDialog> {
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
     final textTheme = Theme.of(context).textTheme;
+    // The generous top inset suits tall screens, but while the soft keyboard
+    // is up on a short landscape phone it would squeeze the input row, so it
+    // scales with the height the keyboard leaves (capped at the old 64 dp).
+    final room =
+        MediaQuery.sizeOf(context).height -
+        MediaQuery.viewInsetsOf(context).bottom;
+    final topInset = (room * 0.1)
+        .clamp(CfSpacing.sm, CfSpacing.xxl * 2)
+        .toDouble();
     return Dialog(
       alignment: Alignment.topCenter,
-      insetPadding: const EdgeInsets.fromLTRB(
+      insetPadding: EdgeInsets.fromLTRB(
         CfSpacing.lg,
-        CfSpacing.xxl * 2,
+        topInset,
         CfSpacing.lg,
         CfSpacing.lg,
       ),

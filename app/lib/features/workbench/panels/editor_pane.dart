@@ -26,76 +26,109 @@ class EditorPane extends ConsumerWidget {
         ? null
         : tabs.documents[tabs.activePath];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (tabs.openPaths.isNotEmpty)
-          CfTabStrip(
-            tabs: [
-              for (final path in tabs.openPaths)
-                CfTab(
-                  id: path,
-                  label: path.split('/').last,
-                  dirty: tabs.documents[path]?.dirty ?? false,
-                ),
-            ],
-            activeId: tabs.activePath,
-            onActivate: (id) =>
-                ref.read(editorTabsProvider.notifier).activate(id),
-            onClose: (id) => ref.read(editorTabsProvider.notifier).close(id),
-          ),
-        Expanded(
-          child: activeDoc == null
-              ? CfEmptyState(
-                  icon: Icons.code,
-                  title: 'No file open',
-                  message:
-                      'Pick a file from the explorer to preview it here. '
-                      'The interactive editor arrives in Phase 2.',
-                  actionLabel: 'Open main.js',
-                  onAction: () =>
-                      ref.read(editorTabsProvider.notifier).open('main.js'),
-                )
-              : _CodeSpecimen(
-                  content: activeDoc.content,
-                  fontSize: settings.editorFontSize,
-                ),
-        ),
-        if (activeDoc != null)
-          Padding(
-            padding: const EdgeInsets.all(CfSpacing.sm),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: CfBanner(
-                    message: 'Read-only preview — editing arrives in Phase 2.',
-                  ),
-                ),
-                const SizedBox(width: CfSpacing.sm),
-                CfIconButton(
-                  key: const ValueKey('demo_edit'),
-                  icon: Icons.edit_outlined,
-                  tooltip: 'Demo: mark file dirty',
-                  onPressed: () =>
-                      ref.read(editorTabsProvider.notifier).simulateEdit(),
-                ),
-                CfIconButton(
-                  key: const ValueKey('demo_save'),
-                  icon: Icons.save_outlined,
-                  tooltip: 'Demo: save file',
-                  onPressed: activeDoc.dirty
-                      ? () => ref.read(editorTabsProvider.notifier).saveActive()
-                      : null,
-                ),
-              ],
+    // The pane gets whatever height the layout leaves it — tiny while the
+    // soft keyboard is up on a short landscape phone — so it must never
+    // overflow: pinned chrome yields before content. The tab strip needs its
+    // own height, the (disabled) symbol toolbar stays only while a touch row
+    // of code still fits beside it, and the demo banner scrolls with the code
+    // instead of being pinned (its height grows with text scale).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const tabStripExtent = CfSpacing.tabStripHeight + CfSpacing.hairline;
+        final showTabs =
+            tabs.openPaths.isNotEmpty &&
+            constraints.maxHeight >= tabStripExtent;
+        final showToolbar =
+            settings.toolbarPreset != ToolbarPreset.none &&
+            constraints.maxHeight >=
+                (showTabs ? tabStripExtent : 0) +
+                    CfSpacing.symbolToolbarHeight +
+                    CfSpacing.minTouchTarget;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showTabs)
+              CfTabStrip(
+                tabs: [
+                  for (final path in tabs.openPaths)
+                    CfTab(
+                      id: path,
+                      label: path.split('/').last,
+                      dirty: tabs.documents[path]?.dirty ?? false,
+                    ),
+                ],
+                activeId: tabs.activePath,
+                onActivate: (id) =>
+                    ref.read(editorTabsProvider.notifier).activate(id),
+                onClose: (id) =>
+                    ref.read(editorTabsProvider.notifier).close(id),
+              ),
+            Expanded(
+              child: activeDoc == null
+                  ? CfEmptyState(
+                      icon: Icons.code,
+                      title: 'No file open',
+                      message:
+                          'Pick a file from the explorer to preview it here. '
+                          'The interactive editor arrives in Phase 2.',
+                      actionLabel: 'Open main.js',
+                      onAction: () =>
+                          ref.read(editorTabsProvider.notifier).open('main.js'),
+                    )
+                  : _CodeSpecimen(
+                      content: activeDoc.content,
+                      fontSize: settings.editorFontSize,
+                      header: _PreviewBanner(dirty: activeDoc.dirty),
+                    ),
+            ),
+            if (showToolbar)
+              const CfSymbolToolbar(
+                enabled: false,
+                phaseNote: 'Editor arrives in Phase 2',
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Read-only notice plus the demo edit/save actions that drive real tab
+/// state in Phase 1.
+class _PreviewBanner extends ConsumerWidget {
+  const _PreviewBanner({required this.dirty});
+
+  final bool dirty;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.all(CfSpacing.sm),
+      child: Row(
+        children: [
+          const Expanded(
+            child: CfBanner(
+              message: 'Read-only preview — editing arrives in Phase 2.',
             ),
           ),
-        if (settings.toolbarPreset != ToolbarPreset.none)
-          const CfSymbolToolbar(
-            enabled: false,
-            phaseNote: 'Editor arrives in Phase 2',
+          const SizedBox(width: CfSpacing.sm),
+          CfIconButton(
+            key: const ValueKey('demo_edit'),
+            icon: Icons.edit_outlined,
+            tooltip: 'Demo: mark file dirty',
+            onPressed: () =>
+                ref.read(editorTabsProvider.notifier).simulateEdit(),
           ),
-      ],
+          CfIconButton(
+            key: const ValueKey('demo_save'),
+            icon: Icons.save_outlined,
+            tooltip: 'Demo: save file',
+            onPressed: dirty
+                ? () => ref.read(editorTabsProvider.notifier).saveActive()
+                : null,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -103,10 +136,17 @@ class EditorPane extends ConsumerWidget {
 /// Lightweight regex-based syntax coloring for specimens. Deliberately
 /// simple: the real tokenizer ships with the CM6 editor in Phase 2.
 class _CodeSpecimen extends StatelessWidget {
-  const _CodeSpecimen({required this.content, required this.fontSize});
+  const _CodeSpecimen({
+    required this.content,
+    required this.fontSize,
+    this.header,
+  });
 
   final String content;
   final double fontSize;
+
+  /// Scrolls with the code (above it) rather than being pinned.
+  final Widget? header;
 
   static final RegExp _pattern = RegExp(
     r'(#.*$|//.*$)|'
@@ -128,30 +168,36 @@ class _CodeSpecimen extends StatelessWidget {
     return Container(
       color: colors.surfaceSunken,
       child: SingleChildScrollView(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.all(CfSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < lines.length; i++)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 36,
-                      child: Text(
-                        '${i + 1}',
-                        textAlign: TextAlign.right,
-                        style: base.copyWith(color: colors.textDisabled),
-                      ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ?header,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(CfSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < lines.length; i++)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 36,
+                          child: Text(
+                            '${i + 1}',
+                            textAlign: TextAlign.right,
+                            style: base.copyWith(color: colors.textDisabled),
+                          ),
+                        ),
+                        const SizedBox(width: CfSpacing.md),
+                        Text.rich(_highlight(lines[i], base, colors)),
+                      ],
                     ),
-                    const SizedBox(width: CfSpacing.md),
-                    Text.rich(_highlight(lines[i], base, colors)),
-                  ],
-                ),
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

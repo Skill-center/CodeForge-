@@ -220,6 +220,27 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
   }
 }
 
+// Terminal sizing must come from the height actually available to the body,
+// never from the screen: while the soft keyboard is up the Scaffold shrinks
+// its body (and strips the inset from the body's MediaQuery, so
+// MediaQuery.viewInsets reads 0 here). Sizing from the screen let the
+// terminal keep its full height and squeeze the editor until it overflowed —
+// found by phase gate 42110297015, where Gboard opened during restore_a.
+
+/// Height the compact layout always keeps for its chrome (top bar 49 + status
+/// strip 24) plus a 191 dp editor floor. On an inset-free phone, where the
+/// body is the screen minus the 56 dp activity bar, this reproduces the former
+/// `screen − 320` terminal cap exactly.
+const double _compactReserve = 264;
+
+/// Height docked layouts keep for chrome and editor (the former cap, which
+/// was already relative to the full-height body).
+const double _dockedReserve = 320;
+
+/// Below a header plus a sliver of output the terminal is hidden rather than
+/// squeezed (its header alone is 49 dp).
+const double _minTerminalHeight = 60;
+
 /// Compact portrait: top bar, editor, optional terminal stop, status strip.
 class _CompactPortraitLayout extends ConsumerWidget {
   const _CompactPortraitLayout({
@@ -232,31 +253,37 @@ class _CompactPortraitLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final height = MediaQuery.sizeOf(context).height;
-    // Clamp so the editor always keeps space even at the full stop on
-    // short screens — the zero-overflow gate covers every stop.
-    final maxTerminal = (height - 320).clamp(0.0, double.infinity).toDouble();
-    final terminalHeight = switch (shell.terminalStop) {
-      TerminalStop.closed => 0.0,
-      TerminalStop.peek => 96.0,
-      TerminalStop.half => height * 0.4,
-      TerminalStop.full => height * 0.7,
-    }.clamp(0.0, maxTerminal).toDouble();
-    return Column(
-      children: [
-        _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
-        const Expanded(child: EditorPane()),
-        if (terminalHeight > 0)
-          SizedBox(
-            height: terminalHeight,
-            child: TerminalPane(
-              onClose: () => ref
-                  .read(shellControllerProvider.notifier)
-                  .setTerminalStop(TerminalStop.closed),
-            ),
-          ),
-        const _StatusStripRow(),
-      ],
+    // Stops keep their screen proportions; only the cap follows the body.
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxTerminal = (constraints.maxHeight - _compactReserve)
+            .clamp(0.0, double.infinity)
+            .toDouble();
+        final wanted = switch (shell.terminalStop) {
+          TerminalStop.closed => 0.0,
+          TerminalStop.peek => 96.0,
+          TerminalStop.half => screenHeight * 0.4,
+          TerminalStop.full => screenHeight * 0.7,
+        }.clamp(0.0, maxTerminal).toDouble();
+        final terminalHeight = wanted >= _minTerminalHeight ? wanted : 0.0;
+        return Column(
+          children: [
+            _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
+            const Expanded(child: EditorPane()),
+            if (terminalHeight > 0)
+              SizedBox(
+                height: terminalHeight,
+                child: TerminalPane(
+                  onClose: () => ref
+                      .read(shellControllerProvider.notifier)
+                      .setTerminalStop(TerminalStop.closed),
+                ),
+              ),
+            const _StatusStripRow(),
+          ],
+        );
+      },
     );
   }
 }
@@ -278,14 +305,6 @@ class _DockedLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final showSidebar = form != CfFormFactor.compact;
-    // Keep editor space on short landscape surfaces; below 60 dp the dock
-    // is hidden entirely rather than overflowing.
-    final height = MediaQuery.sizeOf(context).height;
-    final terminalHeight = shell.terminalHeight
-        .clamp(0.0, (height - 320).clamp(0.0, double.infinity))
-        .toDouble();
-    final terminalOpen =
-        shell.terminalStop != TerminalStop.closed && terminalHeight >= 60;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -307,27 +326,43 @@ class _DockedLayout extends ConsumerWidget {
           ),
         ],
         Expanded(
-          child: Column(
-            children: [
-              _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
-              const Expanded(child: EditorPane()),
-              if (terminalOpen) ...[
-                _HorizontalResizeHandle(
-                  onDrag: (dy) => ref
-                      .read(shellControllerProvider.notifier)
-                      .setTerminalHeight(shell.terminalHeight - dy),
-                ),
-                SizedBox(
-                  height: terminalHeight,
-                  child: TerminalPane(
-                    onClose: () => ref
-                        .read(shellControllerProvider.notifier)
-                        .setTerminalStop(TerminalStop.closed),
-                  ),
-                ),
-              ],
-              const _StatusStripRow(),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Keep editor space on short landscape surfaces and while the
+              // soft keyboard is up; below the minimum the dock is hidden
+              // entirely rather than overflowing.
+              final maxTerminal = (constraints.maxHeight - _dockedReserve)
+                  .clamp(0.0, double.infinity)
+                  .toDouble();
+              final terminalHeight = shell.terminalHeight
+                  .clamp(0.0, maxTerminal)
+                  .toDouble();
+              final terminalOpen =
+                  shell.terminalStop != TerminalStop.closed &&
+                  terminalHeight >= _minTerminalHeight;
+              return Column(
+                children: [
+                  _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
+                  const Expanded(child: EditorPane()),
+                  if (terminalOpen) ...[
+                    _HorizontalResizeHandle(
+                      onDrag: (dy) => ref
+                          .read(shellControllerProvider.notifier)
+                          .setTerminalHeight(shell.terminalHeight - dy),
+                    ),
+                    SizedBox(
+                      height: terminalHeight,
+                      child: TerminalPane(
+                        onClose: () => ref
+                            .read(shellControllerProvider.notifier)
+                            .setTerminalStop(TerminalStop.closed),
+                      ),
+                    ),
+                  ],
+                  const _StatusStripRow(),
+                ],
+              );
+            },
           ),
         ),
       ],

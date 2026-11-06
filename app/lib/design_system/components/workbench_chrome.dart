@@ -208,14 +208,22 @@ class CfNavRail extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const SizedBox(height: CfSpacing.sm),
-          for (final activity in activities)
-            _ActivityButton(
-              activity: activity,
-              selected: activity.id == activeId,
-              onSelect: onSelect,
+          // Activities scroll when the rail is short (soft keyboard up on a
+          // landscape phone); the trailing entries stay pinned at the bottom.
+          Expanded(
+            child: ListView(
+              primary: false,
+              padding: const EdgeInsets.only(top: CfSpacing.sm),
+              children: [
+                for (final activity in activities)
+                  _ActivityButton(
+                    activity: activity,
+                    selected: activity.id == activeId,
+                    onSelect: onSelect,
+                  ),
+              ],
             ),
-          const Spacer(),
+          ),
           for (final activity in trailing)
             _ActivityButton(
               activity: activity,
