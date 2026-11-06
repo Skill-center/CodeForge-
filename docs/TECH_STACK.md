@@ -2,6 +2,8 @@
 
 **Verified:** 2026-11-05 against pub tags (git ls-remote), npm registry, and GitHub releases — not from memory. Pins are finalized in Phase 1 W1 when CI proves them; every version below was checked to exist today.
 
+**Phase 1 update (2026-11-06):** the Flutter, Dart-package and Android build rows below are now **as built and CI-proven** — every Phase 1 CI run builds with exactly these pins (run ids in [phases/PHASE_1_REPORT.md](phases/PHASE_1_REPORT.md)). Per the plan's W1 rule ("template defaults win over aspirational pins"), the Android toolchain follows the Flutter 3.47.9 template rather than t1's older AGP 8.13.2 / Gradle 9.2.1 / NDK 27.2; reconciling toward t1 is a Phase 4 task, only if vendoring the runtime modules requires it.
+
 ---
 
 ## 1. Core stack (locked by spec + audit)
@@ -10,13 +12,14 @@
 |---|---|---|---|
 | App framework | **Flutter** (stable) | 3.47.9 | Spec mandate; single UI codebase, first-class Android embedding |
 | UI language | Dart (bundled SDK) | ships with Flutter | — |
-| Android host | **Kotlin** (+ vendored Java modules) | Kotlin 2.2.x+ (2.4.21 released; pin what Flutter 3.47 template + AGP accept, ≥2.2.21) | Spec; t1 modules are Java — Kotlin host interoperates natively on the JVM |
-| Android Gradle Plugin | AGP | 8.13.x (t1 proves 8.13.2) | Match audited runtime build; Flutter 3.47 accepts ≥8.13 |
-| Gradle | wrapper | 9.2.1 (t1's wrapper) | Proven with AGP 8.13.2 in t1 CI |
+| Android host | **Kotlin** (+ vendored Java modules) | **2.4.0** — as built (Flutter 3.47.9 template; CI-proven) | Spec; t1 modules are Java — Kotlin host interoperates natively on the JVM |
+| Android Gradle Plugin | AGP | **9.1.0** — as built (template default; `android.newDsl=false`, `android.builtInKotlin=false` keep the Flutter Gradle plugin on the classic DSL) | t1 proves 8.13.2; reconcile in Phase 4 only if vendoring needs it |
+| Gradle | wrapper | **9.3.1** — as built (wrapper committed) | Template default for AGP 9.1 |
 | JDK | Temurin | 17 | t1 CI standard; Flutter/AGP compatible |
 | compileSdk / targetSdk | **36 / 36** | — | Spec + Play requirement (Aug 31 2026); sealed model makes it work |
 | minSdk | **26** (owner choice) | — | ADR-0007 gate: t1 declares 29; verify or raise in Phase 4 |
-| NDK | pinned | 27.2.12479018 (t1) with explicit 16 KB linker flags | 16 KB page support proven in t1; revisit r28 at Phase 10 |
+| NDK | pinned | **28.2.13676358** — as built (`flutter.ndkVersion` of 3.47.9); no first-party native code in Phase 1 | Phase 4 re-evaluates against t1's 27.2.12479018 + explicit 16 KB linker flags when native runtime modules arrive |
+| Renderer | Flutter engine | **Skia** in Phase 1 (`EnableImpeller=false` in the manifest) | Impeller's OpenGLES backend never sized its surface on the software-GL CI emulator (gate run 1); Skia renders reliably there. Re-enabling Impeller is deferred until it can be validated on arm64 hardware (Phase 4 device lab at the latest) |
 | State management | **Riverpod** | 3.4.3 | Compile-safe DI + reactive state; spec mandate; active maintenance |
 | Navigation | **GoRouter** | 18.1.3 | Declarative, deep links, shell routes for workbench; Flutter team-maintained |
 | Typed platform channels | **Pigeon** | 29.1.0 | Generates Dart+Kotlin contracts; no hand-rolled MethodChannel string maps |
@@ -78,4 +81,4 @@ From t1 @ `0e26d7a` — versions as shipped in the audited sealed payload:
 
 ## 6. CI toolchain
 
-GitHub Actions (ADR-0009): ubuntu-latest, Temurin 17, Flutter 3.47.x pinned, Node 24 LTS for editor builds, Android SDK 36 + NDK 27.2 via `android-actions/setup-android`, `aosp_atd` x86_64 emulators (TCG) for instrumented gates, arm64 device lab for release gates (Phase 4+). Details: [BUILD_AND_RELEASE.md](BUILD_AND_RELEASE.md).
+GitHub Actions (ADR-0009). **As built in Phase 1:** ubuntu-latest, Temurin 17, Flutter **3.47.9** from `.flutter-version` via `subosito/flutter-action`, the runner's preinstalled Android SDK (platform 36; NDK 28.2 resolved by the Flutter Gradle plugin), and for instrumented gates an API 36 **`google_apis` x86_64** emulator — hardware-accelerated through KVM (udev rule + settle), with software emulation (TCG) only as a recorded fallback. The `aosp_atd` image planned in Phase 0 was rejected after gate run 1 (stripped system services crashed). Node 24 LTS for editor builds arrives in Phase 2; the arm64 device lab for release gates in Phase 4+. Details: [BUILD_AND_RELEASE.md](BUILD_AND_RELEASE.md).

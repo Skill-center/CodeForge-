@@ -2,7 +2,7 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 0 complete (audit & architecture).** No application code yet — by design. The next step is Phase 1 (Flutter foundation & design system), fully planned and ready to execute.
+> **Status: Phase 1 built and CI-verified — awaiting owner acceptance.** A navigable, adaptive Flutter shell (home · workbench · command palette · settings) on the "Forge" design system, with dark/light themes and state that survives process death. Editing, real files, the runtime and the terminal arrive in Phases 2–5, and the Phase 1 screens say so honestly. Every claim is backed by a CI run — see the **[Phase 1 Report](docs/phases/PHASE_1_REPORT.md)**.
 
 ---
 
@@ -10,11 +10,12 @@
 
 | Document | What it answers |
 |---|---|
-| **[Phase 0 Report](docs/PHASE_0_REPORT.md)** | What we found, what we decided, what's risky, what's next |
+| **[Phase 1 Report](docs/phases/PHASE_1_REPORT.md)** | What Phase 1 built, gate-by-gate evidence (CI run ids, hashes, measurements), limitations, what's next |
+| [Phase 0 Report](docs/PHASE_0_REPORT.md) | What we found, what we decided, what's risky, what's next |
 | [Runtime Audit](docs/EXISTING_RUNTIME_AUDIT.md) | The existing Linux environment (`m-cyber12/t1`), fully audited |
 | [Architecture](docs/ARCHITECTURE.md) · [Repo Structure](docs/REPOSITORY_STRUCTURE.md) | How the system is built and where everything lives |
 | [Tech Stack](docs/TECH_STACK.md) | Every dependency, verified versions, rejection reasons |
-| [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) | The detailed MVP implementation plan (workstreams, gates, tests) |
+| [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The Phase 1 plan (workstreams, gates, tests) · the "Forge" tokens, contrast-audited |
 | [Roadmap](docs/ROADMAP.md) | Phases 0–10, dependencies, decision queue |
 | [ADRs](docs/adr/) | 11 architecture decision records |
 
@@ -35,17 +36,31 @@ Key audit corrections: "Seald" → **sealed** build model; the "~50 MB app" → 
 ## Repository layout (today)
 
 ```
-docs/            ← all Phase 0 deliverables (this is the current product)
-  adr/           ← decision records 0001–0011
-  phases/        ← PHASE_1_PLAN.md (more per phase)
+app/                     ← the Flutter app (Phase 1)
+  lib/                   ← application/ (controllers, router) · core/ · design_system/ · features/ · services/ (+ fakes)
+  test/                  ← unit · widget · accessibility · contrast · golden suites
+  integration_test/      ← emulator smoke + process-death restore pair
+  tool/                  ← import-boundary + license gates; tool/ci/ gate scripts
+  ci-results/            ← CI-generated evidence (never hand-edited); gate/ = emulator gate
+  android/               ← Kotlin host, minSdk 26 / target 36
+.github/workflows/       ← ci.yml (every push) · phase-gate.yml (emulator gate)
+docs/                    ← architecture, ADRs 0001–0011, phase plans and reports
 README.md · AGENTS.md · CONTRIBUTING.md
 ```
 
-`app/` (Flutter), `editor/` (TS bundles), `native/` + `runtime/` (vendored sealed runtime) arrive with their phases — see [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md). Nothing is scaffolded before it's used.
+`editor/` (TS bundles), `native/` + `runtime/` (vendored sealed runtime) arrive with their phases — see [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md). Nothing is scaffolded before it's used.
 
 ## Building
 
-There is nothing to build yet. From Phase 1, **GitHub Actions is the build authority** (the development sandbox cannot build Android): every claim of "builds/tests pass" cites a CI run id. Local instructions land in CONTRIBUTING.md as the app appears.
+```bash
+# Flutter 3.47.9 (see .flutter-version), JDK 17, Android SDK 36
+cd app
+flutter pub get
+flutter test                 # unit, widget, accessibility, contrast, goldens
+flutter build apk --debug
+```
+
+**GitHub Actions is the build authority** (the development sandbox cannot build Android): every claim that something builds or passes cites a CI run id. Golden baselines are generated on the Linux runner, so local golden runs on other platforms may differ by anti-aliasing. How CI evidence is produced (`[bootstrap]`, `[phase-gate]`, `app/ci-results/`): [BUILD_AND_RELEASE.md §2.1](docs/BUILD_AND_RELEASE.md).
 
 ## Principles
 

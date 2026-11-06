@@ -1,6 +1,6 @@
 # CodeForge Roadmap
 
-**Status:** Phase 0 complete (analysis) · Phase 1 planned in detail: [phases/PHASE_1_PLAN.md](phases/PHASE_1_PLAN.md)
+**Status:** Phase 0 complete (analysis) · **Phase 1 built and CI-verified, awaiting owner acceptance** — exit report: [phases/PHASE_1_REPORT.md](phases/PHASE_1_REPORT.md) (plan: [phases/PHASE_1_PLAN.md](phases/PHASE_1_PLAN.md))
 **Rule:** no phase starts while the previous has unresolved critical issues; every phase exits with a report citing CI run ids (spec §8/§12).
 
 ---
@@ -25,7 +25,7 @@ P6 and P7 can run in parallel after P5/P4 respectively; P8 after P2+P5. P1–P3 
 | Phase | Objective | MVP exit (measurable) | Key gates/decisions |
 |---|---|---|---|
 | **0 — Audit & feasibility** ✅ | Understand t1; validate architecture | This doc set: audit + 11 ADRs + Phase 1 plan | Corrections: sealed≠Seald, 136 MB≠50 MB; Node 26 verified |
-| **1 — Foundation & design system** | Premium navigable shell, CI alive | Home/workbench/settings + placeholders, adaptive 3 breakpoints, dark/light, goldens green, ci.yml green | ADR-0004 prep; design tokens frozen v1 |
+| **1 — Foundation & design system** 🟡 built, awaiting acceptance | Premium navigable shell, CI alive | Home/workbench/settings + placeholders, adaptive 3 breakpoints, dark/light, goldens green, ci.yml green | Design tokens frozen (UI_DESIGN_SYSTEM v1.1, contrast-gated); G6 nav-frame profiling carried to Phase 2; ADR-0004 prep carried to Phase 2 |
 | **2 — Workbench & editor** | Real editing of local files | CM6 gate passed; multi-tab, save/restore, IME suite, kill-mid-edit zero loss, 1 MB perf | **ADR-0004 decided with numbers** |
 | **3 — Workspace & files** | Project-based IDE | SAF open-folder, explorer CRUD, file watch, state survives restart, recents | Storage scoping security review |
 | **4 — Runtime integration** | Sealed userland alive | ExecModel+SealedShell gates green incl. **arm64 device**; versions via UI; ExecAudit=0; warm start ≤100 ms | **ADR-0006 terminal frontend**, **ADR-0007 minSdk**, **ADR-0011 license** resolved |

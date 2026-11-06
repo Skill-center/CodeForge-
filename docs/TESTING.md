@@ -18,6 +18,18 @@
 | E2E workflow | `integration_test` | spec §10 scenario: open project → create file → edit → save → run → output → edit → commit | phase gates from Ph. 5/7 |
 | Performance | benchmark suite (PERFORMANCE.md) | startup, editor latency, memory, terminal flood, large files | phase gates + release |
 
+### 1.1 As built in Phase 1
+
+| Suite | Where | What it proves |
+|---|---|---|
+| Unit | `test/core`, `test/services`, `test/application` | breakpoints, command registry, failures, logger redaction; settings/shell envelopes (round-trip, corrupt/future payloads → defaults, per-field fallback, clamping); controllers (write-through, debounce + flush, restore across containers) |
+| Widget | `test/widget` | first-run flow, ≤2-tap reachability, palette, editor tabs, adaptive layouts with zero overflow, deep links / system back (`navigation_test.dart`), accessibility (`accessibility_test.dart`: Android tap-target + labeled-target guidelines, every enabled ink target ≥ 48 dp, 1.3× text scale at all gate sizes, settings sub-pages proven open before checking), soft keyboard (`keyboard_insets_test.dart`: a raised IME at every gate size × terminal stop × 1.0/1.3 text, the command palette at every size, and the compact editor's 191 dp floor) |
+| Design system | `test/design_system` | contrast (`contrast_test.dart`: every text/background pair and syntax colour ≥ 4.5:1 in both themes); typography (`typography_test.dart`: the UI type scale, the code font with `calt`/`liga` off, tabular figures in status text) |
+| Golden | `test/goldens` | design-system gallery (dark/light) + home/workspace/settings at 360×800, 800×360, 412×915, 915×412, 800×1280, 1280×800; baselines are generated on the Linux CI runner (`[bootstrap]`), never locally |
+| Integration (emulator) | `integration_test/` via `tool/ci/emulator_gate.sh` | smoke flow; process-death restore pair (`restore_a` mutates state → force-stop → `restore_b` relaunches and asserts the restored route, theme and terminal stop) |
+
+Manual: TalkBack spot-check checklist in the Phase 1 report (owner, on hardware).
+
 ## 2. Fakes-first discipline
 
 Every service interface ships with an in-memory fake in Phase 1. Widget/controller tests run against fakes — fast, deterministic, no device. Native implementations are validated by contract tests that run the **same test suite** against fake and native impls (interface contract tests), so divergence is caught mechanically.

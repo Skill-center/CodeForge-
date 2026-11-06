@@ -1,6 +1,6 @@
 # Build & Release
 
-**Status:** Design accepted Phase 0 (ADR-0009/0010) · Workflows are implemented in Phase 1 W1 — this document is their spec. Nothing here claims a pipeline exists yet.
+**Status:** Design accepted Phase 0 (ADR-0009/0010) · **`ci.yml` and `phase-gate.yml` are implemented (Phase 1)** — see §2.1 for how they differ from this spec; `runtime-gates.yml`, `release.yml` and `deps.yml` remain spec until their phases.
 
 ---
 
@@ -16,16 +16,25 @@
 
 | Workflow | Trigger | Jobs | Gate? |
 |---|---|---|---|
-| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens) · import-boundary lint · Kotlin/JVM tests (from Ph. 4) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` · license check · lockfile drift check | PR merge blocker |
-| `phase-gate.yml` | manual + phase tags | full test matrix · emulator instrumented (API 34/36 x86_64 `aosp_atd`) · perf benchmarks · size report | phase exit blocker |
+| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (from Ph. 4) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check | PR merge blocker |
+| `phase-gate.yml` | `[phase-gate]` in the head commit message (manual dispatch once on `main`) | emulator integration tests on API 36 x86_64 `google_apis` (KVM) incl. the process-death restore pair · cold-start measurement on a release x86_64 APK · size report (`perf.json`) | phase exit blocker |
 | `runtime-gates.yml` | changes under native/, runtime/ + nightly (Ph. 4+) | payload build (pins verified) · `ExecModelTest` + `SealedShellTest` on 34/36 · `ExecAudit`=0 · page-alignment check · bundle-size check · arm64 device leg (self-hosted runner, see §4) | release blocker |
 | `release.yml` | version tag `v*` | build GitHub "full" APK (arm64 + x86_64) · build Play AAB (arm64 base + PFD pack) · sign (secrets) · hashes + pins manifest · GitHub Release draft · Play upload to internal track (manual promote) | — |
 | `deps.yml` | monthly cron | dependency update PR (pub/npm/gradle) with full ci.yml | — |
 
+### 2.1 As built in Phase 1 — the evidence channel
+
+The authoring sandbox cannot reach GitHub's log and artifact download hosts, so principle 4 is applied with one deliberate exception: **diagnostics are committed back to the working branch**, always with `[skip ci]`, and only when asked for:
+
+- **`[bootstrap]`** in a commit message makes `ci.yml` run `dart fix` + `dart format`, regenerate golden baselines on the Linux runner, and commit both back; every quality gate then writes its full output to `app/ci-results/*.txt` (analyze, format, imports, licenses, lockfile, test, build, apk, coverage), which is committed back too. The run's own verdict is the evidence. Plain pushes run the same gates without any commit-back.
+- **`[phase-gate]`** runs `phase-gate.yml`; its evidence lives in **`app/ci-results/gate/`**, a directory owned by the gate script (host/acceleration, readiness timings, every test attempt with exit codes, restore-pair proof, cold-start samples, `perf.json`, logcat and emulator tails). `tool/ci/commit_gate_evidence.sh` commits it by snapshotting the directory, resetting to the remote tip and restoring only that directory — never a rebase of a dirty runner checkout, so concurrent commit-backs cannot collide. The key files are also published as check-run annotations (`tool/ci/annotate_gate_evidence.sh`), readable through the API if a push ever fails.
+- Commit-backs from `ci.yml` push through `tool/ci/push_with_retry.sh` (fetch + rebase on rejection).
+- Infrastructure retries are explicit and logged: an integration test is retried only on known *infrastructure* signatures (package service missing, broken adb pipe, device offline, …); an assertion failure is never retried. Every attempt is listed in `attempts.txt`.
+
 ## 3. Toolchain pins in CI
 
-- Flutter: `.flutter-version` (3.47.x) honored by `subosito/flutter-action`; Java: Temurin 17; Android SDK 36 via `android-actions/setup-android`; NDK 27.2.12479018; Node: `.nvmrc` (24 LTS) for editor workspace; Gradle wrapper 9.2.1 (committed).
-- Caches: pub, gradle, npm keyed by lockfiles; emulator snapshots cached (t1 pattern: TCG `aosp_atd` images, no KVM on GitHub runners; generous adb timeouts — t1 hit ddmlib API-level-1 misdetection, fix carried over).
+- Flutter: `.flutter-version` (**3.47.9**) honored by `subosito/flutter-action`; Java: Temurin 17; Android SDK 36 (runner image); NDK **28.2.13676358** (resolved by the Flutter Gradle plugin); Gradle wrapper **9.3.1** + AGP 9.1.0 (committed); Node: `.nvmrc` (24 LTS) for the editor workspace from Phase 2.
+- Caches: pub, gradle, npm keyed by lockfiles. Emulators: GitHub's Linux runners **do** expose KVM to public repositories once a udev rule is applied — Phase 1's first six gate runs silently fell back to software emulation (the KVM probe raced the asynchronous `udevadm trigger`), with 4.5–15.6 min boots and system_server watchdog restarts. The gate now settles udev before probing, records the acceleration it actually used, and waits for a *stable* framework (three consecutive package/settings/activity-manager probes), not just `sys.boot_completed`.
 - Secrets (release only): `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, `PLAY_SERVICE_ACCOUNT_JSON`. Never available to fork PRs. `GITHUB_TOKEN` least privilege per job.
 
 ## 4. Device testing
