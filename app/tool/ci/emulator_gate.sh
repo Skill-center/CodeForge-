@@ -231,6 +231,10 @@ echo "::group::Integration — smoke"
 run_itest smoke integration_test/smoke_test.dart || fail=1
 echo "::endgroup::"
 
+echo "::group::Integration — editor bridge (Phase 2 W2: the real page in the WebView)"
+run_itest editor integration_test/editor_bridge_test.dart || fail=1
+echo "::endgroup::"
+
 echo "::group::Integration — restore pair (G5: establish → process death → verify)"
 # --no-uninstall on part A is essential: `flutter test integration_test`
 # uninstalls the app by default when the run ends, which would wipe the very

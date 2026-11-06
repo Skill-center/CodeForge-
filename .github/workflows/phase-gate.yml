@@ -44,6 +44,23 @@ jobs:
           channel: stable
           cache: true
 
+      # The editor page is built from editor/ and never committed. This
+      # workflow cannot see the CI run's artifact, so it builds the page from
+      # the same lockfile (the build is reproducible: same bytes, same hash)
+      # and verifies it before the APK bundles it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: editor/.nvmrc
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+
+      - name: Build the editor page
+        working-directory: editor
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm run verify
+
       - name: Resolve dependencies
         run: flutter pub get
 

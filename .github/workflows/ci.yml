@@ -136,6 +136,18 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
+      # The editor page is built from editor/ and never committed
+      # (docs/REPOSITORY_STRUCTURE.md): the app bundles exactly what the
+      # editor job just built and verified. Without it the tests and the
+      # build fail, so its absence is also reported as a gate of its own.
+      - name: Fetch the editor page
+        id: editor_page
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: editor-page
+          path: app/assets/editor
+
       - name: Resolve dependencies
         run: flutter pub get
 
@@ -294,8 +306,9 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in lockfile format analyze imports licenses tests build; do
+          for gate in editor_page lockfile format analyze imports licenses tests build; do
             case "$gate" in
+              editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
               format) outcome="${{ steps.format.outcome }}" ;;
               analyze) outcome="${{ steps.analyze.outcome }}" ;;

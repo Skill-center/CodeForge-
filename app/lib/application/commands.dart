@@ -80,17 +80,9 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
   );
   registry.register(
     CfCommand(
-      id: 'editor.simulateEdit',
-      title: 'Demo: Mark Active File Dirty',
-      category: 'Demo',
-      onExecute: () => ref.read(editorTabsProvider.notifier).simulateEdit(),
-    ),
-  );
-  registry.register(
-    CfCommand(
       id: 'editor.save',
-      title: 'Demo: Save Active File',
-      category: 'Demo',
+      title: 'Save File',
+      category: 'File',
       onExecute: () => ref.read(editorTabsProvider.notifier).saveActive(),
     ),
   );

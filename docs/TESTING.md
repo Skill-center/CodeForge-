@@ -30,6 +30,18 @@
 
 Manual: TalkBack spot-check checklist in the Phase 1 report (owner, on hardware).
 
+### 1.2 Added in Phase 2 (so far: W1 editor page, W2 host and bridge)
+
+| Suite | Where | What it proves |
+|---|---|---|
+| Editor page | `editor/test` (vitest + happy-dom), CI job `editor` | protocol validation, change-set round trips against CodeMirror, the controller (open/activate/close, batching, snapshots), the bridge, the built page's integrity (`tool/verify_bundle.mjs`) |
+| Contract | `app/test/core/editor_protocol_test.dart` | the same JSON fixtures as vitest (`editor/test/fixtures/`): every valid message per direction parses, every invalid one fails with the expected error code, every change-set case applies identically; the Dart constants equal those in `types.ts` |
+| Unit | `test/core/editor_core_test.dart`, `test/application/editor_host_test.dart`, `test/services/editor_page_test.dart` | change sets, shadow documents, language detection, the rate limiter; the host over a scripted page (ready and sync, request timeouts, edits applied or refused with a snapshot resync, page restarts reopening every document, rate limiting); page verification (hash match, one-byte tamper, malformed manifests) and the bundled page's hash and notices |
+| Widget | `test/widget/editor_tabs_test.dart`, `test/widget/editor_surface_test.dart` | typing marks the tab dirty and save writes the editor's text; closing a tab closes the document in the editor; the configuration is valid in both themes and follows the text scale; a failed start shows the reason and retries; the page survives the tab strip and toolbar leaving in one layout |
+| Integration (emulator) | `integration_test/editor_bridge_test.dart`, run by `tool/ci/emulator_gate.sh` | the real, verified page in the Android System WebView: it starts, an edit round-trips as an incremental change, a page reload restores every document from the shadows, and save writes it |
+
+Widget tests run the real `EditorHost` against a scripted Dart page (`test/support/fake_editor_surface.dart`) because platform views cannot run under `flutter test`; the scripted page validates every host message with the production protocol code.
+
 ## 2. Fakes-first discipline
 
 Every service interface ships with an in-memory fake in Phase 1. Widget/controller tests run against fakes — fast, deterministic, no device. Native implementations are validated by contract tests that run the **same test suite** against fake and native impls (interface contract tests), so divergence is caught mechanically.

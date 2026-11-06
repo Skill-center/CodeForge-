@@ -9,8 +9,11 @@ CodeForge-/
 │   │   ├── main.dart
 │   │   ├── bootstrap/
 │   │   ├── design_system/        # tokens / theme / components
-│   │   ├── core/                 # errors, logging, platform, utils
-│   │   ├── services/             # interfaces + fake/ + native/ impls
+│   │   ├── core/                 # errors, logging, platform, utils;
+│   │   │                         #   editor/: protocol v1 mirror, change sets, shadows
+│   │   ├── services/             # interfaces + fake/ + native/ impls;
+│   │   │                         #   editor/: WebView surface, page verification
+│   │   ├── application/          # controllers + providers; editor/: the editor host
 │   │   ├── features/             # home, workbench, explorer, editor, terminal,
 │   │   │   └── <feature>/        #   search, source_control, extensions,
 │   │   │       ├── presentation/ #   run_debug, settings
@@ -23,7 +26,7 @@ CodeForge-/
 │   │   ├── terminal/             # xterm bundle only if ADR-0006 fallback chosen
 │   │   ├── fonts/                # bundled UI + mono fonts (offline)
 │   │   └── icons/
-│   ├── test/                     # unit + widget tests mirror lib/
+│   ├── test/                     # unit + widget tests mirror lib/; support/: scripted editor page
 │   ├── integration_test/         # device/emulator workflow tests
 │   └── pubspec.yaml              # pinned; lockfile committed
 │

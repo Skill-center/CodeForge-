@@ -24,6 +24,8 @@
 | Navigation | **GoRouter** | 18.1.3 | Declarative, deep links, shell routes for workbench; Flutter team-maintained |
 | Typed platform channels | **Pigeon** | 29.1.0 | Generates Dart+Kotlin contracts; no hand-rolled MethodChannel string maps |
 | WebView | **webview_flutter** | 4.14.1 | Official plugin; Android WebView host for editor |
+| WebView (Android) | webview_flutter_android | 4.14.1 | Pinned alongside: the editor host hardens the WebView through its Android-only API (file/content access off, debugging in debug builds only). It exposes no request interception and no `onRenderProcessGone` (see SECURITY.md §3) |
+| Hashing | crypto | 3.0.8 | SHA-256 check of the bundled editor page against its manifest before it runs; it was already in the lockfile as a transitive dependency, now declared directly |
 | Local DB | **Drift** (SQLite) | 2.35.3 | Typed queries, migrations, reactive streams; Phase 2+ |
 | Preferences | shared_preferences | 2.5.6 | Settings only; structured state goes to Drift |
 | Lints | flutter_lints | 6.0.0 | Baseline + custom import-boundary rules |

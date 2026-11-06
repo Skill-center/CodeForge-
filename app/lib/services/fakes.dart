@@ -197,11 +197,11 @@ final class FakeEditorService implements EditorService {
     };
   }
 
-  /// Marks a document dirty (used by the demo "simulate edit" action).
-  void markDirty(String path) {
+  /// Takes the editor's current text for [path] and marks it unsaved.
+  void updateContent(String path, String content) {
     final doc = _documents[path];
     if (doc != null) {
-      _documents[path] = doc.copyWith(dirty: true);
+      _documents[path] = doc.copyWith(content: content, dirty: true);
     }
   }
 

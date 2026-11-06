@@ -75,7 +75,7 @@
   - Uses the shared fixtures, so the contract is tested on both sides.
   - Correlates requests with responses, with timeouts.
   - An unknown type or version is rejected and logged.
-- **Recovery:** after a renderer crash or a reload, the page is rebuilt and documents reopen from Dart's shadow buffers.
+- **Recovery:** whenever the page announces itself again (a reload or a restart), documents reopen from Dart's shadow buffers. A renderer crash cannot be caught in-app: `webview_flutter_android` 4.14.1 exposes no `onRenderProcessGone`, so Android ends the app process, and the text comes back from the W5 journal on the next start. G4 therefore treats a renderer crash as process death.
 
 ### W3 — Engine gate, ADR-0004 (1–2 sessions) → gate G1
 

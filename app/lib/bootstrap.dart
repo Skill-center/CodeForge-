@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'application/providers.dart';
 import 'core/logging/logger.dart';
+import 'services/editor/editor_page.dart';
 import 'services/settings/settings_store.dart';
 import 'services/shell/shell_state.dart';
 
@@ -41,6 +42,10 @@ Future<void> bootstrap() async {
         appLogger.error('platform', 'uncaught', fields: {'error': '$error'});
         return true;
       };
+
+      // The editor page's npm packages, next to the pub packages Flutter
+      // lists by itself (About → Open-source licenses).
+      LicenseRegistry.addLicense(bundledEditorLicenses);
 
       final prefs = await SharedPreferences.getInstance();
       final settingsStore = PrefsSettingsStore(prefs);

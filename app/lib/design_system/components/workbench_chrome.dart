@@ -31,6 +31,7 @@ class CfTabStrip extends StatelessWidget {
     required this.activeId,
     required this.onActivate,
     required this.onClose,
+    this.trailing,
   });
 
   final List<CfTab> tabs;
@@ -38,16 +39,14 @@ class CfTabStrip extends StatelessWidget {
   final ValueChanged<String> onActivate;
   final ValueChanged<String> onClose;
 
+  /// Pinned after the tabs, outside their scroll (the editor's save action).
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
-    return Container(
-      height: CfSpacing.tabStripHeight + CfSpacing.hairline,
-      decoration: BoxDecoration(
-        color: colors.surfacePanel,
-        border: Border(bottom: BorderSide(color: colors.borderSubtle)),
-      ),
-      child: ListView.builder(
+    final trailing = this.trailing;
+    final strip = ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: tabs.length,
         itemBuilder: (context, index) {
@@ -124,7 +123,21 @@ class CfTabStrip extends StatelessWidget {
             ),
           );
         },
+      );
+    return Container(
+      height: CfSpacing.tabStripHeight + CfSpacing.hairline,
+      decoration: BoxDecoration(
+        color: colors.surfacePanel,
+        border: Border(bottom: BorderSide(color: colors.borderSubtle)),
       ),
+      child: trailing == null
+          ? strip
+          : Row(
+              children: [
+                Expanded(child: strip),
+                trailing,
+              ],
+            ),
     );
   }
 }
@@ -323,7 +336,7 @@ class CfSymbolToolbar extends StatelessWidget {
     super.key,
     this.enabled = false,
     this.onSymbol,
-    this.phaseNote = 'Editor arrives in Phase 2',
+    this.phaseNote = 'Symbol keys arrive later in Phase 2',
   });
 
   static const List<String> symbols = [

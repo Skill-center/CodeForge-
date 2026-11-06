@@ -51,12 +51,14 @@ void main() {
       expect(doc.dirty, isFalse);
       expect(doc.language, 'python');
 
-      editor.markDirty('app.py');
+      editor.updateContent('app.py', 'print("edited")\n');
       expect(editor.document('app.py')!.dirty, isTrue);
 
       final saved = await editor.saveDocument('app.py');
       expect(saved.isOk, isTrue);
       expect(editor.document('app.py')!.dirty, isFalse);
+      // The edited text is what reached the file, not the original.
+      expect((await files.readTextFile('app.py')).orThrow, 'print("edited")\n');
     });
 
     test('saving an unopened document fails typed', () async {
