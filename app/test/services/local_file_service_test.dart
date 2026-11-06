@@ -40,11 +40,8 @@ Future<LocalFileService> _opened({BeforeCommit? beforeCommit}) async {
 
 File _file(String path) => File('$_root/$path');
 
-Matcher _fails(FileProblem problem) => isA<FileFailure>().having(
-  (f) => f.problem,
-  'problem',
-  problem,
-);
+Matcher _fails(FileProblem problem) =>
+    isA<FileFailure>().having((f) => f.problem, 'problem', problem);
 
 void main() {
   setUp(() async {
@@ -131,10 +128,9 @@ void main() {
   group('reading', () {
     test('text comes with its format and stamp', () async {
       final files = await _opened();
-      _file('win.txt').writeAsBytesSync([
-        ...utf8Bom,
-        ...utf8.encode('a\r\nb\r\n'),
-      ]);
+      _file(
+        'win.txt',
+      ).writeAsBytesSync([...utf8Bom, ...utf8.encode('a\r\nb\r\n')]);
       final read = (await files.readText('win.txt')).orThrow;
       expect(read.text, 'a\nb\n');
       expect(
@@ -189,7 +185,11 @@ void main() {
       expect(same.isOk, isTrue);
       expect(_file('win.txt').readAsBytesSync(), original);
 
-      await files.writeText('win.txt', '${read.text}three\n', format: read.format);
+      await files.writeText(
+        'win.txt',
+        '${read.text}three\n',
+        format: read.format,
+      );
       expect(_file('win.txt').readAsBytesSync(), [
         ...utf8Bom,
         ...utf8.encode('one\r\ntwo\r\nthree\r\n'),

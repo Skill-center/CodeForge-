@@ -11,7 +11,11 @@ import '../services/contracts.dart';
 import 'providers.dart';
 
 final class WorkspaceState {
-  const WorkspaceState({this.workspace, this.failure, this.listings = const {}});
+  const WorkspaceState({
+    this.workspace,
+    this.failure,
+    this.listings = const {},
+  });
 
   /// The open workspace; null until it opened.
   final WorkspaceRef? workspace;
@@ -75,7 +79,9 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
     try {
       do {
         _stale.remove(folder);
-        final result = await ref.read(fileServiceProvider).listDirectory(folder);
+        final result = await ref
+            .read(fileServiceProvider)
+            .listDirectory(folder);
         state = WorkspaceState(
           workspace: state.workspace,
           failure: state.failure,

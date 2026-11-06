@@ -438,10 +438,7 @@ final class EditorHost {
       return const Ok(null);
     }
     return _done(
-      await _request('doc.setLanguage', {
-        'docId': docId,
-        'language': language,
-      }),
+      await _request('doc.setLanguage', {'docId': docId, 'language': language}),
     );
   }
 

@@ -329,10 +329,7 @@ final class LocalFileService implements FileService {
   /// The real location of workspace path [path], or why there is none. The
   /// deepest part of the path that exists is resolved through symbolic
   /// links and must stay inside the root; the rest does not exist yet.
-  Future<Result<String>> _resolve(
-    String path, {
-    bool allowRoot = false,
-  }) async {
+  Future<Result<String>> _resolve(String path, {bool allowRoot = false}) async {
     final invalid = workspacePathProblem(path, allowRoot: allowRoot);
     if (invalid != null) {
       return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
@@ -364,11 +361,7 @@ final class LocalFileService implements FileService {
       );
     }
     if (real != root && !real.startsWith('$root/')) {
-      appLogger.warn(
-        'files',
-        'path_outside_workspace',
-        fields: {'path': path},
-      );
+      appLogger.warn('files', 'path_outside_workspace', fields: {'path': path});
       return Err(
         FileFailure(
           '${_label(path)} leads outside the workspace.',

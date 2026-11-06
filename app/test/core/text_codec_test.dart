@@ -38,10 +38,10 @@ void main() {
     test('the BOM is taken off the text and remembered', () {
       final decoded = _decode([...utf8Bom, ...utf8.encode('é\r\n')]);
       expect(decoded.text, 'é\n');
-      expect(decoded.format, const TextFormat(
-        lineEnding: LineEnding.crlf,
-        bom: true,
-      ));
+      expect(
+        decoded.format,
+        const TextFormat(lineEnding: LineEnding.crlf, bom: true),
+      );
     });
 
     test('mixed endings: the majority wins and the file is flagged', () {
@@ -70,7 +70,10 @@ void main() {
     });
 
     test('binary, malformed and UTF-16 files are refused', () {
-      expect(_refusal([0x89, 0x50, 0x4E, 0x47, 0x00, 0x0D]), FileProblem.notText);
+      expect(
+        _refusal([0x89, 0x50, 0x4E, 0x47, 0x00, 0x0D]),
+        FileProblem.notText,
+      );
       expect(_refusal(utf8.encode('text\u0000more')), FileProblem.notText);
       // Latin-1 "café".
       expect(_refusal([0x63, 0x61, 0x66, 0xE9]), FileProblem.notText);
@@ -88,14 +91,14 @@ void main() {
         encodeText('a\nb\n', const TextFormat(lineEnding: LineEnding.crlf)),
         utf8.encode('a\r\nb\r\n'),
       );
-      expect(
-        encodeText('x', const TextFormat(bom: true)),
-        [...utf8Bom, 0x78],
-      );
+      expect(encodeText('x', const TextFormat(bom: true)), [...utf8Bom, 0x78]);
     });
 
     test('never writes a stray carriage return', () {
-      expect(encodeText('a\r\nb\rc', TextFormat.standard), utf8.encode('a\nb\nc'));
+      expect(
+        encodeText('a\r\nb\rc', TextFormat.standard),
+        utf8.encode('a\nb\nc'),
+      );
       expect(
         encodeText('a\r\nb', const TextFormat(lineEnding: LineEnding.crlf)),
         utf8.encode('a\r\nb'),

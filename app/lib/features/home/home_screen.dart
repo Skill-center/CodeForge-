@@ -200,10 +200,7 @@ class _WelcomeSheet extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: CfSpacing.lg),
-            Text(
-              'What you can do today:',
-              style: textTheme.bodyMedium,
-            ),
+            Text('What you can do today:', style: textTheme.bodyMedium),
             const SizedBox(height: CfSpacing.md),
             Text(
               '•  Edit and save real files in the demo workspace\n'

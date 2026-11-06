@@ -66,11 +66,8 @@ Future<void> _drain() async {
   }
 }
 
-Matcher _fails(FileProblem problem) => isA<FileFailure>().having(
-  (f) => f.problem,
-  'problem',
-  problem,
-);
+Matcher _fails(FileProblem problem) =>
+    isA<FileFailure>().having((f) => f.problem, 'problem', problem);
 
 void main() {
   group('opening', () {
@@ -87,7 +84,10 @@ void main() {
 
     test('a double tap opens one tab', () async {
       final w = _World();
-      await Future.wait([w.documents.open('app.py'), w.documents.open('app.py')]);
+      await Future.wait([
+        w.documents.open('app.py'),
+        w.documents.open('app.py'),
+      ]);
       expect(w.state.openPaths, ['app.py']);
     });
 
@@ -310,10 +310,9 @@ void main() {
         'Scratch notes live here.\nprint("hi")\n',
       );
       expect(w.files.textOf('src/notes.txt'), 'Scratch notes live here.\n');
-      expect(
-        w.container.read(shellControllerProvider).openTabs,
-        ['src/hello.py'],
-      );
+      expect(w.container.read(shellControllerProvider).openTabs, [
+        'src/hello.py',
+      ]);
       // The explorer's listing of src/ shows the new file.
       await _drain();
       final src = w.container.read(workspaceControllerProvider).listings['src'];
@@ -385,7 +384,10 @@ void main() {
     test('files that are gone are skipped; nothing open → fallback', () async {
       final w = _World(
         shellStore: InMemoryShellStateStore(
-          const ShellState(openTabs: ['gone.js', 'app.py'], activeTab: 'gone.js'),
+          const ShellState(
+            openTabs: ['gone.js', 'app.py'],
+            activeTab: 'gone.js',
+          ),
         ),
       );
       await w.documents.restoreTabs(fallback: 'main.js');

@@ -168,9 +168,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
         ),
       ),
       Ok<List<FileEntry>>(:final value) => ListView(
-        children: [
-          _EntryRows(entries: value, depth: 0, onTap: _onEntryTap),
-        ],
+        children: [_EntryRows(entries: value, depth: 0, onTap: _onEntryTap)],
       ),
       Err<List<FileEntry>>(:final failure) => _Message(failure.message),
     };

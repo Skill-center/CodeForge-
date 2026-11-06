@@ -373,11 +373,7 @@ final class DocumentController extends Notifier<DocumentsState> {
     if (invalid != null) {
       return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
     }
-    final created = await _files.writeText(
-      path,
-      '',
-      mode: WriteMode.createNew,
-    );
+    final created = await _files.writeText(path, '', mode: WriteMode.createNew);
     if (created case Err<FileStamp>(:final failure)) {
       return Err(failure);
     }

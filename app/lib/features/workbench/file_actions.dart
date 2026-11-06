@@ -67,7 +67,9 @@ Future<bool> saveFileAs(
     return false;
   }
   var result = await documents.saveAs(path, newPath);
-  if (result case Err<void>(failure: FileFailure(problem: FileProblem.exists))) {
+  if (result case Err<void>(
+    failure: FileFailure(problem: FileProblem.exists),
+  )) {
     if (!context.mounted) {
       return false;
     }

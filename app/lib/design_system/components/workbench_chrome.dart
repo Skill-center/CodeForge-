@@ -153,9 +153,7 @@ class _CfTabStripState extends State<CfTabStrip> {
                   tab.label,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: active
-                        ? colors.textPrimary
-                        : colors.textSecondary,
+                    color: active ? colors.textPrimary : colors.textSecondary,
                   ),
                 ),
               ),

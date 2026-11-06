@@ -83,9 +83,7 @@ Future<TestHarness> _pumpWorkbench(
 }
 
 void main() {
-  testWidgets('a dozen tabs each keep their own document (G3)', (
-    tester,
-  ) async {
+  testWidgets('a dozen tabs each keep their own document (G3)', (tester) async {
     final harness = await _pumpWorkbench(
       tester,
       before: (harness) {
@@ -193,7 +191,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('menu_save_as')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('file_path_dialog')), findsOneWidget);
-      await tester.enterText(find.byKey(const ValueKey('file_path_field')), path);
+      await tester.enterText(
+        find.byKey(const ValueKey('file_path_field')),
+        path,
+      );
       await tester.tap(find.byKey(const ValueKey('file_path_confirm')));
       await tester.pumpAndSettle();
     }
@@ -208,7 +209,10 @@ void main() {
     await saveAs('src/copy.js');
     expect(_tabText('copy.js'), findsOneWidget);
     expect(_tabText('main.js'), findsNothing);
-    expect(harness.files.textOf('src/copy.js'), harness.files.textOf('main.js'));
+    expect(
+      harness.files.textOf('src/copy.js'),
+      harness.files.textOf('main.js'),
+    );
     expect(_state(tester).activePath, 'src/copy.js');
   });
 
@@ -353,7 +357,10 @@ void main() {
     expect(_state(tester).activePath, 'utils.js');
     expect(_tabText('main.js'), findsNothing, reason: 'no fallback needed');
     var page = harness.editorSurface;
-    expect(page.documents[page.activeDocId]!.text, harness.files.textOf('utils.js'));
+    expect(
+      page.documents[page.activeDocId]!.text,
+      harness.files.textOf('utils.js'),
+    );
 
     // Open one more, let the layout memory save, then restart.
     await tester.tap(find.byKey(const ValueKey('tree_README.md')));
@@ -367,7 +374,10 @@ void main() {
     expect(_state(tester).activePath, 'README.md');
     page = harness.editorSurface;
     expect(page.documents, hasLength(3));
-    expect(page.documents[page.activeDocId]!.text, harness.files.textOf('README.md'));
+    expect(
+      page.documents[page.activeDocId]!.text,
+      harness.files.textOf('README.md'),
+    );
     await tester.pump(const Duration(seconds: 1));
   });
 }
