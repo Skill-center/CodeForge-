@@ -244,18 +244,26 @@ final class EditorHost {
     }
   }
 
+  /// Tears the host down. Everything stops synchronously: no timer, request
+  /// or subscription outlives this call, and the returned future waits only
+  /// for the surface.
+  ///
+  /// Stream teardown is not awaited on purpose. A cancelled broadcast
+  /// subscription reports completion through a future of the root zone.
+  /// Awaiting that inside a fake-async zone (a widget test) resumes the
+  /// caller outside the zone's control, and whatever it awaits next in the
+  /// zone never completes.
   Future<void> dispose() async {
     if (_disposed) {
       return;
     }
     _disposed = true;
-    // Synchronous first: no timer may outlive the host.
     _readyTimer?.cancel();
     _failPending('The editor is closed.');
-    await _messageSubscription.cancel();
-    await _eventSubscription.cancel();
-    await _statusController.close();
-    await _eventController.close();
+    unawaited(_messageSubscription.cancel());
+    unawaited(_eventSubscription.cancel());
+    unawaited(_statusController.close());
+    unawaited(_eventController.close());
     await _surface.dispose();
   }
 

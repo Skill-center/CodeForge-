@@ -44,6 +44,8 @@ Widget tests run the real `EditorHost` against a scripted Dart page (`test/suppo
 
 Every test run is bounded so a hang fails fast and says where. `test/flutter_test_config.dart` gives each widget test 2 minutes instead of the binding's default 10 (`flutter test --timeout` does not reach `testWidgets`). In CI, coreutils `timeout` caps the golden run at 10 minutes and the full suite at 15, which also catches a test that spins, where no per-test timeout can fire.
 
+A widget test runs in a fake-async zone, so whatever its body awaits has to complete inside that zone. Code a test awaits must not await `StreamSubscription.cancel()`: it completes through a root-zone future. That resumes the test outside the zone's control, and the next thing it awaits never completes, so the test stalls until its timeout. For this reason `EditorHost.dispose()` stops its streams without awaiting them.
+
 ## 2. Fakes-first discipline
 
 Every service interface ships with an in-memory fake in Phase 1. Widget/controller tests run against fakes — fast, deterministic, no device. Native implementations are validated by contract tests that run the **same test suite** against fake and native impls (interface contract tests), so divergence is caught mechanically.
