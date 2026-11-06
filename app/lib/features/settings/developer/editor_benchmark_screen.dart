@@ -226,9 +226,7 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: check['match'] == true
-                    ? colors.success
-                    : colors.danger,
+                color: check['match'] == true ? colors.success : colors.danger,
               ),
             ),
           ),
