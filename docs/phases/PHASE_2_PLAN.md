@@ -146,16 +146,16 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
   - Tabs persist in the `codeforge.shell.v1` envelope for now; Drift takes them over in W5 with the journal.
   - A save replaces the file, so its permission bits are not kept. That is harmless in the app-private folder and must change for Phase 3/4 (SECURITY §4).
   - The import lint now fails if a feature reads `fileServiceProvider` (ARCHITECTURE §2.5).
-- **Evidence so far:**
-  - CI 42233425019: `+431: All tests passed!`, `flutter analyze` clean, line coverage 3432/3999 (85.8 %). The real-folder `LocalFileService` suite passed there: an interrupted save, symlink escapes, BOM/CRLF bytes, exclusive creation.
-  - Phase gate 42233424845, on the emulator:
-    - `editor_bridge_test` passed on attempt 1. A save writes exactly the editor's text to the device; a CRLF + BOM file survives an edit and a save byte for byte, and Save As copies it exactly. Twelve open tabs each kept their text, cursor and scroll position (restored scroll tops 1088–2978 px) across switches. Undo in one tab left the others alone, and undoing back to the saved text made the tab clean.
-    - The restore pair passed: after `am force-stop`, both tabs reopened with `app.py` active.
-    - The smoke test failed only because it checked for the workbench before the device's first-run file work had finished. It now waits.
+- **Evidence** (commit 744a149):
+  - CI 42238016497: `+431: All tests passed!` (370 at W3), `flutter analyze` clean, line coverage 3432/3999 (85.8 %). It includes the `LocalFileService` suite on a real temporary folder (an interrupted save, symlink escapes, BOM/CRLF bytes, exclusive creation) and the documents widget flows. The editor workspace's `npm run ci` passed locally with 121/121 tests.
+  - Phase gate 42238016973: all 6 emulator runs passed on attempt 1.
+    - `editor_bridge_test`: a save writes exactly the editor's text to the device; a CRLF + BOM file survives an edit and a save byte for byte, and Save As copies it exactly. Twelve open tabs each kept their text, cursor and scroll position across switches (restored scroll tops 1088–2978 px), and a select-all selection survived a switch. Undo in one tab left the others alone, and undoing back to the saved text made the tab clean. There were 0 resyncs.
+    - The restore pair: part A persisted `"openTabs":["main.js","app.py"],"activeTab":"app.py"`. After `am force-stop`, part B found both tabs reopened from the files with `app.py` active.
+    - Editor ready 3821 ms after opening the workbench, and release cold start median 1284 ms (budget 1500). Both are within W3's range on the same emulator (3678–4332 ms and 1146–1322 ms).
+  - The earlier gate 42233424845 had failed only in the smoke test, which checked for the workbench before the first run's file work had finished; the test now waits for it.
 - **Gate status:**
-  - **G2 Files:** met on the evidence above.
-  - **G3 Tabs:** met (≥ 10 documents with per-document cursor, scroll, selection and undo; dirty dot and close prompt; reopen after restart).
-  - The re-run of the full gate with the smoke fix is recorded below.
+  - **G2 Files:** met.
+  - **G3 Tabs:** met: ≥ 10 documents with per-document cursor, scroll, selection and undo; dirty dot and close prompt; tabs reopen after restart.
 - **Known limits (carried):**
   - Unsaved text does not survive process death until the W5 journal (G4).
   - UTF-8 only; app-private folder only (SAF in Phase 3); no file watching, so outside changes are caught at save time.

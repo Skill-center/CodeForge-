@@ -16,3 +16,10 @@ Spec mandates Flutter as the primary framework with native Android integration w
 - Typed, versioned platform boundary; business logic stays testable in Dart with fakes.
 - Two languages on the native side (Kotlin host + Java modules) — acceptable: same JVM, clear ownership line (host = orchestration, modules = mechanism).
 - Flutter engine adds ~10 MB per ABI to the audited 136 MB base — within the 180 MB budget (PERFORMANCE.md).
+
+## Amendment — Phase 2 (2026-11-06)
+Two services this decision gave to the Kotlin host run without host code of our own, because neither needed more than a Flutter plugin or Dart's own APIs offer:
+- **WebView hosting** goes through the `webview_flutter` plugin (W2). The hardening is set through the plugin's Android API (SECURITY.md §3).
+- **Files in the app-private workspace** use `dart:io` (W4; ARCHITECTURE.md §2.5). The Kotlin host only reports the folder, answering `filesDir` on a plain MethodChannel (`dev.codeforge/paths`). Pigeon arrives with the first multi-method surface.
+
+**SAF storage** stays with the Kotlin host (Phase 3), because `content://` documents need Android APIs; it will sit behind the same Dart `FileService` contract. The ownership line is unchanged: Dart owns logic and plain file work, Kotlin owns what needs Android APIs.
