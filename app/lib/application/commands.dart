@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/commands/command_registry.dart';
-import 'editor_tabs_controller.dart';
 import 'router.dart';
 import 'settings_controller.dart';
+import 'workbench_intents.dart';
 
 final commandRegistryProvider = Provider<CommandRegistry>((ref) {
   ref.keepAlive();
@@ -78,13 +78,35 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
           .setThemeMode(ThemeMode.system),
     ),
   );
-  registry.register(
-    CfCommand(
-      id: 'editor.save',
-      title: 'Save File',
-      category: 'File',
-      onExecute: () => ref.read(editorTabsProvider.notifier).saveActive(),
+  // File and tab commands need the workbench screen (dialogs, prompts):
+  // they fire intents it carries out.
+  for (final (id, title, category, intent) in const [
+    ('file.new', 'New File…', 'File', WorkbenchIntent.newFile),
+    ('editor.save', 'Save File', 'File', WorkbenchIntent.save),
+    ('file.saveAs', 'Save As…', 'File', WorkbenchIntent.saveAs),
+    ('editor.close', 'Close Editor', 'View', WorkbenchIntent.closeEditor),
+    (
+      'editor.closeOthers',
+      'Close Other Editors',
+      'View',
+      WorkbenchIntent.closeOtherEditors,
     ),
-  );
+    ('editor.next', 'Next Editor', 'View', WorkbenchIntent.nextEditor),
+    (
+      'editor.previous',
+      'Previous Editor',
+      'View',
+      WorkbenchIntent.previousEditor,
+    ),
+  ]) {
+    registry.register(
+      CfCommand(
+        id: id,
+        title: title,
+        category: category,
+        onExecute: () => ref.read(workbenchIntentsProvider).fire(intent),
+      ),
+    );
+  }
   return registry;
 });

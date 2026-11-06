@@ -1,16 +1,20 @@
-/// Restore gate, part A (G5): establish a distinctive state — light theme,
-/// workspace route, terminal half-open — and let it persist. CI force-stops
-/// the process after this test; restore_b_test verifies survival.
+/// Restore gate, part A (G5, and G3's tabs): establish a distinctive state —
+/// light theme, workspace route, terminal half-open, a second tab active —
+/// and let it persist. CI force-stops the process after this test;
+/// restore_b_test verifies survival.
 library;
 
+import 'package:codeforge/app.dart';
+import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'smoke_test.dart' show pumpRealApp;
+import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +30,22 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('welcome_dismiss')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('explore_demo')));
+    await tester.pumpAndSettle();
+
+    // A second tab, active: main.js opened on its own, app.py from here.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(CodeForgeApp)),
+      listen: false,
+    );
+    await pumpUntil(
+      tester,
+      () => container.read(documentControllerProvider).isOpen('main.js'),
+      what: 'main.js to open',
+    );
+    final opened = await container
+        .read(documentControllerProvider.notifier)
+        .open('app.py');
+    expect(opened.isOk, isTrue);
     await tester.pumpAndSettle();
 
     // Terminal half-open.
@@ -58,5 +78,7 @@ void main() {
     expect(settingsRaw, contains('"themeMode":"light"'));
     expect(shellRaw, contains('"lastRoute":"/workspace"'));
     expect(shellRaw, contains('"terminalStop":"half"'));
+    expect(shellRaw, contains('"openTabs":["main.js","app.py"]'));
+    expect(shellRaw, contains('"activeTab":"app.py"'));
   });
 }

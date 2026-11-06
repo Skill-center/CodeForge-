@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/files/workspace_path.dart';
 import '../../core/logging/logger.dart';
 
 const String shellStateStorageKey = 'codeforge.shell.v1';
@@ -14,6 +15,9 @@ const int shellStateSchemaVersion = 1;
 
 /// Terminal panel stop on compact layouts.
 enum TerminalStop { closed, peek, half, full }
+
+/// The most tabs a restart reopens.
+const int maxRestoredTabs = 50;
 
 /// Which activity's panel is showing in the sidebar.
 enum ShellActivity { explorer, search, git, extensions, run }
@@ -27,6 +31,8 @@ final class ShellState {
     this.sidebarWidth = 264,
     this.terminalHeight = 220,
     this.demoWorkspaceOpened = false,
+    this.openTabs = const [],
+    this.activeTab,
   });
 
   final String lastRoute;
@@ -35,6 +41,14 @@ final class ShellState {
   final double sidebarWidth;
   final double terminalHeight;
   final bool demoWorkspaceOpened;
+
+  /// Workspace paths of the open tabs, in tab order, reopened after a
+  /// restart (Phase 2 W4; W5 moves them into the database with cursor and
+  /// scroll).
+  final List<String> openTabs;
+
+  /// The active tab among [openTabs].
+  final String? activeTab;
 
   /// Only these routes may be restored on cold start.
   static const Set<String> restorableRoutes = {'/', '/workspace', '/settings'};
@@ -46,6 +60,9 @@ final class ShellState {
     double? sidebarWidth,
     double? terminalHeight,
     bool? demoWorkspaceOpened,
+    List<String>? openTabs,
+    String? activeTab,
+    bool clearActiveTab = false,
   }) {
     return ShellState(
       lastRoute: lastRoute ?? this.lastRoute,
@@ -54,6 +71,8 @@ final class ShellState {
       sidebarWidth: sidebarWidth ?? this.sidebarWidth,
       terminalHeight: terminalHeight ?? this.terminalHeight,
       demoWorkspaceOpened: demoWorkspaceOpened ?? this.demoWorkspaceOpened,
+      openTabs: openTabs ?? this.openTabs,
+      activeTab: clearActiveTab ? null : activeTab ?? this.activeTab,
     );
   }
 
@@ -64,6 +83,8 @@ final class ShellState {
     'sidebarWidth': sidebarWidth,
     'terminalHeight': terminalHeight,
     'demoWorkspaceOpened': demoWorkspaceOpened,
+    'openTabs': openTabs,
+    'activeTab': activeTab,
   };
 
   static ShellState fromJson(Map<String, Object?> json) {
@@ -79,6 +100,15 @@ final class ShellState {
         .firstOrNull;
     final sidebarWidth = json['sidebarWidth'];
     final terminalHeight = json['terminalHeight'];
+    final tabs = json['openTabs'];
+    // Only valid workspace paths, each once, in their order.
+    final openTabs = tabs is List<Object?>
+        ? <String>{
+            for (final tab in tabs.take(maxRestoredTabs))
+              if (tab is String && isWorkspacePath(tab)) tab,
+          }.toList()
+        : defaults.openTabs;
+    final activeTab = json['activeTab'];
     return ShellState(
       lastRoute: route is String && restorableRoutes.contains(route)
           ? route
@@ -94,6 +124,10 @@ final class ShellState {
       demoWorkspaceOpened: json['demoWorkspaceOpened'] is bool
           ? json['demoWorkspaceOpened']! as bool
           : defaults.demoWorkspaceOpened,
+      openTabs: openTabs,
+      activeTab: activeTab is String && openTabs.contains(activeTab)
+          ? activeTab
+          : null,
     );
   }
 }

@@ -224,6 +224,10 @@ export class EditorController {
         const p = payload as HostToEditor['doc.replace'];
         return this.replace(p.docId, p.text, p.version);
       }
+      case 'doc.setLanguage': {
+        const p = payload as HostToEditor['doc.setLanguage'];
+        return this.setLanguage(p.docId, p.language);
+      }
       case 'doc.flush':
         return this.flush((payload as HostToEditor['doc.flush']).docId);
       case 'doc.snapshot':
@@ -348,6 +352,22 @@ export class EditorController {
     }
   }
 
+  /**
+   * Highlights a document as [language] from now on. Text, selection and
+   * undo history stay: only the language extension is swapped.
+   */
+  setLanguage(docId: string, language: LanguageId): void {
+    const entry = this.require(docId);
+    if (entry.language === language) return;
+    entry.language = language;
+    const effects = this.languageSlot.reconfigure(languageExtension(language));
+    if (this.activeId === docId) {
+      this.view.dispatch({ effects });
+    } else {
+      entry.state = entry.state.update({ effects }).state;
+    }
+  }
+
   /** Sends pending edits now (all documents when [docId] is omitted). */
   flush(docId?: string): void {
     if (docId === undefined) {
@@ -362,9 +382,12 @@ export class EditorController {
   snapshot(docId: string): SnapshotResult {
     const entry = this.require(docId);
     this.batcher.flush(docId);
-    const state = this.activeId === docId ? this.view.state : entry.state;
+    const active = this.activeId === docId;
+    const state = active ? this.view.state : entry.state;
     const { anchor, head } = state.selection.main;
-    return { docId, text: state.doc.toString(), version: entry.version, selection: { anchor, head } };
+    const result: SnapshotResult = { docId, text: state.doc.toString(), version: entry.version, selection: { anchor, head } };
+    if (active) result.scrollTop = Math.max(0, this.view.scrollDOM.scrollTop);
+    return result;
   }
 
   /** Inserts [text] at every cursor, replacing selections (symbol toolbar). */

@@ -1,10 +1,6 @@
-import 'package:codeforge/application/editor/editor_providers.dart';
-import 'package:codeforge/application/editor_tabs_controller.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/application/settings_controller.dart';
 import 'package:codeforge/application/shell_controller.dart';
-import 'package:codeforge/core/errors/failure.dart';
-import 'package:codeforge/services/fakes.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -13,13 +9,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fake_editor_surface.dart';
+import '../support/memory_file_service.dart';
 
 ProviderContainer _container({
   InMemorySettingsStore? settings,
   InMemoryShellStateStore? shell,
-  void Function(FakeEditorSurface surface)? onEditorSurface,
 }) {
-  final files = FakeFileService();
   return ProviderContainer.test(
     overrides: [
       settingsStoreProvider.overrideWithValue(
@@ -28,17 +23,10 @@ ProviderContainer _container({
       shellStateStoreProvider.overrideWithValue(
         shell ?? InMemoryShellStateStore(),
       ),
-      fileServiceProvider.overrideWithValue(files),
-      ...fakeEditorOverrides(onEditorSurface),
+      fileServiceProvider.overrideWithValue(MemoryFileService()),
+      ...fakeEditorOverrides(),
     ],
   );
-}
-
-/// Lets streams and microtasks run (these are plain, real-time tests).
-Future<void> _drain() async {
-  for (var i = 0; i < 20; i++) {
-    await Future<void>.delayed(Duration.zero);
-  }
 }
 
 void main() {
@@ -129,131 +117,6 @@ void main() {
       final second = _container(shell: store);
       expect(second.read(shellControllerProvider).sidebarWidth, 320);
       expect(second.read(shellControllerProvider).terminalHeight, 280);
-    });
-  });
-
-  group('EditorTabsController', () {
-    test('open → activate → close with real fallback', () async {
-      final container = _container();
-      await container.read(fileServiceProvider).openDemoWorkspace();
-      final notifier = container.read(editorTabsProvider.notifier);
-
-      await notifier.open('main.js');
-      await notifier.open('app.py');
-      expect(container.read(editorTabsProvider).openPaths, [
-        'main.js',
-        'app.py',
-      ]);
-      expect(container.read(editorTabsProvider).activePath, 'app.py');
-
-      notifier.activate('main.js');
-      expect(container.read(editorTabsProvider).activePath, 'main.js');
-
-      notifier.close('main.js');
-      expect(container.read(editorTabsProvider).activePath, 'app.py');
-
-      notifier.close('app.py');
-      expect(container.read(editorTabsProvider).openPaths, isEmpty);
-      expect(container.read(editorTabsProvider).activePath, isNull);
-    });
-
-    test('reopening an open tab activates instead of duplicating', () async {
-      final container = _container();
-      await container.read(fileServiceProvider).openDemoWorkspace();
-      final notifier = container.read(editorTabsProvider.notifier);
-      await notifier.open('main.js');
-      await notifier.open('app.py');
-      await notifier.open('main.js');
-      expect(container.read(editorTabsProvider).openPaths, [
-        'main.js',
-        'app.py',
-      ]);
-      expect(container.read(editorTabsProvider).activePath, 'main.js');
-    });
-
-    test(
-      'editor edits mark the tab dirty; save writes the editor text',
-      () async {
-        FakeEditorSurface? surface;
-        final container = _container(onEditorSurface: (s) => surface = s);
-        final files = container.read(fileServiceProvider);
-        await files.openDemoWorkspace();
-        final notifier = container.read(editorTabsProvider.notifier);
-        await notifier.open('main.js');
-
-        // The document waits in its shadow until the page starts, then opens.
-        await container.read(editorHostProvider).start();
-        await _drain();
-        final page = surface!;
-        final docId = container.read(editorTabsProvider).docIds['main.js']!;
-        expect(page.documents[docId]?.language, 'javascript');
-        expect(page.activeDocId, docId);
-
-        page.typeText('// edited\n');
-        await _drain();
-        final edited = container.read(editorTabsProvider).documents['main.js']!;
-        expect(edited.dirty, isTrue);
-        expect(edited.content, endsWith('// edited\n'));
-
-        await notifier.saveActive();
-        expect(
-          container.read(editorTabsProvider).documents['main.js']!.dirty,
-          isFalse,
-        );
-        expect(
-          (await files.readTextFile('main.js')).orThrow,
-          endsWith('// edited\n'),
-        );
-      },
-    );
-
-    test(
-      'typing that races a save stays unsaved, and the tab says so',
-      () async {
-        FakeEditorSurface? surface;
-        final container = _container(onEditorSurface: (s) => surface = s);
-        final files = container.read(fileServiceProvider);
-        await files.openDemoWorkspace();
-        final notifier = container.read(editorTabsProvider.notifier);
-        await notifier.open('main.js');
-        await container.read(editorHostProvider).start();
-        await _drain();
-        surface!
-          ..typeText('// one\n')
-          ..typeAfterSnapshot = '// two\n';
-        await _drain();
-
-        await notifier.saveActive();
-        await _drain();
-
-        final onDisk = (await files.readTextFile('main.js')).orThrow;
-        expect(onDisk, endsWith('// one\n'));
-        expect(onDisk, isNot(contains('// two')));
-        final doc = container.read(editorTabsProvider).documents['main.js']!;
-        expect(doc.dirty, isTrue);
-        expect(doc.content, endsWith('// one\n// two\n'));
-      },
-    );
-
-    test('closing a tab closes its document in the editor', () async {
-      FakeEditorSurface? surface;
-      final container = _container(onEditorSurface: (s) => surface = s);
-      await container.read(fileServiceProvider).openDemoWorkspace();
-      await container.read(editorHostProvider).start();
-      final notifier = container.read(editorTabsProvider.notifier);
-      await notifier.open('main.js');
-      await notifier.open('app.py');
-      await _drain();
-      final ids = container.read(editorTabsProvider).docIds;
-      final mainId = ids['main.js']!;
-      final appId = ids['app.py']!;
-      expect(surface!.activeDocId, appId);
-
-      notifier.close('app.py');
-      await _drain();
-      expect(surface!.documents.keys.toList(), [mainId]);
-      // The fallback tab becomes the editor's active document too.
-      expect(surface!.activeDocId, mainId);
     });
   });
 }

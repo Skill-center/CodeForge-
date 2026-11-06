@@ -411,6 +411,10 @@ final Map<String, _Check> _hostToEditor = {
   'doc.activate': _obj({'docId': _docId}),
   'doc.close': _obj({'docId': _docId}),
   'doc.replace': _obj({'docId': _docId, 'text': _text, 'version': _version}),
+  'doc.setLanguage': _obj({
+    'docId': _docId,
+    'language': _oneOf(editorLanguageIds),
+  }),
   'doc.flush': _obj({}, {'docId': _docId}),
   'doc.snapshot': _obj({'docId': _docId}),
   'cmd.insert': _obj(

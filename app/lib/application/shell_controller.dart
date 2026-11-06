@@ -4,6 +4,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/logging/logger.dart';
@@ -75,6 +76,19 @@ final class ShellController extends Notifier<ShellState> {
       return;
     }
     state = state.copyWith(terminalHeight: clamped);
+    _schedulePersist();
+  }
+
+  /// Remembers the open tabs and the active one, to reopen after a restart.
+  void setOpenTabs(List<String> tabs, String? active) {
+    if (active == state.activeTab && listEquals(tabs, state.openTabs)) {
+      return;
+    }
+    state = state.copyWith(
+      openTabs: List.unmodifiable(tabs),
+      activeTab: active,
+      clearActiveTab: active == null,
+    );
     _schedulePersist();
   }
 

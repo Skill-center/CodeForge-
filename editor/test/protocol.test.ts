@@ -42,7 +42,7 @@ describe('protocol fixtures (shared with the Dart validator)', () => {
   it('covers every host message type at least once', () => {
     const types = new Set(readFixtures<Valid>('protocol/valid/host_to_editor').map((f) => (f.data.message as { type: string }).type));
     expect([...types].sort()).toEqual(
-      ['cmd.exec', 'cmd.gotoLine', 'cmd.insert', 'doc.activate', 'doc.close', 'doc.flush', 'doc.open', 'doc.replace', 'doc.snapshot', 'editor.configure', 'search.set'].sort(),
+      ['cmd.exec', 'cmd.gotoLine', 'cmd.insert', 'doc.activate', 'doc.close', 'doc.flush', 'doc.open', 'doc.replace', 'doc.setLanguage', 'doc.snapshot', 'editor.configure', 'search.set'].sort(),
     );
   });
 

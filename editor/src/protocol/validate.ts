@@ -165,6 +165,7 @@ const HOST_TO_EDITOR: Record<string, Check> = {
   'doc.activate': obj({ docId }),
   'doc.close': obj({ docId }),
   'doc.replace': obj({ docId, text, version }),
+  'doc.setLanguage': obj({ docId, language: oneOf(LANGUAGE_IDS) }),
   'doc.flush': obj({}, { docId }),
   'doc.snapshot': obj({ docId }),
   'cmd.insert': obj({ text: str({ min: 1, max: 4096, lfOnly: true }) }, { cursorOffset: length }),

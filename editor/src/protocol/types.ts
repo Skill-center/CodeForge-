@@ -168,6 +168,8 @@ export interface HostToEditor {
   'doc.activate': { docId: string };
   'doc.close': { docId: string };
   'doc.replace': { docId: string; text: string; version: number };
+  /** Re-highlights a document under another language (Save As to a new extension). */
+  'doc.setLanguage': { docId: string; language: LanguageId };
   'doc.flush': { docId?: string };
   'doc.snapshot': { docId: string };
   'cmd.insert': { text: string; cursorOffset?: number };
@@ -192,6 +194,8 @@ export interface SnapshotResult {
   text: string;
   version: number;
   selection: Selection;
+  /** The vertical scroll offset, reported for the active document only. */
+  scrollTop?: number;
 }
 
 export type ResponsePayload =

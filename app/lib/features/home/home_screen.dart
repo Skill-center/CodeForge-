@@ -1,20 +1,21 @@
-/// Home: the front door. Honest about Phase 1 capabilities, one tap into
-/// the demo workspace (gate G2).
+/// Home: the front door. Honest about what works today, one tap into the
+/// demo workspace (gate G2).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../application/providers.dart';
 import '../../application/settings_controller.dart';
 import '../../application/shell_controller.dart';
+import '../../application/workspace_controller.dart';
 import '../../core/errors/failure.dart';
 import '../../core/logging/logger.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../services/contracts.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -45,14 +46,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _openDemo() async {
-    final files = ref.read(fileServiceProvider);
-    final result = await files.openDemoWorkspace();
-    if (result.isOk) {
-      ref.read(shellControllerProvider.notifier).markDemoWorkspaceOpened();
-      appLogger.info('home', 'demo_workspace_opened');
-      if (mounted) {
+    // The first time, this writes the demo project to the device.
+    final result = await ref.read(workspaceControllerProvider.notifier).open();
+    if (!mounted) {
+      return;
+    }
+    switch (result) {
+      case Ok<WorkspaceRef>():
+        ref.read(shellControllerProvider.notifier).markDemoWorkspaceOpened();
+        appLogger.info('home', 'demo_workspace_opened');
         context.go('/workspace');
-      }
+      case Err<WorkspaceRef>(:final failure):
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(failure.message)));
     }
   }
 
@@ -123,9 +130,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: CfSpacing.sm),
                   Text(
-                    'A bundled sample project — JavaScript, Python, Dart. '
-                    'Explore the full workbench layout with real tabs and '
-                    'panels.',
+                    'A sample project — JavaScript, Python, Dart — kept on '
+                    'this device. Open files in tabs, edit them and save.',
                     style: textTheme.bodySmall,
                   ),
                   const SizedBox(height: CfSpacing.lg),
@@ -195,14 +201,14 @@ class _WelcomeSheet extends ConsumerWidget {
             ),
             const SizedBox(height: CfSpacing.lg),
             Text(
-              'This is the Phase 1 foundation. What you can do today:',
+              'What you can do today:',
               style: textTheme.bodyMedium,
             ),
             const SizedBox(height: CfSpacing.md),
             Text(
-              '•  Explore the demo workspace with real tabs and panels\n'
+              '•  Edit and save real files in the demo workspace\n'
               '•  Switch themes, fonts and motion in Settings\n'
-              '•  Your layout is remembered across restarts',
+              '•  Your layout and open tabs come back after a restart',
               style: textTheme.bodySmall,
             ),
             const SizedBox(height: CfSpacing.lg),

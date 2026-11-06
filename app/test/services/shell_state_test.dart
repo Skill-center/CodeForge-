@@ -27,6 +27,32 @@ void main() {
       );
     });
 
+    test('open tabs round trip, and only valid paths come back', () {
+      const state = ShellState(
+        openTabs: ['main.js', 'src/app.py'],
+        activeTab: 'src/app.py',
+      );
+      final restored = decodeShellState(encodeShellState(state));
+      expect(restored.openTabs, ['main.js', 'src/app.py']);
+      expect(restored.activeTab, 'src/app.py');
+
+      final tampered = decodeShellState(
+        '{"schemaVersion":1,"data":{"openTabs":'
+        '["a.js","../x.js","a.js",7,"/etc/passwd","b.js"],'
+        '"activeTab":"../x.js"}}',
+      );
+      expect(tampered.openTabs, ['a.js', 'b.js']);
+      expect(tampered.activeTab, isNull);
+
+      // Envelopes written before W4 have no tabs at all.
+      final older = decodeShellState(
+        '{"schemaVersion":1,"data":{"lastRoute":"/workspace"}}',
+      );
+      expect(older.openTabs, isEmpty);
+      expect(older.activeTab, isNull);
+      expect(older.lastRoute, '/workspace');
+    });
+
     test('corrupt payloads yield defaults', () {
       final defaults = decodeShellState(null);
       expect(decodeShellState('garbage').lastRoute, defaults.lastRoute);

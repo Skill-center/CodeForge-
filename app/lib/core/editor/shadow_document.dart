@@ -38,7 +38,7 @@ final class ShadowDocument {
   final String docId;
 
   /// One of `editorLanguageIds`.
-  final String language;
+  String language;
 
   final bool readOnly;
 

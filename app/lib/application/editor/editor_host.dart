@@ -96,11 +96,20 @@ final class EditorSnapshot {
     required this.docId,
     required this.text,
     required this.version,
+    this.selection,
+    this.scrollTop,
   });
 
   final String docId;
   final String text;
   final int version;
+
+  /// The main selection, when known.
+  final EditorSelection? selection;
+
+  /// The vertical scroll offset; the page reports it for the active
+  /// document only.
+  final double? scrollTop;
 }
 
 final class _PendingRequest {
@@ -352,7 +361,13 @@ final class EditorHost {
     if (!_ready) {
       // No page to ask: the shadow is the truth.
       return Ok(
-        EditorSnapshot(docId: docId, text: doc.text, version: doc.version),
+        EditorSnapshot(
+          docId: docId,
+          text: doc.text,
+          version: doc.version,
+          selection: doc.selection,
+          scrollTop: doc.scrollTop,
+        ),
       );
     }
     final result = await _request('doc.snapshot', {
@@ -385,8 +400,49 @@ final class EditorHost {
             reason: 'snapshot differs',
           );
         }
-        return Ok(EditorSnapshot(docId: docId, text: text, version: version));
+        final selection = value['selection'];
+        final scrollTop = value['scrollTop'];
+        return Ok(
+          EditorSnapshot(
+            docId: docId,
+            text: text,
+            version: version,
+            selection:
+                selection is Map<String, Object?> &&
+                    selection['anchor'] is num &&
+                    selection['head'] is num
+                ? EditorSelection(
+                    anchor: selection.integer('anchor'),
+                    head: selection.integer('head'),
+                  )
+                : null,
+            scrollTop: scrollTop is num ? scrollTop.toDouble() : null,
+          ),
+        );
     }
+  }
+
+  /// Highlights [docId] as [language] from now on (Save As to another
+  /// extension). Text, cursor and undo history stay as they are.
+  Future<Result<void>> setLanguage(String docId, String language) async {
+    final doc = _documents[docId];
+    if (doc == null) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    if (doc.language == language) {
+      return const Ok(null);
+    }
+    // The shadow keeps it too, so a page restart reopens it highlighted.
+    doc.language = language;
+    if (!_ready) {
+      return const Ok(null);
+    }
+    return _done(
+      await _request('doc.setLanguage', {
+        'docId': docId,
+        'language': language,
+      }),
+    );
   }
 
   /// Sends pending edits now — for one document, or all of them.

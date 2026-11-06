@@ -5,14 +5,17 @@
 /// medium/expanded  : nav rail + resizable sidebar + editor + docked terminal
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../application/editor_tabs_controller.dart';
-import '../../application/providers.dart';
+import '../../application/documents/document_controller.dart';
 import '../../application/shell_controller.dart';
+import '../../application/workbench_intents.dart';
+import '../../application/workspace_controller.dart';
 import '../../core/platform/breakpoints.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';
@@ -21,6 +24,7 @@ import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
 import '../../services/shell/shell_state.dart';
 import '../palette/command_palette.dart';
+import 'file_actions.dart';
 import 'panels/editor_pane.dart';
 import 'panels/explorer_panel.dart';
 import 'panels/placeholder_panels.dart';
@@ -56,10 +60,15 @@ class WorkbenchScreen extends ConsumerStatefulWidget {
 
 class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     with WidgetsBindingObserver {
+  StreamSubscription<WorkbenchIntent>? _intents;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Shortcuts forwarded by the editor page and palette commands arrive
+    // as intents; this screen can show the dialogs they need.
+    _intents = ref.read(workbenchIntentsProvider).stream.listen(_onIntent);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(shellControllerProvider.notifier).setLastRoute('/workspace');
       _ensureWorkspace();
@@ -68,6 +77,7 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
 
   @override
   void dispose() {
+    unawaited(_intents?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -81,13 +91,49 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     }
   }
 
+  /// Opens the workspace and reopens the last session's tabs, or main.js
+  /// the first time.
   Future<void> _ensureWorkspace() async {
-    final files = ref.read(fileServiceProvider);
-    await files.openDemoWorkspace();
-    if (!mounted) return;
-    final tabs = ref.read(editorTabsProvider);
-    if (tabs.openPaths.isEmpty) {
-      await ref.read(editorTabsProvider.notifier).open('main.js');
+    final opened = await ref.read(workspaceControllerProvider.notifier).open();
+    if (!mounted || !opened.isOk) {
+      return;
+    }
+    await ref
+        .read(documentControllerProvider.notifier)
+        .restoreTabs(fallback: 'main.js');
+  }
+
+  void _onIntent(WorkbenchIntent intent) {
+    if (!mounted) {
+      return;
+    }
+    final documents = ref.read(documentControllerProvider.notifier);
+    final active = ref.read(documentControllerProvider).activePath;
+    switch (intent) {
+      case WorkbenchIntent.newFile:
+        unawaited(createNewFile(context, ref));
+      case WorkbenchIntent.save:
+        if (active != null) {
+          unawaited(saveFile(context, ref, active));
+        }
+      case WorkbenchIntent.saveAs:
+        if (active != null) {
+          unawaited(saveFileAs(context, ref, active));
+        }
+      case WorkbenchIntent.closeEditor:
+        if (active != null) {
+          unawaited(closeFile(context, ref, active));
+        }
+      case WorkbenchIntent.closeOtherEditors:
+        if (active != null) {
+          unawaited(closeOtherFiles(context, ref, active));
+        }
+      case WorkbenchIntent.nextEditor:
+        documents.activateNeighbour(forward: true);
+      case WorkbenchIntent.previousEditor:
+        documents.activateNeighbour(forward: false);
+      case WorkbenchIntent.commandPalette:
+        unawaited(showCommandPalette(context));
     }
   }
 
@@ -178,6 +224,8 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/');
       },
+      // While Flutter has keyboard focus; the editor page forwards the same
+      // keys itself when it has focus (protocol app.shortcut).
       child: CallbackShortcuts(
         bindings: {
           const SingleActivator(
@@ -185,7 +233,27 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
             control: true,
             shift: true,
           ): () =>
-              showCommandPalette(context),
+              _onIntent(WorkbenchIntent.commandPalette),
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): () =>
+              _onIntent(WorkbenchIntent.save),
+          const SingleActivator(
+            LogicalKeyboardKey.keyS,
+            control: true,
+            shift: true,
+          ): () =>
+              _onIntent(WorkbenchIntent.saveAs),
+          const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
+              _onIntent(WorkbenchIntent.newFile),
+          const SingleActivator(LogicalKeyboardKey.keyW, control: true): () =>
+              _onIntent(WorkbenchIntent.closeEditor),
+          const SingleActivator(LogicalKeyboardKey.tab, control: true): () =>
+              _onIntent(WorkbenchIntent.nextEditor),
+          const SingleActivator(
+            LogicalKeyboardKey.tab,
+            control: true,
+            shift: true,
+          ): () =>
+              _onIntent(WorkbenchIntent.previousEditor),
         },
         child: Focus(
           autofocus: true,
@@ -397,7 +465,12 @@ class _WorkbenchTopBar extends ConsumerWidget {
           ),
           Expanded(
             child: Text(
-              'Demo Workspace',
+              ref.watch(
+                    workspaceControllerProvider.select(
+                      (s) => s.workspace?.displayName,
+                    ),
+                  ) ??
+                  'Workspace',
               overflow: TextOverflow.ellipsis,
               style: textTheme.labelMedium,
             ),
@@ -428,10 +501,9 @@ class _StatusStripRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = CfColors.of(context);
-    final tabs = ref.watch(editorTabsProvider);
-    final activeDoc = tabs.activePath == null
-        ? null
-        : tabs.documents[tabs.activePath];
+    final activeDoc = ref.watch(
+      documentControllerProvider.select((s) => s.active),
+    );
     return CfStatusStrip(
       children: [
         const CfStatusChip(
@@ -440,12 +512,46 @@ class _StatusStripRow extends ConsumerWidget {
           label: 'main',
           tooltip: 'Git arrives in Phase 6',
         ),
-        const Spacer(),
-        if (activeDoc != null) ...[
-          CfStatusChip(label: activeDoc.language),
-          if (activeDoc.dirty)
-            CfStatusChip(label: '●', color: colors.accentEmber),
-        ],
+        // The document's chips scroll rather than overflow on a narrow
+        // phone at a large text scale.
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (activeDoc != null) ...[
+                    CfStatusChip(
+                      key: const ValueKey('status_language'),
+                      label: activeDoc.language,
+                    ),
+                    CfStatusChip(
+                      key: const ValueKey('status_eol'),
+                      label: activeDoc.format.lineEnding.label,
+                      color: activeDoc.mixedLineEndings ? colors.warning : null,
+                      tooltip: activeDoc.mixedLineEndings
+                          ? 'Mixed line endings: saving writes '
+                                '${activeDoc.format.lineEnding.label} '
+                                'throughout'
+                          : 'Line endings, kept on save',
+                    ),
+                    if (activeDoc.format.bom)
+                      const CfStatusChip(
+                        key: ValueKey('status_bom'),
+                        label: 'BOM',
+                        tooltip: 'UTF-8 with a byte-order mark, kept on save',
+                      ),
+                    if (activeDoc.dirty)
+                      CfStatusChip(label: '●', color: colors.accentEmber),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
         CfStatusChip(
           icon: Icons.circle,
           label: 'no runtime',

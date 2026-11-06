@@ -23,8 +23,11 @@ final class CfTab {
   final IconData? icon;
 }
 
-/// Horizontal editor tab strip with dirty dots and close affordances.
-class CfTabStrip extends StatelessWidget {
+/// Horizontal editor tab strip with dirty dots and close affordances. It
+/// scrolls the active tab into view when it changes, so a tab chosen from
+/// the keyboard or the explorer is never off-screen (tabs are capped by
+/// the workbench, so all of them are built).
+class CfTabStrip extends StatefulWidget {
   const CfTabStrip({
     super.key,
     required this.tabs,
@@ -43,85 +46,62 @@ class CfTabStrip extends StatelessWidget {
   final Widget? trailing;
 
   @override
+  State<CfTabStrip> createState() => _CfTabStripState();
+}
+
+class _CfTabStripState extends State<CfTabStrip> {
+  final Map<String, GlobalKey> _tabKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _revealActive();
+  }
+
+  @override
+  void didUpdateWidget(CfTabStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final ids = {for (final tab in widget.tabs) tab.id};
+    _tabKeys.removeWhere((id, _) => !ids.contains(id));
+    if (widget.activeId != oldWidget.activeId ||
+        widget.tabs.length != oldWidget.tabs.length) {
+      _revealActive();
+    }
+  }
+
+  /// After the next frame, scrolls just enough to show the active tab.
+  void _revealActive() {
+    final id = widget.activeId;
+    if (id == null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final tabContext = _tabKeys[id]?.currentContext;
+      if (!mounted || tabContext == null) {
+        return;
+      }
+      // Each policy moves only when that edge is hidden; jumps, no motion.
+      Scrollable.ensureVisible(
+        tabContext,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+      Scrollable.ensureVisible(
+        tabContext,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
-    final trailing = this.trailing;
-    final strip = ListView.builder(
+    final trailing = widget.trailing;
+    final strip = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      itemCount: tabs.length,
-      itemBuilder: (context, index) {
-        final tab = tabs[index];
-        final active = tab.id == activeId;
-        return Material(
-          color: active ? colors.surfaceBase : colors.surfacePanel,
-          child: InkWell(
-            onTap: () => onActivate(tab.id),
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
-              padding: const EdgeInsets.only(left: CfSpacing.md),
-              // Painted over the tab instead of insetting it, so the tab
-              // and its close button stay a full 48 dp tall.
-              foregroundDecoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: active ? colors.accentEmber : Colors.transparent,
-                    width: 2,
-                  ),
-                  right: BorderSide(color: colors.borderSubtle),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (tab.icon != null) ...[
-                    Icon(tab.icon, size: 14, color: colors.textSecondary),
-                    const SizedBox(width: CfSpacing.xs + 2),
-                  ],
-                  Flexible(
-                    child: Text(
-                      tab.label,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: active
-                            ? colors.textPrimary
-                            : colors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  Semantics(
-                    button: true,
-                    label: 'Close ${tab.label}',
-                    child: InkWell(
-                      key: ValueKey('tab_close_${tab.id}'),
-                      onTap: () => onClose(tab.id),
-                      child: SizedBox(
-                        width: CfSpacing.minTouchTarget,
-                        height: CfSpacing.tabStripHeight,
-                        child: Center(
-                          child: tab.dirty
-                              ? Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: colors.accentEmber,
-                                    shape: BoxShape.circle,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.close,
-                                  size: 14,
-                                  color: colors.textSecondary,
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [for (final tab in widget.tabs) _tab(context, colors, tab)],
+      ),
     );
     return Container(
       height: CfSpacing.tabStripHeight + CfSpacing.hairline,
@@ -137,6 +117,80 @@ class CfTabStrip extends StatelessWidget {
                 trailing,
               ],
             ),
+    );
+  }
+
+  Widget _tab(BuildContext context, CfColors colors, CfTab tab) {
+    final active = tab.id == widget.activeId;
+    return Material(
+      key: _tabKeys.putIfAbsent(tab.id, GlobalKey.new),
+      color: active ? colors.surfaceBase : colors.surfacePanel,
+      child: InkWell(
+        onTap: () => widget.onActivate(tab.id),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
+          padding: const EdgeInsets.only(left: CfSpacing.md),
+          // Painted over the tab instead of insetting it, so the tab
+          // and its close button stay a full 48 dp tall.
+          foregroundDecoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: active ? colors.accentEmber : Colors.transparent,
+                width: 2,
+              ),
+              right: BorderSide(color: colors.borderSubtle),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (tab.icon != null) ...[
+                Icon(tab.icon, size: 14, color: colors.textSecondary),
+                const SizedBox(width: CfSpacing.xs + 2),
+              ],
+              Flexible(
+                child: Text(
+                  tab.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: active
+                        ? colors.textPrimary
+                        : colors.textSecondary,
+                  ),
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: 'Close ${tab.label}',
+                child: InkWell(
+                  key: ValueKey('tab_close_${tab.id}'),
+                  onTap: () => widget.onClose(tab.id),
+                  child: SizedBox(
+                    width: CfSpacing.minTouchTarget,
+                    height: CfSpacing.tabStripHeight,
+                    child: Center(
+                      child: tab.dirty
+                          ? Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: colors.accentEmber,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : Icon(
+                              Icons.close,
+                              size: 14,
+                              color: colors.textSecondary,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

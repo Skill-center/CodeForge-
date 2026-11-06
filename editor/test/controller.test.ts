@@ -1,3 +1,4 @@
+import { indentUnit, language } from '@codemirror/language';
 import { EditorSelection } from '@codemirror/state';
 import { runScopeHandlers } from '@codemirror/view';
 import { describe, expect, it } from 'vitest';
@@ -72,6 +73,39 @@ describe('EditorController', () => {
     expect(ctl.exec('undo')).toBe(false);
   });
 
+  it('switches a document to another language, keeping text, cursor and undo', () => {
+    const { ctl } = setup();
+    ctl.open({ docId: 'a', text: 'x = 1', language: 'plaintext', version: 0, selection: { anchor: 5, head: 5 } });
+    typeText(ctl, '\n');
+    expect(ctl.view.state.facet(language)).toBeNull();
+    ctl.setLanguage('a', 'python');
+    expect(ctl.view.state.facet(language)?.name).toBe('python');
+    expect(ctl.view.state.facet(indentUnit)).toBe('    ');
+    expect(ctl.view.state.doc.toString()).toBe('x = 1\n');
+    expect(ctl.view.state.selection.main.head).toBe(6);
+    expect(ctl.exec('undo')).toBe(true);
+    expect(ctl.view.state.doc.toString()).toBe('x = 1');
+
+    // An inactive document takes the new language with it when it comes back.
+    ctl.open({ docId: 'b', text: '{}', language: 'plaintext', version: 0 });
+    ctl.setLanguage('a', 'javascript');
+    expect(ctl.view.state.facet(language)).toBeNull();
+    ctl.activate('a');
+    expect(ctl.view.state.facet(language)?.name).toBe('javascript');
+    expect(ctl.view.state.doc.toString()).toBe('x = 1');
+    expect(ctl.exec('redo')).toBe(true);
+    expect(ctl.view.state.doc.toString()).toBe('x = 1\n');
+    expect(errorCode(() => ctl.setLanguage('nope', 'css'))).toBe('unknown_doc');
+  });
+
+  it('reports the scroll offset in snapshots of the active document only', () => {
+    const { ctl } = setup();
+    ctl.open({ docId: 'a', text: 'aaa', language: 'plaintext', version: 0 });
+    ctl.open({ docId: 'b', text: 'bbb', language: 'plaintext', version: 0 });
+    expect(ctl.snapshot('b').scrollTop).toBe(0);
+    expect(ctl.snapshot('a').scrollTop).toBeUndefined();
+  });
+
   it('inserts toolbar text at every cursor, with the cursor inside a pair', () => {
     const { ctl } = setup();
     ctl.open({ docId: 'd1', text: 'f\ng', language: 'javascript', version: 0 });
@@ -114,7 +148,7 @@ describe('EditorController', () => {
     typeText(ctl, 'abc');
     const snap = ctl.snapshot('d1');
     expect(of('doc.changed')).toHaveLength(1);
-    expect(snap).toEqual({ docId: 'd1', text: 'abc', version: 1, selection: { anchor: 3, head: 3 } });
+    expect(snap).toEqual({ docId: 'd1', text: 'abc', version: 1, selection: { anchor: 3, head: 3 }, scrollTop: 0 });
   });
 
   it('reports undo and redo availability as it changes', () => {

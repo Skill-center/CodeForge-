@@ -1,18 +1,22 @@
-/// Explorer: real expand/collapse tree over the demo workspace.
+/// Explorer: an expand/collapse tree over the workspace's real files. The
+/// listings come from the workspace controller.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../application/editor_tabs_controller.dart';
-import '../../../application/providers.dart';
+import '../../../application/documents/document_controller.dart';
 import '../../../application/settings_controller.dart';
+import '../../../application/workspace_controller.dart';
 import '../../../core/errors/failure.dart';
 import '../../../design_system/components/buttons.dart';
 import '../../../design_system/components/file_tree.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
 import '../../../services/contracts.dart';
+import '../file_actions.dart';
 
 final _expandedDirsProvider =
     NotifierProvider<_ExpandedDirsNotifier, Set<String>>(
@@ -38,6 +42,7 @@ final class _ExpandedDirsNotifier extends Notifier<Set<String>> {
 class ExplorerPanel extends ConsumerStatefulWidget {
   const ExplorerPanel({super.key, this.onFileOpened});
 
+  /// Called after a file opened from here (the phone sheet closes).
   final VoidCallback? onFileOpened;
 
   @override
@@ -45,18 +50,45 @@ class ExplorerPanel extends ConsumerStatefulWidget {
 }
 
 class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
-  late Future<Result<List<FileEntry>>> _rootListing;
-
   @override
   void initState() {
     super.initState();
-    _rootListing = _load();
+    // Idempotent: the workbench has usually opened it already.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(ref.read(workspaceControllerProvider.notifier).open());
+      }
+    });
   }
 
-  Future<Result<List<FileEntry>>> _load() async {
-    final files = ref.read(fileServiceProvider);
-    await files.openDemoWorkspace();
-    return files.listDirectory('');
+  Future<void> _openFile(String path) async {
+    final result = await ref
+        .read(documentControllerProvider.notifier)
+        .open(path);
+    if (!mounted) {
+      return;
+    }
+    switch (result) {
+      case Ok<void>():
+        widget.onFileOpened?.call();
+      case Err<void>(:final failure):
+        showFileMessage(context, failure.message);
+    }
+  }
+
+  Future<void> _newFile() async {
+    final created = await createNewFile(context, ref);
+    if (created && mounted) {
+      widget.onFileOpened?.call();
+    }
+  }
+
+  void _onEntryTap(FileEntry entry) {
+    if (entry.isDirectory) {
+      ref.read(_expandedDirsProvider.notifier).toggle(entry.path);
+    } else {
+      unawaited(_openFile(entry.path));
+    }
   }
 
   @override
@@ -64,8 +96,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
     final colors = CfColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final settings = ref.watch(settingsControllerProvider);
-    final expanded = ref.watch(_expandedDirsProvider);
-    final tabs = ref.watch(editorTabsProvider);
+    final workspace = ref.watch(workspaceControllerProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -88,6 +119,13 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
                 ),
               ),
               CfIconButton(
+                key: const ValueKey('explorer_new_file'),
+                icon: Icons.note_add_outlined,
+                tooltip: 'New file',
+                size: 16,
+                onPressed: workspace.workspace == null ? null : _newFile,
+              ),
+              CfIconButton(
                 key: const ValueKey('explorer_toggle_hidden'),
                 icon: settings.showHiddenFiles
                     ? Icons.visibility_outlined
@@ -106,151 +144,160 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: CfSpacing.lg),
           child: Text(
-            'Demo Workspace',
+            workspace.workspace?.displayName ?? 'Workspace',
             style: textTheme.labelMedium?.copyWith(color: colors.accentEmber),
           ),
         ),
         const SizedBox(height: CfSpacing.sm),
-        Expanded(
-          child: FutureBuilder<Result<List<FileEntry>>>(
-            future: _rootListing,
-            builder: (context, snapshot) {
-              final result = snapshot.data;
-              if (result == null) {
-                return const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                );
-              }
-              return switch (result) {
-                Ok<List<FileEntry>>(:final value) => ListView(
-                  children: _buildRows(
-                    value,
-                    0,
-                    expanded,
-                    settings.showHiddenFiles,
-                    tabs.activePath,
-                  ),
-                ),
-                Err<List<FileEntry>>(:final failure) => Center(
-                  child: Text(failure.message, style: textTheme.bodySmall),
-                ),
-              };
-            },
-          ),
-        ),
+        Expanded(child: _buildTree(workspace, textTheme)),
       ],
     );
   }
 
-  List<Widget> _buildRows(
-    List<FileEntry> entries,
-    int depth,
-    Set<String> expanded,
-    bool showHidden,
-    String? activePath,
-  ) {
+  Widget _buildTree(WorkspaceState workspace, TextTheme textTheme) {
+    final failure = workspace.failure;
+    if (failure != null) {
+      return _Message(failure.message);
+    }
+    return switch (workspace.listings['']) {
+      null => const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      Ok<List<FileEntry>>(:final value) => ListView(
+        children: [
+          _EntryRows(entries: value, depth: 0, onTap: _onEntryTap),
+        ],
+      ),
+      Err<List<FileEntry>>(:final failure) => _Message(failure.message),
+    };
+  }
+}
+
+class _Message extends StatelessWidget {
+  const _Message(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(CfSpacing.lg),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ),
+    );
+  }
+}
+
+/// The rows of one folder's [entries], each expanded folder followed by
+/// its own rows.
+class _EntryRows extends ConsumerWidget {
+  const _EntryRows({
+    required this.entries,
+    required this.depth,
+    required this.onTap,
+  });
+
+  final List<FileEntry> entries;
+  final int depth;
+  final ValueChanged<FileEntry> onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showHidden = ref.watch(
+      settingsControllerProvider.select((s) => s.showHiddenFiles),
+    );
+    final expanded = ref.watch(_expandedDirsProvider);
+    final activePath = ref.watch(
+      documentControllerProvider.select((s) => s.activePath),
+    );
     final rows = <Widget>[];
     for (final entry in entries) {
       if (entry.hidden && !showHidden) {
         continue;
       }
-      final node = CfFileNode(
-        name: entry.name,
-        path: entry.path,
-        isFile: !entry.isDirectory,
-        hidden: entry.hidden,
-      );
       final isExpanded = expanded.contains(entry.path);
       rows.add(
         CfTreeRow(
           key: ValueKey('tree_${entry.path}'),
-          node: node,
+          node: CfFileNode(
+            name: entry.name,
+            path: entry.path,
+            isFile: !entry.isDirectory,
+            hidden: entry.hidden,
+          ),
           depth: depth,
           expanded: isExpanded,
           selected: entry.path == activePath,
-          onTap: () {
-            if (entry.isDirectory) {
-              ref.read(_expandedDirsProvider.notifier).toggle(entry.path);
-            } else {
-              ref.read(editorTabsProvider.notifier).open(entry.path);
-              widget.onFileOpened?.call();
-            }
-          },
+          onTap: () => onTap(entry),
         ),
       );
       if (entry.isDirectory && isExpanded) {
-        rows.add(_DirectoryChildren(parentPath: entry.path, depth: depth + 1));
+        rows.add(
+          _FolderChildren(folder: entry.path, depth: depth + 1, onTap: onTap),
+        );
       }
     }
-    return rows;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
   }
 }
 
-class _DirectoryChildren extends ConsumerStatefulWidget {
-  const _DirectoryChildren({required this.parentPath, required this.depth});
+/// An expanded folder's rows, listed on first expansion.
+class _FolderChildren extends ConsumerStatefulWidget {
+  const _FolderChildren({
+    required this.folder,
+    required this.depth,
+    required this.onTap,
+  });
 
-  final String parentPath;
+  final String folder;
   final int depth;
+  final ValueChanged<FileEntry> onTap;
 
   @override
-  ConsumerState<_DirectoryChildren> createState() => _DirectoryChildrenState();
+  ConsumerState<_FolderChildren> createState() => _FolderChildrenState();
 }
 
-class _DirectoryChildrenState extends ConsumerState<_DirectoryChildren> {
-  // Created once: a fresh Future per build would loop setState↔build forever.
-  late final Future<Result<List<FileEntry>>> _listing;
-
+class _FolderChildrenState extends ConsumerState<_FolderChildren> {
   @override
   void initState() {
     super.initState();
-    _listing = ref.read(fileServiceProvider).listDirectory(widget.parentPath);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          !ref
+              .read(workspaceControllerProvider)
+              .listings
+              .containsKey(widget.folder)) {
+        unawaited(
+          ref.read(workspaceControllerProvider.notifier).load(widget.folder),
+        );
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsControllerProvider);
-    final expanded = ref.watch(_expandedDirsProvider);
-    final tabs = ref.watch(editorTabsProvider);
-    return FutureBuilder<Result<List<FileEntry>>>(
-      future: _listing,
-      builder: (context, snapshot) {
-        final result = snapshot.data;
-        if (result is! Ok<List<FileEntry>>) {
-          return const SizedBox.shrink();
-        }
-        final rows = <Widget>[];
-        for (final entry in result.value) {
-          if (entry.hidden && !settings.showHiddenFiles) {
-            continue;
-          }
-          rows.add(
-            CfTreeRow(
-              key: ValueKey('tree_${entry.path}'),
-              node: CfFileNode(
-                name: entry.name,
-                path: entry.path,
-                isFile: !entry.isDirectory,
-                hidden: entry.hidden,
-              ),
-              depth: widget.depth,
-              expanded: expanded.contains(entry.path),
-              selected: entry.path == tabs.activePath,
-              onTap: () {
-                if (entry.isDirectory) {
-                  ref.read(_expandedDirsProvider.notifier).toggle(entry.path);
-                } else {
-                  ref.read(editorTabsProvider.notifier).open(entry.path);
-                }
-              },
-            ),
-          );
-        }
-        return Column(children: rows);
-      },
+    final listing = ref.watch(
+      workspaceControllerProvider.select((s) => s.listings[widget.folder]),
+    );
+    if (listing is! Ok<List<FileEntry>>) {
+      return const SizedBox.shrink();
+    }
+    return _EntryRows(
+      entries: listing.value,
+      depth: widget.depth,
+      onTap: widget.onTap,
     );
   }
 }

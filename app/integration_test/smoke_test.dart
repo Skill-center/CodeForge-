@@ -12,6 +12,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Pumps real time until [condition] holds (integration tests run live,
+/// and file work finishes on its own schedule, not the frame's).
+Future<void> pumpUntil(
+  WidgetTester tester,
+  bool Function() condition, {
+  required String what,
+  Duration timeout = const Duration(seconds: 30),
+}) async {
+  final watch = Stopwatch()..start();
+  while (!condition()) {
+    if (watch.elapsed > timeout) {
+      fail('Timed out after ${timeout.inSeconds} s waiting for $what.');
+    }
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 Future<void> pumpRealApp(WidgetTester tester, SharedPreferences prefs) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -40,10 +57,17 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('welcome_dismiss')));
     await tester.pumpAndSettle();
 
-    // One tap into the workbench.
+    // One tap into the workbench, which writes the demo project as real
+    // files on first run and opens main.js from them.
     await tester.tap(find.byKey(const ValueKey('explore_demo')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('terminal_toggle')), findsOneWidget);
+    await pumpUntil(
+      tester,
+      () => find.text('main.js').evaluate().isNotEmpty,
+      what: 'main.js to open',
+    );
+    await tester.pumpAndSettle();
     expect(find.text('main.js'), findsOneWidget);
 
     // Terminal opens and closes.

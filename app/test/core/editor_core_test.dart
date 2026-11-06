@@ -103,6 +103,41 @@ void main() {
       expect(languageForPath('style.css'), 'css');
     });
 
+    test('knows configuration files by their whole name', () {
+      expect(languageForPath('.babelrc'), 'json');
+      expect(languageForPath('config/.eslintrc'), 'json');
+      expect(languageForPath('site.webmanifest'), 'json');
+      expect(languageForPath('types.pyi'), 'python');
+    });
+
+    test('reads the shebang of a file without a known extension', () {
+      String lang(String firstLine) =>
+          languageForPath('bin/tool', firstLine: firstLine);
+      expect(lang('#!/usr/bin/env node'), 'javascript');
+      expect(lang('#!/usr/local/bin/node --harmony'), 'javascript');
+      expect(lang('#!/usr/bin/env bun'), 'javascript');
+      expect(lang('#!/usr/bin/env -S deno run --allow-net'), 'typescript');
+      expect(lang('#!/usr/bin/env ts-node'), 'typescript');
+      expect(lang('#!/usr/bin/python3 -u'), 'python');
+      expect(lang('#!/usr/bin/env python3.12'), 'python');
+      expect(lang('#!/usr/bin/env PYTHONUNBUFFERED=1 pypy3'), 'python');
+      expect(lang('#!/bin/sh'), 'plaintext');
+      expect(lang('#!/usr/bin/env'), 'plaintext');
+      expect(lang('#!'), 'plaintext');
+      expect(lang('// not a shebang'), 'plaintext');
+    });
+
+    test('an extension wins over a shebang; .txt stays plain', () {
+      expect(
+        languageForPath('run.py', firstLine: '#!/usr/bin/env node'),
+        'python',
+      );
+      expect(
+        languageForPath('notes.txt', firstLine: '#!/usr/bin/env node'),
+        'plaintext',
+      );
+    });
+
     test('falls back to plain text', () {
       expect(languageForPath('Makefile'), 'plaintext');
       expect(languageForPath('.gitignore'), 'plaintext');
@@ -111,7 +146,11 @@ void main() {
     });
 
     test('only names languages the page knows', () {
-      for (final language in editorLanguageByExtension.values) {
+      for (final language in [
+        ...editorLanguageByExtension.values,
+        ...editorLanguageByFileName.values,
+        ...editorLanguageByInterpreter.values,
+      ]) {
         expect(editorLanguageIds, contains(language));
       }
       expect(editorLanguageIds, contains('plaintext'));

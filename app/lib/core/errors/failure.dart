@@ -30,6 +30,52 @@ final class StorageFailure extends Failure {
   String get kind => 'storage';
 }
 
+/// Why a file operation was refused. Some of these lead to a question
+/// rather than an error: [exists] (replace it?) and [changedOnDisk]
+/// (overwrite it?).
+enum FileProblem {
+  /// No file at that path.
+  notFound,
+
+  /// Something already exists at that path.
+  exists,
+
+  /// The file changed on disk since it was read: saving would lose that.
+  changedOnDisk,
+
+  /// Not UTF-8 text: binary data, malformed UTF-8 or another encoding.
+  notText,
+
+  /// Larger than the editor accepts.
+  tooLarge,
+
+  /// Not a valid workspace-relative path.
+  invalidPath,
+
+  /// Resolves (through a symbolic link) to a place outside the workspace.
+  outsideWorkspace,
+
+  /// A folder where a file was expected, or the reverse.
+  wrongType,
+
+  /// Another open tab holds that file.
+  inUse,
+
+  /// The storage itself failed (permissions, disk full, I/O errors).
+  io,
+}
+
+/// A file could not be read or written. [problem] tells the app how to
+/// react; [message] is what the user is told.
+final class FileFailure extends Failure {
+  const FileFailure(super.message, {required this.problem, super.cause});
+
+  final FileProblem problem;
+
+  @override
+  String get kind => 'file';
+}
+
 /// A platform/WebView bridge message was invalid or the channel failed.
 final class BridgeFailure extends Failure {
   const BridgeFailure(super.message, {super.cause});

@@ -29,7 +29,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-import 'editor_bridge_test.dart' show pumpUntil;
+import 'smoke_test.dart' show pumpUntil;
 
 const String _engine = String.fromEnvironment(
   'BENCH_ENGINE',

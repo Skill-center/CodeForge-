@@ -1,5 +1,4 @@
-import 'package:codeforge/application/editor_tabs_controller.dart';
-import 'package:codeforge/application/providers.dart';
+import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/core/editor/protocol.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
@@ -158,8 +157,7 @@ void main() {
       tester.element(find.byType(EditorPane)),
       listen: false,
     );
-    await container.read(fileServiceProvider).openDemoWorkspace();
-    await container.read(editorTabsProvider.notifier).open('main.js');
+    await container.read(documentControllerProvider.notifier).open('main.js');
     await tester.pumpAndSettle();
     expect(find.byType(CfTabStrip), findsOneWidget);
     expect(find.byType(CfSymbolToolbar), findsOneWidget);

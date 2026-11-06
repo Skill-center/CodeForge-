@@ -53,7 +53,7 @@ final class FakeDocument {
 
   String text;
   int version;
-  final String language;
+  String language;
 }
 
 final class FakeEditorSurface implements EditorSurface {
@@ -181,6 +181,12 @@ final class FakeEditorSurface implements EditorSurface {
           _changed();
           _ok(id);
         });
+      case 'doc.setLanguage':
+        _withDocument(id, payload, (docId, doc) {
+          doc.language = payload.string('language');
+          _changed();
+          _ok(id);
+        });
       case 'doc.snapshot':
         _withDocument(id, payload, (docId, doc) {
           _ok(id, {
@@ -188,6 +194,8 @@ final class FakeEditorSurface implements EditorSurface {
             'text': doc.text,
             'version': doc.version,
             'selection': {'anchor': 0, 'head': 0},
+            // Like the real page: scroll is known for the active one only.
+            if (docId == activeDocId) 'scrollTop': 0,
           });
           final racing = typeAfterSnapshot;
           if (racing != null) {
@@ -261,6 +269,21 @@ final class FakeEditorSurface implements EditorSurface {
     }
     _change(target, at: doc.text.length, delete: 0, insert: text);
   }
+
+  /// Deletes the last [count] characters of the active document (or
+  /// [docId]), as backspacing reports them.
+  void deleteText(int count, {String? docId}) {
+    final target = docId ?? activeDocId;
+    final doc = target == null ? null : documents[target];
+    if (target == null || doc == null || count > doc.text.length) {
+      throw StateError('nothing to delete');
+    }
+    _change(target, at: doc.text.length - count, delete: count, insert: '');
+  }
+
+  /// Presses an app shortcut while the page has focus (`app.shortcut`).
+  void pressShortcut(String shortcut) =>
+      emit('app.shortcut', {'shortcut': shortcut});
 
   /// Posts any string as if the page had sent it, valid or not.
   void emitRaw(String raw) {

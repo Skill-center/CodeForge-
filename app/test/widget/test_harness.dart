@@ -1,7 +1,9 @@
 /// Shared harness: pumps the real app over in-memory stores at a fixed
 /// surface size, mirroring bootstrap's override wiring. The editor runs on
 /// scripted pages (test/support/fake_editor_surface.dart): platform views
-/// cannot run under `flutter test`.
+/// cannot run under `flutter test`. Files live in an in-memory workspace
+/// (test/support/memory_file_service.dart): real I/O never completes in
+/// testWidgets' fake async zone.
 library;
 
 import 'package:codeforge/app.dart';
@@ -20,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fake_bench_surface.dart';
 import '../support/fake_editor_surface.dart';
+import '../support/memory_file_service.dart';
 
 final class TestHarness {
   TestHarness({
@@ -27,13 +30,19 @@ final class TestHarness {
     ShellState? shell,
     this.editorPageLoader,
     this.benchRunnerFactory,
+    MemoryFileService? files,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
-       shellStore = InMemoryShellStateStore(shell);
+       shellStore = InMemoryShellStateStore(shell),
+       files = files ?? MemoryFileService();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
+
+  /// The workspace, shared by every app this harness pumps (a second
+  /// [app] is a restart over the same files).
+  final MemoryFileService files;
 
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
@@ -51,6 +60,7 @@ final class TestHarness {
   List<Override> _overrides() => [
     settingsStoreProvider.overrideWithValue(settingsStore),
     shellStateStoreProvider.overrideWithValue(shellStore),
+    fileServiceProvider.overrideWithValue(files),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),
     editorBenchRunnerFactoryProvider.overrideWithValue(
       benchRunnerFactory ?? fakeBenchRunnerFactory(),

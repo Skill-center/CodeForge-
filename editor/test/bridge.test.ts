@@ -29,7 +29,7 @@ describe('Bridge', () => {
     send('h2', 'doc.snapshot', { docId: 'd1' });
     expect(responses()).toEqual([
       { re: 'h1', ok: true },
-      { re: 'h2', ok: true, result: { docId: 'd1', text: 'hi', version: 0, selection: { anchor: 0, head: 0 } } },
+      { re: 'h2', ok: true, result: { docId: 'd1', text: 'hi', version: 0, selection: { anchor: 0, head: 0 }, scrollTop: 0 } },
     ]);
   });
 
