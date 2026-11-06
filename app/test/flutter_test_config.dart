@@ -1,5 +1,6 @@
 /// Loads the bundled Inter / JetBrains Mono fonts for ALL widget tests so
-/// layout and golden results reflect real glyph metrics, not Ahem boxes.
+/// layout and golden results reflect real glyph metrics, not Ahem boxes,
+/// and bounds every widget test so a hang fails fast and by name.
 library;
 
 import 'dart:async';
@@ -8,7 +9,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  final binding = TestWidgetsFlutterBinding.ensureInitialized();
+  if (binding is AutomatedTestWidgetsFlutterBinding) {
+    // A widget test waiting on something that never comes fails in two
+    // minutes and names itself, instead of holding the run for the
+    // binding's default ten (`flutter test --timeout` does not reach
+    // testWidgets, which passes its own timeout).
+    binding.defaultTestTimeout = const Timeout(Duration(minutes: 2));
+  }
 
   final inter = FontLoader('Inter');
   for (final file in [

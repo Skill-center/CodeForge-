@@ -42,6 +42,8 @@ Manual: TalkBack spot-check checklist in the Phase 1 report (owner, on hardware)
 
 Widget tests run the real `EditorHost` against a scripted Dart page (`test/support/fake_editor_surface.dart`) because platform views cannot run under `flutter test`; the scripted page validates every host message with the production protocol code.
 
+Every test run is bounded so a hang fails fast and says where. `test/flutter_test_config.dart` gives each widget test 2 minutes instead of the binding's default 10 (`flutter test --timeout` does not reach `testWidgets`). In CI, coreutils `timeout` caps the golden run at 10 minutes and the full suite at 15, which also catches a test that spins, where no per-test timeout can fire.
+
 ## 2. Fakes-first discipline
 
 Every service interface ships with an in-memory fake in Phase 1. Widget/controller tests run against fakes — fast, deterministic, no device. Native implementations are validated by contract tests that run the **same test suite** against fake and native impls (interface contract tests), so divergence is caught mechanically.

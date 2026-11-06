@@ -177,7 +177,16 @@ jobs:
 
       - name: Bootstrap — generate golden baselines
         if: contains(github.event.head_commit.message, '[bootstrap]')
-        run: flutter test --update-goldens || true
+        # Only the golden suites (the full suite runs once, under Tests),
+        # bounded so a hung test cannot hold the job until its timeout, and
+        # logged so the diagnostics commit carries what happened.
+        run: |
+          mkdir -p ci-results
+          status=0
+          timeout --kill-after=30s 10m flutter test --update-goldens \
+            --reporter expanded test/goldens > ci-results/goldens.txt 2>&1 \
+            || status=$?
+          echo "golden generation exited with status $status"
 
       - name: Bootstrap — commit goldens back
         if: contains(github.event.head_commit.message, '[bootstrap]')
@@ -234,7 +243,21 @@ jobs:
       - name: Tests (with coverage)
         id: tests
         continue-on-error: true
-        run: flutter test --coverage --reporter expanded > ci-results/test.txt 2>&1
+        # Bounded: a test that spins (where no per-test timeout can fire)
+        # fails the gate in minutes, with the output up to that point.
+        run: |
+          timeout --kill-after=30s 15m flutter test --coverage \
+            --reporter expanded > ci-results/test.txt 2>&1
+
+      - name: Test digest
+        if: steps.tests.outcome == 'failure'
+        # Check-run annotations are readable through the API even where the
+        # log hosts are not: carry the end of the test output there.
+        run: |
+          tail -n 40 ci-results/test.txt \
+            | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+            | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/digest.txt"
+          echo "::warning title=Tests failed (last 40 lines)::$(cat "$RUNNER_TEMP/digest.txt")"
 
       - name: Build debug APK
         id: build
