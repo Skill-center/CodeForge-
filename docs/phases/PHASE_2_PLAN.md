@@ -111,7 +111,7 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
   - **Met:** cold load, typing p95, composition (9/9 on the emulator), size, and the 1 MiB file opening without OOM.
   - **Carried to W7:** CM6's mid-file typing in a 1 MiB file (133–136 ms p95 on the phone), scrolling on the low-end phone (1.7–9.8 %), and memory measured on a release-like build.
   - **Carried to W6:** the selection matrix (handle placement at line boundaries).
-- **Fixed from the phone run:** selected text on the cursor's line was invisible, because the active line's opaque background covered CodeMirror's selection layer. A line is now highlighted only around a plain cursor (`editor/src/editor/active_line.ts`). The typing check now says what to do and shows each result next to its buttons.
+- **Fixed from the phone run:** selected text on the cursor's line was invisible, because the active line's opaque background covered CodeMirror's selection layer. A line is now highlighted only around a plain cursor (`editor/src/editor/active_line.ts`). The typing check now says what to do and shows each result next to its buttons. Verified by commit 58d91fa: CI 42216855073 (`+370: All tests passed!`) and phase gate 42216855184, where the editor-bridge test passed on attempt 1 and the emulator re-run kept CM6 ahead (ADR-0004).
 
 ### W4 — Real files, documents & tabs (2 sessions)
 

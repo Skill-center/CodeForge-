@@ -16,3 +16,5 @@
 ```
 
 **The owner's notes:** "everything was good"; the cursor was good and the experience smooth, with "a little bug in selection" (the first screenshot above). The typing check's instructions were unclear, so the screen now says what to do and shows each check's result next to its buttons.
+
+**Fix verification:** commit 58d91fa. CI 42216855073 printed `+370: All tests passed!`, and phase gate [42216855184](https://github.com/Skill-center/CodeForge-/actions/runs/42216855184) passed, with the editor-bridge test on the real page passing on attempt 1. That gate's `codeforge-phone-profile-arm64` artifact (13502173377) is the build to re-check the selection with.
