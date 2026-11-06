@@ -1,6 +1,6 @@
 # Phase 2 phone checklist: editor engines (ADR-0004) and frame timing
 
-**Status:** Ready for the owner's run. Non-blocking for Phase 2 acceptance (PHASE_2_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of the phase-gate run cited in the W3 report · **Time:** about 10 minutes
+**Status:** Ready for the owner's run. Non-blocking for Phase 2 acceptance (PHASE_2_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of phase gate [42206498197](https://github.com/Skill-center/CodeForge-/actions/runs/42206498197), kept until 2026-12-06 · **Time:** about 10 minutes
 
 The emulator gate measures both editor engines under scripted input. A phone adds what an emulator can't: a real ARM CPU and GPU, the real Android System WebView, and your keyboard with its predictions, autocorrect, emoji and (optionally) Chinese input. Nothing here needs a computer except the download.
 
@@ -11,7 +11,7 @@ The emulator gate measures both editor engines under scripted input. A phone add
 
 ## 1. Install
 
-1. On GitHub: **Actions → Phase gate →** the run from the W3 report → **Artifacts →** download `codeforge-phone-profile-arm64`. It is a zip holding one APK.
+1. On GitHub, signed in: [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/42206498197/artifacts/13498266956) downloads directly. Otherwise go to **Actions → Phase gate →** run 42206498197 **→ Artifacts → `codeforge-phone-profile-arm64`**. It is a 20 MB zip holding one APK.
 2. **Uninstall any earlier CodeForge build first.** Every CI build is signed with a different throwaway key, so Android refuses to install over an older one.
 3. Unzip, open the APK on the phone, and allow "install unknown apps" for your browser or file manager when asked.
 
