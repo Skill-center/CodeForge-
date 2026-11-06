@@ -22,7 +22,7 @@
 | Renderer | Flutter engine | **Skia** in Phase 1 (`EnableImpeller=false` in the manifest) | Impeller's OpenGLES backend never sized its surface on the software-GL CI emulator (gate run 1); Skia renders reliably there. Re-enabling Impeller is deferred until it can be validated on arm64 hardware (Phase 4 device lab at the latest) |
 | State management | **Riverpod** | 3.4.3 | Compile-safe DI + reactive state; spec mandate; active maintenance |
 | Navigation | **GoRouter** | 18.1.3 | Declarative, deep links, shell routes for workbench; Flutter team-maintained |
-| Typed platform channels | **Pigeon** | 29.1.0 | Generates Dart+Kotlin contracts; no hand-rolled MethodChannel string maps |
+| Typed platform channels | **Pigeon** | 29.1.0 (not yet added) | Generates Dart+Kotlin contracts; no hand-rolled MethodChannel string maps. W4's single method (`dev.codeforge/paths` → `filesDir`) is a plain MethodChannel; Pigeon comes with the first real Kotlin surface (Phase 3 SAF broker) |
 | WebView | **webview_flutter** | 4.14.1 | Official plugin; Android WebView host for editor |
 | WebView (Android) | webview_flutter_android | 4.14.1 | Pinned alongside: the editor host hardens the WebView through its Android-only API (file/content access off, debugging in debug builds only). It exposes no request interception and no `onRenderProcessGone` (see SECURITY.md §3) |
 | Hashing | crypto | 3.0.8 | SHA-256 check of the bundled editor page against its manifest before it runs; it was already in the lockfile as a transitive dependency, now declared directly |
@@ -79,6 +79,7 @@ From t1 @ `0e26d7a` — versions as shipped in the audited sealed payload:
 | Bloc/Riverpod hybrid, GetX | One state system; spec mandates Riverpod |
 | Monaco as default | Upstream: no mobile browser support; CM6 chosen pending measured gate (ADR-0004) |
 | Firebase/analytics/crash SaaS | Offline-first; local structured logs + opt-in export only |
+| path_provider (W4) | The app needs one folder, `Context.getFilesDir()`. path_provider 2.1.6 brings path_provider_android 2.3.x, which depends on `jni` and `jni_flutter` and so adds an NDK build to every APK job. One MainActivity method answers the same question (ARCHITECTURE.md §2.5) |
 | Melos/multi-package Flutter monorepo (for now) | One app package + clear internal boundaries is enough through Phase 6; split only when a second consumer exists |
 
 ## 6. CI toolchain

@@ -16,6 +16,7 @@ import '../../application/documents/document_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../application/workbench_intents.dart';
 import '../../application/workspace_controller.dart';
+import '../../core/errors/failure.dart';
 import '../../core/platform/breakpoints.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';

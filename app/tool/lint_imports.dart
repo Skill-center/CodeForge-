@@ -8,6 +8,8 @@
 ///    foundation only. features may import anything above them.
 ///  * features/X must not import features/Y except via workbench (the
 ///    workbench is the composition root for panels) and the shared palette.
+///  * features/ never read `fileServiceProvider`: files are reached through
+///    the application controllers (WorkspaceController, DocumentController).
 ///  * No package: imports of our own package (prefer_relative_imports).
 ///
 /// Run: dart run tool/lint_imports.dart   (exit 1 on violation)
@@ -34,6 +36,12 @@ void main() {
     final path = entity.path.replaceAll('\\', '/');
     final rel = path.substring('lib/'.length);
     final source = entity.readAsStringSync();
+    if (rel.startsWith('features/') && source.contains('fileServiceProvider')) {
+      violations.add(
+        '$rel: reach files through WorkspaceController or '
+        'DocumentController, not fileServiceProvider',
+      );
+    }
 
     for (final match in importPattern.allMatches(source)) {
       final target = match.group(1)!;

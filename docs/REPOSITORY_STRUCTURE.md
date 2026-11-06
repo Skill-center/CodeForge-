@@ -10,12 +10,16 @@ CodeForge-/
 │   │   ├── bootstrap/
 │   │   ├── design_system/        # tokens / theme / components
 │   │   ├── core/                 # errors, logging, platform, utils;
-│   │   │                         #   editor/: protocol v1 mirror, change sets, shadows
+│   │   │                         #   editor/: protocol v1 mirror, change sets, shadows;
+│   │   │                         #   files/: workspace paths, text codec, file stamps
 │   │   ├── services/             # interfaces + fake/ + native/ impls;
+│   │   │                         #   files/: the dart:io file service + demo project;
+│   │   │                         #   platform/: the app's files folder (one channel);
 │   │   │                         #   editor/: WebView surface, page verification;
 │   │   │                         #   editor/bench/: benchmark pages + their WebView;
 │   │   │                         #   perf/: frame timing recorder
 │   │   ├── application/          # controllers + providers; editor/: the editor host;
+│   │   │                         #   documents/: open documents and tabs;
 │   │   │                         #   bench/: the engine benchmark runner
 │   │   ├── features/             # home, workbench, explorer, editor, terminal,
 │   │   │   └── <feature>/        #   search, source_control, extensions,
@@ -24,7 +28,7 @@ CodeForge-/
 │   │   │       ├── application/
 │   │   │       └── domain/
 │   │   └── routing/
-│   ├── android/                  # Kotlin host (Phase 1: MainActivity + channels stub)
+│   ├── android/                  # Kotlin host (MainActivity; W4: the paths channel)
 │   ├── assets/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
 │   │   ├── editor_bench/         # benchmark pages (gitignored except README; the phase
@@ -33,7 +37,7 @@ CodeForge-/
 │   │   ├── fonts/                # bundled UI + mono fonts (offline)
 │   │   └── icons/
 │   ├── test/                     # unit + widget tests mirror lib/; support/: scripted
-│   │                             #   editor page and benchmark pages
+│   │                             #   editor page, benchmark pages, in-memory files
 │   ├── integration_test/         # device/emulator workflow tests
 │   └── pubspec.yaml              # pinned; lockfile committed
 │

@@ -6,6 +6,7 @@ library;
 
 import 'package:codeforge/app.dart';
 import 'package:codeforge/application/documents/document_controller.dart';
+import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';

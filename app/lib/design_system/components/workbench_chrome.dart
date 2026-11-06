@@ -25,8 +25,9 @@ final class CfTab {
 
 /// Horizontal editor tab strip with dirty dots and close affordances. It
 /// scrolls the active tab into view when it changes, so a tab chosen from
-/// the keyboard or the explorer is never off-screen (tabs are capped by
-/// the workbench, so all of them are built).
+/// the keyboard or the explorer is never off-screen. Every tab is built
+/// (no lazy list) so that any of them can be scrolled to; a phone holds
+/// tens of tabs, not thousands.
 class CfTabStrip extends StatefulWidget {
   const CfTabStrip({
     super.key,

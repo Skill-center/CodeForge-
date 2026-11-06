@@ -1,4 +1,5 @@
-/// File tree rows for the explorer (demo workspace in Phase 1).
+/// File tree rows for the explorer: the workspace folder's real files from
+/// Phase 2 W4 (features/workbench/panels/explorer_panel.dart).
 library;
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,7 @@ import 'package:flutter/material.dart';
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';
 
-/// A node in the demo file tree.
+/// One file or folder shown by a [CfTreeRow].
 final class CfFileNode {
   const CfFileNode({
     required this.name,

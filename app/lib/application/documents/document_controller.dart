@@ -73,7 +73,8 @@ final class DocumentController extends Notifier<DocumentsState> {
     try {
       return await opening;
     } finally {
-      _opening.remove(path);
+      // Already complete: it was awaited just above.
+      unawaited(_opening.remove(path));
     }
   }
 
@@ -202,7 +203,8 @@ final class DocumentController extends Notifier<DocumentsState> {
       return await saving;
     } finally {
       if (identical(_saving[path], saving)) {
-        _saving.remove(path);
+        // Already complete: it was awaited just above.
+        unawaited(_saving.remove(path));
       }
     }
   }
