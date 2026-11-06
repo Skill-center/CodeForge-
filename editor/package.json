@@ -1,0 +1,41 @@
+{
+  "name": "codeforge-editor",
+  "version": "0.2.0",
+  "private": true,
+  "description": "CodeForge's editor page: CodeMirror 6 in the Android WebView, behind the CodeForge bridge protocol.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "licenses": "node tool/check_licenses.mjs",
+    "build": "node tool/build.mjs",
+    "verify": "node tool/verify_bundle.mjs",
+    "ci": "npm run typecheck && npm test && npm run licenses && npm run build && npm run verify"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "6.20.4",
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/lang-css": "6.3.1",
+    "@codemirror/lang-html": "6.4.12",
+    "@codemirror/lang-javascript": "6.2.5",
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/lang-python": "6.2.1",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/search": "6.7.2",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "@lezer/highlight": "1.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "happy-dom": "21.0.4",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

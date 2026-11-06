@@ -19,7 +19,7 @@ CodeForge-/
 │   │   └── routing/
 │   ├── android/                  # Kotlin host (Phase 1: MainActivity + channels stub)
 │   ├── assets/
-│   │   ├── editor/               # built CM6 bundle (Phase 2, from editor/ workspace)
+│   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
 │   │   ├── terminal/             # xterm bundle only if ADR-0006 fallback chosen
 │   │   ├── fonts/                # bundled UI + mono fonts (offline)
 │   │   └── icons/
@@ -27,15 +27,18 @@ CodeForge-/
 │   ├── integration_test/         # device/emulator workflow tests
 │   └── pubspec.yaml              # pinned; lockfile committed
 │
-├── editor/                       # TypeScript workspace for WebView bundles (Phase 2)
+├── editor/                       # TypeScript workspace for the editor page (Phase 2)
 │   ├── src/
-│   │   ├── protocol/             # bridge message types (mirrors Dart contract)
-│   │   ├── codemirror/           # CM6 setup, mobile extensions, themes
-│   │   ├── monaco/               # challenger build for the ADR-0004 gate
-│   │   └── terminal/             # xterm.js fallback frontend (conditional)
-│   ├── test/                     # vitest: protocol + change-set round-trips
+│   │   ├── protocol/             # v1 message catalogue, strict validator, change-set reference
+│   │   ├── editor/               # CM6 controller, change batcher, languages, theme
+│   │   ├── bridge.ts, main.ts    # host channel + page entry point
+│   │   └── page.html             # template: CSP + inline style + inline script
+│   ├── test/                     # vitest: protocol, change sets vs CM6, controller, bridge
+│   │   └── fixtures/             # JSON contract fixtures, shared with the Dart tests
+│   ├── tool/                     # build.mjs, verify_bundle.mjs, check_licenses.mjs
+│   ├── bench/                    # Monaco challenger + benchmark pages (Phase 2 W3, debug only)
 │   ├── package.json              # exact pins; npm ci only
-│   └── esbuild.config.mjs
+│   └── .nvmrc                    # Node 24 in CI
 │
 ├── native/                       # vendored runtime modules (Phase 4, from t1 @ 0e26d7a)
 │   ├── PROVENANCE.md             # source repo, commit, per-module license notes
@@ -60,7 +63,7 @@ CodeForge-/
 │   └── *.md
 │
 ├── .github/
-│   ├── workflows/                # ci.yml, editor.yml, runtime-gates.yml, release.yml
+│   ├── workflows/                # ci.yml (editor + Flutter jobs), phase-gate.yml; release.yml later
 │   └── PULL_REQUEST_TEMPLATE.md
 │
 ├── AGENTS.md                     # agent development rules (spec §12 workflow)
@@ -73,7 +76,7 @@ CodeForge-/
 ## Boundary rules
 
 1. **`app/` never contains runtime binaries.** Payload assets are generated into Gradle build dirs by `runtime/` scripts at build time (t1 pattern) — never committed.
-2. **`editor/` builds deterministic bundles** committed nowhere; CI builds them and the Android build consumes them from a known path. Bundle hash recorded in build metadata.
+2. **`editor/` builds a deterministic page** committed nowhere: CI builds it into `app/assets/editor/` and the Android build consumes it from there. `manifest.json` records its SHA-256, size and bundled packages.
 3. **`native/` is vendored, not forked-and-forgotten.** PROVENANCE.md records upstream commit; changes are either upstreamable patches (documented) or CodeForge-specific adapters in clearly separated files. Re-sync procedure documented there.
 4. **Generated artifacts stay out of Git** (build/, .dart_tool/, node_modules/, payloads, APKs). `.gitignore` covers them from Phase 1.
 5. **Docs move with code.** A PR that changes architecture updates the matching doc + ADR in the same PR (spec rule 12).

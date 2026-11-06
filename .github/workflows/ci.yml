@@ -17,8 +17,101 @@ env:
   FLUTTER_VERSION_FILE: .flutter-version
 
 jobs:
+  editor:
+    name: Editor page (TypeScript + CodeMirror 6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NO_COLOR: "1"
+    defaults:
+      run:
+        working-directory: editor
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: editor/.nvmrc
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+
+      # Same pattern as the Flutter job: each check records its output in
+      # editor-results/ and may fail on its own, so one run reports every
+      # problem; the Flutter job commits the results back in bootstrap mode.
+      - name: Install from the lockfile
+        id: install
+        continue-on-error: true
+        run: |
+          mkdir -p ../editor-results
+          { echo "node $(node --version), npm $(npm --version)"; npm ci --no-audit --no-fund; } 2>&1 | tee ../editor-results/install.txt
+
+      - name: Typecheck
+        id: typecheck
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npx tsc --noEmit 2>&1 | tee ../editor-results/typecheck.txt
+
+      - name: Unit + contract tests (vitest)
+        id: tests
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npx vitest run 2>&1 | tee ../editor-results/test.txt
+
+      - name: Licence gate (runtime packages)
+        id: licenses
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: node tool/check_licenses.mjs 2>&1 | tee ../editor-results/licenses.txt
+
+      - name: Build the editor page
+        id: build
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: |
+          node tool/build.mjs 2>&1 | tee ../editor-results/build.txt
+          cp ../app/assets/editor/manifest.json ../editor-results/manifest.json
+
+      - name: Verify the built page
+        id: verify
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: node tool/verify_bundle.mjs 2>&1 | tee ../editor-results/verify.txt
+
+      - name: Upload editor results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-results
+          path: editor-results/
+          if-no-files-found: ignore
+
+      - name: Upload editor page
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-page
+          path: app/assets/editor/
+          if-no-files-found: error
+
+      - name: Enforce editor gates
+        if: always()
+        run: |
+          fail=0
+          for gate in "install=${{ steps.install.outcome }}" "typecheck=${{ steps.typecheck.outcome }}" \
+                      "tests=${{ steps.tests.outcome }}" "licenses=${{ steps.licenses.outcome }}" \
+                      "build=${{ steps.build.outcome }}" "verify=${{ steps.verify.outcome }}"; do
+            echo "$gate"
+            [ "${gate#*=}" = "success" ] || fail=1
+          done
+          exit $fail
+
   quality-and-build:
     name: Quality gates + Android build
+    # Runs after the editor job even when it fails, so a bootstrap run still
+    # commits the editor results back.
+    needs: editor
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
@@ -91,6 +184,13 @@ jobs:
       # reachable from the authoring sandbox). A final step enforces the gates.
       - name: Prepare diagnostics dir
         run: mkdir -p ci-results
+
+      - name: Fetch editor results
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: editor-results
+          path: app/ci-results/editor
 
       - name: Lockfile drift check
         id: lockfile

@@ -28,10 +28,10 @@ UI copy and docs must say "runs locally in CodeForge's sandbox" — never "secur
 
 ## 3. WebView & bridge hardening (Phase 2+)
 
-- Assets only via `WebViewAssetLoader` (`https://appassets.androidplatform.net/`); bundle SHA-256 recorded at build, verified at load.
-- CSP: `default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'`.
+- **One self-contained page** (decided in Phase 2; it replaces the original `WebViewAssetLoader` plan). `webview_flutter_android` 4.14.1 exposes no request interception, so `WebViewAssetLoader` is unreachable through the plugin. The editor page is therefore a single document with its script, style and font inline, loaded with `loadHtmlString` under the base URL `https://appassets.androidplatform.net/`, and it makes no network or file requests. The build records the page's SHA-256 in `manifest.json`; the host verifies the asset against it before loading.
+- CSP: `default-src 'none'; script-src 'sha256-<build hash>'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'`. The hash pins the one inline script, so a modified script does not run, and every other fetch (`connect-src`, `img-src`, frames) falls back to `'none'`. `editor/tool/verify_bundle.mjs` checks the pin against the built page in CI.
 - `setAllowFileAccess(false)`, `setAllowContentAccess(false)`, `setDomStorageEnabled(true)` (editor state only), no mixed content, no third-party cookies, JavaScript enabled only for our bundles.
-- **One bridge object, one method** (`postMessage(String)`); JSON envelope schema-validated (type allowlist, version check, size cap 1 MB, rate limit); every path argument canonicalized and confined to workspace roots; every failure typed + logged; no reflection, no generic "eval" or "exec" message types.
+- **One bridge object, one method** (`postMessage(String)`); JSON envelope schema-validated (type allowlist, version check, unknown fields rejected, size cap 32 Mi characters because whole-document messages must fit the largest supported 10 MB file, host-side rate limit); every path argument canonicalized and confined to workspace roots; every failure typed + logged; no reflection, no generic "eval" or "exec" message types (the editor protocol's `cmd.exec` runs only a named command from a fixed allowlist, such as undo or indent).
 - Navigation blocked except the asset origin; `shouldOverrideUrlLoading` denies everything else; downloads disabled.
 
 ## 4. Data protection
