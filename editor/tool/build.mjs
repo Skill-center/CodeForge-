@@ -12,12 +12,19 @@
  * The build is deterministic: same inputs, same bytes, no timestamps.
  */
 import { build } from 'esbuild';
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
-import ts from 'typescript';
+import {
+  bundledPackages,
+  contentSecurityPolicy,
+  editorFontFace,
+  fillTemplate,
+  inlineScript,
+  noticesFor,
+  sha256,
+} from './page_kit.mjs';
 
 const EDITOR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = join(EDITOR, '..');
@@ -30,8 +37,6 @@ function fail(message) {
   console.error(`editor build failed: ${message}`);
   process.exit(1);
 }
-
-const sha256 = (data, encoding = 'hex') => createHash('sha256').update(data).digest(encoding);
 
 const pkg = JSON.parse(readFileSync(join(EDITOR, 'package.json'), 'utf8'));
 const engineVersion = pkg.dependencies['@codemirror/view'];
@@ -51,96 +56,24 @@ const result = await build({
   write: false,
   logLevel: 'warning',
 });
-/**
- * Inside a <script> element the HTML tokenizer treats "<!--" specially
- * (script data escaped state), so it must not appear in an inline script.
- * esbuild already escapes "</script"; this rewrites "<!--" as "\x3C!--",
- * which is exactly equivalent inside string, untagged template and regular
- * expression literals (also with the u flag). The bundle is parsed to prove
- * every occurrence is inside such a literal; anything else fails the build.
- */
-function escapeCommentOpeners(code) {
-  const positions = [...code.matchAll(/<!--/g)].map((m) => m.index);
-  if (positions.length === 0) return code;
-  const file = ts.createSourceFile('bundle.js', code, ts.ScriptTarget.ES2020, true, ts.ScriptKind.JS);
-  const K = ts.SyntaxKind;
-  const templateParts = new Set([K.NoSubstitutionTemplateLiteral, K.TemplateHead, K.TemplateMiddle, K.TemplateTail]);
-  const isTagged = (node) => {
-    let template = node;
-    if (node.kind === K.TemplateMiddle || node.kind === K.TemplateTail) template = node.parent.parent;
-    else if (node.kind === K.TemplateHead) template = node.parent;
-    return template.parent?.kind === K.TaggedTemplateExpression;
-  };
-  const safe = new Set();
-  const visit = (node) => {
-    const literal =
-      node.kind === K.StringLiteral ||
-      node.kind === K.RegularExpressionLiteral ||
-      (templateParts.has(node.kind) && !isTagged(node));
-    if (literal) {
-      const start = node.getStart(file);
-      const end = node.getEnd();
-      for (const p of positions) if (p >= start && p + 4 <= end) safe.add(p);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
-  const unsafe = positions.filter((p) => !safe.has(p));
-  if (unsafe.length > 0) fail(`"<!--" outside a string or regex literal at offsets ${unsafe.join(', ')}`);
-  return code.replaceAll('<!--', '\\x3C!--');
-}
-
-const script = escapeCommentOpeners(result.outputFiles[0].text.trimEnd());
-if (/<\/script/i.test(script) || script.includes('<!--')) {
-  fail('the bundle contains a sequence that would end an inline <script>');
-}
-
-// Packages that actually ended up in the bundle.
-const bundled = new Map();
-for (const input of Object.keys(result.metafile.inputs)) {
-  const match = input.match(/node_modules\/((?:@[^/]+\/)?[^/]+)\//);
-  if (match && !bundled.has(match[1])) {
-    const meta = JSON.parse(readFileSync(join(EDITOR, 'node_modules', match[1], 'package.json'), 'utf8'));
-    bundled.set(match[1], { version: meta.version, license: meta.license });
-  }
-}
-const packages = Object.fromEntries([...bundled.entries()].sort(([a], [b]) => a.localeCompare(b)));
+// Inline-script escaping, CSP, package and licence collection: page_kit.mjs.
+const script = inlineScript(result.outputFiles[0].text, fail);
+const packages = bundledPackages(result.metafile, EDITOR);
 
 const style = [
-  `@font-face{font-family:"JetBrains Mono";src:url(data:font/ttf;base64,${readFileSync(FONT).toString('base64')}) format("truetype");font-weight:400;font-style:normal;font-display:block}`,
+  editorFontFace(FONT),
   'html,body{margin:0;padding:0;height:100%;overflow:hidden;background:transparent;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}',
   '#editor{height:100%}',
 ].join('');
 
 const scriptHash = sha256(script, 'base64');
-const csp = [
-  "default-src 'none'",
-  `script-src 'sha256-${scriptHash}'`,
-  "style-src 'unsafe-inline'",
-  'font-src data:',
-  "base-uri 'none'",
-  "form-action 'none'",
-].join('; ');
+const csp = contentSecurityPolicy(scriptHash);
 
 const template = readFileSync(join(EDITOR, 'src', 'page.html'), 'utf8');
-// Function replacers: the minified script contains `$` sequences that a
-// string replacement would interpret.
-const html = template
-  .replace('{{CSP}}', () => csp)
-  .replace('{{STYLE}}', () => style)
-  .replace('{{SCRIPT}}', () => script);
+const html = fillTemplate(template, { CSP: csp, STYLE: style, SCRIPT: script });
 const gzipBytes = gzipSync(html, { level: 9 }).length;
 
-function licenceText(name) {
-  for (const file of ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'license', 'LICENCE']) {
-    const path = join(EDITOR, 'node_modules', name, file);
-    if (existsSync(path)) return readFileSync(path, 'utf8').trim();
-  }
-  fail(`no licence file found for bundled package ${name}`);
-}
-const notices = Object.entries(packages)
-  .map(([name, meta]) => `${name} ${meta.version} (${meta.license})\n\n${licenceText(name)}\n`)
-  .join(`\n${'-'.repeat(72)}\n\n`);
+const notices = noticesFor(packages, EDITOR, fail);
 
 const manifest = {
   schema: 1,
@@ -161,6 +94,6 @@ writeFileSync(join(OUT, 'NOTICES.txt'), notices);
 const kib = (n) => `${(n / 1024).toFixed(1)} KiB`;
 console.log(
   `editor.html: ${kib(manifest.html.bytes)} (${kib(gzipBytes)} gzipped, budget ${kib(GZIP_BUDGET)}); ` +
-    `script ${kib(manifest.script.bytes)}; ${bundled.size} packages; sha256 ${manifest.html.sha256}`,
+    `script ${kib(manifest.script.bytes)}; ${Object.keys(packages).length} packages; sha256 ${manifest.html.sha256}`,
 );
 if (gzipBytes > GZIP_BUDGET) fail(`gzipped size ${gzipBytes} B exceeds the ${GZIP_BUDGET} B budget`);

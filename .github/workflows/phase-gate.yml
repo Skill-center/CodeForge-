@@ -81,6 +81,24 @@ jobs:
           flutter build apk --release --target-platform android-x64
           cp build/app/outputs/flutter-apk/app-release.apk build/gate/app-release-x64.apk
 
+      # Phase 2 W3 engine benchmark pages (CodeMirror 6 + Monaco), built only
+      # now: the release APK above stays free of them, while the phone APK
+      # and the integration tests below (which rebuild the debug APK) bundle
+      # them.
+      - name: Build the editor benchmark pages
+        working-directory: editor
+        run: npm run build:bench
+
+      # The phone test build: profile mode (optimised like release, but
+      # debug-signed and with Settings → Developer), arm64, benchmark pages
+      # inside. Uploaded below as codeforge-phone-profile-arm64.
+      - name: Build phone APK (profile, arm64)
+        continue-on-error: true
+        run: |
+          flutter build apk --profile --target-platform android-arm64
+          cp build/app/outputs/flutter-apk/app-profile.apk build/gate/codeforge-phone-profile-arm64.apk
+          sha256sum build/gate/codeforge-phone-profile-arm64.apk
+
       - name: Run emulator gate
         id: gate
         continue-on-error: true
@@ -112,6 +130,7 @@ jobs:
             cat ci-results/gate/readiness.txt 2>/dev/null || true
             cat ci-results/gate/attempts.txt 2>/dev/null || true
             cat ci-results/gate/coldstart-summary.txt 2>/dev/null || true
+            cat ci-results/gate/editor_bench.txt 2>/dev/null || true
             cat ci-results/gate/gate-result.txt 2>/dev/null || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
@@ -123,6 +142,15 @@ jobs:
           name: phase-gate-results
           path: app/ci-results/gate/
           if-no-files-found: ignore
+
+      - name: Upload phone APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeforge-phone-profile-arm64
+          path: app/build/gate/codeforge-phone-profile-arm64.apk
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Enforce gate
         if: always()

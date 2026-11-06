@@ -14,7 +14,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'application/providers.dart';
 import 'core/logging/logger.dart';
+import 'services/editor/bench/bench_pages.dart';
 import 'services/editor/editor_page.dart';
+import 'services/perf/frame_stats.dart';
 import 'services/settings/settings_store.dart';
 import 'services/shell/shell_state.dart';
 
@@ -46,6 +48,12 @@ Future<void> bootstrap() async {
       // The editor page's npm packages, next to the pub packages Flutter
       // lists by itself (About → Open-source licenses).
       LicenseRegistry.addLicense(bundledEditorLicenses);
+      // The benchmark pages' packages, in the builds that bundle them.
+      LicenseRegistry.addLicense(bundledBenchLicenses);
+      // Settings → Developer → Frame timing (G6 on a real device).
+      if (!kReleaseMode) {
+        frameStats.start();
+      }
 
       final prefs = await SharedPreferences.getInstance();
       final settingsStore = PrefsSettingsStore(prefs);

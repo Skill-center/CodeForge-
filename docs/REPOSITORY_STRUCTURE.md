@@ -12,34 +12,44 @@ CodeForge-/
 │   │   ├── core/                 # errors, logging, platform, utils;
 │   │   │                         #   editor/: protocol v1 mirror, change sets, shadows
 │   │   ├── services/             # interfaces + fake/ + native/ impls;
-│   │   │                         #   editor/: WebView surface, page verification
-│   │   ├── application/          # controllers + providers; editor/: the editor host
+│   │   │                         #   editor/: WebView surface, page verification;
+│   │   │                         #   editor/bench/: benchmark pages + their WebView;
+│   │   │                         #   perf/: frame timing recorder
+│   │   ├── application/          # controllers + providers; editor/: the editor host;
+│   │   │                         #   bench/: the engine benchmark runner
 │   │   ├── features/             # home, workbench, explorer, editor, terminal,
 │   │   │   └── <feature>/        #   search, source_control, extensions,
-│   │   │       ├── presentation/ #   run_debug, settings
+│   │   │       ├── presentation/ #   run_debug, settings (settings/developer/:
+│   │   │       │                 #   benchmark + frame timing, non-release only)
 │   │   │       ├── application/
 │   │   │       └── domain/
 │   │   └── routing/
 │   ├── android/                  # Kotlin host (Phase 1: MainActivity + channels stub)
 │   ├── assets/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
+│   │   ├── editor_bench/         # benchmark pages (gitignored except README; the phase
+│   │   │                         #   gate builds them for its debug APK and the phone APK)
 │   │   ├── terminal/             # xterm bundle only if ADR-0006 fallback chosen
 │   │   ├── fonts/                # bundled UI + mono fonts (offline)
 │   │   └── icons/
-│   ├── test/                     # unit + widget tests mirror lib/; support/: scripted editor page
+│   ├── test/                     # unit + widget tests mirror lib/; support/: scripted
+│   │                             #   editor page and benchmark pages
 │   ├── integration_test/         # device/emulator workflow tests
 │   └── pubspec.yaml              # pinned; lockfile committed
 │
 ├── editor/                       # TypeScript workspace for the editor page (Phase 2)
 │   ├── src/
 │   │   ├── protocol/             # v1 message catalogue, strict validator, change-set reference
-│   │   ├── editor/               # CM6 controller, change batcher, languages, theme
+│   │   ├── editor/               # CM6 controller, change batcher, languages, theme, palette
 │   │   ├── bridge.ts, main.ts    # host channel + page entry point
 │   │   └── page.html             # template: CSP + inline style + inline script
 │   ├── test/                     # vitest: protocol, change sets vs CM6, controller, bridge
 │   │   └── fixtures/             # JSON contract fixtures, shared with the Dart tests
-│   ├── tool/                     # build.mjs, verify_bundle.mjs, check_licenses.mjs
-│   ├── bench/                    # Monaco challenger + benchmark pages (Phase 2 W3, debug only)
+│   ├── tool/                     # build.mjs, verify_bundle.mjs, check_licenses.mjs,
+│   │                             #   page_kit.mjs (shared), build_bench.mjs,
+│   │                             #   bench_cdp.mjs (DevTools driver), bench_report.mjs
+│   ├── bench/                    # benchmark harness, CM6 + Monaco adapters, page template,
+│   │                             #   composition cases (Phase 2 W3)
 │   ├── package.json              # exact pins; npm ci only
 │   └── .nvmrc                    # Node 24 in CI
 │

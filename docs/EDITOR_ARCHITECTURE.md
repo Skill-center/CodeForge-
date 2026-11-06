@@ -1,6 +1,6 @@
 # Editor Architecture
 
-**Status:** Design proposed; engine choice gated by device benchmark (ADR-0004) · Implementation Phase 2
+**Status:** Phase 2 in progress: the CodeMirror 6 page (W1) and its WebView host (W2) are built; the W3 benchmark of both engines is built and the engine decision waits for its numbers (ADR-0004)
 
 ---
 
@@ -36,6 +36,23 @@ Both engines built with identical scope (JS/TS/Python/JSON/HTML/CSS highlighting
 
 CM6 must pass all; Monaco is given the same suite for the record. Result + raw numbers recorded in `docs/phases/PHASE_2_REPORT.md`; ADR-0004 flips to Accepted with the winner. **If CM6 fails the IME suite, we stop and reassess (custom Flutter editor fallback study) rather than ship a corrupting editor.**
 
+### As built in W3: how the gate measures
+
+Both benchmark pages come from `editor/bench/` (`npm run build:bench`). They are built with the same page kit as the editor page (`editor/tool/page_kit.mjs`: one self-contained document, a hash-pinned CSP, the licence gate and the notices) into `app/assets/editor_bench/`. That directory is gitignored and is built only for the phase gate and the phone APK. Monaco 0.57.0 is a dev dependency, never part of the shipped editor page. It runs without web workers, through its own in-process fallback, and with a small hand-written JSON Monarch grammar, because 0.57 ships none.
+
+| Metric | How it is measured | By |
+|---|---|---|
+| Cold load | navigation start → the first frame painted after the editor is mounted | the page (`bench/harness.ts`) |
+| Typing (engine path) | 60 characters through the engine's own typing path, each timed to the end of the next frame | the page |
+| Input → frame | 60 keys sent as DevTools `Input.insertText`, each timed from its first input event to the end of the next frame (`bench/input_recorder.ts`) | DevTools driver |
+| Composition | 9 cases sent with `Input.imeSetComposition` / `Input.insertText`, each document compared with the expected text: Latin predictive, autocorrect replacement, pinyin, Japanese, Hangul, emoji, cancelled composition, mid-line and backspace inside a composition | DevTools driver |
+| 1 MiB file | open time, typing p95 in the middle of the file, and the share of frames over 32 ms during 3 s of scripted scrolling | the page |
+| Memory | total PSS of the app process plus its WebView renderer processes (`dumpsys meminfo`) after the scripted session, which takes minutes rather than the ADR's 10 | DevTools driver |
+| Size | gzip size of the self-contained page | the build manifest |
+
+- **In the phase gate:** `app/integration_test/editor_bench_test.dart` drives Settings → Developer → Editor benchmark on the debug APK. It runs 3 fresh WebViews per engine in ABBA order and reports medians. It then hands each engine's page to `editor/tool/bench_cdp.mjs`, which reaches the WebView's DevTools socket over adb. `editor/tool/bench_report.mjs` merges both into `app/ci-results/gate/editor_bench.json` and `.txt`, with every value checked against its budget. A budget miss is evidence for the decision, not a gate failure; the gate fails only when a run cannot complete.
+- **On a phone:** the same screen runs the in-page suite and an on-screen typing check per engine through the real keyboard: the document is compared with the expected phrase, and keyboard input → frame latency is recorded. The profile arm64 APK from the phase gate carries the pages; steps are in `docs/phases/PHASE_2_PHONE_CHECKLIST.md`. A profile build has no DevTools socket, so the phone provides no driver numbers (DevTools input latency, composition cases, memory).
+
 ## 2. Integration topology
 
 ```
@@ -68,7 +85,7 @@ Flutter (Dart)                      WebView (bundled assets only)
 
 ## 4. WebView hardening (summary; full: SECURITY.md)
 
-`WebViewAssetLoader` origin only; CSP `default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'`; `setAllowFileAccess(false)`, `setAllowContentAccess(false)`, no geolocation, no third-party cookies; JS bridge = one `@JavascriptInterface` method taking a JSON string, schema-validated, rate-limited, workspace-scoped; no `eval` of remote content; bundle integrity hash checked at load (recorded at build).
+As built in W1–W2: one self-contained page, loaded with `loadHtmlString` under `https://appassets.androidplatform.net/`. `WebViewAssetLoader` is unreachable, because the plugin exposes no request interception. The CSP is `default-src 'none'; script-src 'sha256-<build hash>'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'`. File and content access are off, geolocation is off, and every navigation is refused. The bridge is one JavaScript channel taking a JSON string, which is schema-validated, size-capped and rate-limited. Nothing remote is evaluated, and the page's SHA-256 is checked against its manifest before it loads. The W3 benchmark pages follow the same rules: they are verified the same way and hardened the same way.
 
 ## 5. Fallback posture
 

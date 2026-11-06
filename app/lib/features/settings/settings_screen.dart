@@ -109,6 +109,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_right, size: 18),
                   onTap: () => context.go('/settings/gallery'),
                 ),
+              // Developer tools ship in debug and profile builds only (the
+              // phone test build is a profile build).
+              if (!kReleaseMode) ...[
+                const CfSectionHeader('Developer'),
+                CfSettingsTile(
+                  key: const ValueKey('settings_editor_benchmark'),
+                  leading: const Icon(Icons.speed),
+                  title: 'Editor benchmark',
+                  subtitle: 'CodeMirror 6 vs Monaco on this device',
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => context.go('/settings/editor-benchmark'),
+                ),
+                CfSettingsTile(
+                  key: const ValueKey('settings_frame_timing'),
+                  leading: const Icon(Icons.timer_outlined),
+                  title: 'Frame timing',
+                  subtitle: 'Navigation frames against the 32 ms budget',
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => context.go('/settings/frame-timing'),
+                ),
+              ],
               const SizedBox(height: CfSpacing.xl),
             ],
           ),

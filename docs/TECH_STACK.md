@@ -35,7 +35,7 @@
 | Component | Choice | Verified version | Notes |
 |---|---|---|---|
 | Editor engine | **CodeMirror 6** (primary candidate) | @codemirror/view 6.43.15, state 6.7.6 | Mobile-native selection/IME, modular, ~135 KB gz core; ADR-0004 device gate decides finally |
-| Editor challenger | Monaco | 0.57.0 | Benchmarked in Phase 2 gate; upstream states mobile browsers unsupported — uphill battle, evidence required to overturn CM6 |
+| Editor challenger | Monaco | 0.57.0 | Benchmarked in the Phase 2 gate; upstream states mobile browsers unsupported — uphill battle, evidence required to overturn CM6. As built (W3): an exact-pinned **dev** dependency of `editor/`, used only for the benchmark page (no web workers, in-process fallback); never part of the shipped editor page. Its bundled third-party notices (marked, DOMPurify) ship with the benchmark page |
 | Terminal frontend (fallback) | **@xterm/xterm** | 6.0.0 (+ addon-fit 0.11.0) | Only if ADR-0006 picks WebView route (license-driven or PlatformView perf fails) |
 | Terminal frontend (primary candidate) | vendored **terminal-view** (native) | t1 @ 0e26d7a | Proven touch/IME/selection; via Flutter PlatformView; license gate ADR-0011 |
 | JS build | **esbuild** | 0.28.2 | Single-file bundle, deterministic, fast CI; no webpack |

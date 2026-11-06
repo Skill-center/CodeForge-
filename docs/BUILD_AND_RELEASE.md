@@ -29,6 +29,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 - **`[bootstrap]`** in a commit message makes `ci.yml` run `dart fix` + `dart format`, regenerate golden baselines on the Linux runner (the `test/goldens` suites only), and commit both back. Every quality gate then writes its full output to `app/ci-results/*.txt` (goldens, analyze, format, imports, licenses, lockfile, test, build, apk, coverage), which is committed back too. The run's own verdict is the evidence. Plain pushes run the same gates without any commit-back. When tests fail, the last 40 lines of their output also go out as a check-run annotation, which the API can read even after a plain push.
 - **`[phase-gate]`** runs `phase-gate.yml`; its evidence lives in **`app/ci-results/gate/`**, a directory owned by the gate script (host/acceleration, readiness timings, every test attempt with exit codes, restore-pair proof, cold-start samples, `perf.json`, logcat and emulator tails). `tool/ci/commit_gate_evidence.sh` commits it by snapshotting the directory, resetting to the remote tip and restoring only that directory — never a rebase of a dirty runner checkout, so concurrent commit-backs cannot collide. The key files are also published as check-run annotations (`tool/ci/annotate_gate_evidence.sh`), readable through the API if a push ever fails.
 - Commit-backs from `ci.yml` push through `tool/ci/push_with_retry.sh` (fetch + rebase on rejection).
+- **Phone test build (Phase 2 W3):** after the release x86_64 APK, `phase-gate.yml` builds the editor benchmark pages (`npm run build:bench`) and then a **profile arm64 APK** that bundles them. It is uploaded as the artifact `codeforge-phone-profile-arm64` (kept 30 days), and its SHA-256 is printed in the step log. Profile mode is optimised like release but keeps Settings → Developer (`!kReleaseMode`). It is signed with the runner's throwaway debug key, which changes with every run, so an earlier CodeForge build must be uninstalled before a new one installs. The release APK is built before the pages exist, so it never contains them.
 - Infrastructure retries are explicit and logged: an integration test is retried only on known *infrastructure* signatures (package service missing, broken adb pipe, device offline, …); an assertion failure is never retried. Every attempt is listed in `attempts.txt`.
 
 ## 3. Toolchain pins in CI
@@ -57,6 +58,9 @@ cd app && flutter pub get && flutter test && flutter build apk --debug
 
 # Phase 2+ (editor bundle first)
 cd editor && npm ci && npm run build   # outputs to app/assets/editor/
+npm run build:bench                    # optional, debug/profile only: benchmark pages
+                                       # to app/assets/editor_bench/ (~1.3 MB gz);
+                                       # never present for a release build
 
 # Phase 4+ (runtime payload; network needed once, SHA-verified)
 python3 runtime/fetch-core-debs.py && ./gradlew :app:assembleDebug

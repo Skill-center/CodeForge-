@@ -14,7 +14,9 @@
     "licenses": "node tool/check_licenses.mjs",
     "build": "node tool/build.mjs",
     "verify": "node tool/verify_bundle.mjs",
-    "ci": "npm run typecheck && npm test && npm run licenses && npm run build && npm run verify"
+    "build:bench": "node tool/build_bench.mjs",
+    "bench:cdp": "node tool/bench_cdp.mjs",
+    "ci": "npm run typecheck && npm test && npm run licenses && npm run build && npm run verify && npm run build:bench"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.4",
@@ -35,6 +37,7 @@
     "@types/node": "26.6.6",
     "esbuild": "0.28.2",
     "happy-dom": "21.0.4",
+    "monaco-editor": "0.57.0",
     "typescript": "5.9.3",
     "vitest": "5.1.0"
   }

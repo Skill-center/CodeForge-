@@ -14,6 +14,10 @@
 #   smoke|restore_a|restore_b.txt  final attempt output (+ .attemptN.txt)
 #   prefs_after_a.txt / process_after_kill.txt  G5 on-disk + kill proof
 #   coldstart*.txt / perf.json     G6 measurement (record-only)
+#   editor_bench.json|.txt         Phase 2 W3 engine benchmark (CodeMirror 6
+#                                  vs Monaco; information for ADR-0004), from
+#                                  editor_bench_<engine>.txt + the DevTools
+#                                  driver's editor_bench_cdp.json|.txt
 set -uo pipefail
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
@@ -233,6 +237,37 @@ echo "::endgroup::"
 
 echo "::group::Integration — editor bridge (Phase 2 W2: the real page in the WebView)"
 run_itest editor integration_test/editor_bridge_test.dart || fail=1
+echo "::endgroup::"
+
+echo "::group::Editor benchmark (Phase 2 W3: CodeMirror 6 vs Monaco, informational)"
+# One app process per engine, so each engine's memory is its own. The
+# DevTools driver runs alongside: at the end of each test run the page hands
+# itself over (title codeforge-bench:<engine>:driver) for real key events,
+# the IME composition suite and a dumpsys memory sample. Budget misses are
+# information for ADR-0004 and never fail the gate; the test fails only when
+# the benchmark itself cannot run (page missing, no results, broken scope).
+node ../editor/tool/bench_cdp.mjs --adb "$ADB" --package "$APP_ID" \
+  --out "$RESULTS/editor_bench_cdp.json" --engines codemirror,monaco \
+  --timeout 2400 > "$RESULTS/editor_bench_cdp.txt" 2>&1 &
+bench_driver=$!
+bench_ok=1
+for engine in codemirror monaco; do
+  run_itest "editor_bench_$engine" integration_test/editor_bench_test.dart \
+    --dart-define=BENCH_ENGINE="$engine" --dart-define=BENCH_DRIVER=true \
+    || bench_ok=0
+done
+kill "$bench_driver" 2>/dev/null || true
+wait "$bench_driver" 2>/dev/null || true
+node ../editor/tool/bench_report.mjs \
+  --itest codemirror="$RESULTS/editor_bench_codemirror.txt" \
+  --itest monaco="$RESULTS/editor_bench_monaco.txt" \
+  --cdp "$RESULTS/editor_bench_cdp.json" \
+  --manifest assets/editor_bench/manifest.json \
+  --env accel="$ACCEL" --env system_image="$SYSTEM_IMAGE" \
+  --out-json "$RESULTS/editor_bench.json" \
+  --out-txt "$RESULTS/editor_bench.txt" \
+  || echo "editor benchmark report failed (record-only)"
+[ "$bench_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Integration — restore pair (G5: establish → process death → verify)"

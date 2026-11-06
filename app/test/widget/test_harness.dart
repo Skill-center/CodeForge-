@@ -5,6 +5,7 @@
 library;
 
 import 'package:codeforge/app.dart';
+import 'package:codeforge/application/bench/editor_bench_providers.dart';
 import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/design_system/theme/theme.dart';
@@ -17,10 +18,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/fake_bench_surface.dart';
 import '../support/fake_editor_surface.dart';
 
 final class TestHarness {
-  TestHarness({AppSettings? settings, ShellState? shell, this.editorPageLoader})
+  TestHarness({
+    AppSettings? settings,
+    ShellState? shell,
+    this.editorPageLoader,
+    this.benchRunnerFactory,
+  })
     : settingsStore = InMemorySettingsStore(
         settings ?? const AppSettings(welcomeSeen: true),
       ),
@@ -32,6 +39,10 @@ final class TestHarness {
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
 
+  /// The editor benchmark screen's runner (default: a build without
+  /// benchmark pages, so no test ever reaches a real WebView or asset).
+  final EditorBenchRunnerFactory? benchRunnerFactory;
+
   /// Every scripted editor page created through this harness, newest last.
   final List<FakeEditorSurface> editorSurfaces = [];
 
@@ -42,6 +53,9 @@ final class TestHarness {
     settingsStoreProvider.overrideWithValue(settingsStore),
     shellStateStoreProvider.overrideWithValue(shellStore),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),
+    editorBenchRunnerFactoryProvider.overrideWithValue(
+      benchRunnerFactory ?? fakeBenchRunnerFactory(),
+    ),
   ];
 
   Widget app() {

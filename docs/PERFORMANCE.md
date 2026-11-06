@@ -44,6 +44,8 @@ Rule carried from t1: **unique-inode bytes are storage truth** (hardlinks make n
 
 `app/integration_test/bench/` + `scripts/perf/`: startup, editor latency (synthetic typing driver), large-file (1 MB/5 MB) open+scroll, terminal flood, workspace tree (10k files) render, search (100 MB corpus) timing, memory sampling. Runs nightly on emulator (relative regression detection, ±15% alert) and on the mid-range arm64 device at phase gates (absolute budgets). Results appended to `docs/phases/PHASE_N_REPORT.md`; release requires no red budget.
 
+As built so far (Phase 2 W3): the editor engine benchmark is `app/integration_test/editor_bench_test.dart` plus the DevTools driver `editor/tool/bench_cdp.mjs`. It runs in the phase gate (not nightly yet) and writes `app/ci-results/gate/editor_bench.json`; the method is in EDITOR_ARCHITECTURE.md §1. On a device, the same suite runs from Settings → Developer → Editor benchmark, and Settings → Developer → Frame timing records frame build and raster times.
+
 ## 5. Regression policy
 
 A merged PR that worsens a tracked metric > 15% gets a follow-up issue tagged `perf-regression` and must be fixed or consciously re-budgeted (ADR) before the next phase gate. Numbers live in artifacts, summaries in docs — never vibes.

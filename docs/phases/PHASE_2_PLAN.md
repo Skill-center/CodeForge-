@@ -100,6 +100,13 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
 
 **Decision:** ADR-0004 records it with the raw numbers. If CM6 fails the composition suite, work stops for a reassessment (EDITOR_ARCHITECTURE §5).
 
+**As built (W3):**
+- **Pages:** `editor/bench/` builds `codemirror.html` and `monaco.html` with the editor page's own kit (`tool/page_kit.mjs`) into `app/assets/editor_bench/`, which is gitignored and built only by the phase gate. Monaco 0.57.0 is a dev dependency and never ships in the editor page.
+- **In the gate:** `integration_test/editor_bench_test.dart` runs the Settings screen on the debug APK, with 3 fresh WebViews per engine in ABBA order. It then hands each page to the DevTools driver (`tool/bench_cdp.mjs`) for input latency, the 9 composition cases and memory. Memory is the app's PSS plus its renderer's, from `dumpsys meminfo`. `tool/bench_report.mjs` writes `editor_bench.json`/`.txt` with every budget checked. A budget miss is evidence for ADR-0004, not a gate failure. How each metric is measured: EDITOR_ARCHITECTURE §1.
+- **Debug and profile builds:** the developer screens exist in every build except release (`!kReleaseMode`), because the phone build is a profile build. This differs from the "debug-only" wording above. The gate also uploads the `codeforge-phone-profile-arm64` APK with the pages bundled, kept for 30 days. Steps: [PHASE_2_PHONE_CHECKLIST.md](PHASE_2_PHONE_CHECKLIST.md).
+- **Frame timing:** Settings → Developer → Frame timing records build and raster times per frame (`SchedulerBinding.addTimingsCallback`). This serves Phase 1's parked G6 check of navigation frames on hardware.
+- **Desk numbers:** the indicative desk results are in ADR-0004. The emulator numbers follow from the gate run.
+
 ### W4 — Real files, documents & tabs (2 sessions)
 
 **`FileService`, on `dart:io`:**

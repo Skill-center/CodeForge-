@@ -1,7 +1,8 @@
 /// GoRouter configuration (docs/ARCHITECTURE.md §4).
 ///
 /// Initial location is the restored last route (whitelisted in ShellState).
-/// The dev gallery exists only in debug/profile builds.
+/// The dev gallery exists only in debug builds; the developer tools (editor
+/// benchmark, frame timing) in debug and profile builds.
 library;
 
 import 'package:flutter/foundation.dart';
@@ -12,6 +13,8 @@ import '../features/home/home_screen.dart';
 import '../features/settings/about_screen.dart';
 import '../features/settings/appearance_screen.dart';
 import '../features/settings/dev_gallery_screen.dart';
+import '../features/settings/developer/editor_benchmark_screen.dart';
+import '../features/settings/developer/frame_timing_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/workbench/workbench_screen.dart';
 import 'shell_controller.dart';
@@ -47,6 +50,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: 'gallery',
               builder: (context, state) => const DevGalleryScreen(),
             ),
+          if (!kReleaseMode) ...[
+            GoRoute(
+              path: 'editor-benchmark',
+              builder: (context, state) => const EditorBenchmarkScreen(),
+            ),
+            GoRoute(
+              path: 'frame-timing',
+              builder: (context, state) => const FrameTimingScreen(),
+            ),
+          ],
         ],
       ),
     ],

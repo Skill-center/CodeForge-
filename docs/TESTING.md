@@ -30,7 +30,7 @@
 
 Manual: TalkBack spot-check checklist in the Phase 1 report (owner, on hardware).
 
-### 1.2 Added in Phase 2 (so far: W1 editor page, W2 host and bridge)
+### 1.2 Added in Phase 2 (so far: W1 editor page, W2 host and bridge, W3 engine benchmark)
 
 | Suite | Where | What it proves |
 |---|---|---|
@@ -39,8 +39,13 @@ Manual: TalkBack spot-check checklist in the Phase 1 report (owner, on hardware)
 | Unit | `test/core/editor_core_test.dart`, `test/application/editor_host_test.dart`, `test/services/editor_page_test.dart` | change sets, shadow documents, language detection, the rate limiter; the host over a scripted page (ready and sync, request timeouts, edits applied or refused with a snapshot resync, page restarts reopening every document, rate limiting); page verification (hash match, one-byte tamper, malformed manifests) and the bundled page's hash and notices |
 | Widget | `test/widget/editor_tabs_test.dart`, `test/widget/editor_surface_test.dart` | typing marks the tab dirty and save writes the editor's text; closing a tab closes the document in the editor; the configuration is valid in both themes and follows the text scale; a failed start shows the reason and retries; the page survives the tab strip and toolbar leaving in one layout |
 | Integration (emulator) | `integration_test/editor_bridge_test.dart`, run by `tool/ci/emulator_gate.sh` | the real, verified page in the Android System WebView: it starts, an edit round-trips as an incremental change, a page reload restores every document from the shadows, and save writes it |
+| Benchmark (JS) | `editor/test/bench.test.ts`, `editor/test/page_kit.test.mjs` | nearest-rank percentiles, frame summaries and the first differing UTF-16 unit; a sample per benchmark language, the 60-character typing text and the deterministic 1 MiB file; the same stub completions for both engines; well-formed composition cases covering CJK, Hangul and multi-code-point emoji; the page kit's licence filter, `<!--` escaping, CSP hash pin and literal placeholder filling |
+| Benchmark (Dart) | `test/services/bench_pages_test.dart`, `test/services/frame_stats_test.dart`, `test/application/editor_bench_runner_test.dart`, `test/widget/developer_tools_test.dart` | benchmark manifest parsing (a page outside its directory is refused), hash verification, a build without pages; frame statistics against the 16.7 and 32 ms lines; the runner over scripted pages (ABBA order, fresh page per run, medians, a page that never starts or fails verification, typing checks, the driver hand-over and its timeout); Settings → Developer, a full run, the on-screen typing check and frame timing's copy and reset |
+| Benchmark (emulator) | `integration_test/editor_bench_test.dart` + `editor/tool/bench_cdp.mjs`, run by `tool/ci/emulator_gate.sh` | both engines' verified pages in the real WebView: 3 runs each with every scope check (highlighting, replace-all, completion), then the DevTools driver's input latency, composition cases and memory; merged into `app/ci-results/gate/editor_bench.json` by `editor/tool/bench_report.mjs` |
 
-Widget tests run the real `EditorHost` against a scripted Dart page (`test/support/fake_editor_surface.dart`) because platform views cannot run under `flutter test`; the scripted page validates every host message with the production protocol code.
+Widget tests run the real `EditorHost` against a scripted Dart page (`test/support/fake_editor_surface.dart`) because platform views cannot run under `flutter test`; the scripted page validates every host message with the production protocol code. The benchmark screens work the same way, over scripted benchmark pages (`test/support/fake_bench_surface.dart`), and `TestHarness` gives every app-level test a build without benchmark pages.
+
+The benchmark group in the phase gate fails only if a run cannot complete (a page that does not start, a failed scope check, a missing run). Budget misses are recorded in `editor_bench.json` as evidence for ADR-0004 and do not fail the gate. The DevTools driver runs in the background for the whole group and needs the debug APK (WebView debugging is off in profile and release builds).
 
 Every test run is bounded so a hang fails fast and says where. `test/flutter_test_config.dart` gives each widget test 2 minutes instead of the binding's default 10 (`flutter test --timeout` does not reach `testWidgets`). In CI, coreutils `timeout` caps the golden run at 10 minutes and the full suite at 15, which also catches a test that spins, where no per-test timeout can fire.
 
