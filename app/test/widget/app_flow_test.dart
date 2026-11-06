@@ -1,3 +1,8 @@
+import 'package:codeforge/features/home/home_screen.dart';
+import 'package:codeforge/features/settings/about_screen.dart';
+import 'package:codeforge/features/settings/appearance_screen.dart';
+import 'package:codeforge/features/settings/settings_screen.dart';
+import 'package:codeforge/features/workbench/workbench_screen.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
@@ -41,7 +46,7 @@ void main() {
     expect(harness.shellStore.load().lastRoute, '/workspace');
   });
 
-  testWidgets('settings reachable in ≤2 taps from home and workbench', (
+  testWidgets('home → settings in one tap; the theme change is real', (
     tester,
   ) async {
     setSurface(tester, 412, 915);
@@ -64,6 +69,69 @@ void main() {
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.themeMode, ThemeMode.light);
     // Drain the shell route debounce so no timer outlives the test.
+    await tester.pump(const Duration(milliseconds: 500));
+  });
+
+  testWidgets('every destination is ≤2 taps from home (G2)', (tester) async {
+    setSurface(tester, 412, 915);
+    Future<void> fromHome(List<Finder> taps, Type destination) async {
+      // A fresh tree per path: a replaced ProviderScope keeps its container.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(TestHarness().app());
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeScreen), findsOneWidget);
+      for (final target in taps) {
+        await tester.ensureVisible(target);
+        await tester.pumpAndSettle();
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+      }
+      expect(find.byType(destination), findsOneWidget, reason: '$destination');
+    }
+
+    const settings = ValueKey('home_settings');
+    await fromHome([
+      find.byKey(const ValueKey('explore_demo')),
+    ], WorkbenchScreen);
+    await fromHome([find.byKey(settings)], SettingsScreen);
+    await fromHome([
+      find.byKey(settings),
+      find.text('Appearance'),
+    ], AppearanceScreen);
+    await fromHome([
+      find.byKey(settings),
+      find.text('About CodeForge'),
+    ], AboutScreen);
+    await tester.pump(const Duration(milliseconds: 500));
+  });
+
+  testWidgets('workbench → settings in ≤2 taps on phone and tablet (G2)', (
+    tester,
+  ) async {
+    // Phone: the top bar's home button, then home's settings entry.
+    setSurface(tester, 412, 915);
+    final phone = TestHarness(shell: const ShellState(lastRoute: '/workspace'));
+    await tester.pumpWidget(phone.app());
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkbenchScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('workbench_home')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home_settings')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+
+    // Tablet: the rail's trailing settings entry, one tap.
+    await tester.pumpWidget(const SizedBox.shrink());
+    setSurface(tester, 1280, 800);
+    final tablet = TestHarness(
+      shell: const ShellState(lastRoute: '/workspace'),
+    );
+    await tester.pumpWidget(tablet.app());
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkbenchScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('activity_settings')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 500));
   });
 
