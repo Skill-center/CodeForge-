@@ -97,13 +97,16 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
                           child: surface.buildView(context),
                         ),
                 ),
-                const Divider(height: CfSpacing.hairline),
-                Padding(
-                  padding: const EdgeInsets.all(CfSpacing.sm),
-                  child: runner.phase == BenchPhase.typing
-                      ? _typingControls(runner)
-                      : _mainControls(runner),
-                ),
+                // A build without pages has nothing to run.
+                if (runner.phase != BenchPhase.unavailable) ...[
+                  const Divider(height: CfSpacing.hairline),
+                  Padding(
+                    padding: const EdgeInsets.all(CfSpacing.sm),
+                    child: runner.phase == BenchPhase.typing
+                        ? _typingControls(runner)
+                        : _mainControls(runner),
+                  ),
+                ],
               ],
             ),
           ),
@@ -223,6 +226,10 @@ class _StatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Without pages the results area's banner already says why.
+    if (runner.phase == BenchPhase.unavailable) {
+      return const SizedBox.shrink();
+    }
     final step = runner.step;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
