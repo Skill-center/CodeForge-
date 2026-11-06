@@ -137,6 +137,31 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
 
 **Workbench:** the editor pane hosts the real editor, and the Phase 1 demo code view is retired.
 
+**As built (W4):**
+- **Files** (EDITOR_ARCHITECTURE §6 "Files"): `LocalFileService` on `dart:io` works in one app-private folder, `<filesDir>/workspaces/demo`. Paths are checked as text, then against the canonical root after resolving symbolic links, so neither `..` nor a link reaches outside. Writes go to `.<name>.cf-tmp` beside the target, are flushed, and replace it with one rename; the temp file is removed on failure. The codec is strict UTF-8: it keeps the byte-order mark and CRLF or LF, flags mixed line endings, and refuses binary files, malformed UTF-8 and UTF-16/32 with a reason. A stamp (modified time and size) stops a save from overwriting a file changed on disk without asking. Reads are capped at 16 MiB. The first run writes the demo project into `<root>.seeding` and renames it into place.
+- **Documents and tabs** (EDITOR_ARCHITECTURE §6 "Documents and tabs"): `DocumentController` replaces the W2 tabs controller. Dirty means the live text differs from the saved text. Saves of one file are serialised, and an edit racing a save stays dirty. Save As keeps the editor document, so cursor and undo move with the tab, and re-highlights it with the new protocol message `doc.setLanguage` (fixtures on both sides). New File, Close with Save / Don't Save / Cancel, and Close others are built. The most recently used tab takes over when the active one closes. Tabs and the active tab persist in the shell envelope and reopen once per run. Language detection goes by extension, file name, then shebang.
+- **Workbench:** Ctrl+S, Ctrl+Shift+S, Ctrl+N, Ctrl+W, Ctrl+Tab / Ctrl+Shift+Tab and Ctrl+Shift+P work from Flutter and from inside the editor page, which forwards them (§6 "Shortcuts"). The status strip shows language, line endings (amber when mixed) and BOM. The tab strip scrolls the active tab into view. The explorer lists the real folder (dotfiles hidden by default) and has New File. An empty editor offers New File.
+- **Deviations from this plan:**
+  - The root comes from a one-method MainActivity channel, not path_provider, whose Android side now pulls a JNI/NDK build into every APK (TECH_STACK §5).
+  - Tabs persist in the `codeforge.shell.v1` envelope for now; Drift takes them over in W5 with the journal.
+  - A save replaces the file, so its permission bits are not kept. That is harmless in the app-private folder and must change for Phase 3/4 (SECURITY §4).
+  - The import lint now fails if a feature reads `fileServiceProvider` (ARCHITECTURE §2.5).
+- **Evidence so far:**
+  - CI 42233425019: `+431: All tests passed!`, `flutter analyze` clean, line coverage 3432/3999 (85.8 %). The real-folder `LocalFileService` suite passed there: an interrupted save, symlink escapes, BOM/CRLF bytes, exclusive creation.
+  - Phase gate 42233424845, on the emulator:
+    - `editor_bridge_test` passed on attempt 1. A save writes exactly the editor's text to the device; a CRLF + BOM file survives an edit and a save byte for byte, and Save As copies it exactly. Twelve open tabs each kept their text, cursor and scroll position (restored scroll tops 1088–2978 px) across switches. Undo in one tab left the others alone, and undoing back to the saved text made the tab clean.
+    - The restore pair passed: after `am force-stop`, both tabs reopened with `app.py` active.
+    - The smoke test failed only because it checked for the workbench before the device's first-run file work had finished. It now waits.
+- **Gate status:**
+  - **G2 Files:** met on the evidence above.
+  - **G3 Tabs:** met (≥ 10 documents with per-document cursor, scroll, selection and undo; dirty dot and close prompt; reopen after restart).
+  - The re-run of the full gate with the smoke fix is recorded below.
+- **Known limits (carried):**
+  - Unsaved text does not survive process death until the W5 journal (G4).
+  - UTF-8 only; app-private folder only (SAF in Phase 3); no file watching, so outside changes are caught at save time.
+  - 16 MiB read cap (W7 measures large files).
+  - Permission bits are not kept on save.
+
 ### W5 — Zero-loss persistence (1–2 sessions)
 
 **Drift 2.35.3 (ADR-0008):**

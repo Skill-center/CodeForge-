@@ -211,6 +211,18 @@ void main() {
       '${[for (final p in paths) scrolled[p]!.round()]}',
     );
 
+    // A selection, not just a cursor, survives switching away and back.
+    documents.activate('tabs/t5.txt');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect((await host.exec('selectAll')).isOk, isTrue);
+    documents.activate('tabs/t6.txt');
+    await tester.pump(const Duration(milliseconds: 300));
+    documents.activate('tabs/t5.txt');
+    await tester.pump(const Duration(milliseconds: 300));
+    final t5 = (await host.snapshot(docIdOf('tabs/t5.txt'))).orThrow;
+    expect(t5.selection?.anchor, 0, reason: 'selection start kept');
+    expect(t5.selection?.head, t5.text.length, reason: 'selection end kept');
+
     // Undo belongs to each document, and undoing back to the saved text
     // makes the tab clean again.
     documents.activate('tabs/t3.txt');

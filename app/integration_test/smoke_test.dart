@@ -57,10 +57,17 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('welcome_dismiss')));
     await tester.pumpAndSettle();
 
-    // One tap into the workbench, which writes the demo project as real
-    // files on first run and opens main.js from them.
+    // One tap into the workbench. Home opens the workspace first (on first
+    // run that writes the demo project as real files), so the route
+    // changes only when the device's file work is done: wait for it rather
+    // than for frames.
     await tester.tap(find.byKey(const ValueKey('explore_demo')));
     await tester.pumpAndSettle();
+    await pumpUntil(
+      tester,
+      () => find.byKey(const ValueKey('terminal_toggle')).evaluate().isNotEmpty,
+      what: 'the workbench to open',
+    );
     expect(find.byKey(const ValueKey('terminal_toggle')), findsOneWidget);
     await pumpUntil(
       tester,
