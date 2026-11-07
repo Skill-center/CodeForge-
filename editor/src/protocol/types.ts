@@ -74,6 +74,9 @@ export const APP_SHORTCUTS = [
   'nextTab',
   'previousTab',
   'newFile',
+  'find',
+  'replace',
+  'gotoLine',
 ] as const;
 export type AppShortcut = (typeof APP_SHORTCUTS)[number];
 
@@ -162,6 +165,23 @@ export interface SearchPayload {
   replace?: string;
 }
 
+/**
+ * The search session behind the app's find bar, reported while it changes:
+ * whether it is open, whether the query is usable, how many matches there
+ * are (counting stops at [MAX_COUNTED_MATCHES], then [capped] is true) and
+ * which one the main selection covers (1-based; 0 when none).
+ */
+export interface SearchStatePayload {
+  docId: string;
+  open: boolean;
+  valid: boolean;
+  matches: number;
+  current: number;
+  capped: boolean;
+}
+
+export const MAX_COUNTED_MATCHES = 1000;
+
 export interface HostToEditor {
   'editor.configure': ConfigurePayload;
   'doc.open': DocOpenPayload;
@@ -215,6 +235,7 @@ export interface EditorToHost {
   'editor.focus': { focused: boolean };
   'ime.composition': { docId: string; composing: boolean };
   'app.shortcut': { shortcut: AppShortcut };
+  'search.state': SearchStatePayload;
   'editor.log': { level: LogLevel; message: string };
   response: ResponsePayload;
 }

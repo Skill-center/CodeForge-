@@ -218,6 +218,49 @@ void main() {
     await host.dispose();
   });
 
+  testWidgets('search, its reports and go to line reach the page', (
+    tester,
+  ) async {
+    await createHost(tester);
+    await host.openDocument(docId: 'd1', text: 'ab\nab', language: 'plaintext');
+    await settle(tester);
+
+    Result<bool>? valid;
+    unawaited(
+      host.search('ab', wholeWord: true).then((result) => valid = result),
+    );
+    await settle(tester);
+    expect(valid?.valueOrNull, isTrue);
+    expect(page.searchSpec, {
+      'query': 'ab',
+      'caseSensitive': false,
+      'wholeWord': true,
+      'regexp': false,
+      'replace': '',
+    });
+    final report = events.whereType<SearchStateChanged>().last;
+    expect(
+      [report.docId, report.open, report.valid, report.matches, report.capped],
+      ['d1', true, true, 2, false],
+    );
+    expect(report.current, 0);
+
+    unawaited(
+      host.search('(', regexp: true).then((result) => valid = result),
+    );
+    await settle(tester);
+    expect(valid?.valueOrNull, isFalse);
+
+    Result<void>? moved;
+    unawaited(host.gotoLine(2, column: 2).then((result) => moved = result));
+    await settle(tester);
+    expect(moved?.isOk, isTrue);
+    expect(page.gotoLines.single, (line: 2, column: 2));
+    expect(host.viewStateOf('d1')?.selection?.head, 4);
+    expect(page.rejected, isEmpty);
+    await host.dispose();
+  });
+
   testWidgets('requests time out when the page does not answer', (
     tester,
   ) async {

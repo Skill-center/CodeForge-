@@ -83,7 +83,7 @@ Flutter (Dart)                      WebView (bundled assets only)
 - **Symbol toolbar** (Flutter widget above IME): customizable row — `Tab ⇥ {} [] () ; : = > < " ' | & $ # ~ \` _ /` + undo/redo + cursor arrows + dismiss-keyboard. Long-press for paired variants. Config per language; hardware keyboard attached → toolbar collapses to a slim strip.
 - **Selection visibility:** the active line is highlighted only around a plain cursor, never while text on it is selected (`editor/src/editor/active_line.ts`). The host sends the active-line colour as an opaque, contrast-tested token, and CodeMirror draws selections beneath the lines, so a highlighted line would hide its own selection. The phone run in W3 found exactly that.
 - **IME integration:** CM6 runs in contentEditable mode; Flutter side uses `SystemChannels.textInput` awareness only for toolbar insets — the WebView owns its IME session (no double-IME). Tested matrix: Gboard swipe, voice, CJK, RTL, emoji, physical keyboard.
-- **Shortcuts (hardware):** editing keys (Ctrl+F/H/Z/Y/Shift+Z, Ctrl+G, Ctrl+/, Ctrl+D, Alt+↑/↓) are CM6 keymap. App-level shortcuts work wherever the keyboard focus is: §6 "Shortcuts".
+- **Shortcuts (hardware):** editing keys (Ctrl+Z/Y/Shift+Z, Ctrl+/, Ctrl+D, Alt+↑/↓, F3) are CM6 keymap. Ctrl+F, Ctrl+H and Ctrl+G open the app's find bar and go-to-line dialog, so they are app shortcuts (§8). App-level shortcuts work wherever the keyboard focus is: §6 "Shortcuts".
 - **Tabs & dirty state:** Flutter tab strip (scrollable, close buttons, dirty dot), with state in `DocumentController` (§6 "Documents and tabs"). Tabs reopen after a restart from W4. Unsaved text survives process death from W5's journal (Phase 2 acceptance: kill mid-edit → reopen → zero loss).
 
 ## 4. WebView hardening (summary; full: SECURITY.md)
@@ -128,6 +128,8 @@ App shortcuts work wherever the keyboard focus is. While Flutter has focus, the 
 | Ctrl+W | Close tab (asks if unsaved) |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab, wrapping |
 | Ctrl+Shift+P (F1 in the page) | Command palette |
+| Ctrl+F / Ctrl+H | Find / replace (§8) |
+| Ctrl+G | Go to line (§8) |
 
 ## 7. Zero-loss editing: the hot-exit journal (as built in W5)
 
@@ -167,3 +169,37 @@ The editor document is opened at the replayed version, with the saved selection 
 ### Renderer crashes and rotation
 
 webview_flutter_android 4.14.1 does not expose `onRenderProcessGone`, so when the WebView renderer dies, Android ends the app too. The journal does not need a separate recovery path for that case: a renderer crash is a process death, and the next start restores as above. The emulator gate's edit pair checks exactly that (TESTING.md §1.2). It crashes the renderer of a running app that has unsaved text, then checks the text, the dirty dot and the cursor after relaunch. Rotation keeps the process: the manifest handles orientation and size changes, so Android does not recreate the activity. It also keeps the page. Rotating swaps the workbench's portrait layout for the docked one, and the editor pane moves across under one `GlobalKey` instead of being rebuilt. The page therefore keeps every document's undo history and does not reload. The edit pair checks that on the emulator: `edit_b` rotates to landscape and back, and the page must not restart. Until W5 the page reloaded on rotation, and the host restored text, cursor and scroll from its shadows. The journal is not involved.
+
+## 8. Editing: find, replace and go to line (as built in W6)
+
+Gate G5 asks for find and replace with regular expressions, undo and redo, and go to line, on top of what CodeMirror already does: highlighting, bracket matching, auto-close, auto-indent and folding (`editor/test/editing.test.ts`). The find bar is Flutter, styled like the rest of the workbench. The search itself runs in the page, next to the text.
+
+### The search session
+
+- **One session, in the page** (`editor/src/editor/search_session.ts`). The bar sends `search.set` with the query, the options (match case, whole word, regular expression) and the replacement, and the page answers whether the query is usable. The session follows the user: switching tabs applies it to the newly active document, and so does a document replaced by a resync. A document that is left loses its highlights.
+- **Counts, reported.** The page posts `search.state {docId, open, valid, matches, current, capped}` after the query, the text or the selection changes, at most every 100 ms. It counts up to 1,000 matches (`MAX_COUNTED_MATCHES`); past that, `capped` is set and the bar says "1000+". `current` is the match the selection is on, counted from 1, or 0 when it is on none.
+- **CodeMirror's commands, not its panel.** Stepping and replacing run CodeMirror's `findNext`, `findPrevious`, `replaceNext` and `replaceAll` against the session's query, and only while that query is valid. The page paints the matches itself: CodeMirror's highlighter paints only while its own search panel is open, and that panel would be a second, unstyled find UI. CodeMirror's search keymap is left out for the same reason, because Ctrl+F, or F3 with a broken query, would open the panel.
+- **Replacing.** "Replace" on a match replaces it and selects the next one; anywhere else, it first selects the next match. "Replace all" is one undo step. With regular expressions, `$1`, `$&` and `$$` work as in CodeMirror. A read-only document refuses both.
+- **Ending it.** The bar's close button and Escape in the bar run `closeSearch`. Escape in the editor ends the session in the page, which reports `open: false`, and the bar closes too. The query and options stay for next time.
+
+### The find bar
+
+`FindController` (`app/lib/application/editor/find_controller.dart`) holds what the bar shows, and `FindBar` (`app/lib/features/workbench/panels/find_bar.dart`) draws it.
+
+- **Opening** (Ctrl+F, Ctrl+H for replace, or the palette's Edit commands) flushes pending edits first. A selection on one line of at most 200 characters becomes the query, escaped when the bar is in regular-expression mode. The keyboard goes to the query field, with its text selected.
+- **Keys in the bar:** Enter and F3 go to the next match, Shift+Enter and Shift+F3 to the previous one, and Escape closes. Enter keeps the keyboard up.
+- **Reports** count only when they are about the document in view. A report that the session closed is ignored while a newer query is on its way, so typing never closes the bar. When the page restarts (§7), an open bar sends its session again.
+- **Layout.** Every control is a 48 dp target, the text fields included: they fill their rows, and the box drawn around each is inset. At 560 dp and wider, the match case, whole word and regular expression toggles sit beside the query; narrower, they get a row of their own. Each toggle is one TalkBack node that says whether it is on. In the editor pane, the find row comes first, then one 48 dp row of the editor, then the tab strip, then the bar's other rows; the options row gives way before the replace row. A pane too short even for the find row clips the bar instead of removing it, because removing it would take the focused field, and the keyboard with it, which would grow the pane and bring the bar straight back.
+- **Closing** from the bar gives the editor the keyboard back only when the bar had it.
+
+### Go to line
+
+Ctrl+G, or Go to Line… in the palette, asks for a line (`app/lib/features/workbench/editor_dialogs.dart`). The dialog takes `42`, or a line and column as `42:7`, `42,7` or `42.7`. It opens the number keyboard, where `42.7` is the easy one to type. A line past the end means the last line, and the dialog says why it refuses anything else (`app/lib/core/editor/line_target.dart`). The page moves the cursor with `cmd.gotoLine`, which clamps both numbers to the text and centres the cursor, and the editor gets the keyboard back.
+
+### Undo and redo
+
+The palette's Undo and Redo run CodeMirror's `undo` and `redo` through `cmd.exec`. In the editor, Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z are CodeMirror's own keys. The symbol toolbar gets its keys in the second half of W6.
+
+### Protocol
+
+W6 adds the `search.state` event and three forwarded shortcuts: `find`, `replace` and `gotoLine`. `search.set` and `cmd.gotoLine` have been in the protocol since W1. `PROTOCOL_VERSION` stays 1. The page is built into the APK with the app, from the same commit, so the two never meet at different versions on a device. The version guards against a stale development bundle, and either side rejects a message type it does not know as `unknown_type`.

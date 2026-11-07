@@ -20,6 +20,11 @@ enum WorkbenchIntent {
   nextEditor,
   previousEditor,
   commandPalette,
+  find,
+  replace,
+  gotoLine,
+  undo,
+  redo,
 }
 
 /// Shortcut names the page forwards (protocol `appShortcuts`) → intents.
@@ -31,6 +36,9 @@ const Map<String, WorkbenchIntent> intentForShortcut = {
   'nextTab': WorkbenchIntent.nextEditor,
   'previousTab': WorkbenchIntent.previousEditor,
   'newFile': WorkbenchIntent.newFile,
+  'find': WorkbenchIntent.find,
+  'replace': WorkbenchIntent.replace,
+  'gotoLine': WorkbenchIntent.gotoLine,
 };
 
 /// A broadcast of intents. Nobody listening (the workbench is not on

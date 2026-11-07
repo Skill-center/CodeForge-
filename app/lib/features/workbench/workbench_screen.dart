@@ -13,6 +13,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../application/documents/document_controller.dart';
+import '../../application/editor/editor_providers.dart';
+import '../../application/editor/find_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../application/workbench_intents.dart';
 import '../../application/workspace_controller.dart';
@@ -25,6 +27,7 @@ import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
 import '../../services/shell/shell_state.dart';
 import '../palette/command_palette.dart';
+import 'editor_actions.dart';
 import 'file_actions.dart';
 import 'panels/editor_pane.dart';
 import 'panels/explorer_panel.dart';
@@ -146,6 +149,25 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         documents.activateNeighbour(forward: false);
       case WorkbenchIntent.commandPalette:
         unawaited(showCommandPalette(context));
+      case WorkbenchIntent.find:
+      case WorkbenchIntent.replace:
+        if (active != null) {
+          unawaited(
+            ref
+                .read(findControllerProvider.notifier)
+                .open(replace: intent == WorkbenchIntent.replace),
+          );
+        }
+      case WorkbenchIntent.gotoLine:
+        if (active != null) {
+          unawaited(goToLine(context, ref));
+        }
+      case WorkbenchIntent.undo:
+      case WorkbenchIntent.redo:
+        if (active != null) {
+          final command = intent == WorkbenchIntent.undo ? 'undo' : 'redo';
+          unawaited(ref.read(editorHostProvider).exec(command));
+        }
     }
   }
 
@@ -266,6 +288,12 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
             shift: true,
           ): () =>
               _onIntent(WorkbenchIntent.previousEditor),
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true): () =>
+              _onIntent(WorkbenchIntent.find),
+          const SingleActivator(LogicalKeyboardKey.keyH, control: true): () =>
+              _onIntent(WorkbenchIntent.replace),
+          const SingleActivator(LogicalKeyboardKey.keyG, control: true): () =>
+              _onIntent(WorkbenchIntent.gotoLine),
         },
         child: Focus(
           autofocus: true,

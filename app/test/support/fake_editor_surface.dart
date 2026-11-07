@@ -95,6 +95,15 @@ final class FakeEditorSurface implements EditorSurface {
 
   final Map<String, FakeDocument> documents = {};
   String? activeDocId;
+
+  /// The search session as `search.set` last opened it; null while closed.
+  Map<String, Object?>? searchSpec;
+
+  /// Commands run with `cmd.exec`, in order.
+  final List<String> commands = [];
+
+  /// Where `cmd.gotoLine` asked the cursor to go, in order.
+  final List<({int line, int? column})> gotoLines = [];
   Map<String, Object?>? configuration;
   String? loadedHtml;
   int loads = 0;
@@ -130,6 +139,7 @@ final class FakeEditorSurface implements EditorSurface {
     documents.clear();
     activeDocId = null;
     configuration = null;
+    searchSpec = null;
     _changed();
     if (announceReady) {
       announce();
@@ -189,6 +199,10 @@ final class FakeEditorSurface implements EditorSurface {
           activeDocId = docId;
           _changed();
           _ok(id);
+          // Like the real page: an open search session follows the tab.
+          if (searchSpec != null) {
+            _reportSearch();
+          }
         });
       case 'doc.close':
         _withDocument(id, payload, (docId, doc) {
@@ -232,11 +246,212 @@ final class FakeEditorSurface implements EditorSurface {
       case 'cmd.insert':
         _insert(id, payload);
       case 'cmd.exec':
-        _ok(id, {'ran': true});
+        _exec(id, payload.string('command'));
+      case 'cmd.gotoLine':
+        _gotoLine(id, payload);
+      case 'search.set':
+        _setSearch(id, payload);
       default:
-        // doc.flush (edits are never held back here), cmd.gotoLine,
-        // search.set.
+        // doc.flush: edits are never held back here.
         _ok(id);
+    }
+  }
+
+  // ---------------------------------------------------------------- search
+
+  /// The real page's counting cap (MAX_COUNTED_MATCHES).
+  static const int searchCap = 1000;
+
+  void _setSearch(String id, Map<String, Object?> payload) {
+    final docId = activeDocId;
+    if (docId == null || !documents.containsKey(docId)) {
+      _error(id, 'no_active_doc', 'no document is active');
+      return;
+    }
+    searchSpec = Map.of(payload);
+    _ok(id, {'valid': _searchPattern() != null});
+    _reportSearch();
+  }
+
+  /// The session's query as a Dart pattern; null when it is not usable.
+  RegExp? _searchPattern() {
+    final spec = searchSpec;
+    final query = spec == null ? '' : spec.string('query');
+    if (spec == null || query.isEmpty) {
+      return null;
+    }
+    var source = spec['regexp'] == true ? query : RegExp.escape(query);
+    if (spec['wholeWord'] == true) {
+      source = '\\b(?:$source)\\b';
+    }
+    try {
+      return RegExp(
+        source,
+        caseSensitive: spec['caseSensitive'] == true,
+        multiLine: true,
+      );
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Every non-empty match in [text].
+  List<Match> _searchMatches(String text) {
+    final pattern = _searchPattern();
+    if (pattern == null) {
+      return const [];
+    }
+    return [
+      for (final match in pattern.allMatches(text))
+        if (match.end > match.start) match,
+    ];
+  }
+
+  /// Posts `search.state` for the active document, as the page does.
+  void _reportSearch() {
+    final docId = activeDocId;
+    final doc = docId == null ? null : documents[docId];
+    if (docId == null || doc == null) {
+      return;
+    }
+    if (searchSpec == null) {
+      emit('search.state', {
+        'docId': docId,
+        'open': false,
+        'valid': false,
+        'matches': 0,
+        'current': 0,
+        'capped': false,
+      });
+      return;
+    }
+    final all = _searchMatches(doc.text);
+    final counted = all.take(searchCap).toList();
+    final (from, to) = _selected(doc);
+    final current = counted.indexWhere((m) => m.start == from && m.end == to);
+    emit('search.state', {
+      'docId': docId,
+      'open': true,
+      'valid': _searchPattern() != null,
+      'matches': counted.length,
+      'current': current + 1,
+      'capped': all.length > searchCap,
+    });
+  }
+
+  (int, int) _selected(FakeDocument doc) {
+    final anchor = doc.anchor ?? 0;
+    final head = doc.head ?? anchor;
+    return anchor < head ? (anchor, head) : (head, anchor);
+  }
+
+  void _exec(String id, String command) {
+    commands.add(command);
+    switch (command) {
+      case 'closeSearch':
+        final wasOpen = searchSpec != null;
+        searchSpec = null;
+        if (wasOpen) {
+          _reportSearch();
+        }
+        _ok(id, {'ran': wasOpen});
+      case 'findNext' || 'findPrevious' || 'replaceNext' || 'replaceAll':
+        final docId = activeDocId;
+        if (docId == null || !documents.containsKey(docId)) {
+          _error(id, 'no_active_doc', 'no document is active');
+          return;
+        }
+        _ok(id, {'ran': _searchStep(docId, command)});
+      default:
+        _ok(id, {'ran': true});
+    }
+  }
+
+  /// Finds or replaces as CodeMirror's commands do; group references in a
+  /// replacement are not expanded here.
+  bool _searchStep(String docId, String command) {
+    final doc = documents[docId]!;
+    final matches = _searchMatches(doc.text);
+    final spec = searchSpec;
+    if (spec == null || matches.isEmpty) {
+      return false;
+    }
+    final (from, to) = _selected(doc);
+    final replacement = (spec['replace'] as String?) ?? '';
+    Match nextFrom(List<Match> all, int at) =>
+        all.firstWhere((m) => m.start >= at, orElse: () => all.first);
+    switch (command) {
+      case 'findNext':
+        final next = nextFrom(matches, to);
+        moveCursor(next.start, head: next.end, docId: docId);
+      case 'findPrevious':
+        final previous = matches.lastWhere(
+          (m) => m.end <= from && !(m.start == from && m.end == to),
+          orElse: () => matches.last,
+        );
+        moveCursor(previous.start, head: previous.end, docId: docId);
+      case 'replaceNext':
+        final onMatch = matches.any((m) => m.start == from && m.end == to);
+        if (!onMatch) {
+          final next = nextFrom(matches, to);
+          moveCursor(next.start, head: next.end, docId: docId);
+          break;
+        }
+        _change(docId, at: from, delete: to - from, insert: replacement);
+        final rest = _searchMatches(doc.text);
+        if (rest.isEmpty) {
+          moveCursor(from + replacement.length, docId: docId);
+        } else {
+          final next = nextFrom(rest, from + replacement.length);
+          moveCursor(next.start, head: next.end, docId: docId);
+        }
+      case 'replaceAll':
+        final text = doc.text;
+        final buffer = StringBuffer();
+        var last = 0;
+        for (final match in matches) {
+          buffer
+            ..write(text.substring(last, match.start))
+            ..write(replacement);
+          last = match.end;
+        }
+        buffer.write(text.substring(last));
+        _change(docId, at: 0, delete: text.length, insert: buffer.toString());
+    }
+    _reportSearch();
+    return true;
+  }
+
+  void _gotoLine(String id, Map<String, Object?> payload) {
+    final docId = activeDocId;
+    final doc = docId == null ? null : documents[docId];
+    if (docId == null || doc == null) {
+      _error(id, 'no_active_doc', 'no document is active');
+      return;
+    }
+    final line = payload.integer('line');
+    final column = payload['column'] == null
+        ? null
+        : payload.integer('column');
+    gotoLines.add((line: line, column: column));
+    final lines = doc.text.split('\n');
+    final target = line > lines.length ? lines.length : line;
+    var position = 0;
+    for (var i = 0; i < target - 1; i++) {
+      position += lines[i].length + 1;
+    }
+    final wanted = (column ?? 1) - 1;
+    final length = lines[target - 1].length;
+    position += wanted > length ? length : wanted;
+    moveCursor(position, docId: docId);
+    _ok(id, {'line': target, 'position': position});
+  }
+
+  /// Escape pressed in the editor: the page ends the session itself.
+  void pressEscapeInEditor() {
+    if (searchSpec != null) {
+      searchSpec = null;
+      _reportSearch();
     }
   }
 
@@ -381,6 +596,10 @@ final class FakeEditorSurface implements EditorSurface {
       'changes': changes,
     });
     _changed();
+    // The real page recounts an open session as the text changes.
+    if (searchSpec != null && docId == activeDocId) {
+      _reportSearch();
+    }
   }
 
   void _ok(String id, [Object? result]) =>

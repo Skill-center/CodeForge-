@@ -73,6 +73,9 @@ const List<String> appShortcuts = [
   'nextTab',
   'previousTab',
   'newFile',
+  'find',
+  'replace',
+  'gotoLine',
 ];
 
 /// Levels of `editor.log` messages.
@@ -485,6 +488,14 @@ final Map<String, _Check> _editorToHost = {
   'editor.focus': _obj({'focused': _bool}),
   'ime.composition': _obj({'docId': _docId, 'composing': _bool}),
   'app.shortcut': _obj({'shortcut': _oneOf(appShortcuts)}),
+  'search.state': _obj({
+    'docId': _docId,
+    'open': _bool,
+    'valid': _bool,
+    'matches': _length,
+    'current': _length,
+    'capped': _bool,
+  }),
   'editor.log': _obj({
     'level': _oneOf(editorLogLevels),
     'message': _str(max: 4000),

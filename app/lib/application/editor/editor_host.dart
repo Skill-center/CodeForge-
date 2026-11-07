@@ -104,6 +104,32 @@ final class ShortcutPressed extends EditorHostEvent {
   final String shortcut;
 }
 
+/// The page's search session changed (`search.state`): opened or closed,
+/// a new query, or matches moved under edits and the selection.
+final class SearchStateChanged extends EditorHostEvent {
+  const SearchStateChanged({
+    required this.docId,
+    required this.open,
+    required this.valid,
+    required this.matches,
+    required this.current,
+    required this.capped,
+  });
+
+  final String docId;
+  final bool open;
+
+  /// False for an empty query or a broken regular expression.
+  final bool valid;
+
+  /// How many matches there are; when [capped], at least this many.
+  final int matches;
+
+  /// The 1-based match the main selection covers; 0 when none.
+  final int current;
+  final bool capped;
+}
+
 /// The editor's text for one document, with pending edits flushed.
 final class EditorSnapshot {
   const EditorSnapshot({
@@ -549,6 +575,45 @@ final class EditorHost {
     return _done(await _request('cmd.exec', {'command': command}));
   }
 
+  /// Opens or updates the page's search session (`search.set`); the
+  /// result says whether the query is usable. Counts follow as
+  /// [SearchStateChanged] events.
+  Future<Result<bool>> search(
+    String query, {
+    bool caseSensitive = false,
+    bool wholeWord = false,
+    bool regexp = false,
+    String replacement = '',
+  }) async {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
+      return const Err(BridgeFailure('The editor is not ready.'));
+    }
+    final result = await _request('search.set', {
+      'query': query,
+      'caseSensitive': caseSensitive,
+      'wholeWord': wholeWord,
+      'regexp': regexp,
+      'replace': replacement,
+    });
+    return switch (result) {
+      Ok<Object?>(:final value) => Ok(
+        value is Map<String, Object?> && value['valid'] == true,
+      ),
+      Err<Object?>(:final failure) => Err(failure),
+    };
+  }
+
+  /// Moves the cursor of the active document to [line] (and [column]),
+  /// both 1-based; the page clamps them to the text.
+  Future<Result<void>> gotoLine(int line, {int? column}) async {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
+      return const Err(BridgeFailure('The editor is not ready.'));
+    }
+    return _done(
+      await _request('cmd.gotoLine', {'line': line, 'column': ?column}),
+    );
+  }
+
   // -------------------------------------------------------------- requests
 
   Future<Result<Object?>> _request(
@@ -720,6 +785,17 @@ final class EditorHost {
         );
       case 'app.shortcut':
         _emit(ShortcutPressed(payload.string('shortcut')));
+      case 'search.state':
+        _emit(
+          SearchStateChanged(
+            docId: payload.string('docId'),
+            open: payload.flag('open'),
+            valid: payload.flag('valid'),
+            matches: payload.integer('matches'),
+            current: payload.integer('current'),
+            capped: payload.flag('capped'),
+          ),
+        );
       case 'editor.log':
         appLogger.log(
           LogLevel.values.byName(payload.string('level')),

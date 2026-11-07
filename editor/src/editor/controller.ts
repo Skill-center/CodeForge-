@@ -21,17 +21,15 @@ import {
 } from '@codemirror/commands';
 import { bracketMatching, foldGutter, foldKeymap, indentOnInput } from '@codemirror/language';
 import {
-  closeSearchPanel,
   findNext,
   findPrevious,
+  getSearchQuery,
   highlightSelectionMatches,
-  openSearchPanel,
   replaceAll,
   replaceNext,
-  search,
   SearchQuery,
-  searchKeymap,
   selectNextOccurrence,
+  selectSelectionMatches,
   setSearchQuery,
 } from '@codemirror/search';
 import {
@@ -76,6 +74,15 @@ import type {
 import { cursorLineHighlight } from './active_line';
 import { browserScheduler, ChangeBatcher, type Scheduler } from './batcher';
 import { languageExtension } from './languages';
+import {
+  countMatches,
+  isSearchOpen,
+  quietSearch,
+  searchSession,
+  sessionChanged,
+  setSearchOpen,
+  withValidQuery,
+} from './search_session';
 import { DEFAULT_PALETTE, fontSizeTheme, forgeTheme } from './theme';
 
 /** A rejected host command; the bridge turns it into an error response. */
@@ -98,6 +105,8 @@ export interface ControllerOptions {
   batchDelayMs?: number;
   /** Cursor/scroll reports are throttled to one per window. */
   viewStateDelayMs?: number;
+  /** Search counts are recomputed at most once per window. */
+  searchStateDelayMs?: number;
 }
 
 interface Config {
@@ -124,7 +133,10 @@ interface DocEntry {
 /** Tags each document's state with its id, so updates can be attributed. */
 const docIdFacet = Facet.define<string, string>({ combine: (values) => values[0] ?? '' });
 
-const COMMANDS: Record<EditorCommand, (view: EditorView) => boolean> = {
+/** Opening and closing the search session needs the controller. */
+type ViewCommand = Exclude<EditorCommand, 'openSearch' | 'closeSearch'>;
+
+const COMMANDS: Record<ViewCommand, (view: EditorView) => boolean> = {
   undo,
   redo,
   indentMore,
@@ -138,12 +150,10 @@ const COMMANDS: Record<EditorCommand, (view: EditorView) => boolean> = {
   cursorLineEnd: cursorLineBoundaryForward,
   toggleComment,
   selectNextOccurrence,
-  openSearch: openSearchPanel,
-  closeSearch: closeSearchPanel,
-  findNext,
-  findPrevious,
-  replaceNext,
-  replaceAll,
+  findNext: withValidQuery(findNext),
+  findPrevious: withValidQuery(findPrevious),
+  replaceNext: withValidQuery(replaceNext),
+  replaceAll: withValidQuery(replaceAll),
   focus: (view) => {
     view.focus();
     return true;
@@ -157,6 +167,16 @@ const COMMANDS: Record<EditorCommand, (view: EditorView) => boolean> = {
 function clampSelection(selection: Selection | undefined, length: number): EditorSelection | undefined {
   if (selection === undefined) return undefined;
   return EditorSelection.single(Math.min(selection.anchor, length), Math.min(selection.head, length));
+}
+
+function searchQueryFor(p: SearchPayload): SearchQuery {
+  return new SearchQuery({
+    search: p.query,
+    caseSensitive: p.caseSensitive ?? false,
+    regexp: p.regexp ?? false,
+    wholeWord: p.wholeWord ?? false,
+    replace: p.replace ?? '',
+  });
 }
 
 function editableExtension(readOnly: boolean): Extension {
@@ -181,6 +201,13 @@ export class EditorController {
   private readonly viewStateDelayMs: number;
   private viewStateTimer: unknown = null;
   private composing = false;
+  /**
+   * The open search session (null when closed). It belongs to the page, not
+   * to one document: every document activated while it is open gets it.
+   */
+  private searchSpec: SearchPayload | null = null;
+  private readonly searchStateDelayMs: number;
+  private searchStateTimer: unknown = null;
 
   private readonly themeSlot = new Compartment();
   private readonly fontSlot = new Compartment();
@@ -192,6 +219,7 @@ export class EditorController {
   constructor(private readonly options: ControllerOptions) {
     this.scheduler = options.scheduler ?? browserScheduler;
     this.viewStateDelayMs = options.viewStateDelayMs ?? 400;
+    this.searchStateDelayMs = options.searchStateDelayMs ?? 100;
     this.batcher = new ChangeBatcher(
       (docId, changes) => this.emitChanges(docId, changes),
       options.batchDelayMs ?? 150,
@@ -311,6 +339,7 @@ export class EditorController {
         },
       });
     }
+    this.applySearch();
     this.emitHistory(entry, true);
   }
 
@@ -348,6 +377,7 @@ export class EditorController {
       const scroll = this.view.scrollSnapshot();
       this.view.setState(entry.state);
       this.view.dispatch({ effects: scroll });
+      this.applySearch();
       this.emitHistory(entry, true);
     }
   }
@@ -408,6 +438,8 @@ export class EditorController {
 
   exec(command: EditorCommand): boolean {
     this.requireActive();
+    if (command === 'openSearch') return this.openSearch();
+    if (command === 'closeSearch') return this.closeSearch();
     return COMMANDS[command](this.view);
   }
 
@@ -424,16 +456,16 @@ export class EditorController {
     return { line: target.number, position };
   }
 
+  /**
+   * Opens the search session with [p], or updates it. It stays open, in
+   * this document and every one activated later, until the host closes it
+   * (`closeSearch`) or the user presses Escape in the editor.
+   */
   setSearch(p: SearchPayload): { valid: boolean } {
     this.requireActive();
-    const query = new SearchQuery({
-      search: p.query,
-      caseSensitive: p.caseSensitive ?? false,
-      regexp: p.regexp ?? false,
-      wholeWord: p.wholeWord ?? false,
-      replace: p.replace ?? '',
-    });
-    this.view.dispatch({ effects: setSearchQuery.of(query) });
+    this.searchSpec = { ...p };
+    const query = searchQueryFor(p);
+    this.view.dispatch({ effects: [setSearchQuery.of(query), setSearchOpen.of(true)] });
     return { valid: query.valid };
   }
 
@@ -445,6 +477,8 @@ export class EditorController {
 
   destroy(): void {
     this.flush();
+    if (this.searchStateTimer !== null) this.scheduler.clear(this.searchStateTimer);
+    this.searchStateTimer = null;
     this.view.destroy();
   }
 
@@ -471,6 +505,10 @@ export class EditorController {
     if (!prev) return;
     this.batcher.flush(prev.id);
     this.flushViewState();
+    // A document out of view holds no session; activation brings it back.
+    if (isSearchOpen(this.view.state)) {
+      this.view.dispatch({ effects: setSearchOpen.of(false), annotations: quietSearch.of(true) });
+    }
     prev.state = this.view.state;
     prev.scroll = this.view.scrollSnapshot();
   }
@@ -520,12 +558,12 @@ export class EditorController {
       rectangularSelection(),
       cursorLineHighlight(),
       highlightSelectionMatches(),
-      search({ top: true }),
+      searchSession(),
       keymap.of([
         ...this.appKeymap(),
+        ...this.searchKeymap(),
         ...closeBracketsKeymap,
         ...defaultKeymap,
-        ...searchKeymap,
         ...historyKeymap,
         ...foldKeymap,
         indentWithTab,
@@ -569,6 +607,22 @@ export class EditorController {
       { key: 'Ctrl-Tab', run: fire('nextTab'), preventDefault: true },
       { key: 'Ctrl-Shift-Tab', run: fire('previousTab'), preventDefault: true },
       { key: 'Mod-n', run: fire('newFile'), preventDefault: true },
+      // The app's find bar and go-to-line prompt, with VS Code's keys.
+      { key: 'Mod-f', run: fire('find'), preventDefault: true },
+      { key: 'Mod-h', run: fire('replace'), preventDefault: true },
+      { key: 'Mod-g', run: fire('gotoLine'), preventDefault: true },
+    ];
+  }
+
+  /** CodeMirror's search keys, minus the ones that would open its panel. */
+  private searchKeymap(): KeyBinding[] {
+    return [
+      { key: 'F3', run: COMMANDS.findNext, shift: COMMANDS.findPrevious, preventDefault: true },
+      { key: 'Mod-d', run: selectNextOccurrence, preventDefault: true },
+      { key: 'Mod-Shift-l', run: selectSelectionMatches },
+      // Escape ends an open session (the app closes its bar); otherwise it
+      // falls through to CodeMirror's own Escape.
+      { key: 'Escape', run: () => this.searchSpec !== null && this.closeSearch() },
     ];
   }
 
@@ -580,6 +634,13 @@ export class EditorController {
     if (update.docChanged) this.batcher.add(docId, update.changes);
     this.emitHistory(entry, false);
     if (update.docChanged || update.selectionSet) this.scheduleViewState();
+    const searchMoved = isSearchOpen(update.state) && (update.docChanged || update.selectionSet);
+    if (
+      (searchMoved || sessionChanged(update)) &&
+      !update.transactions.some((tr) => tr.annotation(quietSearch) === true)
+    ) {
+      this.scheduleSearchState();
+    }
     if (update.focusChanged) {
       const focused = update.view.hasFocus;
       this.options.emit('editor.focus', { focused });
@@ -639,6 +700,55 @@ export class EditorController {
       selection: { anchor, head },
       scrollTop: Math.max(0, this.view.scrollDOM.scrollTop),
     });
+  }
+
+  /** Opens the session with the document's current query. */
+  private openSearch(): boolean {
+    const query = getSearchQuery(this.view.state);
+    this.searchSpec = {
+      query: query.search,
+      caseSensitive: query.caseSensitive,
+      regexp: query.regexp,
+      wholeWord: query.wholeWord,
+      replace: query.replace,
+    };
+    this.view.dispatch({ effects: setSearchOpen.of(true) });
+    return true;
+  }
+
+  /** Ends the session; the host hears `open: false`. */
+  private closeSearch(): boolean {
+    const wasOpen = this.searchSpec !== null;
+    this.searchSpec = null;
+    if (!isSearchOpen(this.view.state)) return wasOpen;
+    this.view.dispatch({ effects: setSearchOpen.of(false) });
+    return true;
+  }
+
+  /** Carries an open session into the document just put in view. */
+  private applySearch(): void {
+    if (this.searchSpec === null) return;
+    this.view.dispatch({
+      effects: [setSearchQuery.of(searchQueryFor(this.searchSpec)), setSearchOpen.of(true)],
+    });
+  }
+
+  private scheduleSearchState(): void {
+    if (this.searchStateTimer !== null || this.activeId === null) return;
+    this.searchStateTimer = this.scheduler.set(() => {
+      this.searchStateTimer = null;
+      this.emitSearchState();
+    }, this.searchStateDelayMs);
+  }
+
+  /** Reports the active document's session, counted when it fires. */
+  private emitSearchState(): void {
+    const entry = this.active();
+    if (!entry) return;
+    const state = this.view.state;
+    const open = isSearchOpen(state);
+    const count = open ? countMatches(state) : { matches: 0, current: 0, capped: false };
+    this.options.emit('search.state', { docId: entry.id, open, valid: getSearchQuery(state).valid, ...count });
   }
 
   private setComposing(composing: boolean): void {

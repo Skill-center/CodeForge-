@@ -1,12 +1,14 @@
-/// Editor pane: tabs over the hosted editor page and the symbol toolbar
-/// below it. The page itself lives in [EditorSurfaceView]; the tabs are the
-/// open documents (Phase 2 W4).
+/// Editor pane: tabs and the find bar over the hosted editor page, and the
+/// symbol toolbar below it. The page itself lives in [EditorSurfaceView];
+/// the tabs are the open documents (Phase 2 W4), the find bar searches the
+/// active one (W6).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../application/documents/document_controller.dart';
+import '../../../application/editor/find_controller.dart';
 import '../../../application/settings_controller.dart';
 import '../../../core/files/workspace_path.dart';
 import '../../../design_system/components/buttons.dart';
@@ -17,6 +19,7 @@ import '../../../design_system/tokens/geometry.dart';
 import '../../../services/settings/settings_model.dart';
 import '../file_actions.dart';
 import 'editor_surface_view.dart';
+import 'find_bar.dart';
 
 class EditorPane extends ConsumerWidget {
   const EditorPane({super.key});
@@ -25,6 +28,7 @@ class EditorPane extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final documents = ref.watch(documentControllerProvider);
     final settings = ref.watch(settingsControllerProvider);
+    final find = ref.watch(findControllerProvider);
     final colors = CfColors.of(context);
     final activePath = documents.activePath;
     final activeDoc = documents.active;
@@ -32,21 +36,49 @@ class EditorPane extends ConsumerWidget {
 
     // The pane gets whatever height the layout leaves it — tiny while the
     // soft keyboard is up on a short landscape phone — so it must never
-    // overflow: pinned chrome yields before content. The tab strip needs its
-    // own height, and the (disabled) symbol toolbar stays only while a touch
-    // row of the editor still fits beside it.
+    // overflow: pinned chrome yields before content. While the find bar is
+    // open, its find row comes first (the user is typing into it), then one
+    // touch row of the editor, then the tab strip, then the bar's other
+    // rows. The (disabled) symbol toolbar and the journal banner come only
+    // when there is room left for them too.
     return LayoutBuilder(
       builder: (context, constraints) {
+        final height = constraints.maxHeight;
         const tabStripExtent = CfSpacing.tabStripHeight + CfSpacing.hairline;
+        const editorRow = CfSpacing.minTouchTarget;
+        final findRow = FindBar.heightFor(1);
+        final findOpen = find.open && activeDoc != null;
+        final findFirst = findOpen && height >= findRow;
         final showTabs =
             documents.openPaths.isNotEmpty &&
-            constraints.maxHeight >= tabStripExtent;
+            (findFirst
+                ? height >= findRow + editorRow + tabStripExtent
+                : height >= tabStripExtent);
+        final tabsExtent = showTabs ? tabStripExtent : 0.0;
+        final spare = height - tabsExtent - findRow - editorRow;
+        final findRows = findFirst
+            ? FindBar.rowsFor(
+                width: constraints.maxWidth,
+                replaceOpen: find.replaceOpen,
+                maxRows: 1 + (spare > 0 ? (spare / editorRow).floor() : 0),
+              )
+            : 1;
+        // Squeezed below its find row, the bar is clipped rather than taken
+        // out: leaving the tree would take the keyboard's field with it, the
+        // keyboard would close, the pane grow, and the bar come back asking
+        // for the keyboard again.
+        final findExtent = !findOpen
+            ? 0.0
+            : findFirst
+            ? FindBar.heightFor(findRows)
+            : height;
         final showToolbar =
             settings.toolbarPreset != ToolbarPreset.none &&
-            constraints.maxHeight >=
-                (showTabs ? tabStripExtent : 0) +
+            height >=
+                tabsExtent +
+                    findExtent +
                     CfSpacing.symbolToolbarHeight +
-                    CfSpacing.minTouchTarget;
+                    editorRow;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -84,7 +116,7 @@ class EditorPane extends ConsumerWidget {
                 ),
               ),
             if (documents.journalProblem != null &&
-                constraints.maxHeight >= tabStripExtent + 160)
+                height >= tabStripExtent + findExtent + 160)
               const Padding(
                 padding: EdgeInsets.all(CfSpacing.sm),
                 child: CfBanner(
@@ -93,6 +125,21 @@ class EditorPane extends ConsumerWidget {
                   message:
                       'Unsaved changes are not being backed up, so a crash '
                       'would lose them. Save your files to keep them safe.',
+                ),
+              ),
+            if (findOpen)
+              ClipRect(
+                child: SizedBox(
+                  height: findExtent,
+                  child: OverflowBox(
+                    alignment: Alignment.topCenter,
+                    minHeight: 0,
+                    maxHeight: double.infinity,
+                    child: FindBar(
+                      key: const ValueKey('find_bar_host'),
+                      rows: findRows,
+                    ),
+                  ),
                 ),
               ),
             Expanded(

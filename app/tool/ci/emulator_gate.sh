@@ -239,6 +239,10 @@ echo "::group::Integration — editor bridge (Phase 2 W2: the real page in the W
 run_itest editor integration_test/editor_bridge_test.dart || fail=1
 echo "::endgroup::"
 
+echo "::group::Integration — editing (Phase 2 W6, G5: find, replace, go to line)"
+run_itest editing integration_test/editing_test.dart || fail=1
+echo "::endgroup::"
+
 echo "::group::Editor benchmark (Phase 2 W3: CodeMirror 6 vs Monaco, informational)"
 # One app process per engine, so each engine's memory is its own. The
 # DevTools driver runs alongside: at the end of each test run the page hands

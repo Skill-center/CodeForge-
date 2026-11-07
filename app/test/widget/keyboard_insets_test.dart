@@ -7,9 +7,14 @@
 /// applied view insets.
 library;
 
+import 'dart:async';
+
+import 'package:codeforge/application/editor/find_controller.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
+import 'package:codeforge/features/workbench/panels/find_bar.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'test_harness.dart';
@@ -86,6 +91,41 @@ void main() {
             reason: label,
           );
           expect(tester.takeException(), isNull, reason: label);
+        }
+        await _flush(tester);
+      });
+
+      testWidgets('find and replace fit at every gate size (W6)', (
+        tester,
+      ) async {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        for (final (width, height, label) in _gateSizes) {
+          setSurface(tester, width, height);
+          _raiseKeyboard(tester, width, height);
+          await _pumpWorkspace(tester, TerminalStop.half);
+          final pane = find.byType(EditorPane);
+          final container = ProviderScope.containerOf(
+            tester.element(pane),
+            listen: false,
+          );
+          unawaited(
+            container.read(findControllerProvider.notifier).open(replace: true),
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: label);
+          // The field being typed into stays mounted, keeping the keyboard,
+          // and shows whole whenever the pane can hold its row.
+          final field = find.byKey(const ValueKey('find_query'));
+          expect(field, findsOneWidget, reason: label);
+          final paneRect = tester.getRect(pane);
+          if (paneRect.height >= FindBar.heightFor(1)) {
+            expect(
+              tester.getRect(field).bottom,
+              lessThanOrEqualTo(paneRect.bottom + 0.5),
+              reason: label,
+            );
+          }
         }
         await _flush(tester);
       });

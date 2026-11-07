@@ -98,6 +98,11 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
       'View',
       WorkbenchIntent.previousEditor,
     ),
+    ('edit.find', 'Find', 'Edit', WorkbenchIntent.find),
+    ('edit.replace', 'Replace', 'Edit', WorkbenchIntent.replace),
+    ('edit.gotoLine', 'Go to Line…', 'Edit', WorkbenchIntent.gotoLine),
+    ('edit.undo', 'Undo', 'Edit', WorkbenchIntent.undo),
+    ('edit.redo', 'Redo', 'Edit', WorkbenchIntent.redo),
   ]) {
     registry.register(
       CfCommand(

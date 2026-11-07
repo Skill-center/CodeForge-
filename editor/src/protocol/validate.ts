@@ -203,6 +203,7 @@ const EDITOR_TO_HOST: Record<string, Check> = {
   'editor.focus': obj({ focused: bool }),
   'ime.composition': obj({ docId, composing: bool }),
   'app.shortcut': obj({ shortcut: oneOf(APP_SHORTCUTS) }),
+  'search.state': obj({ docId, open: bool, valid: bool, matches: length, current: length, capped: bool }),
   'editor.log': obj({ level: oneOf(LOG_LEVELS), message: str({ max: 4000 }) }),
   response: responsePayload,
 };

@@ -49,7 +49,7 @@ describe('protocol fixtures (shared with the Dart validator)', () => {
   it('covers every editor message type at least once', () => {
     const types = new Set(readFixtures<Valid>('protocol/valid/editor_to_host').map((f) => (f.data.message as { type: string }).type));
     expect([...types].sort()).toEqual(
-      ['app.shortcut', 'doc.changed', 'doc.viewState', 'editor.focus', 'editor.history', 'editor.log', 'editor.ready', 'ime.composition', 'response'].sort(),
+      ['app.shortcut', 'doc.changed', 'doc.viewState', 'editor.focus', 'editor.history', 'editor.log', 'editor.ready', 'ime.composition', 'response', 'search.state'].sort(),
     );
   });
 });
