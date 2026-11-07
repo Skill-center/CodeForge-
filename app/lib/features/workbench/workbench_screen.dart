@@ -63,6 +63,12 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     with WidgetsBindingObserver {
   StreamSubscription<WorkbenchIntent>? _intents;
 
+  /// Rotating swaps the portrait layout for the docked one. With this key
+  /// the editor pane moves across instead of being rebuilt, so the page
+  /// keeps every document's undo history and does not reload. Owned by
+  /// this state, so two workbenches during a route change never share it.
+  final GlobalKey _editorPaneKey = GlobalKey(debugLabel: 'editor pane');
+
   @override
   void initState() {
     super.initState();
@@ -268,11 +274,13 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
               child: compactPortrait
                   ? _CompactPortraitLayout(
                       shell: shell,
+                      editorPaneKey: _editorPaneKey,
                       onToggleTerminal: _toggleTerminal,
                     )
                   : _DockedLayout(
                       shell: shell,
                       form: form,
+                      editorPaneKey: _editorPaneKey,
                       onActivitySelected: _onActivitySelected,
                       onToggleTerminal: _toggleTerminal,
                     ),
@@ -319,10 +327,12 @@ const double _minTerminalHeight = 60;
 class _CompactPortraitLayout extends ConsumerWidget {
   const _CompactPortraitLayout({
     required this.shell,
+    required this.editorPaneKey,
     required this.onToggleTerminal,
   });
 
   final ShellState shell;
+  final GlobalKey editorPaneKey;
   final VoidCallback onToggleTerminal;
 
   @override
@@ -344,7 +354,7 @@ class _CompactPortraitLayout extends ConsumerWidget {
         return Column(
           children: [
             _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
-            const Expanded(child: EditorPane()),
+            Expanded(child: EditorPane(key: editorPaneKey)),
             if (terminalHeight > 0)
               SizedBox(
                 height: terminalHeight,
@@ -367,12 +377,14 @@ class _DockedLayout extends ConsumerWidget {
   const _DockedLayout({
     required this.shell,
     required this.form,
+    required this.editorPaneKey,
     required this.onActivitySelected,
     required this.onToggleTerminal,
   });
 
   final ShellState shell;
   final CfFormFactor form;
+  final GlobalKey editorPaneKey;
   final ValueChanged<String> onActivitySelected;
   final VoidCallback onToggleTerminal;
 
@@ -417,7 +429,7 @@ class _DockedLayout extends ConsumerWidget {
               return Column(
                 children: [
                   _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
-                  const Expanded(child: EditorPane()),
+                  Expanded(child: EditorPane(key: editorPaneKey)),
                   if (terminalOpen) ...[
                     _HorizontalResizeHandle(
                       onDrag: (dy) => ref

@@ -49,11 +49,18 @@ final class FakeDocument {
     required this.text,
     required this.version,
     required this.language,
+    this.anchor,
+    this.head,
   });
 
   String text;
   int version;
   String language;
+
+  /// The page's selection: as `doc.open` gave it, then as
+  /// [FakeEditorSurface.moveCursor] moved it.
+  int? anchor;
+  int? head;
 }
 
 final class FakeEditorSurface implements EditorSurface {
@@ -65,6 +72,11 @@ final class FakeEditorSurface implements EditorSurface {
 
   /// Whether requests get responses (false: a hung page).
   bool respond;
+
+  /// While true, requests wait unhandled (a busy page); [release] handles
+  /// them in arrival order. They count as [received] when they arrive.
+  bool hold = false;
+  final List<BridgeMessage> _held = [];
 
   /// Typed right after the next snapshot is answered: edits racing a save.
   String? typeAfterSnapshot;
@@ -142,9 +154,23 @@ final class FakeEditorSurface implements EditorSurface {
         }
       case ParsedMessage(message: final parsed):
         received.add(parsed);
-        if (respond) {
+        if (hold) {
+          _held.add(parsed);
+        } else if (respond) {
           _handle(parsed);
         }
+    }
+  }
+
+  /// Ends [hold]: the held requests are handled now, in arrival order.
+  void release() {
+    hold = false;
+    final held = [..._held];
+    _held.clear();
+    for (final message in held) {
+      if (respond) {
+        _handle(message);
+      }
     }
   }
 
@@ -220,10 +246,17 @@ final class FakeEditorSurface implements EditorSurface {
       _error(id, 'doc_exists', 'document $docId is already open');
       return;
     }
+    final selection = payload['selection'];
     documents[docId] = FakeDocument(
       text: payload.string('text'),
       version: payload.integer('version'),
       language: payload.string('language'),
+      anchor: selection is Map<String, Object?>
+          ? selection['anchor'] as int?
+          : null,
+      head: selection is Map<String, Object?>
+          ? selection['head'] as int?
+          : null,
     );
     if (payload['activate'] != false) {
       activeDocId = docId;
@@ -293,6 +326,9 @@ final class FakeEditorSurface implements EditorSurface {
     if (target == null) {
       throw StateError('no document to move the cursor in');
     }
+    documents[target]
+      ?..anchor = anchor
+      ..head = head ?? anchor;
     emit('doc.viewState', {
       'docId': target,
       'selection': {'anchor': anchor, 'head': head ?? anchor},

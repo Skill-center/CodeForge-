@@ -24,6 +24,8 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - Tests: journal replay against the live text for randomized edit sequences; the journal's write order, failure recovery and timers; the database on real SQLite, including a v1 fixture through drift_dev's schema verifier; process death, conflicts, deleted files and damaged journals in controller and widget tests. The emulator gate gains an edit pair: type without saving, crash the WebView renderer, force-stop, relaunch, then check the text, the dirty dot and the cursor.
 
 ### Fixed — Phase 2
+- **Editor commands in the moment after the editor page starts could fail** with "no document is active". The host reports ready when the page announces itself and reopens the documents just after that. A toolbar key, shortcut, save or snapshot sent in between reached a page with no document. Such commands now wait for the reopen. Found by the W5 zero-loss gate (phase gate 42379885027, `edit_a`).
+- **Rotating the phone reloaded the editor page**, which cost every open document its undo history. Text, cursor and scroll were restored from the host's copies. Portrait and landscape use different workbench layouts, and the editor pane was rebuilt in each. It now moves between them under one key.
 - **Selected text on the cursor's line was invisible**, in the editor and in the benchmark page: the copy menu and handles appeared, but no highlight. The active line's opaque background covered CodeMirror's selection layer. A line is now highlighted only around a plain cursor, as in VS Code (`editor/src/editor/active_line.ts`). The owner found this in the W3 phone run. Verified in CI 42216855073 and phase gate 42216855184.
 
 ### Changed — Phase 2

@@ -177,6 +177,11 @@ final class EditorHost {
   int _nextRequestId = 0;
   int _pageStarts = 0;
   int _syncs = 0;
+
+  /// The page sync in flight, if any. The host reports ready as soon as the
+  /// page announces itself, but until this finishes the page may not have
+  /// a document open or active yet. Document commands wait for it.
+  Future<void>? _syncing;
   int _droppedMessages = 0;
   int _resyncs = 0;
   bool _disposed = false;
@@ -369,6 +374,10 @@ final class EditorHost {
     if (!_ready) {
       return const Ok(null);
     }
+    if (_syncing != null && (!await _afterSync() || _activeDocId != docId)) {
+      // Gone, or another document was activated meanwhile and sent its own.
+      return const Ok(null);
+    }
     return _done(await _request('doc.activate', {'docId': docId}));
   }
 
@@ -392,7 +401,7 @@ final class EditorHost {
     if (doc == null) {
       return Err(BridgeFailure('Document $docId is not open.'));
     }
-    if (!_ready) {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
       // No page to ask: the shadow is the truth.
       return Ok(
         EditorSnapshot(
@@ -503,7 +512,7 @@ final class EditorHost {
     }
     // The shadow keeps it too, so a page restart reopens it highlighted.
     doc.language = language;
-    if (!_ready) {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
       return const Ok(null);
     }
     return _done(
@@ -513,7 +522,7 @@ final class EditorHost {
 
   /// Sends pending edits now — for one document, or all of them.
   Future<Result<void>> flush([String? docId]) async {
-    if (!_ready) {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
       return const Ok(null);
     }
     return _done(await _request('doc.flush', {'docId': ?docId}));
@@ -521,7 +530,7 @@ final class EditorHost {
 
   /// Inserts [text] at every cursor of the active document.
   Future<Result<void>> insert(String text, {int? cursorOffset}) async {
-    if (!_ready) {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
       return const Err(BridgeFailure('The editor is not ready.'));
     }
     return _done(
@@ -534,7 +543,7 @@ final class EditorHost {
 
   /// Runs one of `editorCommands`.
   Future<Result<void>> exec(String command) async {
-    if (!_ready) {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
       return const Err(BridgeFailure('The editor is not ready.'));
     }
     return _done(await _request('cmd.exec', {'command': command}));
@@ -781,7 +790,29 @@ final class EditorHost {
     _setStatus(
       EditorHostStatus(EditorHostPhase.ready, engineVersion: engineVersion),
     );
-    unawaited(_syncPage(_pageStarts));
+    final sync = _syncPage(_pageStarts);
+    _syncing = sync;
+    unawaited(sync.whenComplete(() => _syncDone(sync)));
+  }
+
+  void _syncDone(Future<void> sync) {
+    if (identical(_syncing, sync)) {
+      _syncing = null;
+    }
+  }
+
+  /// Waits for the page sync in flight, then tells whether the page is
+  /// still ready. Callers check [_syncing] first, so that with no sync in
+  /// flight a command still goes out at once, in call order. A page that
+  /// restarts meanwhile starts a newer sync, which is waited for too.
+  Future<bool> _afterSync() async {
+    var sync = _syncing;
+    while (sync != null) {
+      await sync;
+      final next = _syncing;
+      sync = identical(next, sync) ? null : next;
+    }
+    return _ready;
   }
 
   /// Brings a freshly started page up to date: configuration, every open

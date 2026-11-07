@@ -8,6 +8,7 @@ library;
 
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/documents/document_state.dart';
+import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/features/workbench/workbench_screen.dart';
@@ -458,6 +459,42 @@ void main() {
     harness.editorSurface.typeText('y');
     await tester.pumpAndSettle();
     expect(banner, findsNothing);
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('rotating keeps the page, the unsaved text, the dirty dot and '
+      'the cursor (G4)', (tester) async {
+    setSurface(tester, 360, 800);
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/workspace'),
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    expect(_state(tester).activePath, 'main.js');
+    final docId = _state(tester).active!.docId;
+    harness.editorSurface
+      ..typeText('// typed in portrait\n')
+      ..moveCursor(3, head: 8);
+    await tester.pumpAndSettle();
+    final text = harness.editorSurface.documents[docId]!.text;
+    expect(_closeCross('main.js'), findsNothing, reason: 'dirty: a dot');
+
+    // Portrait → landscape swaps the compact layout for the docked one;
+    // the editor pane moves across rather than being rebuilt.
+    for (final size in const [Size(800, 360), Size(360, 800)]) {
+      setSurface(tester, size.width, size.height);
+      await tester.pumpAndSettle();
+      final page = harness.editorSurface;
+      final doc = page.documents[docId]!;
+      final at = '${size.width.round()}x${size.height.round()}';
+      expect(doc.text, text, reason: at);
+      expect([doc.anchor, doc.head], [3, 8], reason: at);
+      expect(_state(tester).active!.dirty, isTrue, reason: at);
+      expect(harness.editorSurfaces, hasLength(1), reason: '$at: same page');
+      expect(page.loads, 1, reason: '$at: never reloaded');
+    }
+    expect(_closeCross('main.js'), findsNothing);
+    expect(_container(tester).read(editorHostProvider).textOf(docId), text);
     await tester.pump(const Duration(seconds: 2));
   });
 }

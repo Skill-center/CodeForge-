@@ -55,7 +55,9 @@ void main() {
       tester,
       () =>
           container.read(documentControllerProvider).isOpen('main.js') &&
-          host.status.phase == EditorHostPhase.ready,
+          host.status.phase == EditorHostPhase.ready &&
+          // The page has every document open, not just announced itself.
+          host.syncs >= 1,
       what: 'main.js to open in the editor',
       timeout: const Duration(seconds: 60),
     );

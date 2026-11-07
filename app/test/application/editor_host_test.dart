@@ -411,4 +411,48 @@ void main() {
     // A disposed host ignores everything.
     expect((await host.activate('d1')).isOk, isFalse);
   });
+
+  testWidgets('document commands wait for the page sync in flight', (
+    tester,
+  ) async {
+    // The host reports ready the moment the page announces itself, and
+    // reopens its documents after that. A command sent in between reached a
+    // page with no active document (phase gate 42379885027, edit_a).
+    await createHost(tester, start: false);
+    await host.openDocument(docId: 'd1', text: 'abc', language: 'javascript');
+    page.hold = true;
+    await host.start();
+    await settle(tester);
+    expect(host.status.phase, EditorHostPhase.ready);
+    expect(host.syncs, 0);
+    expect(page.receivedTypes, ['doc.open']);
+
+    Result<void>? inserted;
+    Result<void>? flushed;
+    Result<EditorSnapshot>? snapshot;
+    unawaited(host.insert('x').then((result) => inserted = result));
+    unawaited(host.flush('d1').then((result) => flushed = result));
+    unawaited(host.snapshot('d1').then((result) => snapshot = result));
+    await settle(tester);
+    expect(page.receivedTypes, ['doc.open'], reason: 'nothing overtakes it');
+    expect(inserted, isNull);
+
+    page.release();
+    await settle(tester);
+    expect(host.syncs, 1);
+    expect(page.receivedTypes, [
+      'doc.open',
+      'doc.activate',
+      'cmd.insert',
+      'doc.flush',
+      'doc.snapshot',
+    ]);
+    expect(inserted?.isOk, isTrue);
+    expect(flushed?.isOk, isTrue);
+    expect(snapshot?.valueOrNull?.text, 'xabc');
+    expect(page.documents['d1']!.text, 'xabc');
+    expect(host.textOf('d1'), 'xabc');
+    expect(page.rejected, isEmpty);
+    await host.dispose();
+  });
 }
