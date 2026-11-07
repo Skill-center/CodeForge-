@@ -85,10 +85,10 @@ class EditorPane extends ConsumerWidget {
               ),
             if (documents.journalProblem != null &&
                 constraints.maxHeight >= tabStripExtent + 160)
-              Padding(
-                padding: const EdgeInsets.all(CfSpacing.sm),
+              const Padding(
+                padding: EdgeInsets.all(CfSpacing.sm),
                 child: CfBanner(
-                  key: const ValueKey('journal_problem'),
+                  key: ValueKey('journal_problem'),
                   kind: CfBannerKind.danger,
                   message:
                       'Unsaved changes are not being backed up, so a crash '

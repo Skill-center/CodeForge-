@@ -86,7 +86,10 @@ final class JournalEntry {
 
 abstract interface class SessionStore {
   /// Records that [workspaceId] was opened now.
-  Future<Result<void>> touchWorkspace(String workspaceId, {required String name});
+  Future<Result<void>> touchWorkspace(
+    String workspaceId, {
+    required String name,
+  });
 
   /// [workspaceId]'s tabs, in order; empty when none were saved.
   Future<Result<List<SavedTab>>> loadTabs(String workspaceId);

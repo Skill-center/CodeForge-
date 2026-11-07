@@ -206,7 +206,9 @@ final class DriftSessionStore implements SessionStore {
                 t.path.equals(snapshot.path),
           );
         if (!restart) {
-          covered.where((t) => t.version.isSmallerOrEqualValue(snapshot.version));
+          covered.where(
+            (t) => t.version.isSmallerOrEqualValue(snapshot.version),
+          );
         }
         await covered.go();
       });

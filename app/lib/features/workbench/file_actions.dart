@@ -153,7 +153,9 @@ Future<void> resolveRestoredConflicts(
   while (context.mounted) {
     final state = ref.read(documentControllerProvider);
     final path = state.openPaths
-        .where((p) => !asked.contains(p) && state.documents[p]?.conflict != null)
+        .where(
+          (p) => !asked.contains(p) && state.documents[p]?.conflict != null,
+        )
         .firstOrNull;
     final doc = path == null ? null : state.documents[path];
     if (path == null || doc == null) {

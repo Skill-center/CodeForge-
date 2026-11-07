@@ -335,15 +335,16 @@ final class EditorHost {
         BridgeFailure('Editor text must use \\n line breaks only.'),
       );
     }
-    final doc = ShadowDocument(
-      docId: docId,
-      language: language,
-      text: text,
-      version: version,
-      readOnly: readOnly,
-    )
-      ..selection = selection
-      ..scrollTop = scrollTop;
+    final doc =
+        ShadowDocument(
+            docId: docId,
+            language: language,
+            text: text,
+            version: version,
+            readOnly: readOnly,
+          )
+          ..selection = selection
+          ..scrollTop = scrollTop;
     _documents[docId] = doc;
     if (activate) {
       _activeDocId = docId;

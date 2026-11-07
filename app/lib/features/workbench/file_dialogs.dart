@@ -79,7 +79,8 @@ Future<ConflictChoice> askRestoredConflict(
         ),
         FilledButton(
           key: const ValueKey('conflict_keep'),
-          onPressed: () => Navigator.of(context).pop(ConflictChoice.keepChanges),
+          onPressed: () =>
+              Navigator.of(context).pop(ConflictChoice.keepChanges),
           child: const Text('Keep my changes'),
         ),
       ],

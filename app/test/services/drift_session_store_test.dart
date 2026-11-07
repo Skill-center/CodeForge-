@@ -82,34 +82,37 @@ void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   group('tabs', () {
-    test('come back in order, with the active one, cursor and scroll', () async {
-      final store = _memoryStore();
-      expect((await store.loadTabs('demo')).valueOrNull, isEmpty);
-      final saved = await store.saveTabs('demo', const [
-        SavedTab(
-          path: 'main.js',
-          selectionAnchor: 4,
-          selectionHead: 9,
-          scrollTop: 120.5,
-        ),
-        SavedTab(path: 'src/app.py', active: true),
-        SavedTab(path: 'README.md', selectionAnchor: 0, selectionHead: 0),
-      ]);
-      expect(saved.isOk, isTrue);
+    test(
+      'come back in order, with the active one, cursor and scroll',
+      () async {
+        final store = _memoryStore();
+        expect((await store.loadTabs('demo')).valueOrNull, isEmpty);
+        final saved = await store.saveTabs('demo', const [
+          SavedTab(
+            path: 'main.js',
+            selectionAnchor: 4,
+            selectionHead: 9,
+            scrollTop: 120.5,
+          ),
+          SavedTab(path: 'src/app.py', active: true),
+          SavedTab(path: 'README.md', selectionAnchor: 0, selectionHead: 0),
+        ]);
+        expect(saved.isOk, isTrue);
 
-      final tabs = (await store.loadTabs('demo')).valueOrNull!;
-      expect(
-        [for (final tab in tabs) tab.path],
-        ['main.js', 'src/app.py', 'README.md'],
-      );
-      expect([for (final tab in tabs) tab.active], [false, true, false]);
-      expect(
-        [tabs[0].selectionAnchor, tabs[0].selectionHead, tabs[0].scrollTop],
-        [4, 9, 120.5],
-      );
-      expect(tabs[1].selectionAnchor, isNull);
-      expect(tabs[1].scrollTop, 0);
-    });
+        final tabs = (await store.loadTabs('demo')).valueOrNull!;
+        expect(
+          [for (final tab in tabs) tab.path],
+          ['main.js', 'src/app.py', 'README.md'],
+        );
+        expect([for (final tab in tabs) tab.active], [false, true, false]);
+        expect(
+          [tabs[0].selectionAnchor, tabs[0].selectionHead, tabs[0].scrollTop],
+          [4, 9, 120.5],
+        );
+        expect(tabs[1].selectionAnchor, isNull);
+        expect(tabs[1].scrollTop, 0);
+      },
+    );
 
     test('saving replaces the list; each workspace has its own', () async {
       final store = _memoryStore();

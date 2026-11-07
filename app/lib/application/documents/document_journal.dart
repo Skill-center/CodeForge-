@@ -335,9 +335,7 @@ final class DocumentJournal {
   void _tick() {
     final now = _clock();
     var waiting = false;
-    for (final MapEntry(key: docId, value: journal) in [
-      ..._journals.entries,
-    ]) {
+    for (final MapEntry(key: docId, value: journal) in [..._journals.entries]) {
       if (journal.pending == 0) {
         continue;
       }

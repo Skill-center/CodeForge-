@@ -90,7 +90,13 @@ void main() {
             .valueOrNull ??
         const <SavedTab>[];
     expect([for (final tab in tabs) tab.path], ['main.js', 'app.py']);
-    expect([for (final tab in tabs) if (tab.active) tab.path], ['app.py']);
+    expect(
+      [
+        for (final tab in tabs)
+          if (tab.active) tab.path,
+      ],
+      ['app.py'],
+    );
     expect(shellRaw, isNot(contains('main.js')));
   });
 }

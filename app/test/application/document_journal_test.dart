@@ -128,27 +128,30 @@ void main() {
     expect(results.every((r) => r.isOk), isTrue);
   });
 
-  test('a change that does not continue the journal takes a snapshot', () async {
-    final journal = journalWith();
-    docs['d1'] = _Doc('main.js', '');
-    type(journal, 'd1', 'a');
-    type(journal, 'd1', 'b');
-    // The text replaced whole (no change set), then a version gap.
-    docs['d1']!
-      ..text = 'xyz'
-      ..version = 9;
-    journal.edited('d1', dirty: true);
-    var entries = await stored(journal);
-    expect(entries.single.snapshot.text, 'xyz');
-    expect(entries.single.changes, isEmpty);
+  test(
+    'a change that does not continue the journal takes a snapshot',
+    () async {
+      final journal = journalWith();
+      docs['d1'] = _Doc('main.js', '');
+      type(journal, 'd1', 'a');
+      type(journal, 'd1', 'b');
+      // The text replaced whole (no change set), then a version gap.
+      docs['d1']!
+        ..text = 'xyz'
+        ..version = 9;
+      journal.edited('d1', dirty: true);
+      var entries = await stored(journal);
+      expect(entries.single.snapshot.text, 'xyz');
+      expect(entries.single.changes, isEmpty);
 
-    docs['d1']!.version = 12;
-    type(journal, 'd1', '!');
-    entries = await stored(journal);
-    expect(entries.single.snapshot.version, 13);
-    expect(entries.single.snapshot.text, 'xyz!');
-    expect(entries.single.changes, isEmpty);
-  });
+      docs['d1']!.version = 12;
+      type(journal, 'd1', '!');
+      entries = await stored(journal);
+      expect(entries.single.snapshot.version, 13);
+      expect(entries.single.snapshot.text, 'xyz!');
+      expect(entries.single.changes, isEmpty);
+    },
+  );
 
   test('replay stays short: a snapshot every 200 changes', () async {
     final journal = journalWith();
@@ -159,7 +162,10 @@ void main() {
     }
     final entries = await stored(journal);
     expect(entries.single.changes, hasLength(4));
-    expect(entries.single.snapshot.version, 1 + DocumentJournal.changesPerSnapshot);
+    expect(
+      entries.single.snapshot.version,
+      1 + DocumentJournal.changesPerSnapshot,
+    );
     expect(replayed(entries.single), docs['d1']!.text);
   });
 
@@ -181,7 +187,10 @@ void main() {
 
   test('large documents get a timed snapshot at most once a minute', () async {
     final journal = journalWith(interval: const Duration(milliseconds: 20));
-    docs['d1'] = _Doc('big.txt', 'x' * (DocumentJournal.smallDocumentLength + 1));
+    docs['d1'] = _Doc(
+      'big.txt',
+      'x' * (DocumentJournal.smallDocumentLength + 1),
+    );
     type(journal, 'd1', 'a');
     type(journal, 'd1', 'b');
     await Future<void>.delayed(const Duration(milliseconds: 80));
@@ -206,10 +215,10 @@ void main() {
     final entries = await stored(journal);
     expect(store.inner.writes, writes + 1, reason: 'app.py had no new changes');
     expect(entries.every((e) => e.changes.isEmpty), isTrue);
-    expect({for (final e in entries) e.path: e.snapshot.text}, {
-      'main.js': 'ab',
-      'app.py': 'z',
-    });
+    expect(
+      {for (final e in entries) e.path: e.snapshot.text},
+      {'main.js': 'ab', 'app.py': 'z'},
+    );
   });
 
   test('saving rebases the journal, or drops it when clean', () async {
@@ -267,7 +276,10 @@ void main() {
         version: 4,
         lengthBefore: 99,
         lengthAfter: 100,
-        changes: [99, [0, 'x']],
+        changes: [
+          99,
+          [0, 'x'],
+        ],
       ),
     );
     docs['d1'] = _Doc('main.js', 'on disk now')
@@ -289,42 +301,48 @@ void main() {
     expect(entries.single.snapshot.baseDigest, textDigest('on disk now'));
   });
 
-  test('failed writes are reported, in order, and later ones still run', () async {
-    final journal = journalWith();
-    docs['d1'] = _Doc('main.js', '');
-    store.failing = true;
-    type(journal, 'd1', 'a');
-    await journal.idle;
-    expect(results.last.failureOrNull, isA<StorageFailure>());
+  test(
+    'failed writes are reported, in order, and later ones still run',
+    () async {
+      final journal = journalWith();
+      docs['d1'] = _Doc('main.js', '');
+      store.failing = true;
+      type(journal, 'd1', 'a');
+      await journal.idle;
+      expect(results.last.failureOrNull, isA<StorageFailure>());
 
-    store
-      ..failing = false
-      ..throwing = true;
-    type(journal, 'd1', 'b');
-    await journal.idle;
-    expect(results.last.failureOrNull, isA<StorageFailure>());
+      store
+        ..failing = false
+        ..throwing = true;
+      type(journal, 'd1', 'b');
+      await journal.idle;
+      expect(results.last.failureOrNull, isA<StorageFailure>());
 
-    store.throwing = false;
-    journal.checkpoint();
-    final entries = await stored(journal);
-    expect(results.last.isOk, isTrue);
-    expect(entries.single.snapshot.text, 'ab');
-  });
+      store.throwing = false;
+      journal.checkpoint();
+      final entries = await stored(journal);
+      expect(results.last.isOk, isTrue);
+      expect(entries.single.snapshot.text, 'ab');
+    },
+  );
 
-  test('after a failed write the next edit starts over with a snapshot', () async {
-    final journal = journalWith();
-    docs['d1'] = _Doc('main.js', '');
-    type(journal, 'd1', 'a');
-    await journal.idle;
-    store.failing = true;
-    type(journal, 'd1', 'b');
-    await journal.idle;
-    store.failing = false;
-    type(journal, 'd1', 'c');
-    final entries = await stored(journal);
-    expect(entries.single.snapshot.text, 'abc');
-    expect(entries.single.changes, isEmpty);
-  });
+  test(
+    'after a failed write the next edit starts over with a snapshot',
+    () async {
+      final journal = journalWith();
+      docs['d1'] = _Doc('main.js', '');
+      type(journal, 'd1', 'a');
+      await journal.idle;
+      store.failing = true;
+      type(journal, 'd1', 'b');
+      await journal.idle;
+      store.failing = false;
+      type(journal, 'd1', 'c');
+      final entries = await stored(journal);
+      expect(entries.single.snapshot.text, 'abc');
+      expect(entries.single.changes, isEmpty);
+    },
+  );
 
   test('a failed write is retried on the timer, without new edits', () async {
     final journal = journalWith(interval: const Duration(milliseconds: 20));

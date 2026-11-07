@@ -583,11 +583,7 @@ final class DocumentController extends Notifier<DocumentsState> {
     }
     switch (read) {
       case Err<TextFile>():
-        appLogger.info(
-          'documents',
-          'conflict_closed',
-          fields: {'path': path},
-        );
+        appLogger.info('documents', 'conflict_closed', fields: {'path': path});
         close(path);
         return const Ok(null);
       case Ok<TextFile>(:final value):
