@@ -732,6 +732,57 @@ void main() {
       expect(await close.journal(), isEmpty);
     });
 
+    test('an unreadable file keeps the changes until told', () async {
+      final files = MemoryFileService();
+      final sessions = MemorySessionStore();
+      final first = _World(files: files, sessions: sessions);
+      await first.startEditor();
+      await first.documents.open('utils.js');
+      await _drain();
+      first.page.typeText('// keep me\n');
+      await _drain();
+      final mine = first.container
+          .read(editorHostProvider)
+          .textOf(first.doc('utils.js').docId);
+      await first.documents.persisted;
+      first.kill();
+      // Another program saved it as UTF-16 meanwhile: no longer readable.
+      final utf16 = [0xFF, 0xFE, 0x41, 0x00];
+      files.putBytes('utils.js', utf16);
+
+      final ask = await _restart(files, sessions);
+      final restored = ask.doc('utils.js');
+      expect(restored.conflict, DocumentConflict.unreadable);
+      expect(restored.dirty, isTrue);
+      expect(restored.stamp, isNull);
+      expect(
+        ask.container.read(editorHostProvider).textOf(restored.docId),
+        mine,
+      );
+      await ask.documents.persisted;
+      ask.kill();
+
+      // Unanswered, it asks again; keeping the changes saves them over it.
+      final keep = await _restart(files, sessions);
+      expect(keep.doc('utils.js').conflict, DocumentConflict.unreadable);
+      keep.documents.keepRestoredEdits('utils.js');
+      expect(keep.doc('utils.js').conflict, isNull);
+      expect((await keep.documents.save('utils.js')).isOk, isTrue);
+      expect(files.textOf('utils.js'), mine);
+      expect(keep.doc('utils.js').dirty, isFalse);
+
+      files.putBytes('utils.js', utf16);
+      keep.page.typeText('more', docId: keep.doc('utils.js').docId);
+      await _drain();
+      await keep.documents.persisted;
+      keep.kill();
+      final close = await _restart(files, sessions);
+      expect(close.doc('utils.js').conflict, DocumentConflict.unreadable);
+      expect((await close.documents.useDiskVersion('utils.js')).isOk, isTrue);
+      expect(close.state.isOpen('utils.js'), isFalse);
+      expect(await close.journal(), isEmpty);
+    });
+
     test(
       'a journal that matches the file reopens clean, even untabbed',
       () async {
