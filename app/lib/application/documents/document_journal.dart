@@ -335,7 +335,12 @@ final class DocumentJournal {
   void _tick() {
     final now = _clock();
     var waiting = false;
-    for (final MapEntry(key: docId, value: journal) in [..._journals.entries]) {
+    // A copy: a snapshot can replace a document's journal mid-loop. (A
+    // MapEntry pattern here would infer dynamic: its type schema becomes
+    // the list literal's context.)
+    for (final entry in _journals.entries.toList()) {
+      final docId = entry.key;
+      final journal = entry.value;
       if (journal.pending == 0) {
         continue;
       }

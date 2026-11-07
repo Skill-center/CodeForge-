@@ -68,7 +68,7 @@ jobs:
       # pushed commit, which on a [bootstrap] push predates CI's commit-back
       # of the generated files; on later commits this reproduces them.
       - name: Generate code
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build
 
       - name: Build debug APK
         run: |

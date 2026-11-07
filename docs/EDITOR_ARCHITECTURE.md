@@ -113,7 +113,7 @@ If WebView editing proves unreliable on target devices after the gate, the docum
 - **New File** creates an empty file, refusing an existing path, and opens it.
 - **Close** never asks by itself: the workbench (`app/lib/features/workbench/file_actions.dart`) first offers Save / Don't Save / Cancel for a tab with unsaved changes. The active tab falls back to the most recently used other tab. *Close others* asks about each unsaved tab, showing it while it asks, and Cancel stops there.
 - **Language detection** goes by extension, then by whole file name (`.babelrc`, `.eslintrc`, `*.webmanifest`), then by the shebang of a file without a known extension (`node`, `deno`, `bun`, `ts-node`, `python3.x`, `pypy`; `env -S` and `NAME=value` are skipped). An explicit `.txt` stays plain text.
-- **Restore.** The tab order and the active tab are part of the shell state (`codeforge.shell.v1`, debounced and flushed on pause). On start, the workbench opens the workspace and reopens those tabs, once per app run. Files that have gone are skipped, and with nothing to reopen, `main.js` opens. Unsaved text does not survive a restart yet: W5's journal brings that (G4).
+- **Restore.** The tab order and the active tab are part of the shell state (`codeforge.shell.v1`, debounced and flushed on pause). On start, the workbench opens the workspace and reopens those tabs, once per app run. Files that have gone are skipped, and with nothing to reopen, `main.js` opens. *Since W5, tabs (with their cursor and scroll) and unsaved text live in the app database; see §7.*
 - **The tab strip** builds every tab and scrolls the active one into view, moving only as far as needed. The status strip shows the active document's language, its line endings (amber when mixed) and BOM.
 
 ### Shortcuts
@@ -128,3 +128,42 @@ App shortcuts work wherever the keyboard focus is. While Flutter has focus, the 
 | Ctrl+W | Close tab (asks if unsaved) |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab, wrapping |
 | Ctrl+Shift+P (F1 in the page) | Command palette |
+
+## 7. Zero-loss editing: the hot-exit journal (as built in W5)
+
+Spec §4.4: never lose text, never corrupt a file, never jump the cursor. Saving stays the user's decision. The journal keeps the unsaved text safe in the meantime, so that killing the app or a crash of the editor's renderer loses nothing typed (gate G4). The storage side is in ARCHITECTURE.md §2.6 and the ADR-0008 amendment.
+
+### What is written, and when
+
+- **Change sets, as they arrive.** The page reports every edit as a CodeMirror change set with its base version, new version and the text length before and after (§2). The host applies it to its shadow and passes it on as `DocumentEdited(docId, version, change: JournalChange)`. If the edit makes the document dirty, `DocumentJournal` appends the change to its journal.
+- **A snapshot, from which the changes continue.** A snapshot is the document's full text at a known version. One is taken:
+  - at the first unsaved edit;
+  - when the user switches tabs (for the tab being left);
+  - on pause, and on `checkpoint()`;
+  - every 5 s while new changes arrive (documents over 512 KiB at most once a minute);
+  - after 200 changes, so a replay stays short;
+  - whenever a change does not continue the last one written: a version gap, or a whole-text replacement such as a resync after a refused change or "Use the file".
+
+  Each snapshot replaces the document's stored changes in one transaction.
+- **Gone when clean.** A document that becomes clean again loses its journal: saved, closed with "Don't save", or typed or undone back to its saved text. A save while typing continues rebases the journal onto the new saved text. Save As moves it to the new path.
+- **Cursor and scroll.** The page reports `doc.viewState` after the cursor or scroll settles (`ViewStateChanged`). The controller saves the tabs at most once a second after such reports, and also when tabs open, close or switch, and on pause.
+- **Failures.** Writes go through one queue, in order. A failed write marks every journal as needing a fresh snapshot, so later changes are never appended to a journal that is missing its base. The timer then retries without waiting for new edits. While writes fail, the editor shows a banner saying unsaved changes are not being backed up. It disappears after the next successful write.
+
+### What a cold start does
+
+`DocumentController.restoreTabs` loads the saved tabs. On the first W5 start it imports the shell envelope's tabs instead (ARCHITECTURE.md §2.6). It then adds any document that has a journal but no tab, and for each journal:
+
+1. **Replays** the snapshot and its changes in order (`replayJournal` in `app/lib/core/editor/journal.dart`). Changes at or below the snapshot's version are skipped. Replay stops, keeping the text so far, at a version gap, a length that does not match, or a change set that does not apply. Damage after that point is dropped, never guessed at.
+2. **Reads the file** and compares it with the replayed text and with the journal's `baseDigest`, the SHA-256 of the saved text the edits were made against:
+   - The replayed text equals the file: the journal goes and the document opens clean.
+   - The file is the one the edits were made against: the document opens **dirty**, with the replayed text, cursor and scroll.
+   - **The file changed meanwhile:** the document opens dirty with the user's text. The saved text is now the file's, and the conflict is `changedOnDisk`. The workbench shows the tab and asks: **Keep my changes** (they become unsaved changes to the file as it now is) or **Use the file** (the editor text becomes the file's and the journal goes). Closing the dialog keeps the user's text and asks again on the next start, so nothing is decided for the user.
+   - **The file was deleted:** the same question, with "Discard changes" instead of "Use the file". Keeping the changes and saving creates the file again.
+   - **The file cannot be read:** the document opens dirty, as `unreadable`.
+3. **Rewrites the journal** as one snapshot of the replayed text, so the next start replays from there. Until the user answers, that snapshot keeps the old `baseDigest`, so an unanswered conflict is still a conflict after another restart.
+
+The editor document is opened at the replayed version, with the saved selection and scroll. The page therefore continues the version sequence, and the next change appends to the journal without starting over.
+
+### Renderer crashes and rotation
+
+webview_flutter_android 4.14.1 does not expose `onRenderProcessGone`, so when the WebView renderer dies, Android ends the app too. The journal does not need a separate recovery path for that case: a renderer crash is a process death, and the next start restores as above. The emulator gate's edit pair checks exactly that (TESTING.md §1.2). It crashes the renderer of a running app that has unsaved text, then checks the text, the dirty dot and the cursor after relaunch. Rotation keeps the process, the Flutter state and the page, so the journal is not involved.

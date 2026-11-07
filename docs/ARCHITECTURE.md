@@ -122,6 +122,17 @@ app/lib/
 - **Persistence:** open tabs and the active tab joined the `codeforge.shell.v1` envelope; restored paths are re-validated. **Migration:** none needed, so the schema version stays 1. Envelopes written before W4 decode with no tabs (the workbench then opens `main.js`), and earlier builds ignore the new fields. Drift (ADR-0008) takes tabs over in W5, together with the journal of unsaved text.
 - **Fakes:** the app no longer ships an in-memory file service; widget tests use `test/support/memory_file_service.dart`, which applies the production path rules and codec.
 
+### 2.6 As built in Phase 2 W5 (zero-loss persistence)
+
+- **`SessionStore` contract** (`lib/services/storage/session_store.dart`): `touchWorkspace`, `loadTabs` / `saveTabs` (order, active tab, selection, scroll), `loadJournal`, `writeSnapshot(snapshot, restart:)`, `appendChange`, `discardJournal`. Every call returns a `Result`. `DriftSessionStore` implements it over the Drift database (`app_database.dart`, schema v1: `workspaces`, `open_tabs`, `journal_documents`, `journal_changes`). `MemorySessionStore` stands in for it in tests.
+- **Opening the database.** `sessionStoreProvider` opens `<filesDir>/codeforge.sqlite` lazily, on its first use, in a background isolate (`NativeDatabase.createInBackground`). The folder comes from the same `dev.codeforge/paths` channel as the workspace. WAL mode and `synchronous = NORMAL` are set when it opens. A failure to open or write becomes a logged `StorageFailure`, and the editor shows it as a banner ("Unsaved changes are not being backed up, so a crash would lose them. Save your files to keep them safe."); it never crashes the app. SQLite comes from the `sqlite3` package's build hook (a prebuilt, hash-checked library per ABI), so there is no `sqlite3_flutter_libs` and no NDK build.
+- **The hot-exit journal** (`lib/application/documents/document_journal.dart`), owned by `DocumentController`, writes what EDITOR_ARCHITECTURE.md §7 describes. All writes go through one queue, in the order they were asked for. Each snapshot replaces the document's stored changes in one transaction.
+- **Lifecycle.** Unsaved text reaches the database as it is typed, so nothing waits for a lifecycle event. On pause, `app.dart` still runs `DocumentController.checkpoint()` (flush the page, snapshot every journal with new changes, save tabs), but only if the controller exists. A renderer crash is a process death: webview_flutter_android 4.14.1 does not expose `onRenderProcessGone`, so Android ends the app with its renderer, and the next start restores from the journal. Rotation keeps the process, and the journal is not involved.
+- **Codegen.** drift_dev 2.35.2 and build_runner 2.17.1 are dev dependencies. CI generates their output (ADR-0008 amendment), so the authoring sandbox, which has no Dart SDK, never needs it.
+- **Migration notes (stored data).**
+  - *Tabs leave the shell envelope.* W4 stored open tabs and the active tab in `codeforge.shell.v1`. On the first W5 start, when the database has no tabs for the workspace, the envelope's tabs are imported once and the envelope's tab fields are cleared. The envelope's schema version stays 1: the fields remain, empty, so a W4 build reading the envelope finds no tabs and opens `main.js`. W4 envelope tabs carry no selection or scroll, so they import with the cursor at the start.
+  - *The database is new.* Schema v1 is the first version and no older database exists, so there is no migration yet. ADR-0008's amendment gives the rule for every later version.
+
 ## 3. Android host structure
 
 ```
@@ -148,12 +159,12 @@ The host is a **thin orchestration layer**: it contains no provisioning logic of
 |---|---|---|---|
 | App settings (theme, font, keymap) | shared_preferences | Phase 1 | typed wrapper, schema version key |
 | Workspace registry, tabs, layout, sessions | **Drift (SQLite)** | Phase 2 | versioned schema, migrations tested; one DB per app, workspace-scoped rows |
-| Editor buffers (crash-safe) | app-private files + Drift metadata | Phase 2 | write-ahead journaling of dirty buffers |
+| Editor buffers (crash-safe) | **Drift (SQLite)**: a snapshot and an append-only change log per unsaved document | Phase 2 (W5) | hot-exit journal; ADR-0008 amendment, EDITOR_ARCHITECTURE.md §7 |
 | Runtime state (installed payload manifest, markers) | files in runtime root (t1 layout) | Phase 4 | dpkg/manifest is source of truth, mirrored into RuntimeService |
 | Credentials (Git tokens, SSH keys) | Android Keystore-backed encrypted store | Phase 7 | never in plain prefs, never logged |
 | Extension manifests/permissions | Drift + files | Phase 8 | signed manifest hash, explicit grants |
 
-As built (W4): workspace files live in `<filesDir>/workspaces/demo`; open tabs and the active tab sit in the shell envelope until the Drift schema lands in W5.
+As built (W4): workspace files live in `<filesDir>/workspaces/demo`. As built (W5): open tabs, the active tab, each tab's cursor and scroll, and the journal of unsaved text live in `<filesDir>/codeforge.sqlite` (schema v1, §2.6). The shell envelope keeps the route, layout and terminal state.
 
 Backward compatibility rule (spec §12.19): every schema change ships a migration + a migration test; workspace data written by version N must open in N+1.
 

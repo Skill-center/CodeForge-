@@ -19,10 +19,17 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - **Shortcuts:** Ctrl+S, Ctrl+Shift+S, Ctrl+N, Ctrl+W, Ctrl+Tab / Ctrl+Shift+Tab and Ctrl+Shift+P work whether the editor or the app has the keyboard.
 - W4 verified by CI 42238016497 (`+431: All tests passed!`) and phase gate 42238016973, where the on-device file and tab checks and the restore pair passed on attempt 1 (gates G2 and G3).
 
+- **W5 zero-loss editing:** unsaved text survives the app being killed and a crash of the editor's renderer. A hot-exit journal in the new app database keeps each unsaved document as a snapshot plus the editor's change sets since, written as you type. The next start replays it and reopens the document still unsaved, with its cursor and scroll. A file that changed or was deleted meanwhile keeps both texts and asks: keep my changes, or use the file. A banner says when unsaved changes cannot be backed up.
+- **App database** (`codeforge.sqlite`, Drift 2.35.3, schema v1): workspaces, open tabs with each tab's cursor and scroll, and the journal. It opens lazily in a background isolate, and SQLite comes from the `sqlite3` package's prebuilt, hash-checked libraries. A migration test harness starts with v1.
+- Tests: journal replay against the live text for randomized edit sequences; the journal's write order, failure recovery and timers; the database on real SQLite, including a v1 fixture through drift_dev's schema verifier; process death, conflicts, deleted files and damaged journals in controller and widget tests. The emulator gate gains an edit pair: type without saving, crash the WebView renderer, force-stop, relaunch, then check the text, the dirty dot and the cursor.
+
 ### Fixed — Phase 2
 - **Selected text on the cursor's line was invisible**, in the editor and in the benchmark page: the copy menu and handles appeared, but no highlight. The active line's opaque background covered CodeMirror's selection layer. A line is now highlighted only around a plain cursor, as in VS Code (`editor/src/editor/active_line.ts`). The owner found this in the W3 phone run. Verified in CI 42216855073 and phase gate 42216855184.
 
 ### Changed — Phase 2
+- **Open tabs moved from the shell envelope to the app database**, imported once on the first W5 start; each tab now also gets back its cursor and scroll (ARCHITECTURE.md §2.6 has the migration note).
+- **ADR-0008 amended:** buffer journals live in SQLite, not files, because a snapshot must replace the changes it covers in one transaction.
+- CI: bootstrap mode generates Drift's code and migration helpers and commits them; every run checks the committed copies are current, and the phase gate generates them before building. Dependency resolution output is kept for the diagnostics commit.
 - **ADR-0004 accepted: CodeMirror 6** is the editor engine. It was measured against Monaco on the CI emulator and on the owner's low-end phone (realme C51), where it met the cold-load and typing budgets. Large-file typing and scrolling, memory, and selection handles at line boundaries are carried to W6/W7.
 - Phase 1's parked G6 check is complete: 3.4 % of navigation frames over 32 ms on the owner's phone (budget 5 %).
 - The benchmark's typing check now says what to do and shows each result (match, or where the text differs and what the editor holds) next to its buttons.

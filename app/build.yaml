@@ -1,8 +1,8 @@
 # Drift code generation (ADR-0008). Nothing here runs in the authoring
-# sandbox (no Dart SDK): CI's [bootstrap] mode runs build_runner and
-# `drift_dev make-migrations` and commits the results back, and every other
-# CI run regenerates them and fails if the committed copies are stale
-# (.github/workflows/ci.yml, "Generated code check").
+# sandbox (no Dart SDK): CI's [bootstrap] mode runs build_runner,
+# `drift_dev make-migrations` and `drift_dev schema generate` and commits the
+# results back, and every CI run regenerates them and fails if the committed
+# copies are stale (.github/workflows/ci.yml, "Generated code check").
 targets:
   $default:
     builders:
