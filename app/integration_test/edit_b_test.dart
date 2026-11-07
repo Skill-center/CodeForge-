@@ -9,8 +9,10 @@ import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/core/errors/failure.dart';
+import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -69,6 +71,42 @@ void main() {
     debugPrint(
       'edit-gate: restored ${editGateText.length} chars, cursor '
       '${snapshot.selection?.head}, dirty ${doc.dirty}',
+    );
+
+    // Rotation: the activity handles it itself (the manifest's
+    // configChanges), and the editor pane moves to the docked layout under
+    // its key. The page must not reload, and nothing may change.
+    final starts = host.pageStarts;
+    Future<void> rotate(
+      DeviceOrientation orientation, {
+      required bool docked,
+    }) async {
+      await SystemChrome.setPreferredOrientations([orientation]);
+      await pumpUntil(
+        tester,
+        () => find.byType(CfNavRail).evaluate().isNotEmpty == docked,
+        what: docked ? 'the docked landscape layout' : 'portrait again',
+      );
+      await tester.pump(const Duration(seconds: 1));
+      final after = (await host.snapshot(doc.docId)).orThrow;
+      final where = orientation.name;
+      expect(after.text, editGateText, reason: where);
+      expect(after.selection?.anchor, editGateCursor, reason: where);
+      expect(after.selection?.head, editGateCursor, reason: where);
+      expect(
+        container.read(documentControllerProvider).documents['main.js']!.dirty,
+        isTrue,
+        reason: where,
+      );
+      expect(host.pageStarts, starts, reason: '$where: the page reloaded');
+    }
+
+    await rotate(DeviceOrientation.landscapeLeft, docked: true);
+    await rotate(DeviceOrientation.portraitUp, docked: false);
+    await SystemChrome.setPreferredOrientations(const []);
+    debugPrint(
+      'edit-gate: rotated to landscape and back; page starts $starts '
+      'before and ${host.pageStarts} after, text and cursor kept',
     );
   });
 }
