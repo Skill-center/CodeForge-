@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/documents/document_controller.dart';
+import '../../application/documents/document_state.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/workspace_path.dart';
 import 'file_dialogs.dart';
@@ -139,6 +140,47 @@ Future<bool> closeFile(BuildContext context, WidgetRef ref, String path) async {
   }
   documents.close(path);
   return true;
+}
+
+/// Asks about each restored document whose unsaved changes no longer
+/// match its file (ADR-0008), showing it while it is asked about. Each is
+/// asked about once; until then both versions stay as they are.
+Future<void> resolveRestoredConflicts(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final asked = <String>{};
+  while (context.mounted) {
+    final state = ref.read(documentControllerProvider);
+    final path = state.openPaths
+        .where((p) => !asked.contains(p) && state.documents[p]?.conflict != null)
+        .firstOrNull;
+    final doc = path == null ? null : state.documents[path];
+    if (path == null || doc == null) {
+      return;
+    }
+    asked.add(path);
+    final documents = ref.read(documentControllerProvider.notifier)
+      ..activate(path);
+    final choice = await askRestoredConflict(
+      context,
+      doc.name,
+      fileGone: doc.conflict != DocumentConflict.changedOnDisk,
+    );
+    if (!context.mounted) {
+      return;
+    }
+    switch (choice) {
+      case ConflictChoice.keepChanges:
+        documents.keepRestoredEdits(path);
+      case ConflictChoice.useFile:
+        final result = await documents.useDiskVersion(path);
+        if (!context.mounted) {
+          return;
+        }
+        _announce(context, result);
+    }
+  }
 }
 
 /// Closes every tab but [keep], asking about each one with unsaved changes

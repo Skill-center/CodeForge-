@@ -17,6 +17,7 @@ final class OpenDocument {
     required this.stamp,
     this.dirty = false,
     this.mixedLineEndings = false,
+    this.conflict,
   });
 
   /// Workspace-relative path.
@@ -35,8 +36,10 @@ final class OpenDocument {
   /// The text on disk as of the last read or save, "\n" line breaks.
   final String savedText;
 
-  /// The file's stamp as of the last read or save.
-  final FileStamp stamp;
+  /// The file's stamp as of the last read or save; null when there is no
+  /// file (it was deleted while the document had unsaved changes). Saving
+  /// then creates it again.
+  final FileStamp? stamp;
 
   /// The editor's text differs from [savedText]. Undoing back to the saved
   /// text makes the document clean again.
@@ -46,28 +49,48 @@ final class OpenDocument {
   /// writes [format]'s style throughout.
   final bool mixedLineEndings;
 
+  /// Set when unsaved changes restored from the hot-exit journal no longer
+  /// match the file: the user decides which to keep (the workbench asks).
+  /// Both stay as they are until then.
+  final DocumentConflict? conflict;
+
   /// The tab label.
   String get name => pathBaseName(path);
 
   OpenDocument copyWith({
     String? path,
     String? language,
+    TextFormat? format,
     String? savedText,
     FileStamp? stamp,
     bool? dirty,
     bool? mixedLineEndings,
+    bool clearConflict = false,
   }) {
     return OpenDocument(
       path: path ?? this.path,
       docId: docId,
       language: language ?? this.language,
-      format: format,
+      format: format ?? this.format,
       savedText: savedText ?? this.savedText,
       stamp: stamp ?? this.stamp,
       dirty: dirty ?? this.dirty,
       mixedLineEndings: mixedLineEndings ?? this.mixedLineEndings,
+      conflict: clearConflict ? null : conflict,
     );
   }
+}
+
+/// How restored unsaved changes disagree with the file.
+enum DocumentConflict {
+  /// The file changed on disk after the edits were made.
+  changedOnDisk,
+
+  /// The file is gone.
+  deleted,
+
+  /// The file can no longer be read as text.
+  unreadable,
 }
 
 /// All open documents. Every open path has one tab, one document and one
@@ -78,6 +101,7 @@ final class DocumentsState {
     this.activePath,
     this.documents = const {},
     this.recent = const [],
+    this.journalProblem,
   });
 
   /// Tab order.
@@ -92,6 +116,32 @@ final class DocumentsState {
   /// falls back to the one used before it.
   final List<String> recent;
 
+  /// Why unsaved changes are not reaching the hot-exit journal, while they
+  /// are not: the editor pane says so, because a crash would lose them.
+  final String? journalProblem;
+
+  static const Object _unchanged = Object();
+
+  DocumentsState copyWith({
+    List<String>? openPaths,
+    Object? activePath = _unchanged,
+    Map<String, OpenDocument>? documents,
+    List<String>? recent,
+    Object? journalProblem = _unchanged,
+  }) {
+    return DocumentsState(
+      openPaths: openPaths ?? this.openPaths,
+      activePath: identical(activePath, _unchanged)
+          ? this.activePath
+          : activePath as String?,
+      documents: documents ?? this.documents,
+      recent: recent ?? this.recent,
+      journalProblem: identical(journalProblem, _unchanged)
+          ? this.journalProblem
+          : journalProblem as String?,
+    );
+  }
+
   OpenDocument? get active {
     final path = activePath;
     return path == null ? null : documents[path];
@@ -102,6 +152,17 @@ final class DocumentsState {
     for (final path in openPaths)
       if (documents[path]?.dirty ?? false) path,
   ];
+
+  /// The first open path whose restored changes disagree with its file, in
+  /// tab order.
+  String? get firstConflict {
+    for (final path in openPaths) {
+      if (documents[path]?.conflict != null) {
+        return path;
+      }
+    }
+    return null;
+  }
 
   bool isOpen(String path) => documents.containsKey(path);
 }

@@ -15,8 +15,15 @@ dependencies:
   flutter_riverpod: 3.4.3
   # Declarative routing with deep links + restoration (ADR-0003).
   go_router: 18.1.3
-  # Settings persistence only; structured state moves to Drift in Phase 2 (ADR-0008).
+  # Settings and the shell envelope (theme, layout, last route); structured
+  # state lives in Drift (ADR-0008).
   shared_preferences: 2.5.6
+  # The app database (ADR-0008, Phase 2 W5): workspaces, open tabs with their
+  # cursor and scroll, and the hot-exit journal of unsaved edits. Brings
+  # sqlite3 3.x, whose build hook bundles a prebuilt, hash-checked SQLite for
+  # each target (Android ABIs, and the CI host for `flutter test`): no NDK
+  # build and no sqlite3_flutter_libs.
+  drift: 2.35.3
   # SHA-256 check of the bundled editor page against its manifest before it
   # runs (docs/SECURITY.md §3). It was already locked as a transitive
   # dependency; declared at the locked version now that lib/ imports it.
@@ -34,6 +41,13 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: 6.0.0
+  # Drift's code generator (ADR-0008). The generated files are produced by
+  # CI ([bootstrap] commits them back) and checked for staleness on every
+  # run; the authoring sandbox has no Dart SDK (docs/TESTING.md §4).
+  # drift_dev 2.35.2 is the first that accepts build 5, which
+  # build_runner 2.17 requires.
+  build_runner: 2.17.1
+  drift_dev: 2.35.2
 
 flutter:
   uses-material-design: true

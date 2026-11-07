@@ -283,6 +283,9 @@ restore_pair() {
   # Evidence: the persisted envelope actually on disk before the kill.
   "$ADB" shell run-as "$APP_ID" cat shared_prefs/FlutterSharedPreferences.xml \
     > "$RESULTS/prefs_after_a.txt" 2>&1 || true
+  # ... and the app database (tabs since Phase 2 W5).
+  "$ADB" shell run-as "$APP_ID" ls -l files/ \
+    > "$RESULTS/files_after_a.txt" 2>&1 || true
   "$ADB" shell am force-stop "$APP_ID" | tee "$RESULTS/force_stop.txt"
   sleep 3
   local pid
@@ -308,6 +311,95 @@ for pair in 1 2; do
     | tee -a "$RESULTS/attempts.txt"
 done
 [ "$restore_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Integration — edit pair (G4: unsaved typing → renderer crash + process death → verify)"
+# Part A types into main.js through the real page and never saves; it ends
+# once the hot-exit journal and the saved tabs hold the text and the cursor.
+# The plain app (same package and signing key, so `install -r` keeps the
+# data) is then launched to restore that session, and its WebView renderer
+# is killed: webview_flutter_android 4.14.1 has no onRenderProcessGone, so
+# Android takes the app down with it — a renderer crash is a process death.
+# That step is best effort and recorded in edit_renderer_crash.txt. A
+# force-stop makes sure, and part B checks the exact text, the unsaved
+# state and the cursor.
+renderer_pids() {
+  "$ADB" shell ps -A -o PID,NAME 2>/dev/null | tr -d '\r' \
+    | awk '/sandboxed_process/ {print $1}'
+}
+crash_renderer() {
+  local out="$RESULTS/edit_renderer_crash.txt" pids="" pid
+  : > "$out"
+  if [ ! -f build/gate/app-plain-debug.apk ]; then
+    echo "no plain debug APK: renderer crash skipped" | tee -a "$out"
+    return 0
+  fi
+  "$ADB" install -r build/gate/app-plain-debug.apk 2>&1 | tail -1 \
+    | tee -a "$out"
+  # Renderers run in isolated processes: killing one needs root (the
+  # google_apis image allows it).
+  "$ADB" root >/dev/null 2>&1 || true
+  "$ADB" wait-for-device
+  "$ADB" shell am start -n "$APP_ID/.MainActivity" 2>&1 | tr -d '\r' \
+    | tee -a "$out"
+  for _ in $(seq 1 60); do
+    pids=$(renderer_pids)
+    [ -n "$pids" ] && break
+    sleep 1
+  done
+  if [ -z "$pids" ]; then
+    echo "no WebView renderer within 60 s: renderer crash skipped" \
+      | tee -a "$out"
+    return 0
+  fi
+  # Let the restored session settle before the crash.
+  sleep 5
+  pids=$(renderer_pids)
+  echo "app pid before: $("$ADB" shell pidof "$APP_ID" 2>/dev/null | tr -d '\r')" \
+    | tee -a "$out"
+  echo "renderer pids: $(echo $pids)" | tee -a "$out"
+  for pid in $pids; do
+    "$ADB" shell kill -9 "$pid" 2>&1 | tee -a "$out"
+  done
+  sleep 5
+  pid=$("$ADB" shell pidof "$APP_ID" 2>/dev/null | tr -d '\r')
+  echo "app pid after the renderer kill: ${pid:-none, the app died with its renderer}" \
+    | tee -a "$out"
+}
+edit_pair() {
+  # Clean slate: every attempt is a complete, self-contained proof.
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  run_itest edit_a integration_test/edit_a_test.dart --no-uninstall \
+    || return 1
+  # Evidence: the app database (journal and tabs) on disk before the kill.
+  "$ADB" shell run-as "$APP_ID" ls -l files/ \
+    > "$RESULTS/edit_files_after_a.txt" 2>&1 || true
+  crash_renderer || true
+  "$ADB" shell am force-stop "$APP_ID"
+  sleep 3
+  local pid
+  pid=$("$ADB" shell pidof "$APP_ID" 2>/dev/null | tr -d '\r')
+  if [ -n "$pid" ]; then
+    echo "process still alive after force-stop (pid $pid)" \
+      | tee "$RESULTS/edit_process_after_kill.txt"
+    return 1
+  fi
+  echo "no $APP_ID process after the renderer kill and am force-stop — process death confirmed" \
+    | tee "$RESULTS/edit_process_after_kill.txt"
+  run_itest edit_b integration_test/edit_b_test.dart || return 1
+}
+edit_ok=0
+for pair in 1 2; do
+  INFRA_SEEN=0
+  if edit_pair; then
+    edit_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "edit pair attempt $pair hit infrastructure failures — re-running the whole pair" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+[ "$edit_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

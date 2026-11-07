@@ -281,6 +281,25 @@ final class FakeEditorSurface implements EditorSurface {
     _change(target, at: doc.text.length - count, delete: count, insert: '');
   }
 
+  /// Reports a selection and scroll offset for the active document (or
+  /// [docId]), as the page does after the cursor moves (`doc.viewState`).
+  void moveCursor(
+    int anchor, {
+    int? head,
+    double scrollTop = 0,
+    String? docId,
+  }) {
+    final target = docId ?? activeDocId;
+    if (target == null) {
+      throw StateError('no document to move the cursor in');
+    }
+    emit('doc.viewState', {
+      'docId': target,
+      'selection': {'anchor': anchor, 'head': head ?? anchor},
+      'scrollTop': scrollTop,
+    });
+  }
+
   /// Presses an app shortcut while the page has focus (`app.shortcut`).
   void pressShortcut(String shortcut) =>
       emit('app.shortcut', {'shortcut': shortcut});

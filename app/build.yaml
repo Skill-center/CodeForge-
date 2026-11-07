@@ -1,0 +1,17 @@
+# Drift code generation (ADR-0008). Nothing here runs in the authoring
+# sandbox (no Dart SDK): CI's [bootstrap] mode runs build_runner and
+# `drift_dev make-migrations` and commits the results back, and every other
+# CI run regenerates them and fails if the committed copies are stale
+# (.github/workflows/ci.yml, "Generated code check").
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # make-migrations dumps each schema version here
+          # (drift_schemas/app/drift_schema_vN.json) and generates the
+          # migration test helpers under test/drift/app/generated/.
+          databases:
+            app: lib/services/storage/app_database.dart
+          schema_dir: drift_schemas/
+          test_dir: test/drift/

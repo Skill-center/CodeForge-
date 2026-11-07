@@ -204,7 +204,7 @@ void main() {
       });
     await settle(tester);
 
-    expect(events, hasLength(4));
+    expect(events, hasLength(5));
     final history = events[0] as HistoryChanged;
     expect(
       [history.docId, history.canUndo, history.canRedo],
@@ -213,6 +213,8 @@ void main() {
     expect((events[1] as FocusChanged).focused, isTrue);
     expect((events[2] as CompositionChanged).composing, isTrue);
     expect((events[3] as ShortcutPressed).shortcut, 'save');
+    expect((events[4] as ViewStateChanged).docId, 'd1');
+    expect(host.viewStateOf('d1')?.selection?.head, 2);
     await host.dispose();
   });
 

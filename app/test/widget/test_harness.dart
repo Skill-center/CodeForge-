@@ -14,6 +14,7 @@ import 'package:codeforge/design_system/theme/theme.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
+import 'package:codeforge/services/storage/session_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Riverpod 3 exports Override from misc.dart, not the main library.
@@ -31,11 +32,13 @@ final class TestHarness {
     this.editorPageLoader,
     this.benchRunnerFactory,
     MemoryFileService? files,
+    SessionStore? sessionStore,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
        shellStore = InMemoryShellStateStore(shell),
-       files = files ?? MemoryFileService();
+       files = files ?? MemoryFileService(),
+       sessionStore = sessionStore ?? MemorySessionStore();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -43,6 +46,10 @@ final class TestHarness {
   /// The workspace, shared by every app this harness pumps (a second
   /// [app] is a restart over the same files).
   final MemoryFileService files;
+
+  /// Tabs and the hot-exit journal, shared the same way: a second [app]
+  /// without a pause first is the app after process death.
+  final SessionStore sessionStore;
 
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
@@ -61,6 +68,7 @@ final class TestHarness {
     settingsStoreProvider.overrideWithValue(settingsStore),
     shellStateStoreProvider.overrideWithValue(shellStore),
     fileServiceProvider.overrideWithValue(files),
+    sessionStoreProvider.overrideWithValue(sessionStore),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),
     editorBenchRunnerFactoryProvider.overrideWithValue(
       benchRunnerFactory ?? fakeBenchRunnerFactory(),

@@ -83,6 +83,18 @@ class EditorPane extends ConsumerWidget {
                   ],
                 ),
               ),
+            if (documents.journalProblem != null &&
+                constraints.maxHeight >= tabStripExtent + 160)
+              Padding(
+                padding: const EdgeInsets.all(CfSpacing.sm),
+                child: CfBanner(
+                  key: const ValueKey('journal_problem'),
+                  kind: CfBannerKind.danger,
+                  message:
+                      'Unsaved changes are not being backed up, so a crash '
+                      'would lose them. Save your files to keep them safe.',
+                ),
+              ),
             Expanded(
               // Keyed: when the tab strip and the toolbar come or go in the
               // same layout (the keyboard opening on a short landscape

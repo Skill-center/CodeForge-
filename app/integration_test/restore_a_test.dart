@@ -1,14 +1,16 @@
 /// Restore gate, part A (G5, and G3's tabs): establish a distinctive state —
 /// light theme, workspace route, terminal half-open, a second tab active —
-/// and let it persist. CI force-stops the process after this test;
+/// and let it persist (prefs for the shell, the app database for tabs). CI force-stops the process after this test;
 /// restore_b_test verifies survival.
 library;
 
 import 'package:codeforge/app.dart';
 import 'package:codeforge/application/documents/document_controller.dart';
+import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
+import 'package:codeforge/services/storage/session_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -79,7 +81,16 @@ void main() {
     expect(settingsRaw, contains('"themeMode":"light"'));
     expect(shellRaw, contains('"lastRoute":"/workspace"'));
     expect(shellRaw, contains('"terminalStop":"half"'));
-    expect(shellRaw, contains('"openTabs":["main.js","app.py"]'));
-    expect(shellRaw, contains('"activeTab":"app.py"'));
+
+    // Tabs live in the app database (ADR-0008), not the envelope: wait for
+    // every write asked for, then read them back.
+    await container.read(documentControllerProvider.notifier).persisted;
+    final tabs =
+        (await container.read(sessionStoreProvider).loadTabs('demo'))
+            .valueOrNull ??
+        const <SavedTab>[];
+    expect([for (final tab in tabs) tab.path], ['main.js', 'app.py']);
+    expect([for (final tab in tabs) if (tab.active) tab.path], ['app.py']);
+    expect(shellRaw, isNot(contains('main.js')));
   });
 }

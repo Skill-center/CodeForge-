@@ -148,15 +148,38 @@ jobs:
           name: editor-page
           path: app/assets/editor
 
+      # Captured so a failed resolution still reaches the diagnostics
+      # commit (bootstrap) and the job summary.
       - name: Resolve dependencies
-        run: flutter pub get
+        run: |
+          mkdir -p ci-results
+          flutter pub get 2>&1 | tee ci-results/pub-get.txt
+          exit "${PIPESTATUS[0]}"
 
       # ── Bootstrap mode ────────────────────────────────────────────────
       # A commit whose message contains [bootstrap] asks CI to generate the
       # artifacts that cannot be produced in the authoring sandbox (no Dart
-      # SDK there): pubspec.lock, dart fix/format results, golden baselines.
-      # Results are committed back with [skip ci]; THIS run then validates
-      # the fixed tree, so the run itself is the evidence.
+      # SDK there): pubspec.lock, generated code, dart fix/format results,
+      # golden baselines. Results are committed back with [skip ci]; THIS run
+      # then validates the fixed tree, so the run itself is the evidence.
+
+      # Drift's database code, migration steps, schema dumps and migration-
+      # test helpers (Phase 2 W5, ADR-0008), generated before fix + format.
+      # Every run regenerates them under "Generated code check" and fails if
+      # the committed copies are stale. Logged, and allowed to fail so the
+      # diagnostics commit still carries what went wrong.
+      - name: Bootstrap — generate code
+        if: contains(github.event.head_commit.message, '[bootstrap]')
+        continue-on-error: true
+        run: |
+          status=0
+          {
+            dart run build_runner build --delete-conflicting-outputs \
+              && dart run drift_dev make-migrations
+          } > ci-results/codegen-bootstrap.txt 2>&1 || status=$?
+          tail -40 ci-results/codegen-bootstrap.txt
+          exit "$status"
+
       - name: Bootstrap — dart fix + format
         if: contains(github.event.head_commit.message, '[bootstrap]')
         run: |
@@ -219,6 +242,25 @@ jobs:
         run: |
           flutter pub get
           git diff --exit-code -- pubspec.lock > ci-results/lockfile.txt 2>&1
+
+      # Regenerates the Drift output exactly as bootstrap does (generate,
+      # then the SDK formatter) and fails if the committed copies differ —
+      # including a schema changed without a new schema version, which
+      # make-migrations refuses.
+      - name: Generated code check
+        id: codegen
+        continue-on-error: true
+        run: |
+          {
+            dart run build_runner build --delete-conflicting-outputs
+            dart run drift_dev make-migrations
+            dart format $(find lib -name '*.g.dart' -o -name '*.steps.dart') \
+              test/drift/app/generated
+            echo "--- generated files that differ from the commit:"
+            git status --porcelain -- '*.g.dart' '*.steps.dart' drift_schemas test/drift
+          } > ci-results/codegen.txt 2>&1
+          tail -20 ci-results/codegen.txt
+          test -z "$(git status --porcelain -- '*.g.dart' '*.steps.dart' drift_schemas test/drift)"
 
       - name: Format check
         id: format
@@ -303,6 +345,9 @@ jobs:
         if: always() && contains(github.event.head_commit.message, '[bootstrap]')
         working-directory: ${{ github.workspace }}
         run: |
+          # Also set here: the earlier commit-back steps may not have run.
+          git config user.name "codeforge-ci"
+          git config user.email "ci@codeforge.invalid"
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): gate diagnostics [skip ci]"
@@ -329,10 +374,11 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile format analyze imports licenses tests build; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
+              codegen) outcome="${{ steps.codegen.outcome }}" ;;
               format) outcome="${{ steps.format.outcome }}" ;;
               analyze) outcome="${{ steps.analyze.outcome }}" ;;
               imports) outcome="${{ steps.imports.outcome }}" ;;

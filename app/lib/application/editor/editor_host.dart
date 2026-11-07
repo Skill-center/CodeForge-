@@ -15,6 +15,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart' show BuildContext, Widget;
 
+import '../../core/editor/journal.dart';
 import '../../core/editor/protocol.dart';
 import '../../core/editor/rate_limiter.dart';
 import '../../core/editor/shadow_document.dart';
@@ -51,10 +52,23 @@ sealed class EditorHostEvent {
 
 /// A document's text changed: an edit, or a resync from the editor.
 final class DocumentEdited extends EditorHostEvent {
-  const DocumentEdited(this.docId, this.version);
+  const DocumentEdited(this.docId, this.version, {this.change});
 
   final String docId;
   final int version;
+
+  /// The edit as the page sent it, for the hot-exit journal. Null when the
+  /// text was replaced whole: a shadow rebuilt from the page, or
+  /// [EditorHost.replaceText].
+  final JournalChange? change;
+}
+
+/// The page reported a document's selection or scroll offset
+/// (`doc.viewState`); [EditorHost.viewStateOf] has the values.
+final class ViewStateChanged extends EditorHostEvent {
+  const ViewStateChanged(this.docId);
+
+  final String docId;
 }
 
 final class HistoryChanged extends EditorHostEvent {
@@ -188,6 +202,15 @@ final class EditorHost {
   String? textOf(String docId) => _documents[docId]?.text;
   int? versionOf(String docId) => _documents[docId]?.version;
 
+  /// The selection and scroll offset the page last reported for [docId]
+  /// (`doc.viewState`), or what it was opened with.
+  ({EditorSelection? selection, double scrollTop})? viewStateOf(String docId) {
+    final doc = _documents[docId];
+    return doc == null
+        ? null
+        : (selection: doc.selection, scrollTop: doc.scrollTop);
+  }
+
   /// The widget showing the page. Mount it in one place only: it is the
   /// page, not a picture of it.
   Widget buildView(BuildContext context) => _surface.buildView(context);
@@ -290,12 +313,19 @@ final class EditorHost {
 
   /// Opens a document; [text] must use "\n" line breaks. While the page is
   /// not ready the document waits in its shadow and opens with the sync.
+  /// Opens [docId] with [text]. A document restored from the hot-exit
+  /// journal passes the [version] its journal reached, so the edits that
+  /// follow continue its numbering, and the [selection] and [scrollTop] its
+  /// tab had.
   Future<Result<void>> openDocument({
     required String docId,
     required String text,
     required String language,
     bool activate = true,
     bool readOnly = false,
+    int version = 0,
+    EditorSelection? selection,
+    double scrollTop = 0,
   }) async {
     if (_documents.containsKey(docId)) {
       return Err(BridgeFailure('Document $docId is already open.'));
@@ -309,8 +339,11 @@ final class EditorHost {
       docId: docId,
       language: language,
       text: text,
+      version: version,
       readOnly: readOnly,
-    );
+    )
+      ..selection = selection
+      ..scrollTop = scrollTop;
     _documents[docId] = doc;
     if (activate) {
       _activeDocId = docId;
@@ -420,6 +453,41 @@ final class EditorHost {
           ),
         );
     }
+  }
+
+  /// Replaces [docId]'s whole text: the user chose the file on disk over
+  /// their unsaved edits. Undo history starts over; the cursor stays where
+  /// it was, kept inside the new text.
+  Future<Result<void>> replaceText(String docId, String text) async {
+    if (!_documents.containsKey(docId)) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    if (text.contains('\r')) {
+      return const Err(
+        BridgeFailure('Editor text must use \\n line breaks only.'),
+      );
+    }
+    if (_ready) {
+      // Edits still on their way would otherwise land on the new text.
+      await flush(docId);
+    }
+    final doc = _documents[docId];
+    if (doc == null) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    final version = doc.version + 1;
+    doc.resync(text: text, version: version);
+    _emit(DocumentEdited(docId, version));
+    if (!_ready) {
+      return const Ok(null);
+    }
+    return _done(
+      await _request('doc.replace', {
+        'docId': docId,
+        'text': text,
+        'version': version,
+      }, timeout: _timeoutFor(text.length)),
+    );
   }
 
   /// Highlights [docId] as [language] from now on (Save As to another
@@ -775,15 +843,32 @@ final class EditorHost {
       );
       return;
     }
+    final baseVersion = payload.integer('baseVersion');
+    final version = payload.integer('version');
+    final lengthBefore = payload.integer('lengthBefore');
+    final lengthAfter = payload.integer('lengthAfter');
+    final changes = payload.list('changes');
     final problem = doc.applyChange(
-      baseVersion: payload.integer('baseVersion'),
-      version: payload.integer('version'),
-      lengthBefore: payload.integer('lengthBefore'),
-      lengthAfter: payload.integer('lengthAfter'),
-      changes: payload.list('changes'),
+      baseVersion: baseVersion,
+      version: version,
+      lengthBefore: lengthBefore,
+      lengthAfter: lengthAfter,
+      changes: changes,
     );
     if (problem == null) {
-      _emit(DocumentEdited(docId, doc.version));
+      _emit(
+        DocumentEdited(
+          docId,
+          doc.version,
+          change: JournalChange(
+            baseVersion: baseVersion,
+            version: version,
+            lengthBefore: lengthBefore,
+            lengthAfter: lengthAfter,
+            changes: changes,
+          ),
+        ),
+      );
       return;
     }
     appLogger.error(
@@ -807,6 +892,7 @@ final class EditorHost {
         head: selection.integer('head'),
       )
       ..scrollTop = payload.number('scrollTop');
+    _emit(ViewStateChanged(doc.docId));
   }
 
   void _resync(

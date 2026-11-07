@@ -1,9 +1,12 @@
 /// Root widget: theme wiring, router, lifecycle flush.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'application/documents/document_controller.dart';
 import 'application/router.dart';
 import 'application/settings_controller.dart';
 import 'application/shell_controller.dart';
@@ -36,6 +39,12 @@ class _CodeForgeAppState extends ConsumerState<CodeForgeApp>
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       ref.read(shellControllerProvider.notifier).flush();
+      // Android may kill a backgrounded process without warning: store the
+      // unsaved edits' snapshots and the tabs now (ADR-0008). Only when
+      // documents exist — reading the controller would create the editor.
+      if (ref.exists(documentControllerProvider)) {
+        unawaited(ref.read(documentControllerProvider.notifier).checkpoint());
+      }
     }
   }
 

@@ -1,6 +1,7 @@
-/// DocumentController (Phase 2 W4): open documents, tabs, dirty state,
-/// save, Save As, New File and tab restore, over an in-memory workspace and
-/// the scripted editor page. Plain tests in real time.
+/// DocumentController (Phase 2 W4, W5): open documents, tabs, dirty state,
+/// save, Save As, New File, tab restore and the hot-exit journal, over an
+/// in-memory workspace, an in-memory session store and the scripted editor
+/// page. Plain tests in real time.
 library;
 
 import 'dart:convert';
@@ -12,27 +13,36 @@ import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/application/shell_controller.dart';
 import 'package:codeforge/application/workbench_intents.dart';
 import 'package:codeforge/application/workspace_controller.dart';
+import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/core/editor/protocol.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
+import 'package:codeforge/services/storage/session_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fake_editor_surface.dart';
+import '../support/flaky_session_store.dart';
 import '../support/memory_file_service.dart';
 
-/// One app's worth of providers over [files] and [shellStore].
+/// One app's worth of providers over [files], [shellStore] and [sessions]:
+/// a second world over the same stores is the app after a restart.
 final class _World {
-  _World({MemoryFileService? files, InMemoryShellStateStore? shellStore})
-    : files = files ?? MemoryFileService(),
-      shellStore = shellStore ?? InMemoryShellStateStore() {
+  _World({
+    MemoryFileService? files,
+    InMemoryShellStateStore? shellStore,
+    SessionStore? sessions,
+  }) : files = files ?? MemoryFileService(),
+       shellStore = shellStore ?? InMemoryShellStateStore(),
+       sessions = sessions ?? MemorySessionStore() {
     container = ProviderContainer.test(
       overrides: [
         settingsStoreProvider.overrideWithValue(InMemorySettingsStore()),
         shellStateStoreProvider.overrideWithValue(this.shellStore),
         fileServiceProvider.overrideWithValue(this.files),
+        sessionStoreProvider.overrideWithValue(this.sessions),
         ...fakeEditorOverrides(pages.add),
       ],
     );
@@ -40,6 +50,7 @@ final class _World {
 
   final MemoryFileService files;
   final InMemoryShellStateStore shellStore;
+  final SessionStore sessions;
   final List<FakeEditorSurface> pages = [];
   late final ProviderContainer container;
 
@@ -57,6 +68,21 @@ final class _World {
     await container.read(editorHostProvider).start();
     await _drain();
   }
+
+  /// Process death: nothing of this app runs or writes any more.
+  void kill() => container.dispose();
+
+  /// The saved tabs, once every write asked for has landed.
+  Future<List<SavedTab>> savedTabs() async {
+    await documents.persisted;
+    return (await sessions.loadTabs('demo')).valueOrNull!;
+  }
+
+  /// The stored journals, once every write asked for has landed.
+  Future<List<JournalEntry>> journal() async {
+    await documents.persisted;
+    return (await sessions.loadJournal('demo')).valueOrNull!;
+  }
 }
 
 /// Lets streams and microtasks run.
@@ -64,6 +90,26 @@ Future<void> _drain() async {
   for (var i = 0; i < 20; i++) {
     await Future<void>.delayed(Duration.zero);
   }
+}
+
+String _replayed(JournalEntry entry) => replayJournal(
+  text: entry.snapshot.text,
+  version: entry.snapshot.version,
+  changes: entry.changes,
+).text;
+
+/// The app after a restart over [files] and [sessions], its last session
+/// reopened.
+Future<_World> _restart(
+  MemoryFileService files,
+  SessionStore sessions, {
+  String? fallback,
+}) async {
+  final w = _World(files: files, sessions: sessions);
+  await w.startEditor();
+  await w.documents.restoreTabs(fallback: fallback);
+  await _drain();
+  return w;
 }
 
 Matcher _fails(FileProblem problem) =>
@@ -310,7 +356,7 @@ void main() {
         'Scratch notes live here.\nprint("hi")\n',
       );
       expect(w.files.textOf('src/notes.txt'), 'Scratch notes live here.\n');
-      expect(w.container.read(shellControllerProvider).openTabs, [
+      expect([for (final tab in await w.savedTabs()) tab.path], [
         'src/hello.py',
       ]);
       // The explorer's listing of src/ shows the new file.
@@ -365,17 +411,22 @@ void main() {
   group('restart', () {
     test('open tabs and the active one come back (G3)', () async {
       final files = MemoryFileService();
-      final store = InMemoryShellStateStore();
-      final first = _World(files: files, shellStore: store);
+      final sessions = MemorySessionStore();
+      final first = _World(files: files, sessions: sessions);
       await first.documents.open('main.js');
       await first.documents.open('app.py');
       await first.documents.open('README.md');
       first.documents.activate('app.py');
-      await first.container.read(shellControllerProvider.notifier).flush();
-      expect(store.load().openTabs, ['main.js', 'app.py', 'README.md']);
-      expect(store.load().activeTab, 'app.py');
+      final saved = await first.savedTabs();
+      expect(
+        [for (final tab in saved) tab.path],
+        ['main.js', 'app.py', 'README.md'],
+      );
+      expect([for (final tab in saved) if (tab.active) tab.path], ['app.py']);
+      // Tabs live in the session store now, not the shell envelope.
+      expect(first.shellStore.load().openTabs, isEmpty);
 
-      final second = _World(files: files, shellStore: store);
+      final second = _World(files: files, sessions: sessions);
       await second.documents.restoreTabs(fallback: 'main.js');
       expect(second.state.openPaths, ['main.js', 'app.py', 'README.md']);
       expect(second.state.activePath, 'app.py');
@@ -393,6 +444,9 @@ void main() {
       await w.documents.restoreTabs(fallback: 'main.js');
       expect(w.state.openPaths, ['app.py']);
       expect(w.state.activePath, 'app.py');
+      // A W4 build's tabs moved out of the envelope, once.
+      expect(w.container.read(shellControllerProvider).openTabs, isEmpty);
+      expect([for (final tab in await w.savedTabs()) tab.path], ['app.py']);
 
       final fresh = _World();
       await fresh.documents.restoreTabs(fallback: 'main.js');
@@ -401,6 +455,365 @@ void main() {
       fresh.documents.close('main.js');
       await fresh.documents.restoreTabs(fallback: 'main.js');
       expect(fresh.state.openPaths, isEmpty);
+    });
+  });
+
+  group('hot-exit journal (G4)', () {
+    test('unsaved edits are journaled: a snapshot, then each change', () async {
+      final w = _World();
+      await w.startEditor();
+      await w.documents.open('main.js');
+      await _drain();
+      final saved = w.files.textOf('main.js')!;
+      w.page.typeText('// one\n');
+      await _drain();
+      var entry = (await w.journal()).single;
+      expect(entry.path, 'main.js');
+      expect(entry.snapshot.text, '$saved// one\n');
+      expect(entry.snapshot.baseDigest, textDigest(saved));
+      expect(entry.changes, isEmpty);
+
+      w.page
+        ..typeText('// two\n')
+        ..deleteText(3);
+      await _drain();
+      entry = (await w.journal()).single;
+      expect(entry.changes, hasLength(2));
+      final host = w.container.read(editorHostProvider);
+      expect(_replayed(entry), host.textOf(w.doc('main.js').docId));
+    });
+
+    test('undone back to the saved text, saved or closed: it goes', () async {
+      final w = _World();
+      await w.startEditor();
+      await w.documents.open('main.js');
+      await _drain();
+      w.page.typeText('x');
+      await _drain();
+      expect(await w.journal(), hasLength(1));
+      w.page.deleteText(1);
+      await _drain();
+      expect(w.doc('main.js').dirty, isFalse);
+      expect(await w.journal(), isEmpty);
+
+      w.page.typeText('y');
+      await _drain();
+      expect((await w.documents.save('main.js')).isOk, isTrue);
+      expect(await w.journal(), isEmpty);
+
+      w.page.typeText('z');
+      await _drain();
+      expect(await w.journal(), hasLength(1));
+      w.documents.close('main.js');
+      expect(await w.journal(), isEmpty);
+    });
+
+    test('a tab switch and a checkpoint write fresh snapshots', () async {
+      final w = _World();
+      await w.startEditor();
+      await w.documents.open('main.js');
+      await w.documents.open('app.py');
+      w.documents.activate('main.js');
+      await _drain();
+      final main = w.doc('main.js').docId;
+      w.page
+        ..typeText('a', docId: main)
+        ..typeText('b', docId: main);
+      await _drain();
+      expect((await w.journal()).single.changes, hasLength(1));
+
+      w.documents.activate('app.py');
+      var entry = (await w.journal()).single;
+      expect(entry.changes, isEmpty);
+      expect(entry.snapshot.text, endsWith('ab'));
+
+      w.page.typeText('c', docId: main);
+      await _drain();
+      expect((await w.journal()).single.changes, hasLength(1));
+      await w.documents.checkpoint();
+      entry = (await w.journal()).single;
+      expect(entry.changes, isEmpty);
+      expect(entry.snapshot.text, endsWith('abc'));
+    });
+
+    test('tabs keep the cursor and scroll the page reports', () async {
+      final w = _World();
+      await w.startEditor();
+      await w.documents.open('main.js');
+      await _drain();
+      w.page
+        ..moveCursor(2)
+        ..moveCursor(4, head: 9, scrollTop: 64);
+      await _drain();
+      // One save covers a burst of reports, a second after the first.
+      await Future<void>.delayed(
+        DocumentController.viewStateSaveDelay +
+            const Duration(milliseconds: 200),
+      );
+      final tab = (await w.savedTabs()).single;
+      expect(
+        [tab.selectionAnchor, tab.selectionHead, tab.scrollTop],
+        [4, 9, 64],
+      );
+    });
+
+    test('after process death: the same text, still unsaved, cursor and '
+        'scroll back', () async {
+      final files = MemoryFileService();
+      final sessions = MemorySessionStore();
+      final first = _World(files: files, sessions: sessions);
+      await first.startEditor();
+      await first.documents.open('main.js');
+      await first.documents.open('app.py');
+      await _drain();
+      final py = first.doc('app.py').docId;
+      first.page
+        ..typeText('# unsaved\n', docId: py)
+        ..typeText('x = 1', docId: py)
+        ..moveCursor(3, head: 7, scrollTop: 40, docId: py);
+      await _drain();
+      final live = first.container.read(editorHostProvider).textOf(py);
+      // No pause, no checkpoint: edits are journaled as they arrive, and
+      // the cursor within a second.
+      await Future<void>.delayed(
+        DocumentController.viewStateSaveDelay +
+            const Duration(milliseconds: 200),
+      );
+      await first.documents.persisted;
+      first.kill();
+
+      final second = await _restart(files, sessions, fallback: 'main.js');
+      expect(second.state.openPaths, ['main.js', 'app.py']);
+      expect(second.state.activePath, 'app.py');
+      final doc = second.doc('app.py');
+      expect(doc.dirty, isTrue);
+      expect(doc.conflict, isNull);
+      expect(doc.savedText, files.textOf('app.py'));
+      expect(second.doc('main.js').dirty, isFalse);
+      final host = second.container.read(editorHostProvider);
+      expect(host.textOf(doc.docId), live);
+      expect(second.page.documents[doc.docId]!.text, live);
+      final view = host.viewStateOf(doc.docId);
+      expect(
+        [view?.selection?.anchor, view?.selection?.head, view?.scrollTop],
+        [3, 7, 40],
+      );
+
+      // The journal goes on from the restored text.
+      second.page.typeText('!', docId: doc.docId);
+      await _drain();
+      expect(_replayed((await second.journal()).single), '$live!');
+    });
+
+    test('a file changed meanwhile keeps both texts until the user picks', () async {
+      final files = MemoryFileService();
+      final sessions = MemorySessionStore();
+      final first = _World(files: files, sessions: sessions);
+      await first.startEditor();
+      await first.documents.open('app.py');
+      await _drain();
+      first.page.typeText('# mine\n');
+      await _drain();
+      final mine = first.container
+          .read(editorHostProvider)
+          .textOf(first.doc('app.py').docId);
+      await first.documents.persisted;
+      first.kill();
+      files.putText('app.py', 'print("theirs")\n');
+
+      // Unanswered, the question comes back after another restart.
+      for (var run = 0; run < 2; run++) {
+        final w = await _restart(files, sessions);
+        final doc = w.doc('app.py');
+        expect(doc.conflict, DocumentConflict.changedOnDisk, reason: '$run');
+        expect(doc.dirty, isTrue);
+        expect(doc.savedText, 'print("theirs")\n');
+        expect(w.container.read(editorHostProvider).textOf(doc.docId), mine);
+        expect(w.state.firstConflict, 'app.py');
+        await w.documents.persisted;
+        w.kill();
+      }
+
+      // Keeping my changes settles it: they are now unsaved changes to the
+      // file as it is.
+      final keep = await _restart(files, sessions);
+      keep.documents.keepRestoredEdits('app.py');
+      expect(keep.doc('app.py').conflict, isNull);
+      expect(keep.doc('app.py').dirty, isTrue);
+      expect(
+        (await keep.journal()).single.snapshot.baseDigest,
+        textDigest('print("theirs")\n'),
+      );
+      keep.kill();
+      final after = await _restart(files, sessions);
+      expect(after.doc('app.py').conflict, isNull);
+      expect(after.doc('app.py').dirty, isTrue);
+      expect((await after.documents.save('app.py')).isOk, isTrue);
+      expect(files.textOf('app.py'), mine);
+      expect(await after.journal(), isEmpty);
+    });
+
+    test('using the file drops the restored changes', () async {
+      final files = MemoryFileService();
+      final sessions = MemorySessionStore();
+      final first = _World(files: files, sessions: sessions);
+      await first.startEditor();
+      await first.documents.open('app.py');
+      await _drain();
+      first.page.typeText('# mine\n');
+      await _drain();
+      await first.documents.persisted;
+      first.kill();
+      files.putText('app.py', 'print("theirs")\n');
+
+      final w = await _restart(files, sessions);
+      expect((await w.documents.useDiskVersion('app.py')).isOk, isTrue);
+      await _drain();
+      final doc = w.doc('app.py');
+      expect(doc.conflict, isNull);
+      expect(doc.dirty, isFalse);
+      expect(doc.savedText, 'print("theirs")\n');
+      expect(
+        w.container.read(editorHostProvider).textOf(doc.docId),
+        'print("theirs")\n',
+      );
+      expect(w.page.documents[doc.docId]!.text, 'print("theirs")\n');
+      expect(await w.journal(), isEmpty);
+    });
+
+    test('a deleted file comes back with its changes, or closes', () async {
+      final files = MemoryFileService();
+      final sessions = MemorySessionStore();
+      final first = _World(files: files, sessions: sessions);
+      await first.startEditor();
+      await first.documents.open('utils.js');
+      await _drain();
+      first.page.typeText('// keep me\n');
+      await _drain();
+      final mine = first.container
+          .read(editorHostProvider)
+          .textOf(first.doc('utils.js').docId);
+      await first.documents.persisted;
+      first.kill();
+      files.remove('utils.js');
+
+      final discard = await _restart(files, sessions);
+      expect(discard.doc('utils.js').conflict, DocumentConflict.deleted);
+      expect(discard.doc('utils.js').stamp, isNull);
+      expect(discard.doc('utils.js').dirty, isTrue);
+      await discard.documents.persisted;
+      discard.kill();
+
+      final keep = await _restart(files, sessions);
+      keep.documents.keepRestoredEdits('utils.js');
+      expect((await keep.documents.save('utils.js')).isOk, isTrue);
+      expect(files.textOf('utils.js'), mine);
+      expect(keep.doc('utils.js').dirty, isFalse);
+
+      files.remove('utils.js');
+      keep.page.typeText('more', docId: keep.doc('utils.js').docId);
+      await _drain();
+      await keep.documents.persisted;
+      keep.kill();
+      final close = await _restart(files, sessions);
+      expect(close.doc('utils.js').conflict, DocumentConflict.deleted);
+      expect((await close.documents.useDiskVersion('utils.js')).isOk, isTrue);
+      expect(close.state.isOpen('utils.js'), isFalse);
+      expect(await close.journal(), isEmpty);
+    });
+
+    test('a journal that matches the file reopens clean, even untabbed', () async {
+      final files = MemoryFileService();
+      final sessions = MemorySessionStore();
+      await sessions.writeSnapshot(
+        JournalSnapshot(
+          workspaceId: 'demo',
+          path: 'main.js',
+          text: files.textOf('main.js')!,
+          version: 3,
+          baseDigest: 'from an older save',
+          format: TextFormat.standard,
+          language: 'javascript',
+        ),
+      );
+      final w = await _restart(files, sessions, fallback: 'README.md');
+      expect(w.state.openPaths, ['main.js'], reason: 'no fallback needed');
+      expect(w.doc('main.js').dirty, isFalse);
+      expect(await w.journal(), isEmpty);
+    });
+
+    test('a damaged journal keeps the text up to the damage', () async {
+      final files = MemoryFileService();
+      final sessions = MemorySessionStore();
+      await sessions.writeSnapshot(
+        JournalSnapshot(
+          workspaceId: 'demo',
+          path: 'README.md',
+          text: 'draft',
+          version: 1,
+          baseDigest: textDigest(files.textOf('README.md')!),
+          format: TextFormat.standard,
+          language: 'markdown',
+        ),
+      );
+      await sessions.appendChange(
+        'demo',
+        'README.md',
+        const JournalChange(
+          baseVersion: 1,
+          version: 2,
+          lengthBefore: 5,
+          lengthAfter: 6,
+          changes: [
+            5,
+            [0, '!'],
+          ],
+        ),
+      );
+      await sessions.appendChange(
+        'demo',
+        'README.md',
+        const JournalChange(
+          baseVersion: 2,
+          version: 3,
+          lengthBefore: 99,
+          lengthAfter: 100,
+          changes: [
+            99,
+            [0, '?'],
+          ],
+        ),
+      );
+      final w = await _restart(files, sessions);
+      final doc = w.doc('README.md');
+      final host = w.container.read(editorHostProvider);
+      expect(host.textOf(doc.docId), 'draft!');
+      expect(host.versionOf(doc.docId), 2);
+      expect(doc.dirty, isTrue);
+      final entry = (await w.journal()).single;
+      expect(entry.snapshot.text, 'draft!');
+      expect(entry.changes, isEmpty, reason: 'rewritten as one snapshot');
+    });
+
+    test('a journal that cannot be written says so, until it can', () async {
+      final sessions = FlakySessionStore();
+      final w = _World(sessions: sessions);
+      await w.startEditor();
+      await w.documents.open('main.js');
+      await _drain();
+      await w.documents.persisted;
+      sessions.failing = true;
+      w.page.typeText('x');
+      await _drain();
+      await w.documents.persisted;
+      expect(w.state.journalProblem, isNotNull);
+
+      sessions.failing = false;
+      w.page.typeText('y');
+      await _drain();
+      await w.documents.persisted;
+      expect(w.state.journalProblem, isNull);
+      expect(_replayed((await w.journal()).single), endsWith('xy'));
     });
   });
 

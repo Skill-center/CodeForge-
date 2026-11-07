@@ -64,6 +64,12 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
+      # Drift's generated database code (Phase 2 W5). The gate builds the
+      # pushed commit, which on a [bootstrap] push predates CI's commit-back
+      # of the generated files; on later commits this reproduces them.
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Build debug APK
         run: |
           flutter build apk --debug

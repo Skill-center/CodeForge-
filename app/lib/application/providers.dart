@@ -4,6 +4,8 @@
 /// so the first frame already shows restored state — no loading flash.
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/contracts.dart';
@@ -12,6 +14,9 @@ import '../services/files/local_file_service.dart';
 import '../services/platform/app_directories.dart';
 import '../services/settings/settings_store.dart';
 import '../services/shell/shell_state.dart';
+import '../services/storage/app_database.dart';
+import '../services/storage/drift_session_store.dart';
+import '../services/storage/session_store.dart';
 
 /// Overridden in bootstrap with the real prefs-backed store.
 final settingsStoreProvider = Provider<SettingsStore>((ref) {
@@ -29,6 +34,19 @@ final shellStateStoreProvider = Provider<ShellStateStore>((ref) {
 final fileServiceProvider = Provider<FileService>((ref) {
   ref.keepAlive();
   return LocalFileService(rootPath: demoWorkspacePath);
+});
+
+/// Tabs, their cursor and scroll, and the hot-exit journal, in the app
+/// database (ADR-0008). Like the workspace folder, the database opens on
+/// first use, not at bootstrap. Tests override this with a
+/// [MemorySessionStore].
+final sessionStoreProvider = Provider<SessionStore>((ref) {
+  ref.keepAlive();
+  final store = DriftSessionStore(
+    AppDatabase(openAppDatabase(applicationFilesPath)),
+  );
+  ref.onDispose(() => unawaited(store.close()));
+  return store;
 });
 
 final terminalServiceProvider = Provider<TerminalService>((ref) {

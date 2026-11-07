@@ -1,8 +1,9 @@
-/// Documents in the workbench (Phase 2 W4, gates G2 and G3): many tabs,
+/// Documents in the workbench (Phase 2 W4 and W5, gates G2–G4): many tabs,
 /// asking before unsaved changes are lost, Save As and New File dialogs,
-/// refused files, line-ending chips, keyboard shortcuts and tabs that come
-/// back after a restart. The editor is the scripted page; files are the
-/// harness's in-memory workspace.
+/// refused files, line-ending chips, keyboard shortcuts, tabs that come
+/// back after a restart, and unsaved edits that survive the app being
+/// killed. The editor is the scripted page; files and the session store
+/// are the harness's in-memory ones.
 library;
 
 import 'package:codeforge/application/documents/document_controller.dart';
@@ -16,6 +17,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/flaky_session_store.dart';
 import 'test_harness.dart';
 
 /// Tab labels, scoped to the strip: the docked explorer shows names too.
@@ -379,5 +381,83 @@ void main() {
       harness.files.textOf('README.md'),
     );
     await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('unsaved edits survive the app being killed; a file changed '
+      'meanwhile asks which to keep (G4)', (tester) async {
+    final harness = await _pumpWorkbench(tester);
+    expect(_state(tester).activePath, 'main.js');
+    var page = harness.editorSurface;
+    page.typeText('// unsaved work\n');
+    await tester.pumpAndSettle();
+    final work = page.documents[page.activeDocId]!.text;
+    expect(_closeCross('main.js'), findsNothing, reason: 'dirty: a dot');
+    await tester.pump(const Duration(seconds: 2));
+
+    // Killed: the next app starts over the same files and stores, without
+    // a pause or a save in between.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    page = harness.editorSurface;
+    expect(_state(tester).activePath, 'main.js');
+    expect(_state(tester).active!.dirty, isTrue);
+    expect(page.documents[page.activeDocId]!.text, work);
+    expect(_closeCross('main.js'), findsNothing);
+    expect(find.byKey(const ValueKey('conflict_dialog')), findsNothing);
+
+    // Unsaved edits to app.py; app.py changes on disk while the app is
+    // dead.
+    await tester.tap(find.byKey(const ValueKey('tree_app.py')));
+    await tester.pumpAndSettle();
+    page.typeText('# mine\n');
+    await tester.pumpAndSettle();
+    final mine = page.documents[page.activeDocId]!.text;
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpWidget(const SizedBox());
+    harness.files.putText('app.py', 'print("theirs")\n');
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('conflict_dialog')), findsOneWidget);
+    expect(find.text('app.py changed on disk'), findsOneWidget);
+    expect(_state(tester).activePath, 'app.py');
+    await tester.tap(find.byKey(const ValueKey('conflict_keep')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('conflict_dialog')), findsNothing);
+    final app = _state(tester).documents['app.py']!;
+    expect(app.conflict, isNull);
+    expect(app.dirty, isTrue);
+    expect(app.savedText, 'print("theirs")\n');
+    page = harness.editorSurface;
+    expect(page.documents[app.docId]!.text, mine);
+    expect(_state(tester).documents['main.js']!.dirty, isTrue);
+    await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('the editor says when unsaved changes are not backed up', (
+    tester,
+  ) async {
+    final sessions = FlakySessionStore();
+    setSurface(tester, 1280, 800);
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/workspace'),
+      sessionStore: sessions,
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    final banner = find.byKey(const ValueKey('journal_problem'));
+    expect(banner, findsNothing);
+
+    sessions.failing = true;
+    harness.editorSurface.typeText('x');
+    await tester.pumpAndSettle();
+    expect(banner, findsOneWidget);
+
+    sessions.failing = false;
+    harness.editorSurface.typeText('y');
+    await tester.pumpAndSettle();
+    expect(banner, findsNothing);
+    await tester.pump(const Duration(seconds: 2));
   });
 }

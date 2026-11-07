@@ -156,6 +156,12 @@ final class MemoryFileService implements FileService {
     _put(path, encodeText(text, format));
   }
 
+  /// Deletes [path] the way another program would.
+  void remove(String path) {
+    _files.remove(path);
+    _stamps.remove(path);
+  }
+
   /// Writes raw [bytes] the way another program would.
   void putBytes(String path, List<int> bytes) {
     _put(path, Uint8List.fromList(bytes));

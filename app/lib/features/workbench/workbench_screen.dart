@@ -102,6 +102,11 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     await ref
         .read(documentControllerProvider.notifier)
         .restoreTabs(fallback: 'main.js');
+    if (!mounted) {
+      return;
+    }
+    // Unsaved changes whose file changed meanwhile: the user picks.
+    await resolveRestoredConflicts(context, ref);
   }
 
   void _onIntent(WorkbenchIntent intent) {

@@ -4,6 +4,7 @@ import 'package:codeforge/application/shell_controller.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
+import 'package:codeforge/services/storage/session_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,6 +25,7 @@ ProviderContainer _container({
         shell ?? InMemoryShellStateStore(),
       ),
       fileServiceProvider.overrideWithValue(MemoryFileService()),
+      sessionStoreProvider.overrideWithValue(MemorySessionStore()),
       ...fakeEditorOverrides(),
     ],
   );

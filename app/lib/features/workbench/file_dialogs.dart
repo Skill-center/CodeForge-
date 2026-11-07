@@ -42,6 +42,52 @@ Future<UnsavedChoice> askUnsavedChanges(
   return choice ?? UnsavedChoice.cancel;
 }
 
+/// What to keep when restored unsaved changes no longer match their file.
+enum ConflictChoice { keepChanges, useFile }
+
+/// Asks what to keep of [name]: the unsaved changes restored after the app
+/// closed, or the file as it is now. [fileGone] says the file was deleted
+/// or can no longer be read, so "the file" means dropping the changes.
+/// Dismissing keeps the changes: nothing is lost by default.
+Future<ConflictChoice> askRestoredConflict(
+  BuildContext context,
+  String name, {
+  required bool fileGone,
+}) async {
+  final choice = await showDialog<ConflictChoice>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      key: const ValueKey('conflict_dialog'),
+      title: Text(
+        fileGone ? '$name is no longer available' : '$name changed on disk',
+      ),
+      content: Text(
+        fileGone
+            ? 'CodeForge closed while $name had unsaved changes, and the file '
+                  'can no longer be opened. Keep your changes to save it '
+                  'again, or discard them.'
+            : 'CodeForge closed while $name had unsaved changes, and the '
+                  'file has changed since. Both versions are kept until you '
+                  'choose.',
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('conflict_use_file'),
+          onPressed: () => Navigator.of(context).pop(ConflictChoice.useFile),
+          child: Text(fileGone ? 'Discard changes' : 'Use the file'),
+        ),
+        FilledButton(
+          key: const ValueKey('conflict_keep'),
+          onPressed: () => Navigator.of(context).pop(ConflictChoice.keepChanges),
+          child: const Text('Keep my changes'),
+        ),
+      ],
+    ),
+  );
+  return choice ?? ConflictChoice.keepChanges;
+}
+
 /// Asks to confirm something that replaces data. Dismissing says no.
 Future<bool> askToConfirm(
   BuildContext context, {
