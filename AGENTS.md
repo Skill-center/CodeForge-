@@ -52,7 +52,7 @@ Analyze → Plan → Implement → Test → Verify → Document → Report.
 
 - Work on the session's `arena/*` branch only; never touch `main` or other branches; PRs from the session branch.
 - Commits: imperative, scoped (`phase1: add adaptive workbench shell`); one logical change per commit.
-- Never commit secrets, keystores, generated payloads, build outputs, or large binaries.
+- Never commit secrets, keystores, generated payloads (runtime archives and the like), build outputs, or large binaries. Generated Dart source is the exception. CI's `[bootstrap]` mode writes Drift's code, schema dumps and test helpers and commits them, and every run checks they are current (ADR-0008, BUILD_AND_RELEASE.md). Never edit them by hand: change the source and push with `[bootstrap]`.
 - Owner decisions (license, minSdk changes, distribution keys) are asked, never assumed.
 
 ## 8. Documentation map (keep synchronized)
