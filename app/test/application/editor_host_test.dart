@@ -245,9 +245,7 @@ void main() {
     );
     expect(report.current, 0);
 
-    unawaited(
-      host.search('(', regexp: true).then((result) => valid = result),
-    );
+    unawaited(host.search('(', regexp: true).then((result) => valid = result));
     await settle(tester);
     expect(valid?.valueOrNull, isFalse);
 

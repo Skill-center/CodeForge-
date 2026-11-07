@@ -92,6 +92,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       }
     }
+
     Future<void> tapKey(String key) async {
       await tester.tap(find.byKey(ValueKey(key)));
       await tester.pump();

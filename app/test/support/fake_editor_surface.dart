@@ -430,9 +430,7 @@ final class FakeEditorSurface implements EditorSurface {
       return;
     }
     final line = payload.integer('line');
-    final column = payload['column'] == null
-        ? null
-        : payload.integer('column');
+    final column = payload['column'] == null ? null : payload.integer('column');
     gotoLines.add((line: line, column: column));
     final lines = doc.text.split('\n');
     final target = line > lines.length ? lines.length : line;

@@ -34,16 +34,14 @@ Future<TestHarness> _pumpFile(
   double height = 800,
 }) async {
   setSurface(tester, width, height);
-  final harness = TestHarness(
-    shell: const ShellState(lastRoute: '/workspace'),
-  );
+  final harness = TestHarness(shell: const ShellState(lastRoute: '/workspace'));
   harness.files.putText('find.js', _text);
   await tester.pumpWidget(harness.app());
   await tester.pumpAndSettle();
   unawaited(
-    _container(tester).read(documentControllerProvider.notifier).open(
-      'find.js',
-    ),
+    _container(
+      tester,
+    ).read(documentControllerProvider.notifier).open('find.js'),
   );
   await tester.pumpAndSettle();
   return harness;
@@ -266,9 +264,7 @@ void main() {
     expect(find.byKey(const ValueKey('goto_line_dialog')), findsOneWidget);
   });
 
-  testWidgets('a phone gets the options on a row of their own', (
-    tester,
-  ) async {
+  testWidgets('a phone gets the options on a row of their own', (tester) async {
     await _pumpFile(tester, width: 360, height: 800);
     final controller = _container(tester).read(findControllerProvider.notifier);
     unawaited(controller.open(replace: true));
@@ -306,9 +302,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('a wide pane keeps the options beside the query', (
-    tester,
-  ) async {
+  testWidgets('a wide pane keeps the options beside the query', (tester) async {
     await _pumpFile(tester);
     await _chord(tester, LogicalKeyboardKey.keyF);
     final query = tester.getCenter(find.byKey(const ValueKey('find_query')));

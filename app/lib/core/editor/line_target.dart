@@ -49,10 +49,7 @@ final RegExp _pattern = RegExp(r'^(\d{1,9})(?:\s*[:,.]\s*(\d{1,9}))?$');
     return (target: null, problem: 'Columns start at 1.');
   }
   final last = lineCount < 1 ? 1 : lineCount;
-  return (
-    target: LineTarget(line > last ? last : line, column),
-    problem: null,
-  );
+  return (target: LineTarget(line > last ? last : line, column), problem: null);
 }
 
 /// The number of lines in [text]: one more than its line breaks.
