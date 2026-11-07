@@ -13,6 +13,7 @@ import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/application/editor/find_controller.dart';
 import 'package:codeforge/application/providers.dart';
+import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/services/contracts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

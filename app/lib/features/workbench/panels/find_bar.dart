@@ -45,18 +45,19 @@ class FindBar extends ConsumerStatefulWidget {
 }
 
 class _FindBarState extends ConsumerState<FindBar> {
-  late final TextEditingController _query = TextEditingController(
-    text: ref.read(findControllerProvider).query,
-  );
-  late final TextEditingController _replacement = TextEditingController(
-    text: ref.read(findControllerProvider).replacement,
-  );
+  // Made in initState, not lazily: a field first touched in dispose() would
+  // read a provider while the bar is unmounting, which Riverpod refuses.
+  late final TextEditingController _query;
+  late final TextEditingController _replacement;
   final FocusNode _queryFocus = FocusNode(debugLabel: 'find query');
   final FocusNode _replacementFocus = FocusNode(debugLabel: 'find replace');
 
   @override
   void initState() {
     super.initState();
+    final find = ref.read(findControllerProvider);
+    _query = TextEditingController(text: find.query);
+    _replacement = TextEditingController(text: find.replacement);
     WidgetsBinding.instance.addPostFrameCallback((_) => _focusQuery());
   }
 
