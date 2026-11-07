@@ -176,6 +176,41 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
 
 **Emulator gate:** a new `edit_a` / `edit_b` pair. `edit_a` types unsaved text, the process is killed, and `edit_b` relaunches and checks the exact text, the dirty marker and the cursor.
 
+**As built (W5):**
+- **App database** (ARCHITECTURE §2.6, ADR-0008 amendment): Drift 2.35.3 over SQLite, `<filesDir>/codeforge.sqlite`, schema v1 with `workspaces`, `open_tabs` (order, active, selection, scroll), `journal_documents` and `journal_changes`. It opens lazily in a background isolate, with WAL and `synchronous = NORMAL`. SQLite comes from the `sqlite3` package's build hook (prebuilt, hash-checked), with no NDK build. `SessionStore` is the contract; `DriftSessionStore` and the tests' `MemorySessionStore` implement it.
+- **Hot-exit journal** (EDITOR_ARCHITECTURE §7): `DocumentJournal` takes a snapshot at the first unsaved edit, on tab switch, on pause and every 5 s while changes arrive (documents over 512 KiB at most once a minute), and after 200 changes. The editor's change sets are appended in between, and each snapshot replaces the changes it covers in one transaction. Writes are queued in order; a failed write forces fresh snapshots, retried on the timer, and the editor shows a banner until a write succeeds.
+- **Cold start:** replay stops cleanly at any damage. A document whose file is unchanged reopens dirty with its text, cursor and scroll. A file that changed, was deleted or can no longer be read meanwhile keeps the unsaved text and asks: keep my changes, or use the file. A changed file keeps both texts, and a file that is gone or unreadable closes if the user picks the file. The question is asked again after another restart until it is answered.
+- **Rotation:** the manifest keeps the activity, and the editor pane now moves between the portrait and docked layouts under one `GlobalKey`. The page no longer reloads on rotation, and undo history survives it.
+- **Codegen in CI:** bootstrap mode runs build_runner, `drift_dev make-migrations` and `drift_dev schema generate` (make-migrations writes the test helpers only from the second schema version on) and commits the output. Every run's "Generated code check" regenerates and compares it, and the phase gate generates before building.
+- **Deviations from this plan:**
+  - The journal is in SQLite, not files (ADR-0008 amended): a snapshot must replace the changes it covers atomically.
+  - Tabs moved from the shell envelope to the database via a one-time import; the envelope keeps schema version 1 (ARCHITECTURE §2.6, migration notes).
+  - The gate's renderer crash kills the WebView's sandboxed renderer of a running app that has restored unsaved text (the plain debug APK installed over the test build, keeping its data). webview_flutter_android 4.14.1 has no `onRenderProcessGone`, so a renderer crash is a process death.
+- **Evidence** (commit b6b799b; the unreadable-file test from 515f85a):
+  - CI 42386742434: `+477: All tests passed!` (431 at W4), and `flutter analyze` is clean. The committed generated code is exactly what the generators produce. Line coverage of hand-written code is 4014/4627 (86.8 %), with services at 74.7 % and 1239 generated lines excluded (BUILD_AND_RELEASE.md).
+    - The 46 new tests include property tests in which replaying the journal gives the live text for randomized edit sequences. On the journal itself that is 400 seeds of up to 60 change sets each, emoji included. Through the SQLite store it is 8 seeds of 50–199 edits, with fresh snapshots in between.
+    - They also cover the controller killed and restarted mid-edit: with the file unchanged, changed or deleted meanwhile, with a journal that matches the file, with a damaged journal, and with a store that cannot be written. The schema v1 check is among them.
+    - Two tests reproduce the fixes: rotation with unsaved text, and a command racing the page sync.
+  - CI 42388617576 on 515f85a: `+478: All tests passed!`, with the unreadable-file restore added. Another program saves the file as UTF-16 while the app is dead. The changes come back unsaved, with the question, which survives a restart until it is answered.
+  - Phase gate 42386742421: all 8 emulator runs passed on attempt 1.
+    - `edit_a` typed 262 characters into main.js through the real page, among them `é`, `中` and an emoji outside the Basic Multilingual Plane. The cursor was left at 44, and nothing was saved.
+    - The plain app then restored that session, and its WebView renderer was killed: "app pid after the renderer kill: none, the app died with its renderer". `am force-stop` confirmed the process death.
+    - `edit_b` found main.js with the same 262 characters, still unsaved, the cursor at 44 (read back from the page itself) and the dirty dot on its tab.
+    - `edit_b` then rotated to landscape (the docked layout appeared) and back to portrait: "page starts 1 before and 1 after, text and cursor kept". The WebView survives the editor pane's move between layouts, so the page does not reload.
+    - The editor bridge passed (page starts 2, syncs 2, resyncs 0), and the release cold start median was 1078 ms (budget 1500).
+    - Phase gate 42382386682 on c8af0cf had already passed the same pair, apart from the rotation step, with identical numbers and a cold start median of 1349 ms.
+  - Two earlier runs failed:
+    - CI 42377268979: the migration-test helpers were missing, because `make-migrations` writes them only from the second schema version on. The bootstrap now runs `drift_dev schema generate`.
+    - Phase gate 42379885027: in `edit_a`, the typing reached the page before the page had reopened main.js after starting. Document commands now wait for the page sync (EDITOR_ARCHITECTURE §6).
+- **Gate status:**
+  - **G4 Zero loss:** met. Unsaved typing survives process death and a renderer crash: the same text, still unsaved, with the cursor restored. It also survives rotation, without even a page reload. Journal replay equals the live text for randomized edits.
+- **Known limits:**
+  - Durability covers app crashes and process deaths. With WAL and `synchronous = NORMAL`, an OS crash or a power cut can lose the last transactions; W7 measures what `FULL` costs (ADR-0008).
+  - The journal keeps text, cursor and scroll, not undo history: a document restored after a process death starts with an empty history. Rotation keeps the history, because the process and the page stay.
+  - Documents over 512 KiB get a fresh snapshot at most once a minute, with the change log covering the time between. W7 measures large documents.
+  - Text that is not valid UTF-16, such as a lone surrogate, does not pass through the database unchanged, because SQLite keeps UTF-8. CodeMirror never splits a surrogate pair and files are read as UTF-8, so the app does not produce such text. For the same reason, the store's property tests use characters from the Basic Multilingual Plane, while the gate covers an emoji on the device.
+  - A conflict offers keeping the unsaved text or using the file's; there is no side-by-side comparison yet.
+
 ### W6 — Editing features & keyboards (2 sessions)
 
 **Editing:**
