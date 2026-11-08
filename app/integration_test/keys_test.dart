@@ -397,9 +397,14 @@ void main() {
       final saved = await files.readText('g6/keys.js');
       expect(saved.valueOrNull?.text, '( )x\n');
     }
+    // The next tab in the strip's order, wrapping around: the workspace's
+    // own main.js is open as well, so after g6/keys.js comes main.js.
+    final open = container.read(documentControllerProvider).openPaths;
+    final fromTab = activePath();
+    final nextTab = open[(open.indexOf(fromTab ?? '') + 1) % open.length];
     await inject(
       'keys KEYCODE_CTRL_LEFT KEYCODE_TAB',
-      () => activePath() == 'g6/other.js',
+      () => activePath() == nextTab,
       what: 'Ctrl+Tab to the next tab',
       soft: true,
     );
@@ -458,7 +463,8 @@ void main() {
       'keyboard attached: $attached, toolbar shown by $shownBy$stepsAside; '
       'then from the keyboard, with the soft keyboard '
       '${keysWithIme ? 'up' : 'down'}: Tab, Shift+Tab, Ctrl+Z, Ctrl+Shift+Z, '
-      'Ctrl+S, Ctrl+Tab, Ctrl+W, Ctrl+F, Escape, Ctrl+Shift+P, Escape; '
+      'Ctrl+S, Ctrl+Tab ($fromTab to $nextTab), Ctrl+W, Ctrl+F, Escape, '
+      'Ctrl+Shift+P, Escape; '
       'resyncs ${host.resyncs})',
     );
   });

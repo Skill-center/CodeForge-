@@ -178,7 +178,7 @@ One `WorkbenchLayout` value drives everything; breakpoints: **compact < 600 dp**
 | Phone landscape (compact height) | Icon rail left, editor center, terminal collapsible bottom panel, tab strip scrolls. |
 | Tablet (medium/expanded) | Persistent explorer sidebar, editor group center, integrated terminal panel, resizable dividers; optional minimap; multi-editor groups from Phase 9. |
 
-Layout state (panel sizes, active activity, sheet positions) is part of workspace state restoration. Hardware keyboard presence collapses the symbol toolbar and enables desktop-style shortcuts.
+Layout state (panel sizes, active activity, sheet positions) is part of workspace state restoration. A hardware keyboard puts the symbol toolbar away while the soft keyboard is down; if the soft keyboard comes up beside it, the toolbar comes back with it (W6). Desktop-style shortcuts work while the editor has the focus.
 
 ## 6. Threading & lifecycle
 
