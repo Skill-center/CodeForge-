@@ -212,18 +212,32 @@ INFRA_RE="Can't find service|Broken pipe|before system providers are installed|C
 INFRA_SEEN=0
 
 # run_itest <name> <test file> [extra flutter test args...]
+# Each attempt has a wall-clock limit. `--timeout` covers the tests once
+# they run, but `flutter test` itself can wait forever for an app that never
+# connects: gate 42500759166 sat 65 minutes after installing the smoke test,
+# until the job's limit stopped it. An attempt past the limit counts as an
+# infrastructure failure and is retried. The longest group (keys) takes
+# about 3 minutes with its build.
+ITEST_LIMIT=10m
 run_itest() {
   local name="$1" file="$2"
   shift 2
-  local attempt rc=1
+  local attempt rc=1 stuck
   for attempt in 1 2 3; do
     wait_for_framework "$name#$attempt" 600 || true
-    flutter test "$file" -d emulator-5554 --reporter expanded --timeout=300s \
-      "$@" 2>&1 | tee "$RESULTS/$name.txt"
+    timeout --kill-after=30s "$ITEST_LIMIT" \
+      flutter test "$file" -d emulator-5554 --reporter expanded \
+      --timeout=300s "$@" 2>&1 | tee "$RESULTS/$name.txt"
     rc=${PIPESTATUS[0]}
+    stuck=""
+    if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+      stuck=1
+      echo "$name: still running after $ITEST_LIMIT; stopped" \
+        | tee -a "$RESULTS/$name.txt"
+    fi
     echo "$name attempt=$attempt exit=$rc" | tee -a "$RESULTS/attempts.txt"
     [ "$rc" -eq 0 ] && return 0
-    if ! grep -qE "$INFRA_RE" "$RESULTS/$name.txt"; then
+    if [ -z "$stuck" ] && ! grep -qE "$INFRA_RE" "$RESULTS/$name.txt"; then
       return "$rc"
     fi
     INFRA_SEEN=1
@@ -248,9 +262,11 @@ echo "::endgroup::"
 
 echo "::group::Integration — keyboards (Phase 2 W6, G6: toolbar touches, hardware shortcuts)"
 # keys_test asks for real input in its log, one request at a time
-# (KEYGATE <run>.<n> tap <x> <y> | key <KEYCODE> | keys <KEYCODE>... | done),
-# and waits for its effect. The injector polls the log for the newest
-# request and answers each new one through Android's input pipeline. Each
+# (KEYGATE <run>.<n> tap <x> <y> | key <KEYCODE> | keys <KEYCODE>... |
+# beside 0|1 | done), and waits for its effect. The injector polls the log
+# for the newest request and answers each new one: taps and single keys
+# through `adb shell input`, chords on the emulator's own keyboard (see
+# press_chord), and `beside` through the soft-keyboard setting. Each
 # poll is one `logcat -d`, so no long-lived log stream has to stay up. The
 # test prints its requests in the root zone: a print inside a test goes to
 # the test runner, not to the device log, which is why neither a streaming
@@ -283,8 +299,8 @@ press_chord() {
     ups="EV_KEY:$name:0 $ups"
   done
   # shellcheck disable=SC2086 # a list of events by design.
-  chord_answer=$("$ADB" emu event send $downs $ups < /dev/null 2>&1) \
-    || return 1
+  chord_answer=$(timeout 10 "$ADB" emu event send $downs $ups \
+    < /dev/null 2>&1) || return 1
   case "$chord_answer" in *KO*) return 1 ;; esac
 }
 

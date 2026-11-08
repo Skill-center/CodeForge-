@@ -215,6 +215,16 @@ void main() {
     // touch, as the binding checks at the end of the test.
     binding.shouldPropagateDevicePointerEvents = true;
 
+    // The soft keyboard beside the hardware one, for the toolbar touches.
+    // The gate turns it on; asking again covers a retried attempt, which
+    // follows one that turned it off.
+    final turnedOn = Stopwatch()..start();
+    await inject(
+      'beside 1',
+      () => turnedOn.elapsed > const Duration(seconds: 2),
+      what: 'the setting to go on',
+    );
+
     // A finger in the editor: it takes the keyboard, and the soft keyboard
     // comes up for it.
     await inject(
@@ -275,10 +285,10 @@ void main() {
     // The gate turns the setting off again; dropping the focus and tapping
     // back in has Android apply it.
     if (attached && imeUp) {
-      final asked = Stopwatch()..start();
+      final turnedOff = Stopwatch()..start();
       await inject(
         'beside 0',
-        () => asked.elapsed > const Duration(seconds: 2),
+        () => turnedOff.elapsed > const Duration(seconds: 2),
         what: 'the setting to go off',
       );
       await inject(
