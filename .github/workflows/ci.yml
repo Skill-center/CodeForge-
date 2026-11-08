@@ -308,6 +308,31 @@ jobs:
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/digest.txt"
           echo "::warning title=Tests failed (last 40 lines)::$(cat "$RUNNER_TEMP/digest.txt")"
 
+      # The Gradle distribution: cached between runs, and fetched with
+      # retries when the cache has none, because services.gradle.org stalls
+      # now and then (app/tool/ci/fetch_gradle.sh). A failed fetch fails
+      # the build below, which Enforce reports.
+      - name: Restore the Gradle distribution
+        id: gradle-dist
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Fetch Gradle
+        id: fetch-gradle
+        continue-on-error: true
+        run: bash tool/ci/fetch_gradle.sh > ci-results/gradle-fetch.txt 2>&1
+
+      - name: Save the Gradle distribution
+        if: >-
+          steps.gradle-dist.outputs.cache-hit != 'true' &&
+          steps.fetch-gradle.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
       - name: Build debug APK
         id: build
         continue-on-error: true

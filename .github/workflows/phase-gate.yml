@@ -70,6 +70,28 @@ jobs:
       - name: Generate code
         run: dart run build_runner build
 
+      # The Gradle distribution: cached between runs, and fetched with
+      # retries when the cache has none, because services.gradle.org stalls
+      # now and then (app/tool/ci/fetch_gradle.sh). Saved right after the
+      # fetch, since a cache saved at the end of the job needs the whole
+      # gate to pass.
+      - name: Restore the Gradle distribution
+        id: gradle-dist
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Fetch Gradle
+        run: bash tool/ci/fetch_gradle.sh
+
+      - name: Save the Gradle distribution
+        if: steps.gradle-dist.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
       - name: Build debug APK
         run: |
           flutter build apk --debug
