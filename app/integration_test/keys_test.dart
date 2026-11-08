@@ -1,8 +1,9 @@
 /// Keyboards on the real page in the emulator (Phase 2 W6, gate G6).
 ///
 /// The input comes from outside the app, as a user's does. The test asks for
-/// it in the log, one numbered request at a time (`KEYGATE <n> tap <x> <y>`,
-/// `KEYGATE <n> key <KEYCODE>`, `KEYGATE <n> keys <KEYCODE> <KEYCODE>…`), and
+/// it in the log, one request at a time (`KEYGATE <id> tap <x> <y>`,
+/// `KEYGATE <id> key <KEYCODE>`, `KEYGATE <id> keys <KEYCODE> <KEYCODE>…`;
+/// the id is `<run>.<n>`, so a retried test's requests are new ones), and
 /// app/tool/ci/emulator_gate.sh answers through Android's input pipeline
 /// with `adb shell input tap`, `input keyevent` and `input keycombination`.
 /// So a toolbar key is touched as a finger touches it, which `tester.tap`
@@ -132,6 +133,7 @@ void main() {
     );
 
     var step = 0;
+    final run = DateTime.now().millisecondsSinceEpoch;
     final ratio = tester.view.devicePixelRatio;
     Future<void> inject(
       String request,
@@ -139,7 +141,7 @@ void main() {
       required String what,
     }) async {
       step += 1;
-      debugPrint('KEYGATE $step $request');
+      debugPrint('KEYGATE $run.$step $request');
       await pumpUntil(tester, done, what: '$what (request $step: $request)');
       // Let the page's trailing reports land before the next request.
       await tester.pump(const Duration(milliseconds: 400));
@@ -283,7 +285,7 @@ void main() {
       () => find.byKey(const ValueKey('palette_input')).evaluate().isEmpty,
       what: 'Escape to close the palette',
     );
-    debugPrint('KEYGATE ${step + 1} done');
+    debugPrint('KEYGATE $run.${step + 1} done');
 
     expect(host.droppedMessages, 0);
     expect(host.resyncs, 0);

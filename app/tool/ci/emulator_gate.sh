@@ -247,38 +247,42 @@ run_itest editing integration_test/editing_test.dart || fail=1
 echo "::endgroup::"
 
 echo "::group::Integration — keyboards (Phase 2 W6, G6: toolbar touches, hardware shortcuts)"
-# keys_test asks for real input in its log, one numbered request at a time
-# (KEYGATE <n> tap <x> <y> | key <KEYCODE> | keys <KEYCODE>... | done), and
-# waits for what the input should do. This answers each request through
-# Android's input pipeline, as a finger or a keyboard would: tester.tap never
-# leaves Flutter, so it cannot show that a touched toolbar key leaves the
-# WebView its focus. The log stream starts now, so nothing older is replayed.
+# keys_test asks for real input in its log, one request at a time
+# (KEYGATE <run>.<n> tap <x> <y> | key <KEYCODE> | keys <KEYCODE>... | done),
+# and waits for its effect. The injector polls the log for the newest
+# request and answers each new one through Android's input pipeline. Each
+# poll is one `logcat -d`, so no long-lived log stream has to stay up; in
+# gate 42479571017 a streaming reader never saw request 1. The <run> part
+# tells a retried test's requests from those of the attempt before.
 key_injector() {
-  local since
-  since=$("$ADB" shell date +'%m-%d %H:%M:%S.000' 2>/dev/null | tr -d '\r')
-  [ -n "$since" ] || since=1
-  "$ADB" logcat -v raw -T "$since" -s flutter:I 2>/dev/null \
-    | while IFS= read -r line; do
-      case "$line" in
-        *"KEYGATE "*) ;;
-        *) continue ;;
-      esac
-      # shellcheck disable=SC2086 # a request is a list of words by design.
-      set -- ${line#*KEYGATE }
-      n="${1:-?}"
-      kind="${2:-}"
-      shift 2 || true
-      # adb shell reads stdin, which here is the log: keep it off the log.
-      case "$kind" in
-        tap) "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null ;;
-        key) "$ADB" shell input keyevent "${1:-}" < /dev/null ;;
-        keys) "$ADB" shell input keycombination "$@" < /dev/null ;;
-        done) echo "request $n: done"; break ;;
-        *) echo "request $n: unknown request '$kind'"; continue ;;
-      esac
-      echo "request $n: $kind $* (exit $?)"
-    done
+  local last="" line id kind status
+  echo "injector: polling the log for requests ($(date +%T))"
+  while :; do
+    line=$("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null \
+      | grep 'KEYGATE ' | tail -n 1 | tr -d '\r')
+    # shellcheck disable=SC2086 # a request is a list of words by design.
+    set -- ${line#*KEYGATE }
+    id="${1:-}"
+    kind="${2:-}"
+    if [ -z "$id" ] || [ "$id" = "$last" ]; then
+      sleep 0.25
+      continue
+    fi
+    last="$id"
+    shift 2 || true
+    # adb shell reads stdin; keep it off whatever the loop is reading.
+    case "$kind" in
+      tap) "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null ;;
+      key) "$ADB" shell input keyevent "${1:-}" < /dev/null ;;
+      keys) "$ADB" shell input keycombination "$@" < /dev/null ;;
+      done) echo "request $id: done ($(date +%T))"; return 0 ;;
+      *) echo "request $id: unknown request '$kind'"; continue ;;
+    esac
+    status=$?
+    echo "request $id: $kind $* (exit $status, $(date +%T))"
+  done
 }
+
 # AVDs report a hardware keyboard (keysexposed-qwerty in the configuration
 # logged below), and Android then keeps the soft keyboard down. Ask for it
 # beside the hardware keyboard, for this test only, so that the toolbar is
