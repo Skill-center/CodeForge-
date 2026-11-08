@@ -165,7 +165,8 @@ void main() {
     HardwareKeyboard.instance.addHandler(logKey);
     addTearDown(() => HardwareKeyboard.instance.removeHandler(logKey));
 
-    // Shortcut steps that did nothing: the rest still run, for the evidence.
+    // Steps and checks that failed: the rest still run, for the evidence,
+    // and the test fails at the end.
     final misses = <String>[];
     Future<void> inject(
       String request,
@@ -251,29 +252,6 @@ void main() {
       'by $shownBy',
     );
 
-    // Hardware keys at the focused WebView: CodeMirror's keymap.
-    await cursorToStart();
-    await inject(
-      'key KEYCODE_TAB',
-      () => text() == '  x\n',
-      what: 'Tab to indent',
-    );
-    await inject(
-      'keys KEYCODE_SHIFT_LEFT KEYCODE_TAB',
-      () => text() == 'x\n',
-      what: 'Shift+Tab to outdent',
-    );
-    await inject(
-      'keys KEYCODE_CTRL_LEFT KEYCODE_Z',
-      () => text() == '  x\n',
-      what: 'Ctrl+Z to undo',
-    );
-    await inject(
-      'keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_Z',
-      () => text() == 'x\n',
-      what: 'Ctrl+Shift+Z to redo',
-    );
-
     // Toolbar keys under a real finger: they type at the cursor, a pair
     // leaves it between its halves, and the editor keeps the keyboard.
     await cursorToStart();
@@ -292,9 +270,77 @@ void main() {
     expect(focused(), isTrue, reason: 'a toolbar key took the focus');
     expect(keyboardUp(), imeUp, reason: 'a toolbar key moved the keyboard');
 
+    // The keyboard from here on as Android has it by default: the soft one
+    // stays down beside a hardware keyboard, and the toolbar steps aside.
+    // The gate turns the setting off again; dropping the focus and tapping
+    // back in has Android apply it.
+    if (attached && imeUp) {
+      final asked = Stopwatch()..start();
+      await inject(
+        'beside 0',
+        () => asked.elapsed > const Duration(seconds: 2),
+        what: 'the setting to go off',
+      );
+      await inject(
+        tapOn(find.byKey(const ValueKey('toolbar_hide_keyboard'))),
+        () => !focused() && !keyboardUp(),
+        what: 'the hide key to drop the focus and the soft keyboard',
+      );
+      await inject(
+        tapOn(find.byKey(const ValueKey('editor_surface'))),
+        focused,
+        what: 'the editor to take the keyboard again',
+      );
+      final settle = Stopwatch()..start();
+      while (!keyboardUp() && settle.elapsed < const Duration(seconds: 5)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      if (keyboardUp()) {
+        misses.add('the soft keyboard came up with the setting off');
+      }
+    } else if (unplug) {
+      keyboard.unplugged = false;
+      container.invalidate(hardwareKeyboardProvider);
+    }
     binding.shouldPropagateDevicePointerEvents = false;
+    final keysWithIme = keyboardUp();
+    if (attached && !keysWithIme) {
+      final away = Stopwatch()..start();
+      while (toolbar.evaluate().isNotEmpty &&
+          away.elapsed < const Duration(seconds: 5)) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      if (toolbar.evaluate().isNotEmpty) {
+        misses.add('the toolbar stayed beside the hardware keyboard');
+      }
+    }
 
-    // App shortcuts, caught by the page and forwarded over the bridge.
+    // Hardware keys at the focused WebView, for CodeMirror's keymap. The
+    // gate presses chords on the emulator's own keyboard, as on a real one.
+    await cursorToStart();
+    await inject(
+      'key KEYCODE_TAB',
+      () => text() == '  ( )x\n',
+      what: 'Tab to indent',
+    );
+    await inject(
+      'keys KEYCODE_SHIFT_LEFT KEYCODE_TAB',
+      () => text() == '( )x\n',
+      what: 'Shift+Tab to outdent',
+    );
+    await inject(
+      'keys KEYCODE_CTRL_LEFT KEYCODE_Z',
+      () => text() == '  ( )x\n',
+      what: 'Ctrl+Z to undo',
+    );
+    await inject(
+      'keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_Z',
+      () => text() == '( )x\n',
+      what: 'Ctrl+Shift+Z to redo',
+    );
+
+    // App shortcuts: the workbench takes them before the page.
+    final beforeSave = misses.length;
     await inject(
       'keys KEYCODE_CTRL_LEFT KEYCODE_S',
       () =>
@@ -306,7 +352,7 @@ void main() {
       what: 'Ctrl+S to save',
       soft: true,
     );
-    if (misses.isEmpty) {
+    if (misses.length == beforeSave) {
       final saved = await files.readText('g6/keys.js');
       expect(saved.valueOrNull?.text, '( )x\n');
     }
@@ -314,21 +360,6 @@ void main() {
       'keys KEYCODE_CTRL_LEFT KEYCODE_TAB',
       () => activePath() == 'g6/other.js',
       what: 'Ctrl+Tab to the next tab',
-      soft: true,
-    );
-    // The rest with the soft keyboard down, as Android keeps it beside a
-    // hardware keyboard unless asked; Ctrl+Tab again, to compare.
-    await inject(
-      'beside 0',
-      () => !keyboardUp(),
-      what: 'the soft keyboard to go down beside the hardware one',
-      soft: true,
-    );
-    final before = activePath();
-    await inject(
-      'keys KEYCODE_CTRL_LEFT KEYCODE_TAB',
-      () => activePath() != before,
-      what: 'Ctrl+Tab to the next tab with the soft keyboard down',
       soft: true,
     );
     final closing = activePath();
@@ -347,37 +378,45 @@ void main() {
       what: 'Ctrl+F to open the find bar',
       soft: true,
     );
-    await inject(
-      'key KEYCODE_ESCAPE',
-      () => !container.read(findControllerProvider).open,
-      what: 'Escape to close the find bar',
-      soft: true,
-    );
+    if (container.read(findControllerProvider).open) {
+      await inject(
+        'key KEYCODE_ESCAPE',
+        () => !container.read(findControllerProvider).open,
+        what: 'Escape to close the find bar',
+        soft: true,
+      );
+    }
     await inject(
       'keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_P',
       () => find.byKey(const ValueKey('palette_input')).evaluate().isNotEmpty,
       what: 'Ctrl+Shift+P to open the palette',
       soft: true,
     );
-    await inject(
-      'key KEYCODE_ESCAPE',
-      () => find.byKey(const ValueKey('palette_input')).evaluate().isEmpty,
-      what: 'Escape to close the palette',
-      soft: true,
-    );
+    final palette = find.byKey(const ValueKey('palette_input'));
+    if (palette.evaluate().isNotEmpty) {
+      await inject(
+        'key KEYCODE_ESCAPE',
+        () => palette.evaluate().isEmpty,
+        what: 'Escape to close the palette',
+        soft: true,
+      );
+    }
     ask('KEYGATE $run.${step + 1} done');
-    expect(misses, isEmpty, reason: 'shortcuts that did nothing');
+    expect(misses, isEmpty, reason: 'steps and checks that failed');
 
     expect(host.droppedMessages, 0);
     expect(host.resyncs, 0);
+    final stepsAside = attached && !keysWithIme
+        ? ' and away with the soft keyboard down'
+        : '';
     debugPrint(
       'keys: ok (toolbar () and Tab under a finger typed at the cursor and '
       'kept the focus, soft keyboard up throughout: $imeUp; hardware '
-      'keyboard attached: $attached, toolbar shown by $shownBy; Tab, '
-      'Shift+Tab, Ctrl+Z, Ctrl+Shift+Z, Ctrl+S and Ctrl+Tab from the '
-      'keyboard with the soft keyboard ${imeUp ? 'up' : 'down'}, then '
-      'Ctrl+Tab, Ctrl+W, Ctrl+F, Escape, Ctrl+Shift+P and Escape with it '
-      'down; resyncs ${host.resyncs})',
+      'keyboard attached: $attached, toolbar shown by $shownBy$stepsAside; '
+      'then from the keyboard, with the soft keyboard '
+      '${keysWithIme ? 'up' : 'down'}: Tab, Shift+Tab, Ctrl+Z, Ctrl+Shift+Z, '
+      'Ctrl+S, Ctrl+Tab, Ctrl+W, Ctrl+F, Escape, Ctrl+Shift+P, Escape; '
+      'resyncs ${host.resyncs})',
     );
   });
 }

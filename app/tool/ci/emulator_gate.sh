@@ -257,6 +257,37 @@ echo "::group::Integration — keyboards (Phase 2 W6, G6: toolbar touches, hardw
 # reader (gate 42479571017) nor a poll (gate 42482002996) saw request 1.
 # The <run> part tells a retried test's requests from those of the attempt
 # before.
+# Linux input names for the Android key codes the keys test uses in chords.
+linux_key() {
+  case "$1" in
+    KEYCODE_CTRL_LEFT) echo KEY_LEFTCTRL ;;
+    KEYCODE_SHIFT_LEFT) echo KEY_LEFTSHIFT ;;
+    KEYCODE_TAB) echo KEY_TAB ;;
+    KEYCODE_[A-Z]) echo "KEY_${1#KEYCODE_}" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Presses a chord's keys in order and lets them go in reverse on the
+# emulator's own keyboard, so Android reports them as a hardware keyboard's,
+# with its device and meta state. `input keycombination` injects from the
+# virtual keyboard device, and the modifier's own press carries no meta
+# state; Flutter trusts a virtual device's meta state, so it then never sees
+# the modifier held. The console's answer is left in $chord_answer.
+chord_answer=""
+press_chord() {
+  local downs="" ups="" key name
+  for key in "$@"; do
+    name=$(linux_key "$key") || { chord_answer="no name for $key"; return 1; }
+    downs="$downs EV_KEY:$name:1"
+    ups="EV_KEY:$name:0 $ups"
+  done
+  # shellcheck disable=SC2086 # a list of events by design.
+  chord_answer=$("$ADB" emu event send $downs $ups < /dev/null 2>&1) \
+    || return 1
+  case "$chord_answer" in *KO*) return 1 ;; esac
+}
+
 key_injector() {
   local last="" line id kind status
   echo "injector: polling the log for requests ($(date +%T))"
@@ -277,7 +308,15 @@ key_injector() {
     case "$kind" in
       tap) "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null ;;
       key) "$ADB" shell input keyevent "${1:-}" < /dev/null ;;
-      keys) "$ADB" shell input keycombination "$@" < /dev/null ;;
+      keys)
+        if press_chord "$@"; then
+          echo "request $id: keys $* (emulator keyboard, $(date +%T))"
+          continue
+        fi
+        echo "request $id: the emulator keyboard failed:" \
+          "$(echo "$chord_answer" | tr '\n' ' ')"
+        "$ADB" shell input keycombination "$@" < /dev/null
+        ;;
       # The soft keyboard beside a hardware one, on (1) or off (0).
       beside)
         "$ADB" shell settings put secure show_ime_with_hard_keyboard \
