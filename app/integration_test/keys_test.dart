@@ -1,7 +1,7 @@
 /// Keyboards on the real page in the emulator (Phase 2 W6, gate G6).
 ///
 /// The input comes from outside the app, as a user's does. The test asks for
-/// it in the log, one request at a time (`KEYGATE <id> tap <x> <y>`,
+/// it in the device log, one request at a time (`KEYGATE <id> tap <x> <y>`,
 /// `KEYGATE <id> key <KEYCODE>`, `KEYGATE <id> keys <KEYCODE> <KEYCODE>…`;
 /// the id is `<run>.<n>`, so a retried test's requests are new ones), and
 /// app/tool/ci/emulator_gate.sh answers through Android's input pipeline
@@ -9,7 +9,9 @@
 /// So a toolbar key is touched as a finger touches it, which `tester.tap`
 /// cannot do (it never leaves Flutter), and a shortcut arrives from a
 /// keyboard at the focused WebView. Each request is followed by a wait for
-/// what it should have done.
+/// what it should have done. A print inside a test goes to the test runner,
+/// not to the device log, so the requests are printed in the root zone,
+/// which logs under the `flutter` tag.
 ///
 /// AVDs report a hardware keyboard, the gate's included, and Android then
 /// keeps the soft keyboard down unless its setting for showing it beside a
@@ -17,6 +19,8 @@
 /// checks MainActivity's answer against the app, and the toolbar against
 /// both: away beside a hardware keyboard, back with the soft keyboard.
 library;
+
+import 'dart:async';
 
 import 'package:codeforge/app.dart';
 import 'package:codeforge/application/documents/document_controller.dart';
@@ -135,13 +139,18 @@ void main() {
     var step = 0;
     final run = DateTime.now().millisecondsSinceEpoch;
     final ratio = tester.view.devicePixelRatio;
+    void ask(String line) {
+      Zone.root.print(line);
+      debugPrint(line);
+    }
+
     Future<void> inject(
       String request,
       bool Function() done, {
       required String what,
     }) async {
       step += 1;
-      debugPrint('KEYGATE $run.$step $request');
+      ask('KEYGATE $run.$step $request');
       await pumpUntil(tester, done, what: '$what (request $step: $request)');
       // Let the page's trailing reports land before the next request.
       await tester.pump(const Duration(milliseconds: 400));
@@ -285,7 +294,7 @@ void main() {
       () => find.byKey(const ValueKey('palette_input')).evaluate().isEmpty,
       what: 'Escape to close the palette',
     );
-    debugPrint('KEYGATE $run.${step + 1} done');
+    ask('KEYGATE $run.${step + 1} done');
 
     expect(host.droppedMessages, 0);
     expect(host.resyncs, 0);

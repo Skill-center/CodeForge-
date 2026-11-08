@@ -251,9 +251,12 @@ echo "::group::Integration — keyboards (Phase 2 W6, G6: toolbar touches, hardw
 # (KEYGATE <run>.<n> tap <x> <y> | key <KEYCODE> | keys <KEYCODE>... | done),
 # and waits for its effect. The injector polls the log for the newest
 # request and answers each new one through Android's input pipeline. Each
-# poll is one `logcat -d`, so no long-lived log stream has to stay up; in
-# gate 42479571017 a streaming reader never saw request 1. The <run> part
-# tells a retried test's requests from those of the attempt before.
+# poll is one `logcat -d`, so no long-lived log stream has to stay up. The
+# test prints its requests in the root zone: a print inside a test goes to
+# the test runner, not to the device log, which is why neither a streaming
+# reader (gate 42479571017) nor a poll (gate 42482002996) saw request 1.
+# The <run> part tells a retried test's requests from those of the attempt
+# before.
 key_injector() {
   local last="" line id kind status
   echo "injector: polling the log for requests ($(date +%T))"
