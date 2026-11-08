@@ -12,26 +12,16 @@ Got dependencies!
 8 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart
-Running Gradle task 'assembleDebug'...                             24.9s
+Running Gradle task 'assembleDebug'...                             21.9s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        1,018ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...          740ms
 00:00 +0: keys: toolbar touches and hardware shortcuts on the real page
-KEYGATE 1794144949881.1 tap 540 1256
-00:06 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart
-Some possible finders for the widgets at Offset(205.7, 478.5):
-  find.byType(AndroidViewSurface)
-  find.byType(PlatformViewLink)
-  find.byType(WebViewWidget)
-  find.byKey(const Key('editor_surface'))
-  find.byType(ColoredBox)
-  find.byType(EditorSurfaceView)
-  find.byKey(const Key('editor_body'))
-  find.byElementType(InheritedModelElement<_ModalRouteAspect>)
-  find.byElementType(InheritedModelElement<Object>)
-00:36 +0: keys: toolbar touches and hardware shortcuts on the real page
+KEYGATE 1794150085237.1 tap 540 1256
+keys: hardware keyboard attached: true, toolbar away beside it: true; soft keyboard up after the tap: true; toolbar shown by the soft keyboard beside the hardware one
+KEYGATE 1794150085237.2 key KEYCODE_TAB
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
-Timed out after 30 s waiting for the editor to take the keyboard (request 1: tap 540 1256).
+Timed out after 30 s waiting for Tab to indent (request 2: key KEYCODE_TAB).
 
 When the exception was thrown, this was the stack:
 #0      fail (package:matcher/src/expect/expect.dart:187:31)
@@ -39,7 +29,7 @@ When the exception was thrown, this was the stack:
 <asynchronous suspension>
 #2      main.<anonymous closure>.inject (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:154:7)
 <asynchronous suspension>
-#3      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:173:5)
+#3      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:215:5)
 <asynchronous suspension>
 #4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
 <asynchronous suspension>
@@ -51,12 +41,12 @@ When the exception was thrown, this was the stack:
 The test description was:
   keys: toolbar touches and hardware shortcuts on the real page
 ════════════════════════════════════════════════════════════════════════════════════════════════════
-00:36 +0 -1: keys: toolbar touches and hardware shortcuts on the real page [E]
+00:38 +0 -1: keys: toolbar touches and hardware shortcuts on the real page [E]
   Test failed. See exception logs above.
   The test description was: keys: toolbar touches and hardware shortcuts on the real page
   
-00:36 +0 -1: (tearDownAll)
-00:37 +0 -1: Some tests failed.
+00:38 +0 -1: (tearDownAll)
+00:39 +0 -1: Some tests failed.
 
 Failing tests:
   /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart: keys: toolbar touches and hardware shortcuts on the real page
