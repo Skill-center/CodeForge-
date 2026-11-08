@@ -45,7 +45,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'smoke_test.dart' show pumpUntil;
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('keys: toolbar touches and hardware shortcuts on the real page', (
     tester,
@@ -168,6 +168,11 @@ void main() {
       await pumpUntil(tester, () => head() == 0, what: 'the cursor at 0');
     }
 
+    // Touches from the device reach the app only when the binding lets them
+    // through (it drops them by default). The flag goes back after the last
+    // touch, as the binding checks at the end of the test.
+    binding.shouldPropagateDevicePointerEvents = true;
+
     // A finger in the editor: it takes the keyboard, and the soft keyboard
     // comes up for it.
     await inject(
@@ -245,6 +250,8 @@ void main() {
     );
     expect(focused(), isTrue, reason: 'a toolbar key took the focus');
     expect(keyboardUp(), imeUp, reason: 'a toolbar key moved the keyboard');
+
+    binding.shouldPropagateDevicePointerEvents = false;
 
     // App shortcuts, caught by the page and forwarded over the bridge.
     await inject(

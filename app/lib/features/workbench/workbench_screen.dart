@@ -258,8 +258,9 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) context.go('/');
       },
-      // While Flutter has keyboard focus; the editor page forwards the same
-      // keys itself when it has focus (protocol app.shortcut).
+      // Android hands keys to Flutter before the focused WebView, so these
+      // hold while the editor page has the focus too. The page forwards the
+      // same keys (protocol app.shortcut) when one reaches it first.
       child: CallbackShortcuts(
         bindings: {
           const SingleActivator(

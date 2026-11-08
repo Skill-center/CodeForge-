@@ -9,6 +9,7 @@ import 'package:codeforge/features/workbench/panels/editor_surface_view.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -177,5 +178,46 @@ void main() {
     expect(tester.state(find.byType(EditorSurfaceView)), same(view));
     expect(harness.editorSurfaces, hasLength(1));
     expect(harness.editorSurface.loads, 1);
+  });
+
+  testWidgets('editing keys go on to the page while it has the focus', (
+    tester,
+  ) async {
+    setSurface(tester, 1280, 800);
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/workspace'),
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    // The platform view takes Flutter's focus while the WebView has it.
+    final view = harness.editorSurface.viewFocus..requestFocus();
+    await tester.pump();
+    expect(view.hasPrimaryFocus, isTrue);
+
+    // Flutter's defaults would move the focus on Tab and the arrows. A key
+    // left unhandled goes on from Flutter to the WebView.
+    for (final key in [
+      LogicalKeyboardKey.tab,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowRight,
+      LogicalKeyboardKey.arrowUp,
+      LogicalKeyboardKey.arrowDown,
+      LogicalKeyboardKey.pageDown,
+      LogicalKeyboardKey.enter,
+      LogicalKeyboardKey.space,
+      LogicalKeyboardKey.escape,
+    ]) {
+      expect(await tester.sendKeyEvent(key), isFalse, reason: key.debugName);
+      expect(view.hasPrimaryFocus, isTrue, reason: key.debugName);
+    }
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.tab), isFalse);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    expect(view.hasPrimaryFocus, isTrue);
+
+    // A chord is not an editing key: Ctrl+Tab still reaches the workbench.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.tab), isTrue);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
   });
 }

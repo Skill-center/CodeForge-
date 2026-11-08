@@ -638,41 +638,49 @@ final class FakeEditorSurface implements EditorSurface {
 
   // --------------------------------------------------------------- the view
 
+  /// Stands in for the platform view's focus node, which takes Flutter's
+  /// focus while the real page has it.
+  final FocusNode viewFocus = FocusNode(debugLabel: 'fake editor view');
+
   /// The active document as plain text, styled from the configured palette,
   /// so screens and goldens show what the editor would.
   @override
   Widget buildView(BuildContext context) {
-    return ValueListenableBuilder<int>(
-      valueListenable: _revision,
-      builder: (context, _, _) {
-        final docId = activeDocId;
-        final doc = docId == null ? null : documents[docId];
-        final palette = configuration?['palette'];
-        final foreground = palette is Map<String, Object?>
-            ? palette['foreground']
-            : null;
-        final fontSize = configuration?['fontSize'];
-        return ClipRect(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                doc?.text ?? '',
-                key: const ValueKey('fake_editor_text'),
-                style: TextStyle(
-                  fontFamily: 'JetBrainsMono',
-                  fontSize: fontSize is num ? fontSize.toDouble() : 14,
-                  height: 1.5,
-                  color: foreground is String
-                      ? _cssColor(foreground)
-                      : const Color(0xFFE8EAF0),
+    return Focus(
+      focusNode: viewFocus,
+      includeSemantics: false,
+      child: ValueListenableBuilder<int>(
+        valueListenable: _revision,
+        builder: (context, _, _) {
+          final docId = activeDocId;
+          final doc = docId == null ? null : documents[docId];
+          final palette = configuration?['palette'];
+          final foreground = palette is Map<String, Object?>
+              ? palette['foreground']
+              : null;
+          final fontSize = configuration?['fontSize'];
+          return ClipRect(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  doc?.text ?? '',
+                  key: const ValueKey('fake_editor_text'),
+                  style: TextStyle(
+                    fontFamily: 'JetBrainsMono',
+                    fontSize: fontSize is num ? fontSize.toDouble() : 14,
+                    height: 1.5,
+                    color: foreground is String
+                        ? _cssColor(foreground)
+                        : const Color(0xFFE8EAF0),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -680,6 +688,7 @@ final class FakeEditorSurface implements EditorSurface {
   Future<void> dispose() async {
     disposed = true;
     _revision.dispose();
+    viewFocus.dispose();
     await _messages.close();
     await _events.close();
   }
