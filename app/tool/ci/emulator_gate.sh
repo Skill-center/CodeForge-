@@ -273,35 +273,52 @@ echo "::group::Integration — keyboards (Phase 2 W6, G6: toolbar touches, hardw
 # reader (gate 42479571017) nor a poll (gate 42482002996) saw request 1.
 # The <run> part tells a retried test's requests from those of the attempt
 # before.
-# Linux input names for the Android key codes the keys test uses in chords.
-linux_key() {
+# Linux key codes (input-event-codes.h) for the Android key codes the keys
+# test uses in chords.
+linux_code() {
+  local letters=" Q16 W17 E18 R19 T20 Y21 U22 I23 O24 P25 A30 S31 D32 F33"
+  letters="$letters G34 H35 J36 K37 L38 Z44 X45 C46 V47 B48 N49 M50 "
+  local rest
   case "$1" in
-    KEYCODE_CTRL_LEFT) echo KEY_LEFTCTRL ;;
-    KEYCODE_SHIFT_LEFT) echo KEY_LEFTSHIFT ;;
-    KEYCODE_TAB) echo KEY_TAB ;;
-    KEYCODE_[A-Z]) echo "KEY_${1#KEYCODE_}" ;;
+    KEYCODE_CTRL_LEFT) echo 29 ;;
+    KEYCODE_SHIFT_LEFT) echo 42 ;;
+    KEYCODE_TAB) echo 15 ;;
+    KEYCODE_[A-Z])
+      rest="${letters#* "${1#KEYCODE_}"}"
+      echo "${rest%% *}"
+      ;;
     *) return 1 ;;
   esac
 }
 
 # Presses a chord's keys in order and lets them go in reverse on the
-# emulator's own keyboard, so Android reports them as a hardware keyboard's,
-# with its device and meta state. `input keycombination` injects from the
-# virtual keyboard device, and the modifier's own press carries no meta
-# state; Flutter trusts a virtual device's meta state, so it then never sees
-# the modifier held. The console's answer is left in $chord_answer.
+# emulator's hardware keyboard device ($kbd_dev), each change followed by a
+# sync report as a real keyboard sends it. Android then reports the keys as
+# that keyboard's, with its device and meta state. `input keycombination`
+# injects from the virtual keyboard device, and the modifier's own press
+# carries no meta state; Flutter trusts a virtual device's meta state, so it
+# never sees the modifier held (gate 42497788524). The emulator console's
+# `event send` was accepted but reached nothing (gate 42507384710). What the
+# device said is left in $chord_answer.
 chord_answer=""
 press_chord() {
-  local downs="" ups="" key name
+  local downs="" ups="" key code
+  if [ -z "$kbd_dev" ]; then
+    chord_answer="no keyboard device"
+    return 1
+  fi
   for key in "$@"; do
-    name=$(linux_key "$key") || { chord_answer="no name for $key"; return 1; }
-    downs="$downs EV_KEY:$name:1"
-    ups="EV_KEY:$name:0 $ups"
+    code=$(linux_code "$key") || { chord_answer="no code for $key"; return 1; }
+    downs="$downs sendevent $kbd_dev 1 $code 1; sendevent $kbd_dev 0 0 0;"
+    ups="sendevent $kbd_dev 1 $code 0; sendevent $kbd_dev 0 0 0; $ups"
   done
-  # shellcheck disable=SC2086 # a list of events by design.
-  chord_answer=$(timeout 10 "$ADB" emu event send $downs $ups \
+  chord_answer=$(timeout 10 "$ADB" shell "$downs $ups echo sent" \
     < /dev/null 2>&1) || return 1
-  case "$chord_answer" in *KO*) return 1 ;; esac
+  case "$chord_answer" in
+    *denied* | *rror* | *"not found"* | *[Uu]sage*) return 1 ;;
+    *sent*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 key_injector() {
@@ -326,10 +343,10 @@ key_injector() {
       key) "$ADB" shell input keyevent "${1:-}" < /dev/null ;;
       keys)
         if press_chord "$@"; then
-          echo "request $id: keys $* (emulator keyboard, $(date +%T))"
+          echo "request $id: keys $* (on $kbd_dev, $(date +%T))"
           continue
         fi
-        echo "request $id: the emulator keyboard failed:" \
+        echo "request $id: the keyboard device failed:" \
           "$(echo "$chord_answer" | tr '\n' ' ')"
         "$ADB" shell input keycombination "$@" < /dev/null
         ;;
@@ -359,17 +376,33 @@ ime_now=$("$ADB" shell settings get secure show_ime_with_hard_keyboard \
 # Which soft keyboard: input methods differ in the hardware keys they take.
 ime=$("$ADB" shell settings get secure default_input_method 2>/dev/null \
   | tr -d '\r')
+# The emulator's hardware keyboard: the input device with both Ctrl and Tab.
+devices=$(timeout 20 "$ADB" shell getevent -pl < /dev/null 2>/dev/null \
+  | tr -d '\r')
+kbd_dev=$(echo "$devices" | awk '
+  /^add device/ { dev = $4 }
+  /KEY_LEFTCTRL/ { ctrl[dev] = 1 }
+  /KEY_TAB/ { tab[dev] = 1 }
+  END { for (d in ctrl) if (d in tab) { print d; exit } }')
+kbd_name=$(echo "$devices" | awk -v want="$kbd_dev" '
+  /^add device/ { here = ($4 == want) }
+  here && /name:/ { sub(/^[ \t]*name:[ \t]*/, ""); print; exit }')
 {
   echo "${config:-config: (am get-config gave nothing)}"
   echo "show_ime_with_hard_keyboard: ${ime_setting:-unset} -> ${ime_now:-unset}"
   echo "input method: ${ime:-unknown}"
+  echo "keyboard device: ${kbd_dev:-none found} ${kbd_name}"
 } > "$RESULTS/keys_injector.txt"
+# What the input devices report during the test: chords written to the
+# keyboard device show up here, with times.
+"$ADB" shell getevent -lt < /dev/null > "$RESULTS/keys_getevent.txt" 2>&1 &
+getevent_reader=$!
 key_injector >> "$RESULTS/keys_injector.txt" 2>&1 &
 injector=$!
 run_itest keys integration_test/keys_test.dart || fail=1
 pkill -P "$injector" >/dev/null 2>&1 || true
-kill "$injector" >/dev/null 2>&1 || true
-wait "$injector" 2>/dev/null || true
+kill "$injector" "$getevent_reader" >/dev/null 2>&1 || true
+wait "$injector" "$getevent_reader" 2>/dev/null || true
 if [ -z "$ime_setting" ] || [ "$ime_setting" = "null" ]; then
   "$ADB" shell settings delete secure show_ime_with_hard_keyboard \
     >/dev/null 2>&1
