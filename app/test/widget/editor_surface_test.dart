@@ -189,10 +189,18 @@ void main() {
     );
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
-    // The platform view takes Flutter's focus while the WebView has it.
-    final view = harness.editorSurface.viewFocus..requestFocus();
-    await tester.pump();
-    expect(view.hasPrimaryFocus, isTrue);
+    bool focusOnThePage() =>
+        FocusManager.instance.primaryFocus?.context
+            ?.findAncestorWidgetOfExactType<EditorSurfaceView>() !=
+        null;
+    expect(focusOnThePage(), isFalse);
+
+    // The page reports its focus (the WebView plugin does not), and
+    // Flutter's focus follows it to the view's own node.
+    harness.editorSurface.emit('editor.focus', {'focused': true});
+    await tester.pumpAndSettle();
+    expect(focusOnThePage(), isTrue);
+    expect(harness.editorSurface.viewFocus.hasPrimaryFocus, isTrue);
 
     // Flutter's defaults would move the focus on Tab and the arrows. A key
     // left unhandled goes on from Flutter to the WebView.
@@ -208,16 +216,41 @@ void main() {
       LogicalKeyboardKey.escape,
     ]) {
       expect(await tester.sendKeyEvent(key), isFalse, reason: key.debugName);
-      expect(view.hasPrimaryFocus, isTrue, reason: key.debugName);
+      expect(focusOnThePage(), isTrue, reason: key.debugName);
     }
     await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
     expect(await tester.sendKeyEvent(LogicalKeyboardKey.tab), isFalse);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-    expect(view.hasPrimaryFocus, isTrue);
+    expect(focusOnThePage(), isTrue);
 
-    // A chord is not an editing key: Ctrl+Tab still reaches the workbench.
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
-    expect(await tester.sendKeyEvent(LogicalKeyboardKey.tab), isTrue);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    // A chord is not an editing key: Ctrl+Tab still reaches the workbench,
+    // also once the page has let the focus go.
+    Future<bool> ctrlTab() async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      final handled = await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      return handled;
+    }
+
+    expect(await ctrlTab(), isTrue);
+    harness.editorSurface.emit('editor.focus', {'focused': false});
+    await tester.pumpAndSettle();
+    expect(await ctrlTab(), isTrue);
+  });
+
+  testWidgets('a focus already on the page view stays there', (tester) async {
+    setSurface(tester, 1280, 800);
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/workspace'),
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    // As if the plugin reported the WebView's focus to its platform view:
+    // taking it away would make the platform view drop the WebView's.
+    final view = harness.editorSurface.viewFocus..requestFocus();
+    await tester.pump();
+    harness.editorSurface.emit('editor.focus', {'focused': true});
+    await tester.pumpAndSettle();
+    expect(view.hasPrimaryFocus, isTrue);
   });
 }

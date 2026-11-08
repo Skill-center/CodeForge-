@@ -639,7 +639,7 @@ final class FakeEditorSurface implements EditorSurface {
   // --------------------------------------------------------------- the view
 
   /// Stands in for the platform view's focus node, which takes Flutter's
-  /// focus while the real page has it.
+  /// focus when the page reports its own.
   final FocusNode viewFocus = FocusNode(debugLabel: 'fake editor view');
 
   /// The active document as plain text, styled from the configured palette,

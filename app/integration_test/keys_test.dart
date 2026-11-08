@@ -21,6 +21,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:codeforge/app.dart';
 import 'package:codeforge/application/documents/document_controller.dart';
@@ -151,7 +152,19 @@ void main() {
     }) async {
       step += 1;
       ask('KEYGATE $run.$step $request');
-      await pumpUntil(tester, done, what: '$what (request $step: $request)');
+      try {
+        await pumpUntil(tester, done, what: '$what (request $step: $request)');
+      } on TestFailure {
+        // What the page and Flutter had instead, for the gate's evidence.
+        final primary = FocusManager.instance.primaryFocus;
+        debugPrint(
+          'keys: at the timeout the text was ${jsonEncode(text())}, '
+          'the cursor ${head()}, the editor focused: ${focused()}, the soft '
+          'keyboard up: ${keyboardUp()}, Flutter focus on '
+          '${primary?.debugLabel ?? primary?.runtimeType}',
+        );
+        rethrow;
+      }
       // Let the page's trailing reports land before the next request.
       await tester.pump(const Duration(milliseconds: 400));
     }

@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../application/editor/editor_host.dart';
 import '../../../application/editor/editor_providers.dart';
+import '../../../application/editor/editor_status.dart';
 import '../../../application/settings_controller.dart';
 import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/colors.dart';
@@ -29,7 +30,8 @@ import 'editor_appearance.dart';
 /// dismissing. Mapped to [DoNothingAndStopPropagationIntent], they stop
 /// there without being consumed, so the embedding passes them on to the
 /// page. Chords such as Ctrl+Tab match none of these and still reach the
-/// workbench's shortcuts.
+/// workbench's shortcuts. They apply while Flutter's focus is on the page,
+/// which follows the page's own report of its focus.
 const Map<ShortcutActivator, Intent> editorPageKeys = {
   SingleActivator(LogicalKeyboardKey.tab): _toThePage,
   SingleActivator(LogicalKeyboardKey.tab, shift: true): _toThePage,
@@ -61,10 +63,23 @@ class EditorSurfaceView extends ConsumerStatefulWidget {
 class _EditorSurfaceViewState extends ConsumerState<EditorSurfaceView> {
   String? _sentConfiguration;
 
+  /// Holds the page's focus nodes, and the focus itself if the view has
+  /// none (see [build]).
+  final FocusNode _pageFocus = FocusNode(
+    debugLabel: 'editor page',
+    skipTraversal: true,
+  );
+
   @override
   void initState() {
     super.initState();
     unawaited(ref.read(editorHostProvider).start());
+  }
+
+  @override
+  void dispose() {
+    _pageFocus.dispose();
+    super.dispose();
   }
 
   @override
@@ -73,6 +88,24 @@ class _EditorSurfaceViewState extends ConsumerState<EditorSurfaceView> {
     final status = ref.watch(editorHostStatusProvider);
     final settings = ref.watch(settingsControllerProvider);
     final colors = CfColors.of(context);
+    // The WebView plugin does not tell Flutter when the WebView takes the
+    // focus, so the page's own report moves Flutter's focus to the page,
+    // within reach of [editorPageKeys]. It goes to the platform view's own
+    // node, which makes the page Flutter's text input target: a field that
+    // gives up the focus then leaves the soft keyboard to the page instead
+    // of hiding it. A node already in there keeps the focus.
+    ref.listen(editorStatusProvider.select((editor) => editor.focused), (
+      _,
+      focused,
+    ) {
+      if (!focused || _pageFocus.hasFocus) {
+        return;
+      }
+      final views = _pageFocus.descendants.where(
+        (node) => node.canRequestFocus,
+      );
+      (views.isEmpty ? _pageFocus : views.first).requestFocus();
+    });
     _configure(
       host,
       editorConfiguration(
@@ -92,7 +125,11 @@ class _EditorSurfaceViewState extends ConsumerState<EditorSurfaceView> {
             key: const ValueKey('editor_surface'),
             child: Shortcuts(
               shortcuts: editorPageKeys,
-              child: host.buildView(context),
+              child: Focus(
+                focusNode: _pageFocus,
+                includeSemantics: false,
+                child: host.buildView(context),
+              ),
             ),
           ),
           if (status.phase != EditorHostPhase.ready)
