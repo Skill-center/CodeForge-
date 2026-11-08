@@ -145,6 +145,13 @@ void main() {
       debugPrint(line);
     }
 
+    // Times within the current step, for the logs below.
+    final stepClock = Stopwatch()..start();
+    String at() {
+      final seconds = stepClock.elapsedMilliseconds / 1000;
+      return '${seconds.toStringAsFixed(2)} s';
+    }
+
     // Every key Flutter gets, with the keys held with it, so that a step
     // that times out shows whether its keys arrived. Handlers see each key
     // before the focus does, and this one lets them all go on.
@@ -158,12 +165,29 @@ void main() {
           : event is KeyUpEvent
           ? 'up'
           : 'repeat';
-      keysSeen.add('$kind ${[...held, event.logicalKey.keyLabel].join('+')}');
+      final keys = [...held, event.logicalKey.keyLabel].join('+');
+      keysSeen.add('$kind $keys at ${at()}');
       return false;
     }
 
     HardwareKeyboard.instance.addHandler(logKey);
     addTearDown(() => HardwareKeyboard.instance.removeHandler(logKey));
+
+    // Tab switches and the shortcuts the page forwards, timed within the
+    // step: a step that times out then shows a switch made and undone, or a
+    // shortcut that took both ways (Flutter's and the page's).
+    final happened = <String>[];
+    final tabs = container.listen(
+      documentControllerProvider.select((state) => state.activePath),
+      (_, path) => happened.add('tab $path at ${at()}'),
+    );
+    addTearDown(tabs.close);
+    final pageShortcuts = host.events.listen((event) {
+      if (event is ShortcutPressed) {
+        happened.add('the page forwarded ${event.shortcut} at ${at()}');
+      }
+    });
+    addTearDown(pageShortcuts.cancel);
 
     // Steps and checks that failed: the rest still run, for the evidence,
     // and the test fails at the end.
@@ -176,6 +200,8 @@ void main() {
     }) async {
       step += 1;
       keysSeen.clear();
+      happened.clear();
+      stepClock.reset();
       ask('KEYGATE $run.$step $request');
       try {
         await pumpUntil(tester, done, what: '$what (request $step: $request)');
@@ -187,7 +213,8 @@ void main() {
           '${jsonEncode(text())}, the cursor ${head()}, the editor focused: '
           '${focused()}, the soft keyboard up: ${keyboardUp()}, Flutter focus '
           'on ${primary?.debugLabel ?? primary?.runtimeType}; keys Flutter '
-          'got: ${keysSeen.isEmpty ? 'none' : keysSeen.join(', ')}',
+          'got: ${keysSeen.isEmpty ? 'none' : keysSeen.join(', ')}; tabs and '
+          'page shortcuts: ${happened.isEmpty ? 'none' : happened.join(', ')}',
         );
         if (!soft) {
           rethrow;
