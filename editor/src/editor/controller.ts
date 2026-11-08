@@ -11,7 +11,6 @@ import {
   historyKeymap,
   indentLess,
   indentMore,
-  indentWithTab,
   redo,
   redoDepth,
   selectAll,
@@ -73,6 +72,7 @@ import type {
 } from '../protocol/types';
 import { cursorLineHighlight } from './active_line';
 import { browserScheduler, ChangeBatcher, type Scheduler } from './batcher';
+import { insertIndent } from './indent';
 import { languageExtension } from './languages';
 import {
   countMatches,
@@ -141,6 +141,7 @@ const COMMANDS: Record<ViewCommand, (view: EditorView) => boolean> = {
   redo,
   indentMore,
   indentLess,
+  insertIndent,
   selectAll,
   cursorCharLeft,
   cursorCharRight,
@@ -566,7 +567,8 @@ export class EditorController {
         ...defaultKeymap,
         ...historyKeymap,
         ...foldKeymap,
-        indentWithTab,
+        // CodeMirror's indentWithTab, but Tab at a cursor inserts spaces.
+        { key: 'Tab', run: insertIndent, shift: indentLess },
       ]),
       this.languageSlot.of(languageExtension(entry.language)),
       this.editableSlot.of(editableExtension(entry.readOnly)),

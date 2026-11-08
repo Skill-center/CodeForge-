@@ -102,6 +102,9 @@ final class FakeEditorSurface implements EditorSurface {
   /// Commands run with `cmd.exec`, in order.
   final List<String> commands = [];
 
+  /// What `cmd.insert` typed (the symbol toolbar), in order.
+  final List<({String text, int? cursorOffset})> inserts = [];
+
   /// Where `cmd.gotoLine` asked the cursor to go, in order.
   final List<({int line, int? column})> gotoLines = [];
   Map<String, Object?>? configuration;
@@ -494,12 +497,30 @@ final class FakeEditorSurface implements EditorSurface {
 
   void _insert(String id, Map<String, Object?> payload) {
     final docId = activeDocId;
-    if (docId == null || !documents.containsKey(docId)) {
+    final doc = docId == null ? null : documents[docId];
+    if (docId == null || doc == null) {
       _error(id, 'no_active_doc', 'no document is active');
       return;
     }
-    // The cursor of a freshly opened document sits at its start.
-    _change(docId, at: 0, delete: 0, insert: payload.string('text'));
+    final text = payload.string('text');
+    final offset = payload['cursorOffset'];
+    final cursorOffset = offset is int ? offset : null;
+    inserts.add((text: text, cursorOffset: cursorOffset));
+    // Replaces the selection, as the page does. The cursor of a freshly
+    // opened document sits at its start.
+    final anchor = doc.anchor ?? 0;
+    final head = doc.head ?? anchor;
+    final from = anchor < head ? anchor : head;
+    final to = anchor < head ? head : anchor;
+    _change(docId, at: from, delete: to - from, insert: text);
+    final caret =
+        from +
+        (cursorOffset == null || cursorOffset > text.length
+            ? text.length
+            : cursorOffset);
+    doc
+      ..anchor = caret
+      ..head = caret;
     _ok(id, {'inserted': true});
   }
 

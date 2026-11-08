@@ -45,6 +45,18 @@ final class SettingsController extends Notifier<AppSettings> {
   Future<void> setToolbarPreset(ToolbarPreset preset) =>
       _persist(state.copyWith(toolbarPreset: preset));
 
+  /// Keeps the user's own symbol keys; blank brings the presets back.
+  Future<void> setToolbarKeys(String keys) {
+    final trimmed = keys.trim();
+    return _persist(
+      state.copyWith(
+        toolbarKeys: trimmed.length <= maxToolbarKeysLength
+            ? trimmed
+            : trimmed.substring(0, maxToolbarKeysLength),
+      ),
+    );
+  }
+
   Future<void> setWelcomeSeen() => _persist(state.copyWith(welcomeSeen: true));
 
   Future<void> setShowHiddenFiles(bool value) =>

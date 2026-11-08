@@ -174,9 +174,32 @@ class GalleryBody extends StatelessWidget {
             trailing: Switch(value: true, onChanged: (_) {}),
           ),
           const SizedBox(height: CfSpacing.lg),
-          Text('Symbol toolbar (disabled)', style: textTheme.titleMedium),
+          Text('Symbol toolbar', style: textTheme.titleMedium),
           const SizedBox(height: CfSpacing.sm),
-          const CfSymbolToolbar(),
+          CfSymbolToolbar(
+            keys: [
+              for (final symbol in const ['Tab', '{}', '()', '[]', ';', '=>'])
+                CfToolbarKey(
+                  id: symbol,
+                  semanticLabel: symbol,
+                  label: symbol,
+                  onPressed: () {},
+                ),
+              const CfToolbarKey(
+                id: 'undo',
+                semanticLabel: 'Undo',
+                icon: Icons.undo,
+              ),
+            ],
+            trailing: [
+              CfToolbarKey(
+                id: 'hide_keyboard',
+                semanticLabel: 'Hide keyboard',
+                icon: Icons.keyboard_hide_outlined,
+                onPressed: () {},
+              ),
+            ],
+          ),
           const SizedBox(height: CfSpacing.lg),
           Text('Empty state', style: textTheme.titleMedium),
           const SizedBox(height: CfSpacing.sm),

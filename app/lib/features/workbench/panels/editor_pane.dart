@@ -1,7 +1,7 @@
 /// Editor pane: tabs and the find bar over the hosted editor page, and the
 /// symbol toolbar below it. The page itself lives in [EditorSurfaceView];
 /// the tabs are the open documents (Phase 2 W4), the find bar searches the
-/// active one (W6).
+/// active one and the toolbar types into it (W6).
 library;
 
 import 'package:flutter/material.dart';
@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../application/documents/document_controller.dart';
 import '../../../application/editor/find_controller.dart';
+import '../../../application/keyboard_state.dart';
 import '../../../application/settings_controller.dart';
 import '../../../core/files/workspace_path.dart';
 import '../../../design_system/components/buttons.dart';
@@ -20,6 +21,7 @@ import '../../../services/settings/settings_model.dart';
 import '../file_actions.dart';
 import 'editor_surface_view.dart';
 import 'find_bar.dart';
+import 'symbol_toolbar.dart';
 
 class EditorPane extends ConsumerWidget {
   const EditorPane({super.key});
@@ -29,6 +31,7 @@ class EditorPane extends ConsumerWidget {
     final documents = ref.watch(documentControllerProvider);
     final settings = ref.watch(settingsControllerProvider);
     final find = ref.watch(findControllerProvider);
+    final hardwareKeyboard = ref.watch(hardwareKeyboardProvider);
     final colors = CfColors.of(context);
     final activePath = documents.activePath;
     final activeDoc = documents.active;
@@ -39,8 +42,9 @@ class EditorPane extends ConsumerWidget {
     // overflow: pinned chrome yields before content. While the find bar is
     // open, its find row comes first (the user is typing into it), then one
     // touch row of the editor, then the tab strip, then the bar's other
-    // rows. The (disabled) symbol toolbar and the journal banner come only
-    // when there is room left for them too.
+    // rows. The symbol toolbar and the journal banner come only when there
+    // is room left for them too; a hardware keyboard has the toolbar's keys,
+    // so with one attached the toolbar steps aside.
     return LayoutBuilder(
       builder: (context, constraints) {
         final height = constraints.maxHeight;
@@ -74,11 +78,9 @@ class EditorPane extends ConsumerWidget {
             : height;
         final showToolbar =
             settings.toolbarPreset != ToolbarPreset.none &&
+            !hardwareKeyboard &&
             height >=
-                tabsExtent +
-                    findExtent +
-                    CfSpacing.symbolToolbarHeight +
-                    editorRow;
+                tabsExtent + findExtent + CfSymbolToolbar.extent + editorRow;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -170,11 +172,7 @@ class EditorPane extends ConsumerWidget {
                 ],
               ),
             ),
-            if (showToolbar)
-              const CfSymbolToolbar(
-                enabled: false,
-                phaseNote: 'Symbol keys arrive later in Phase 2',
-              ),
+            if (showToolbar) const EditorSymbolToolbar(),
           ],
         );
       },

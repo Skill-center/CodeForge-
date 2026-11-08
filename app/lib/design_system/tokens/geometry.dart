@@ -24,7 +24,10 @@ abstract final class CfSpacing {
 
   /// Tabs and their close buttons are touch targets, so the strip is 48 (G7).
   static const double tabStripHeight = 48;
-  static const double symbolToolbarHeight = 44;
+
+  /// Symbol toolbar keys are touch targets too (G6): a 48 dp row, under a
+  /// hairline.
+  static const double symbolToolbarHeight = 48;
 }
 
 /// Radii — never above 14; no pill cards.

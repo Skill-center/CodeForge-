@@ -42,6 +42,8 @@ export const EDITOR_COMMANDS = [
   'redo',
   'indentMore',
   'indentLess',
+  /** The Tab key: indents selected lines, or spaces to the next stop. */
+  'insertIndent',
   'selectAll',
   'cursorCharLeft',
   'cursorCharRight',

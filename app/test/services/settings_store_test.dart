@@ -14,6 +14,7 @@ void main() {
         editorFontSize: 18,
         reducedMotion: true,
         toolbarPreset: ToolbarPreset.compact,
+        toolbarKeys: '; => {}',
         welcomeSeen: true,
         showHiddenFiles: true,
       );
@@ -47,6 +48,15 @@ void main() {
       ).replaceAll('"themeMode":"dark"', '"themeMode":"neon"');
       final decoded = decodeSettings(raw);
       expect(decoded.themeMode, ThemeMode.dark);
+    });
+
+    test('toolbar keys that are not text, or too long, are dropped', () {
+      const number = '{"schemaVersion":1,"data":{"toolbarKeys":5}}';
+      expect(decodeSettings(number).toolbarKeys, '');
+      final long = '{"schemaVersion":1,"data":{"toolbarKeys":"${'x' * 401}"}}';
+      expect(decodeSettings(long).toolbarKeys, '');
+      const fine = '{"schemaVersion":1,"data":{"toolbarKeys":"; =>"}}';
+      expect(decodeSettings(fine).toolbarKeys, '; =>');
     });
 
     test('font size is clamped to the supported range', () {

@@ -14,6 +14,9 @@
 #   smoke|restore_a|restore_b.txt  final attempt output (+ .attemptN.txt)
 #   prefs_after_a.txt / process_after_kill.txt  G5 on-disk + kill proof
 #   coldstart*.txt / perf.json     G6 measurement (record-only)
+#   editing.txt                    Phase 2 W6 G5: find, replace, go to line
+#   keys.txt / keys_injector.txt   Phase 2 W6 G6: toolbar touches and hardware
+#                                  shortcuts, injected through adb (below)
 #   editor_bench.json|.txt         Phase 2 W3 engine benchmark (CodeMirror 6
 #                                  vs Monaco; information for ADR-0004), from
 #                                  editor_bench_<engine>.txt + the DevTools
@@ -241,6 +244,47 @@ echo "::endgroup::"
 
 echo "::group::Integration — editing (Phase 2 W6, G5: find, replace, go to line)"
 run_itest editing integration_test/editing_test.dart || fail=1
+echo "::endgroup::"
+
+echo "::group::Integration — keyboards (Phase 2 W6, G6: toolbar touches, hardware shortcuts)"
+# keys_test asks for real input in its log, one numbered request at a time
+# (KEYGATE <n> tap <x> <y> | key <KEYCODE> | keys <KEYCODE>... | done), and
+# waits for what the input should do. This answers each request through
+# Android's input pipeline, as a finger or a keyboard would: tester.tap never
+# leaves Flutter, so it cannot show that a touched toolbar key leaves the
+# WebView its focus. The log stream starts now, so nothing older is replayed.
+key_injector() {
+  local since
+  since=$("$ADB" shell date +'%m-%d %H:%M:%S.000' 2>/dev/null | tr -d '\r')
+  [ -n "$since" ] || since=1
+  "$ADB" logcat -v raw -T "$since" -s flutter:I 2>/dev/null \
+    | while IFS= read -r line; do
+      case "$line" in
+        *"KEYGATE "*) ;;
+        *) continue ;;
+      esac
+      # shellcheck disable=SC2086 # a request is a list of words by design.
+      set -- ${line#*KEYGATE }
+      n="${1:-?}"
+      kind="${2:-}"
+      shift 2 || true
+      # adb shell reads stdin, which here is the log: keep it off the log.
+      case "$kind" in
+        tap) "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null ;;
+        key) "$ADB" shell input keyevent "${1:-}" < /dev/null ;;
+        keys) "$ADB" shell input keycombination "$@" < /dev/null ;;
+        done) echo "request $n: done"; break ;;
+        *) echo "request $n: unknown request '$kind'"; continue ;;
+      esac
+      echo "request $n: $kind $* (exit $?)"
+    done
+}
+key_injector > "$RESULTS/keys_injector.txt" 2>&1 &
+injector=$!
+run_itest keys integration_test/keys_test.dart || fail=1
+pkill -P "$injector" >/dev/null 2>&1 || true
+kill "$injector" >/dev/null 2>&1 || true
+wait "$injector" 2>/dev/null || true
 echo "::endgroup::"
 
 echo "::group::Editor benchmark (Phase 2 W3: CodeMirror 6 vs Monaco, informational)"

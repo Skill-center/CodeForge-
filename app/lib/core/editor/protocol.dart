@@ -44,6 +44,7 @@ const List<String> editorCommands = [
   'redo',
   'indentMore',
   'indentLess',
+  'insertIndent',
   'selectAll',
   'cursorCharLeft',
   'cursorCharRight',

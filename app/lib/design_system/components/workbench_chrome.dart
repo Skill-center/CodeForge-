@@ -381,83 +381,145 @@ class CfStatusStrip extends StatelessWidget {
   }
 }
 
-/// Editor symbol toolbar. In Phase 1 the keys are visibly disabled with an
-/// honest phase note — no fake editing.
+/// One key of a [CfSymbolToolbar]: a symbol in the code font, or an icon.
+@immutable
+class CfToolbarKey {
+  const CfToolbarKey({
+    required this.id,
+    required this.semanticLabel,
+    this.label,
+    this.icon,
+    this.onPressed,
+    this.onLongPress,
+  }) : assert(label != null || icon != null, 'a key needs a label or icon');
+
+  /// Unique within the toolbar; the key's widget key is `toolbar_<id>`.
+  final String id;
+
+  /// What a screen reader announces.
+  final String semanticLabel;
+
+  final String? label;
+  final IconData? icon;
+
+  /// Null disables the key.
+  final VoidCallback? onPressed;
+  final VoidCallback? onLongPress;
+}
+
+/// The symbol toolbar above the soft keyboard (Phase 2 W6): a scrolling row
+/// of 48 dp keys, with [trailing] keys pinned at its end. No key can take
+/// focus, so whatever has the keyboard keeps it while keys are tapped. The
+/// terminal's extra-keys row is meant to reuse it (Phase 5).
 class CfSymbolToolbar extends StatelessWidget {
   const CfSymbolToolbar({
     super.key,
-    this.enabled = false,
-    this.onSymbol,
-    this.phaseNote = 'Symbol keys arrive later in Phase 2',
+    required this.keys,
+    this.trailing = const [],
   });
 
-  static const List<String> symbols = [
-    'Esc',
-    'Tab',
-    '{',
-    '}',
-    '[',
-    ']',
-    '(',
-    ')',
-    '<',
-    '>',
-    ';',
-    '=',
-    '_',
-    '-',
-  ];
+  /// The toolbar's height: a row of keys under a hairline.
+  static const double extent =
+      CfSpacing.symbolToolbarHeight + CfSpacing.hairline;
 
-  final bool enabled;
-  final ValueChanged<String>? onSymbol;
-  final String phaseNote;
+  final List<CfToolbarKey> keys;
+  final List<CfToolbarKey> trailing;
 
   @override
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
-    return Tooltip(
-      message: enabled ? 'Symbol toolbar' : phaseNote,
+    return ExcludeFocus(
       child: Container(
-        height: CfSpacing.symbolToolbarHeight,
+        height: extent,
         decoration: BoxDecoration(
           color: colors.surfacePanel,
           border: Border(top: BorderSide(color: colors.borderSubtle)),
         ),
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: CfSpacing.sm),
+        child: Row(
           children: [
-            for (final symbol in symbols)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 2,
-                  vertical: CfSpacing.xs,
-                ),
-                child: Material(
-                  color: colors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(CfRadius.sm),
-                  child: InkWell(
-                    onTap: enabled ? () => onSymbol?.call(symbol) : null,
-                    borderRadius: BorderRadius.circular(CfRadius.sm),
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 40),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: CfSpacing.sm,
-                      ),
-                      child: Text(
-                        symbol,
-                        style: CfTypography.code(colors, fontSize: 13).copyWith(
-                          color: enabled
-                              ? colors.textPrimary
-                              : colors.textDisabled,
-                        ),
-                      ),
-                    ),
+            Expanded(
+              child: ListView(
+                key: const ValueKey('toolbar_keys'),
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: CfSpacing.xs),
+                children: [for (final spec in keys) _ToolbarKeyButton(spec)],
+              ),
+            ),
+            if (trailing.isNotEmpty) ...[
+              VerticalDivider(
+                width: CfSpacing.hairline,
+                thickness: CfSpacing.hairline,
+                color: colors.borderSubtle,
+              ),
+              for (final spec in trailing) _ToolbarKeyButton(spec),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarKeyButton extends StatelessWidget {
+  const _ToolbarKeyButton(this.spec);
+
+  final CfToolbarKey spec;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = CfColors.of(context);
+    final enabled = spec.onPressed != null;
+    final foreground = enabled ? colors.textPrimary : colors.textDisabled;
+    final icon = spec.icon;
+    final label = spec.label ?? '';
+    return Semantics(
+      container: true,
+      button: true,
+      enabled: enabled,
+      label: spec.semanticLabel,
+      child: InkWell(
+        key: ValueKey('toolbar_${spec.id}'),
+        onTap: spec.onPressed,
+        onLongPress: enabled ? spec.onLongPress : null,
+        canRequestFocus: false,
+        borderRadius: BorderRadius.circular(CfRadius.sm),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: CfSpacing.minTouchTarget,
+            minHeight: CfSpacing.minTouchTarget,
+          ),
+          // The touch target is the full 48 dp row; the key's face is drawn
+          // inset within it.
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 2,
+              vertical: CfSpacing.xs,
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.surfaceRaised,
+                borderRadius: BorderRadius.circular(CfRadius.sm),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: CfSpacing.sm),
+                child: Center(
+                  widthFactor: 1,
+                  child: ExcludeSemantics(
+                    child: icon != null
+                        ? Icon(icon, size: 20, color: foreground)
+                        : Text(
+                            label,
+                            maxLines: 1,
+                            style: CfTypography.code(
+                              colors,
+                              fontSize: 15,
+                            ).copyWith(color: foreground),
+                          ),
                   ),
                 ),
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );

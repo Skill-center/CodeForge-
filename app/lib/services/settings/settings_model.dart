@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 /// Which symbol-toolbar preset the workbench shows.
 enum ToolbarPreset { standard, compact, none }
 
+/// Longest stored [AppSettings.toolbarKeys]; anything longer is corrupt.
+const int maxToolbarKeysLength = 400;
+
 @immutable
 final class AppSettings {
   const AppSettings({
@@ -13,6 +16,7 @@ final class AppSettings {
     this.editorFontSize = 14,
     this.reducedMotion = false,
     this.toolbarPreset = ToolbarPreset.standard,
+    this.toolbarKeys = '',
     this.welcomeSeen = false,
     this.showHiddenFiles = false,
   });
@@ -21,6 +25,10 @@ final class AppSettings {
   final double editorFontSize;
   final bool reducedMotion;
   final ToolbarPreset toolbarPreset;
+
+  /// The user's own symbol keys, separated by spaces; empty for the
+  /// language presets.
+  final String toolbarKeys;
   final bool welcomeSeen;
   final bool showHiddenFiles;
 
@@ -29,6 +37,7 @@ final class AppSettings {
     double? editorFontSize,
     bool? reducedMotion,
     ToolbarPreset? toolbarPreset,
+    String? toolbarKeys,
     bool? welcomeSeen,
     bool? showHiddenFiles,
   }) {
@@ -37,6 +46,7 @@ final class AppSettings {
       editorFontSize: editorFontSize ?? this.editorFontSize,
       reducedMotion: reducedMotion ?? this.reducedMotion,
       toolbarPreset: toolbarPreset ?? this.toolbarPreset,
+      toolbarKeys: toolbarKeys ?? this.toolbarKeys,
       welcomeSeen: welcomeSeen ?? this.welcomeSeen,
       showHiddenFiles: showHiddenFiles ?? this.showHiddenFiles,
     );
@@ -47,6 +57,7 @@ final class AppSettings {
     'editorFontSize': editorFontSize,
     'reducedMotion': reducedMotion,
     'toolbarPreset': toolbarPreset.name,
+    'toolbarKeys': toolbarKeys,
     'welcomeSeen': welcomeSeen,
     'showHiddenFiles': showHiddenFiles,
   };
@@ -64,6 +75,7 @@ final class AppSettings {
     final preset = ToolbarPreset.values
         .where((p) => p.name == presetName)
         .firstOrNull;
+    final keys = json['toolbarKeys'];
     return AppSettings(
       themeMode: themeMode ?? defaults.themeMode,
       editorFontSize: fontSize is num
@@ -73,6 +85,9 @@ final class AppSettings {
           ? json['reducedMotion']! as bool
           : defaults.reducedMotion,
       toolbarPreset: preset ?? defaults.toolbarPreset,
+      toolbarKeys: keys is String && keys.length <= maxToolbarKeysLength
+          ? keys
+          : defaults.toolbarKeys,
       welcomeSeen: json['welcomeSeen'] is bool
           ? json['welcomeSeen']! as bool
           : defaults.welcomeSeen,
@@ -89,6 +104,7 @@ final class AppSettings {
       other.editorFontSize == editorFontSize &&
       other.reducedMotion == reducedMotion &&
       other.toolbarPreset == toolbarPreset &&
+      other.toolbarKeys == toolbarKeys &&
       other.welcomeSeen == welcomeSeen &&
       other.showHiddenFiles == showHiddenFiles;
 
@@ -98,6 +114,7 @@ final class AppSettings {
     editorFontSize,
     reducedMotion,
     toolbarPreset,
+    toolbarKeys,
     welcomeSeen,
     showHiddenFiles,
   );

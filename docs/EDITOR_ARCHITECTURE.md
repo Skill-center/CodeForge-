@@ -198,8 +198,38 @@ Ctrl+G, or Go to Line… in the palette, asks for a line (`app/lib/features/work
 
 ### Undo and redo
 
-The palette's Undo and Redo run CodeMirror's `undo` and `redo` through `cmd.exec`. In the editor, Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z are CodeMirror's own keys. The symbol toolbar gets its keys in the second half of W6.
+The palette's Undo and Redo run CodeMirror's `undo` and `redo` through `cmd.exec`. In the editor, Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z are CodeMirror's own keys. The symbol toolbar's Undo and Redo keys run the same commands, and are enabled from the page's `editor.history` reports (§9).
 
 ### Protocol
 
 W6 adds the `search.state` event and three forwarded shortcuts: `find`, `replace` and `gotoLine`. `search.set` and `cmd.gotoLine` have been in the protocol since W1. `PROTOCOL_VERSION` stays 1. The page is built into the APK with the app, from the same commit, so the two never meet at different versions on a device. The version guards against a stale development bundle, and either side rejects a message type it does not know as `unknown_type`.
+
+## 9. Symbol toolbar and keyboards (as built in W6)
+
+### The toolbar
+
+The toolbar is the last row of the editor pane, so it sits on the soft keyboard (`app/lib/features/workbench/panels/symbol_toolbar.dart`). From the left: Tab, Shift+Tab, the symbols, Undo, Redo and the four cursor arrows, in a row that scrolls. A hide-keyboard key is pinned at the end. Every key is a 48 dp touch target under a hairline (`CfSymbolToolbar`, 49 dp in all). Its face is drawn inset, and a screen reader hears what the key types ("Insert braces").
+
+- **Presets** follow the active file's language family (`app/lib/core/editor/toolbar_keys.dart`): JavaScript, JSX, TypeScript and TSX share one row, and Python, HTML, CSS, JSON and Markdown have their own. Anything else gets the general row of the original design (§3). *Compact* keeps Tab and the first six symbols; *Off* removes the toolbar.
+- **Your keys** (Settings → Appearance) replace the language's symbols everywhere. They are typed separated by spaces, and at most 40 keys of up to 8 characters are kept.
+- **Pairs.** A key whose last character closes the one before it (`()`, `""`, `${}`, `=""`) leaves the cursor between them, through `cmd.insert`'s `cursorOffset`. Long-pressing gives the other variant: a lone opener its pair, a pair its lone opener.
+- **Focus.** The toolbar is wrapped in `ExcludeFocus`, and its keys cannot request focus. A tap never moves Flutter's focus, so the WebView keeps Android's focus and its keyboard. A widget test can't show that, because `tester.tap` never leaves Flutter. The phase gate therefore touches the keys through `adb shell input tap` (below).
+- **Live only while the editor has the keyboard** (`editor.focus`). Otherwise a key would type into a document while the user types somewhere else, such as the find bar. Undo and Redo follow each document's `editor.history`. Hide keyboard blurs the page, and Chrome closes the keyboard it opened. When an app field has the keyboard, that field is unfocused instead.
+
+### Tab
+
+The new `insertIndent` command is the Tab key, on the toolbar and on hardware keyboards (`editor/src/editor/indent.ts`). It indents the selected lines; at an empty cursor it inserts spaces up to the next indent stop, as VS Code does, or a tab character when the indent unit is a tab. CodeMirror's `indentWithTab` binding, which it replaces, indented the whole line even from a cursor in the middle of it. CodeMirror's `insertTab` would type a literal tab. Shift+Tab is `indentLess`. The command is an addition to `cmd.exec`'s list, so `PROTOCOL_VERSION` stays 1 (§8).
+
+### Keyboards
+
+- **Soft keyboard:** `softKeyboardVisibleProvider` reads the window's bottom inset (`app/lib/application/keyboard_state.dart`). The Scaffold takes that inset out of its body's `MediaQuery`, so widgets in the body cannot see it themselves.
+- **Hardware keyboard:** `MainActivity` reports a typing keyboard that is attached and not hidden (`Configuration.keyboard == KEYBOARD_QWERTY` and `hardKeyboardHidden == HARDKEYBOARDHIDDEN_NO`) over `dev.codeforge/keyboard`. `attached` answers now, and `changed` comes from `onConfigurationChanged` (`app/lib/services/platform/hardware_keyboard.dart`). The manifest handles `keyboard|keyboardHidden|navigation` changes itself, so attaching a keyboard never recreates the activity, and with it the editor's WebView. With a keyboard attached, the toolbar steps aside, because its keys are on the keyboard.
+- **Shortcuts:** with the editor focused, CodeMirror's keymap handles editing keys, and the app shortcuts of §6 are forwarded over the bridge.
+
+### How the gate proves it
+
+`app/integration_test/keys_test.dart` runs on the real page in the emulator. It asks for input in its log, one numbered request at a time (`KEYGATE <n> tap <x> <y>`, `key <KEYCODE>`, `keys <KEYCODE>…`). The injector in `app/tool/ci/emulator_gate.sh` answers each request with `adb shell input tap`, `input keyevent` or `input keycombination`. The test then waits for the effect:
+- a real tap in the editor brings up the soft keyboard;
+- Tab, Shift+Tab, Ctrl+Z and Ctrl+Shift+Z change the text;
+- the toolbar's `()` and Tab keys, under a real touch, type at the cursor, and the editor keeps both its focus and the keyboard;
+- Ctrl+S saves, Ctrl+Tab and Ctrl+W move between and close tabs, Ctrl+F and Escape open and close the find bar, and Ctrl+Shift+P opens the palette.

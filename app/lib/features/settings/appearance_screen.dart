@@ -129,10 +129,98 @@ class AppearanceScreen extends ConsumerWidget {
                     notifier.setToolbarPreset(selection.first),
               ),
             ),
+            CfSettingsTile(
+              key: const ValueKey('toolbar_keys_tile'),
+              leading: const Icon(Icons.keyboard_outlined),
+              title: 'Your keys',
+              subtitle: settings.toolbarKeys.isEmpty
+                  ? "Presets follow each file's language"
+                  : settings.toolbarKeys,
+              onTap: () => _editToolbarKeys(
+                context,
+                settings.toolbarKeys,
+                notifier.setToolbarKeys,
+              ),
+            ),
             const SizedBox(height: CfSpacing.xl),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Asks for the user's own toolbar keys and keeps them.
+Future<void> _editToolbarKeys(
+  BuildContext context,
+  String current,
+  Future<void> Function(String keys) save,
+) async {
+  final keys = await showDialog<String>(
+    context: context,
+    builder: (context) => _ToolbarKeysDialog(initial: current),
+  );
+  if (keys != null) {
+    await save(keys);
+  }
+}
+
+class _ToolbarKeysDialog extends StatefulWidget {
+  const _ToolbarKeysDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_ToolbarKeysDialog> createState() => _ToolbarKeysDialogState();
+}
+
+class _ToolbarKeysDialogState extends State<_ToolbarKeysDialog> {
+  late final TextEditingController _keys;
+
+  @override
+  void initState() {
+    super.initState();
+    _keys = TextEditingController(text: widget.initial);
+  }
+
+  @override
+  void dispose() {
+    _keys.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      key: const ValueKey('toolbar_keys_dialog'),
+      title: const Text('Your toolbar keys'),
+      content: TextField(
+        key: const ValueKey('toolbar_keys_field'),
+        controller: _keys,
+        autofocus: true,
+        autocorrect: false,
+        enableSuggestions: false,
+        maxLength: maxToolbarKeysLength,
+        decoration: const InputDecoration(
+          hintText: r'{} () ; => $',
+          helperText: 'Separate keys with spaces. Leave it empty for the '
+              'presets.',
+          helperMaxLines: 3,
+        ),
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('toolbar_keys_cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          key: const ValueKey('toolbar_keys_save'),
+          onPressed: () => Navigator.of(context).pop(_keys.text),
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

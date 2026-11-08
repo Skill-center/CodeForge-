@@ -9,6 +9,7 @@ library;
 import 'package:codeforge/app.dart';
 import 'package:codeforge/application/bench/editor_bench_providers.dart';
 import 'package:codeforge/application/editor/editor_host.dart';
+import 'package:codeforge/application/keyboard_state.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/design_system/theme/theme.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
@@ -23,6 +24,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fake_bench_surface.dart';
 import '../support/fake_editor_surface.dart';
+import '../support/fake_hardware_keyboard.dart';
 import '../support/memory_file_service.dart';
 
 final class TestHarness {
@@ -33,12 +35,14 @@ final class TestHarness {
     this.benchRunnerFactory,
     MemoryFileService? files,
     SessionStore? sessionStore,
+    FakeHardwareKeyboard? hardwareKeyboard,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
        shellStore = InMemoryShellStateStore(shell),
        files = files ?? MemoryFileService(),
-       sessionStore = sessionStore ?? MemorySessionStore();
+       sessionStore = sessionStore ?? MemorySessionStore(),
+       hardwareKeyboard = hardwareKeyboard ?? FakeHardwareKeyboard();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -50,6 +54,9 @@ final class TestHarness {
   /// Tabs and the hot-exit journal, shared the same way: a second [app]
   /// without a pause first is the app after process death.
   final SessionStore sessionStore;
+
+  /// Whether a hardware keyboard is attached (none unless a test says so).
+  final FakeHardwareKeyboard hardwareKeyboard;
 
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
@@ -69,6 +76,7 @@ final class TestHarness {
     shellStateStoreProvider.overrideWithValue(shellStore),
     fileServiceProvider.overrideWithValue(files),
     sessionStoreProvider.overrideWithValue(sessionStore),
+    hardwareKeyboardSourceProvider.overrideWithValue(hardwareKeyboard),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),
     editorBenchRunnerFactoryProvider.overrideWithValue(
       benchRunnerFactory ?? fakeBenchRunnerFactory(),

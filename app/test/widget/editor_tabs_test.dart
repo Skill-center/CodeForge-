@@ -81,7 +81,7 @@ void main() {
     expect(page.activeDocId, page.documents.keys.single);
   });
 
-  testWidgets('the symbol toolbar stays visibly disabled with a phase note', (
+  testWidgets('the editor pane hosts the editor over its symbol toolbar', (
     tester,
   ) async {
     setSurface(tester, 1280, 800);
@@ -91,10 +91,11 @@ void main() {
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
 
-    expect(find.text('Esc'), findsOneWidget);
+    // The toolbar is live since W6: its Phase 1 placeholder is gone.
+    expect(find.byKey(const ValueKey('symbol_toolbar')), findsOneWidget);
     expect(
       find.byTooltip('Symbol keys arrive later in Phase 2'),
-      findsOneWidget,
+      findsNothing,
     );
     // The Phase 1 read-only preview is gone: the pane hosts the editor.
     expect(find.textContaining('Read-only preview'), findsNothing);
