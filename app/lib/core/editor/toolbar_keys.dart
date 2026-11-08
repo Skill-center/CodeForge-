@@ -179,9 +179,7 @@ InsertText insertFor(String token) {
 InsertText? variantFor(String token) {
   if (token.length == 1) {
     final closer = _closers[token];
-    return closer == null
-        ? null
-        : InsertText('$token$closer', cursorOffset: 1);
+    return closer == null ? null : InsertText('$token$closer', cursorOffset: 1);
   }
   if (token.length == 2 && _closers[token[0]] == token[1]) {
     return InsertText(token[0]);
@@ -379,20 +377,7 @@ const Map<String, List<String>> familySymbols = {
     '[]',
   ],
   'json': ['{}', '[]', '""', ':', ',', '-', '.', 'true', 'false', 'null'],
-  'markdown': [
-    '#',
-    '*',
-    '_',
-    '`',
-    '-',
-    '[]',
-    '()',
-    '>',
-    '!',
-    '|',
-    '~',
-    '=',
-  ],
+  'markdown': ['#', '*', '_', '`', '-', '[]', '()', '>', '!', '|', '~', '='],
 };
 
 /// The family whose symbols [language] (an editor language id) uses.

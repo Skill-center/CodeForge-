@@ -42,13 +42,7 @@ void main() {
     });
 
     test('runs commands the page knows', () {
-      final keys = [
-        indentKey,
-        outdentKey,
-        undoKey,
-        redoKey,
-        ...arrowKeys,
-      ];
+      final keys = [indentKey, outdentKey, undoKey, redoKey, ...arrowKeys];
       for (final key in keys) {
         final action = key.action;
         expect(action, isA<RunCommand>());

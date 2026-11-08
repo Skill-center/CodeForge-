@@ -208,10 +208,7 @@ void main() {
     tester.view.viewInsets = const FakeViewPadding(bottom: 300);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
-    expect(
-      _container(tester).read(softKeyboardVisibleProvider),
-      isTrue,
-    );
+    expect(_container(tester).read(softKeyboardVisibleProvider), isTrue);
     final query = find.descendant(
       of: find.byKey(const ValueKey('find_query')),
       matching: find.byType(EditableText),
@@ -266,11 +263,9 @@ void main() {
     expect(_key('undo'), findsNothing);
     expect(_key('hide_keyboard'), findsOneWidget);
 
-    await _container(
-      tester,
-    ).read(settingsControllerProvider.notifier).setToolbarPreset(
-      ToolbarPreset.none,
-    );
+    await _container(tester)
+        .read(settingsControllerProvider.notifier)
+        .setToolbarPreset(ToolbarPreset.none);
     await tester.pumpAndSettle();
     expect(find.byType(CfSymbolToolbar), findsNothing);
   });

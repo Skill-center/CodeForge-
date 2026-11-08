@@ -93,10 +93,7 @@ void main() {
 
     // The toolbar is live since W6: its Phase 1 placeholder is gone.
     expect(find.byKey(const ValueKey('symbol_toolbar')), findsOneWidget);
-    expect(
-      find.byTooltip('Symbol keys arrive later in Phase 2'),
-      findsNothing,
-    );
+    expect(find.byTooltip('Symbol keys arrive later in Phase 2'), findsNothing);
     // The Phase 1 read-only preview is gone: the pane hosts the editor.
     expect(find.textContaining('Read-only preview'), findsNothing);
     expect(find.byKey(const ValueKey('editor_surface')), findsOneWidget);

@@ -203,7 +203,8 @@ class _ToolbarKeysDialogState extends State<_ToolbarKeysDialog> {
         maxLength: maxToolbarKeysLength,
         decoration: const InputDecoration(
           hintText: r'{} () ; => $',
-          helperText: 'Separate keys with spaces. Leave it empty for the '
+          helperText:
+              'Separate keys with spaces. Leave it empty for the '
               'presets.',
           helperMaxLines: 3,
         ),
