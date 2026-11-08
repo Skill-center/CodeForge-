@@ -12,40 +12,36 @@ Got dependencies!
 8 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart
-Running Gradle task 'assembleDebug'...                             21.3s
+Running Gradle task 'assembleDebug'...                             27.2s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...          691ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...          967ms
 00:00 +0: keys: toolbar touches and hardware shortcuts on the real page
-KEYGATE 1794163066184.1 beside 1
-KEYGATE 1794163066184.2 tap 540 1256
+KEYGATE 1794165192066.1 beside 1
+KEYGATE 1794165192066.2 tap 540 1256
 keys: hardware keyboard attached: true, toolbar away beside it: true; soft keyboard up after the tap: true; toolbar shown by the soft keyboard beside the hardware one
-KEYGATE 1794163066184.3 tap 452 1391
-KEYGATE 1794163066184.4 tap 74 1391
-KEYGATE 1794163066184.5 beside 0
-KEYGATE 1794163066184.6 tap 1017 1391
-KEYGATE 1794163066184.7 tap 540 1256
-keys: for the hardware keys, soft keyboard up: false, toolbar shown: false
-KEYGATE 1794163066184.8 key KEYCODE_TAB
-KEYGATE 1794163066184.9 keys KEYCODE_SHIFT_LEFT KEYCODE_TAB
-KEYGATE 1794163066184.10 keys KEYCODE_CTRL_LEFT KEYCODE_Z
-KEYGATE 1794163066184.11 keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_Z
-KEYGATE 1794163066184.12 keys KEYCODE_CTRL_LEFT KEYCODE_S
-KEYGATE 1794163066184.13 keys KEYCODE_CTRL_LEFT KEYCODE_TAB
-keys: request 13 (Ctrl+Tab to the next tab) timed out. The text was "( )x\n", the cursor 0, the editor focused: true, the soft keyboard up: false, Flutter focus on PlatformView(id: null); keys Flutter got: down Control Left, up Control Left, down Tab, up Tab
-KEYGATE 1794163066184.14 keys KEYCODE_CTRL_LEFT KEYCODE_W
-KEYGATE 1794163066184.15 keys KEYCODE_CTRL_LEFT KEYCODE_F
-keys: request 15 (Ctrl+F to open the find bar) timed out. The text was "( )x\n", the cursor 0, the editor focused: true, the soft keyboard up: false, Flutter focus on PlatformView(id: null); keys Flutter got: down Control Left, up Control Left, down F, up F
-KEYGATE 1794163066184.16 keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_P
-keys: request 16 (Ctrl+Shift+P to open the palette) timed out. The text was "( )x\n", the cursor 0, the editor focused: true, the soft keyboard up: false, Flutter focus on PlatformView(id: null); keys Flutter got: down Control Left, up Control Left, down Shift Left, up Shift Left, down P, up P
-KEYGATE 1794163066184.17 done
+KEYGATE 1794165192066.3 tap 452 1391
+KEYGATE 1794165192066.4 tap 74 1391
+KEYGATE 1794165192066.5 beside 0
+KEYGATE 1794165192066.6 tap 1017 1391
+KEYGATE 1794165192066.7 tap 540 1256
+keys: for the hardware keys, soft keyboard up: true, toolbar shown: true
+KEYGATE 1794165192066.8 key KEYCODE_TAB
+KEYGATE 1794165192066.9 keys KEYCODE_SHIFT_LEFT KEYCODE_TAB
+KEYGATE 1794165192066.10 keys KEYCODE_CTRL_LEFT KEYCODE_Z
+KEYGATE 1794165192066.11 keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_Z
+KEYGATE 1794165192066.12 keys KEYCODE_CTRL_LEFT KEYCODE_S
+KEYGATE 1794165192066.13 keys KEYCODE_CTRL_LEFT KEYCODE_TAB
+keys: request 13 (Ctrl+Tab to the next tab) timed out. The text was "( )x\n", the cursor 0, the editor focused: true, the soft keyboard up: true, Flutter focus on PlatformView(id: null); keys Flutter got: down Control Left, down Control Left+Tab, up Control Left+Tab, up Control Left
+KEYGATE 1794165192066.14 keys KEYCODE_CTRL_LEFT KEYCODE_W
+KEYGATE 1794165192066.15 keys KEYCODE_CTRL_LEFT KEYCODE_F
+KEYGATE 1794165192066.16 key KEYCODE_ESCAPE
+KEYGATE 1794165192066.17 keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_P
+KEYGATE 1794165192066.18 key KEYCODE_ESCAPE
+KEYGATE 1794165192066.19 done
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
 Expected: empty
-  Actual: [
-            'Ctrl+Tab to the next tab (request 13)',
-            'Ctrl+F to open the find bar (request 15)',
-            'Ctrl+Shift+P to open the palette (request 16)'
-          ]
+  Actual: ['Ctrl+Tab to the next tab (request 13)']
 steps and checks that failed
 
 When the exception was thrown, this was the stack:
@@ -63,12 +59,12 @@ This was caught by the test expectation on the following line:
 The test description was:
   keys: toolbar touches and hardware shortcuts on the real page
 ════════════════════════════════════════════════════════════════════════════════════════════════════
-02:00 +0 -1: keys: toolbar touches and hardware shortcuts on the real page [E]
+01:03 +0 -1: keys: toolbar touches and hardware shortcuts on the real page [E]
   Test failed. See exception logs above.
   The test description was: keys: toolbar touches and hardware shortcuts on the real page
   
-02:00 +0 -1: (tearDownAll)
-02:01 +0 -1: Some tests failed.
+01:03 +0 -1: (tearDownAll)
+01:04 +0 -1: Some tests failed.
 
 Failing tests:
   /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart: keys: toolbar touches and hardware shortcuts on the real page
