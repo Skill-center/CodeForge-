@@ -363,6 +363,29 @@ key_injector() {
   done
 }
 
+# Chords are written to the emulator's keyboard device (press_chord), and
+# the shell user may read input devices but not write them (Permission
+# denied in gate 42509926650). google_apis images are userdebug builds that
+# let adbd run as root; it restarts, so wait until it answers as root.
+build_type=$("$ADB" shell getprop ro.build.type 2>/dev/null | tr -d '\r')
+root_answer=$(timeout 30 "$ADB" root 2>&1 | tr -d '\r' | tr '\n' ' ')
+adb_uid=""
+case "$root_answer" in
+  *cannot* | *rror*) ;;
+  *)
+    for _ in $(seq 1 30); do
+      timeout 10 "$ADB" wait-for-device >/dev/null 2>&1 || true
+      adb_uid=$(timeout 10 "$ADB" shell id -u < /dev/null 2>/dev/null \
+        | tr -d '\r')
+      [ "$adb_uid" = 0 ] && break
+      sleep 1
+    done
+    ;;
+esac
+[ -n "$adb_uid" ] \
+  || adb_uid=$(timeout 10 "$ADB" shell id -u < /dev/null 2>/dev/null \
+    | tr -d '\r')
+
 # AVDs report a hardware keyboard (keysexposed-qwerty in the configuration
 # logged below), and Android then keeps the soft keyboard down. Ask for it
 # beside the hardware keyboard, for this test only, so that the toolbar is
@@ -376,22 +399,27 @@ ime_now=$("$ADB" shell settings get secure show_ime_with_hard_keyboard \
 # Which soft keyboard: input methods differ in the hardware keys they take.
 ime=$("$ADB" shell settings get secure default_input_method 2>/dev/null \
   | tr -d '\r')
-# The emulator's hardware keyboard: the input device with both Ctrl and Tab.
+# The emulator's hardware keyboard: the first input device, in getevent's
+# order, with both Ctrl and Tab. All such devices are logged.
 devices=$(timeout 20 "$ADB" shell getevent -pl < /dev/null 2>/dev/null \
   | tr -d '\r')
-kbd_dev=$(echo "$devices" | awk '
-  /^add device/ { dev = $4 }
-  /KEY_LEFTCTRL/ { ctrl[dev] = 1 }
-  /KEY_TAB/ { tab[dev] = 1 }
-  END { for (d in ctrl) if (d in tab) { print d; exit } }')
-kbd_name=$(echo "$devices" | awk -v want="$kbd_dev" '
-  /^add device/ { here = ($4 == want) }
-  here && /name:/ { sub(/^[ \t]*name:[ \t]*/, ""); print; exit }')
+kbd_list=$(echo "$devices" | awk '
+  function emit() { if (dev != "" && ctrl && tab) print dev "\t" name }
+  /^add device/ { emit(); dev = $4; name = ""; ctrl = 0; tab = 0 }
+  /^[ \t]*name:/ { name = $0; sub(/^[ \t]*name:[ \t]*/, "", name) }
+  /KEY_LEFTCTRL/ { ctrl = 1 }
+  /KEY_TAB([^A-Z_]|$)/ { tab = 1 }
+  END { emit() }')
+kbd_dev=$(echo "$kbd_list" | head -n 1 | cut -f 1)
 {
   echo "${config:-config: (am get-config gave nothing)}"
   echo "show_ime_with_hard_keyboard: ${ime_setting:-unset} -> ${ime_now:-unset}"
   echo "input method: ${ime:-unknown}"
-  echo "keyboard device: ${kbd_dev:-none found} ${kbd_name}"
+  echo "adb shell user id: ${adb_uid:-?} (build ${build_type:-?}; adb" \
+    "root said: ${root_answer:-nothing})"
+  echo "keyboards with Ctrl and Tab:" \
+    "$(echo "$kbd_list" | tr '\t' ' ' | paste -s -d ';' -)"
+  echo "keyboard device: ${kbd_dev:-none found}"
 } > "$RESULTS/keys_injector.txt"
 # What the input devices report during the test: chords written to the
 # keyboard device show up here, with times.
