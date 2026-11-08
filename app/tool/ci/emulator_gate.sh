@@ -278,6 +278,11 @@ key_injector() {
       tap) "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null ;;
       key) "$ADB" shell input keyevent "${1:-}" < /dev/null ;;
       keys) "$ADB" shell input keycombination "$@" < /dev/null ;;
+      # The soft keyboard beside a hardware one, on (1) or off (0).
+      beside)
+        "$ADB" shell settings put secure show_ime_with_hard_keyboard \
+          "${1:-0}" < /dev/null
+        ;;
       done) echo "request $id: done ($(date +%T))"; return 0 ;;
       *) echo "request $id: unknown request '$kind'"; continue ;;
     esac
@@ -296,9 +301,13 @@ ime_setting=$("$ADB" shell settings get secure show_ime_with_hard_keyboard \
 config=$("$ADB" shell am get-config 2>/dev/null | tr -d '\r' | grep -m1 '^config:')
 ime_now=$("$ADB" shell settings get secure show_ime_with_hard_keyboard \
   2>/dev/null | tr -d '\r')
+# Which soft keyboard: input methods differ in the hardware keys they take.
+ime=$("$ADB" shell settings get secure default_input_method 2>/dev/null \
+  | tr -d '\r')
 {
   echo "${config:-config: (am get-config gave nothing)}"
   echo "show_ime_with_hard_keyboard: ${ime_setting:-unset} -> ${ime_now:-unset}"
+  echo "input method: ${ime:-unknown}"
 } > "$RESULTS/keys_injector.txt"
 key_injector >> "$RESULTS/keys_injector.txt" 2>&1 &
 injector=$!

@@ -145,12 +145,36 @@ void main() {
       debugPrint(line);
     }
 
+    // Every key Flutter gets, with the keys held with it, so that a step
+    // that times out shows whether its keys arrived. Handlers see each key
+    // before the focus does, and this one lets them all go on.
+    final keysSeen = <String>[];
+    bool logKey(KeyEvent event) {
+      final held = HardwareKeyboard.instance.logicalKeysPressed
+          .where((key) => key != event.logicalKey)
+          .map((key) => key.keyLabel);
+      final kind = event is KeyDownEvent
+          ? 'down'
+          : event is KeyUpEvent
+          ? 'up'
+          : 'repeat';
+      keysSeen.add('$kind ${[...held, event.logicalKey.keyLabel].join('+')}');
+      return false;
+    }
+
+    HardwareKeyboard.instance.addHandler(logKey);
+    addTearDown(() => HardwareKeyboard.instance.removeHandler(logKey));
+
+    // Shortcut steps that did nothing: the rest still run, for the evidence.
+    final misses = <String>[];
     Future<void> inject(
       String request,
       bool Function() done, {
       required String what,
+      bool soft = false,
     }) async {
       step += 1;
+      keysSeen.clear();
       ask('KEYGATE $run.$step $request');
       try {
         await pumpUntil(tester, done, what: '$what (request $step: $request)');
@@ -158,12 +182,16 @@ void main() {
         // What the page and Flutter had instead, for the gate's evidence.
         final primary = FocusManager.instance.primaryFocus;
         debugPrint(
-          'keys: at the timeout the text was ${jsonEncode(text())}, '
-          'the cursor ${head()}, the editor focused: ${focused()}, the soft '
-          'keyboard up: ${keyboardUp()}, Flutter focus on '
-          '${primary?.debugLabel ?? primary?.runtimeType}',
+          'keys: request $step ($what) timed out. The text was '
+          '${jsonEncode(text())}, the cursor ${head()}, the editor focused: '
+          '${focused()}, the soft keyboard up: ${keyboardUp()}, Flutter focus '
+          'on ${primary?.debugLabel ?? primary?.runtimeType}; keys Flutter '
+          'got: ${keysSeen.isEmpty ? 'none' : keysSeen.join(', ')}',
         );
-        rethrow;
+        if (!soft) {
+          rethrow;
+        }
+        misses.add('$what (request $step)');
       }
       // Let the page's trailing reports land before the next request.
       await tester.pump(const Duration(milliseconds: 400));
@@ -276,45 +304,69 @@ void main() {
               ?.dirty ==
           false,
       what: 'Ctrl+S to save',
+      soft: true,
     );
-    final saved = await files.readText('g6/keys.js');
-    expect(saved.valueOrNull?.text, '( )x\n');
+    if (misses.isEmpty) {
+      final saved = await files.readText('g6/keys.js');
+      expect(saved.valueOrNull?.text, '( )x\n');
+    }
     await inject(
       'keys KEYCODE_CTRL_LEFT KEYCODE_TAB',
       () => activePath() == 'g6/other.js',
       what: 'Ctrl+Tab to the next tab',
+      soft: true,
     );
+    // The rest with the soft keyboard down, as Android keeps it beside a
+    // hardware keyboard unless asked; Ctrl+Tab again, to compare.
+    await inject(
+      'beside 0',
+      () => !keyboardUp(),
+      what: 'the soft keyboard to go down beside the hardware one',
+      soft: true,
+    );
+    final before = activePath();
+    await inject(
+      'keys KEYCODE_CTRL_LEFT KEYCODE_TAB',
+      () => activePath() != before,
+      what: 'Ctrl+Tab to the next tab with the soft keyboard down',
+      soft: true,
+    );
+    final closing = activePath();
     await inject(
       'keys KEYCODE_CTRL_LEFT KEYCODE_W',
-      () =>
-          activePath() == 'g6/keys.js' &&
-          !container
-              .read(documentControllerProvider)
-              .openPaths
-              .contains('g6/other.js'),
+      () => !container
+          .read(documentControllerProvider)
+          .openPaths
+          .contains(closing),
       what: 'Ctrl+W to close the tab',
+      soft: true,
     );
     await inject(
       'keys KEYCODE_CTRL_LEFT KEYCODE_F',
       () => container.read(findControllerProvider).open,
       what: 'Ctrl+F to open the find bar',
+      soft: true,
     );
     await inject(
       'key KEYCODE_ESCAPE',
       () => !container.read(findControllerProvider).open,
       what: 'Escape to close the find bar',
+      soft: true,
     );
     await inject(
       'keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_P',
       () => find.byKey(const ValueKey('palette_input')).evaluate().isNotEmpty,
       what: 'Ctrl+Shift+P to open the palette',
+      soft: true,
     );
     await inject(
       'key KEYCODE_ESCAPE',
       () => find.byKey(const ValueKey('palette_input')).evaluate().isEmpty,
       what: 'Escape to close the palette',
+      soft: true,
     );
     ask('KEYGATE $run.${step + 1} done');
+    expect(misses, isEmpty, reason: 'shortcuts that did nothing');
 
     expect(host.droppedMessages, 0);
     expect(host.resyncs, 0);
@@ -322,8 +374,10 @@ void main() {
       'keys: ok (toolbar () and Tab under a finger typed at the cursor and '
       'kept the focus, soft keyboard up throughout: $imeUp; hardware '
       'keyboard attached: $attached, toolbar shown by $shownBy; Tab, '
-      'Shift+Tab, Ctrl+Z, Ctrl+Shift+Z, Ctrl+S, Ctrl+Tab, Ctrl+W, Ctrl+F, '
-      'Escape, Ctrl+Shift+P from the keyboard; resyncs ${host.resyncs})',
+      'Shift+Tab, Ctrl+Z, Ctrl+Shift+Z, Ctrl+S and Ctrl+Tab from the '
+      'keyboard with the soft keyboard ${imeUp ? 'up' : 'down'}, then '
+      'Ctrl+Tab, Ctrl+W, Ctrl+F, Escape, Ctrl+Shift+P and Escape with it '
+      'down; resyncs ${host.resyncs})',
     );
   });
 }
