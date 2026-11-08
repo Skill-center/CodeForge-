@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "tool": "editor/tool/bench_cdp.mjs",
+  "mode": "adb",
+  "engines": {
+    "codemirror": {
+      "engine": "codemirror",
+      "startedAt": "2026-11-08T18:13:24.997Z",
+      "inputMode": "editcontext",
+      "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
+      "inputLatency": {
+        "keys": 60,
+        "textMatches": true,
+        "count": 60,
+        "p50Ms": 10.7,
+        "p95Ms": 24,
+        "maxMs": 45.4,
+        "meanMs": 12.5,
+        "events": {
+          "keydown": 60,
+          "beforeinput": 60,
+          "textupdate": 60
+        }
+      },
+      "error": "Runtime.evaluate timed out",
+      "handBackError": "Runtime.evaluate timed out"
+    },
+    "monaco": {
+      "engine": "monaco",
+      "startedAt": "2026-11-08T18:16:34.828Z",
+      "inputMode": "editcontext",
+      "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
+      "inputLatency": {
+        "keys": 60,
+        "textMatches": true,
+        "count": 60,
+        "p50Ms": 17.7,
+        "p95Ms": 34.7,
+        "maxMs": 54.1,
+        "meanMs": 19.1,
+        "events": {
+          "keydown": 60,
+          "beforeinput": 60,
+          "textupdate": 60
+        }
+      },
+      "composition": {
+        "cases": 9,
+        "failures": 0,
+        "results": [
+          {
+            "id": "latin-predictive",
+            "expected": "hello world",
+            "actual": "hello world",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "autocorrect-replace",
+            "expected": "the",
+            "actual": "the",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "pinyin",
+            "expected": "你好",
+            "actual": "你好",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "japanese",
+            "expected": "漢字",
+            "actual": "漢字",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "hangul",
+            "expected": "한글",
+            "actual": "한글",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "emoji",
+            "expected": "😀👍🏽👩‍💻",
+            "actual": "😀👍🏽👩‍💻",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "cancel-composition",
+            "expected": "ab",
+            "actual": "ab",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "mid-line",
+            "expected": "call(value);",
+            "actual": "call(value);",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "backspace-in-composition",
+            "expected": "copy",
+            "actual": "copy",
+            "ok": true,
+            "error": null
+          }
+        ]
+      },
+      "memorySession": {
+        "openMs": 121.1,
+        "scroll": {
+          "frames": 25,
+          "slowFrames": 23,
+          "slowFramePct": 92,
+          "p95FrameMs": 116.7,
+          "maxFrameMs": 116.8,
+          "thresholdMs": 32,
+          "distancePx": 12400
+        }
+      },
+      "jsHeap": {
+        "usedMB": 35.6,
+        "totalMB": 48.1
+      },
+      "processMemory": {
+        "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
+        "appPssMB": 420.6,
+        "renderers": [
+          {
+            "pid": 4565,
+            "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+            "pssMB": 23.7
+          },
+          {
+            "pid": 7532,
+            "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+            "pssMB": 146.1
+          }
+        ],
+        "rendererPssMB": 169.8,
+        "totalPssMB": 590.4
+      },
+      "pageErrors": []
+    }
+  }
+}

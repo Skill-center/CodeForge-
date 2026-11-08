@@ -1,0 +1,19 @@
+{
+  "gate": "G6",
+  "system_image": "system-images;android-36;google_apis;x86_64",
+  "gpu": "swiftshader_indirect",
+  "accel": "kvm",
+  "cold_start": {
+    "apk": "release-x64",
+    "method": "am start -W (TotalTime) after am force-stop, 10 runs",
+    "samples_ms": [905,717,651,882,854,681,649,642,862,795],
+    "median_ms": 756,
+    "budget_ms": 1500,
+    "within_budget": true
+  },
+  "apk_bytes": {
+    "debug": 177338037,
+    "cold_start_apk": 24489779
+  },
+  "nav_frame_profile": "not measured on CI in Phase 1 (requires a profile-mode build; see docs/phases/PHASE_1_REPORT.md)"
+}
