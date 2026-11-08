@@ -12,50 +12,63 @@ Got dependencies!
 8 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart
-Running Gradle task 'assembleDebug'...                             19.5s
+Running Gradle task 'assembleDebug'...                             21.3s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...          695ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...          691ms
 00:00 +0: keys: toolbar touches and hardware shortcuts on the real page
-KEYGATE 1794161255753.1 beside 1
-KEYGATE 1794161255753.2 tap 540 1256
+KEYGATE 1794163066184.1 beside 1
+KEYGATE 1794163066184.2 tap 540 1256
 keys: hardware keyboard attached: true, toolbar away beside it: true; soft keyboard up after the tap: true; toolbar shown by the soft keyboard beside the hardware one
-KEYGATE 1794161255753.3 tap 452 1391
-KEYGATE 1794161255753.4 tap 74 1391
-KEYGATE 1794161255753.5 beside 0
-KEYGATE 1794161255753.6 tap 1017 1391
-KEYGATE 1794161255753.7 tap 540 1256
-KEYGATE 1794161255753.8 key KEYCODE_TAB
-KEYGATE 1794161255753.9 keys KEYCODE_SHIFT_LEFT KEYCODE_TAB
-keys: request 9 (Shift+Tab to outdent) timed out. The text was "  ( )x\n", the cursor 2, the editor focused: true, the soft keyboard up: true, Flutter focus on PlatformView(id: null); keys Flutter got: none
+KEYGATE 1794163066184.3 tap 452 1391
+KEYGATE 1794163066184.4 tap 74 1391
+KEYGATE 1794163066184.5 beside 0
+KEYGATE 1794163066184.6 tap 1017 1391
+KEYGATE 1794163066184.7 tap 540 1256
+keys: for the hardware keys, soft keyboard up: false, toolbar shown: false
+KEYGATE 1794163066184.8 key KEYCODE_TAB
+KEYGATE 1794163066184.9 keys KEYCODE_SHIFT_LEFT KEYCODE_TAB
+KEYGATE 1794163066184.10 keys KEYCODE_CTRL_LEFT KEYCODE_Z
+KEYGATE 1794163066184.11 keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_Z
+KEYGATE 1794163066184.12 keys KEYCODE_CTRL_LEFT KEYCODE_S
+KEYGATE 1794163066184.13 keys KEYCODE_CTRL_LEFT KEYCODE_TAB
+keys: request 13 (Ctrl+Tab to the next tab) timed out. The text was "( )x\n", the cursor 0, the editor focused: true, the soft keyboard up: false, Flutter focus on PlatformView(id: null); keys Flutter got: down Control Left, up Control Left, down Tab, up Tab
+KEYGATE 1794163066184.14 keys KEYCODE_CTRL_LEFT KEYCODE_W
+KEYGATE 1794163066184.15 keys KEYCODE_CTRL_LEFT KEYCODE_F
+keys: request 15 (Ctrl+F to open the find bar) timed out. The text was "( )x\n", the cursor 0, the editor focused: true, the soft keyboard up: false, Flutter focus on PlatformView(id: null); keys Flutter got: down Control Left, up Control Left, down F, up F
+KEYGATE 1794163066184.16 keys KEYCODE_CTRL_LEFT KEYCODE_SHIFT_LEFT KEYCODE_P
+keys: request 16 (Ctrl+Shift+P to open the palette) timed out. The text was "( )x\n", the cursor 0, the editor focused: true, the soft keyboard up: false, Flutter focus on PlatformView(id: null); keys Flutter got: down Control Left, up Control Left, down Shift Left, up Shift Left, down P, up P
+KEYGATE 1794163066184.17 done
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
-Timed out after 30 s waiting for Shift+Tab to outdent (request 9: keys KEYCODE_SHIFT_LEFT
-KEYCODE_TAB).
+Expected: empty
+  Actual: [
+            'Ctrl+Tab to the next tab (request 13)',
+            'Ctrl+F to open the find bar (request 15)',
+            'Ctrl+Shift+P to open the palette (request 16)'
+          ]
+steps and checks that failed
 
 When the exception was thrown, this was the stack:
-#0      fail (package:matcher/src/expect/expect.dart:187:31)
-#1      pumpUntil (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/smoke_test.dart:26:7)
+#4      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:419:5)
 <asynchronous suspension>
-#2      main.<anonymous closure>.inject (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:181:9)
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
 <asynchronous suspension>
-#3      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:336:5)
-<asynchronous suspension>
-#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
 <asynchronous suspension>
 <asynchronous suspension>
 (elided one frame from package:stack_trace)
 
+This was caught by the test expectation on the following line:
+  file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart line 419
 The test description was:
   keys: toolbar touches and hardware shortcuts on the real page
 ════════════════════════════════════════════════════════════════════════════════════════════════════
-00:50 +0 -1: keys: toolbar touches and hardware shortcuts on the real page [E]
+02:00 +0 -1: keys: toolbar touches and hardware shortcuts on the real page [E]
   Test failed. See exception logs above.
   The test description was: keys: toolbar touches and hardware shortcuts on the real page
   
-00:50 +0 -1: (tearDownAll)
-00:51 +0 -1: Some tests failed.
+02:00 +0 -1: (tearDownAll)
+02:01 +0 -1: Some tests failed.
 
 Failing tests:
   /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart: keys: toolbar touches and hardware shortcuts on the real page
