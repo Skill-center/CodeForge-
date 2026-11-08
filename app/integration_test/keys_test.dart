@@ -9,6 +9,12 @@
 /// cannot do (it never leaves Flutter), and a shortcut arrives from a
 /// keyboard at the focused WebView. Each request is followed by a wait for
 /// what it should have done.
+///
+/// AVDs report a hardware keyboard, the gate's included, and Android then
+/// keeps the soft keyboard down unless its setting for showing it beside a
+/// physical keyboard is on: the gate turns that on for this test. The test
+/// checks MainActivity's answer against the app, and the toolbar against
+/// both: away beside a hardware keyboard, back with the soft keyboard.
 library;
 
 import 'package:codeforge/app.dart';
@@ -21,6 +27,9 @@ import 'package:codeforge/application/keyboard_state.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/services/contracts.dart';
+import 'package:codeforge/services/platform/hardware_keyboard.dart';
+import 'package:codeforge/services/settings/settings_store.dart';
+import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +37,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'smoke_test.dart' show pumpRealApp, pumpUntil;
+import 'smoke_test.dart' show pumpUntil;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +47,20 @@ void main() {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    await pumpRealApp(tester, prefs);
+    final keyboard = _UnpluggableKeyboard();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsStoreProvider.overrideWithValue(PrefsSettingsStore(prefs)),
+          shellStateStoreProvider.overrideWithValue(
+            PrefsShellStateStore(prefs),
+          ),
+          hardwareKeyboardSourceProvider.overrideWithValue(keyboard),
+        ],
+        child: const CodeForgeApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('welcome_dismiss')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('explore_demo')));
@@ -63,14 +85,6 @@ void main() {
     );
     await pumpUntil(tester, () => host.syncs >= 1, what: 'the first sync');
 
-    // MainActivity answers for the hardware keyboard; the gate's Pixel 6
-    // has none, so the toolbar shows.
-    final attached = await const MethodChannel(
-      'dev.codeforge/keyboard',
-    ).invokeMethod<bool>('attached');
-    expect(attached, isFalse);
-    expect(container.read(hardwareKeyboardProvider), isFalse);
-
     final files = container.read(fileServiceProvider);
     final documents = container.read(documentControllerProvider.notifier);
     const seeds = [('g6/other.js', 'y\n'), ('g6/keys.js', 'x\n')];
@@ -94,6 +108,28 @@ void main() {
     bool keyboardUp() => container.read(softKeyboardVisibleProvider);
     String? activePath() =>
         container.read(documentControllerProvider).activePath;
+
+    // MainActivity answers for the hardware keyboard from Android's
+    // configuration. Beside one, the toolbar keeps away until a soft
+    // keyboard comes up as well.
+    final answer = await const MethodChannel(
+      'dev.codeforge/keyboard',
+    ).invokeMethod<bool>('attached');
+    expect(answer, isNotNull, reason: 'MainActivity gave no answer');
+    final attached = answer ?? false;
+    await pumpUntil(
+      tester,
+      () => container.read(hardwareKeyboardProvider) == attached,
+      what: 'the app to hear of the hardware keyboard',
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    final toolbar = find.byKey(const ValueKey('symbol_toolbar'));
+    final awayBeside = attached && !keyboardUp();
+    expect(
+      toolbar,
+      awayBeside ? findsNothing : findsOneWidget,
+      reason: 'hardware keyboard attached: $attached',
+    );
 
     var step = 0;
     final ratio = tester.view.devicePixelRatio;
@@ -133,7 +169,30 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     final imeUp = keyboardUp();
-    debugPrint('keys: soft keyboard up after the tap: $imeUp');
+
+    // The toolbar for the touches below. Beside a hardware keyboard it comes
+    // with the soft keyboard; if none came, the test unplugs the keyboard
+    // (the app hears of it as of a real one) to bring the toolbar out.
+    final unplug = attached && !imeUp;
+    if (unplug) {
+      keyboard.unplugged = true;
+      container.invalidate(hardwareKeyboardProvider);
+    }
+    await pumpUntil(
+      tester,
+      () => toolbar.evaluate().isNotEmpty,
+      what: 'the symbol toolbar',
+    );
+    final shownBy = !attached
+        ? 'no hardware keyboard'
+        : unplug
+        ? 'unplugging the hardware keyboard'
+        : 'the soft keyboard beside the hardware one';
+    debugPrint(
+      'keys: hardware keyboard attached: $attached, toolbar away beside it: '
+      '$awayBeside; soft keyboard up after the tap: $imeUp; toolbar shown '
+      'by $shownBy',
+    );
 
     // Hardware keys at the focused WebView: CodeMirror's keymap.
     await cursorToStart();
@@ -230,9 +289,21 @@ void main() {
     expect(host.resyncs, 0);
     debugPrint(
       'keys: ok (toolbar () and Tab under a finger typed at the cursor and '
-      'kept the focus, soft keyboard up throughout: $imeUp; Tab, Shift+Tab, '
-      'Ctrl+Z, Ctrl+Shift+Z, Ctrl+S, Ctrl+Tab, Ctrl+W, Ctrl+F, Escape, '
-      'Ctrl+Shift+P from the keyboard; resyncs ${host.resyncs})',
+      'kept the focus, soft keyboard up throughout: $imeUp; hardware '
+      'keyboard attached: $attached, toolbar shown by $shownBy; Tab, '
+      'Shift+Tab, Ctrl+Z, Ctrl+Shift+Z, Ctrl+S, Ctrl+Tab, Ctrl+W, Ctrl+F, '
+      'Escape, Ctrl+Shift+P from the keyboard; resyncs ${host.resyncs})',
     );
   });
+}
+
+/// The phone's own answer about a hardware keyboard until the test unplugs
+/// it; then the app hears that the keyboard went, as from a real unplug.
+final class _UnpluggableKeyboard implements HardwareKeyboardSource {
+  final _phone = PlatformHardwareKeyboard();
+  var unplugged = false;
+
+  @override
+  Stream<bool> watch() =>
+      _phone.watch().map((attached) => attached && !unplugged);
 }

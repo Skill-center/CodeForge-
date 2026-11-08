@@ -279,12 +279,33 @@ key_injector() {
       echo "request $n: $kind $* (exit $?)"
     done
 }
-key_injector > "$RESULTS/keys_injector.txt" 2>&1 &
+# AVDs report a hardware keyboard (keysexposed-qwerty in the configuration
+# logged below), and Android then keeps the soft keyboard down. Ask for it
+# beside the hardware keyboard, for this test only, so that the toolbar is
+# touched with the soft keyboard up; the setting goes back afterwards.
+ime_setting=$("$ADB" shell settings get secure show_ime_with_hard_keyboard \
+  2>/dev/null | tr -d '\r')
+"$ADB" shell settings put secure show_ime_with_hard_keyboard 1 >/dev/null 2>&1
+config=$("$ADB" shell am get-config 2>/dev/null | tr -d '\r' | grep -m1 '^config:')
+ime_now=$("$ADB" shell settings get secure show_ime_with_hard_keyboard \
+  2>/dev/null | tr -d '\r')
+{
+  echo "${config:-config: (am get-config gave nothing)}"
+  echo "show_ime_with_hard_keyboard: ${ime_setting:-unset} -> ${ime_now:-unset}"
+} > "$RESULTS/keys_injector.txt"
+key_injector >> "$RESULTS/keys_injector.txt" 2>&1 &
 injector=$!
 run_itest keys integration_test/keys_test.dart || fail=1
 pkill -P "$injector" >/dev/null 2>&1 || true
 kill "$injector" >/dev/null 2>&1 || true
 wait "$injector" 2>/dev/null || true
+if [ -z "$ime_setting" ] || [ "$ime_setting" = "null" ]; then
+  "$ADB" shell settings delete secure show_ime_with_hard_keyboard \
+    >/dev/null 2>&1
+else
+  "$ADB" shell settings put secure show_ime_with_hard_keyboard \
+    "$ime_setting" >/dev/null 2>&1
+fi
 echo "::endgroup::"
 
 echo "::group::Editor benchmark (Phase 2 W3: CodeMirror 6 vs Monaco, informational)"

@@ -31,7 +31,10 @@ class EditorPane extends ConsumerWidget {
     final documents = ref.watch(documentControllerProvider);
     final settings = ref.watch(settingsControllerProvider);
     final find = ref.watch(findControllerProvider);
+    // A hardware keyboard has the symbols, so the toolbar steps aside for
+    // one, unless the soft keyboard is up as well (EDITOR_ARCHITECTURE §9).
     final hardwareKeyboard = ref.watch(hardwareKeyboardProvider);
+    final softKeyboard = ref.watch(softKeyboardVisibleProvider);
     final colors = CfColors.of(context);
     final activePath = documents.activePath;
     final activeDoc = documents.active;
@@ -78,7 +81,7 @@ class EditorPane extends ConsumerWidget {
             : height;
         final showToolbar =
             settings.toolbarPreset != ToolbarPreset.none &&
-            !hardwareKeyboard &&
+            (!hardwareKeyboard || softKeyboard) &&
             height >=
                 tabsExtent + findExtent + CfSymbolToolbar.extent + editorRow;
         return Column(

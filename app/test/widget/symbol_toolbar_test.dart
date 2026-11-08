@@ -2,7 +2,8 @@
 /// the editor's cursor without taking focus, pairs leave the cursor between
 /// them, Tab and Shift+Tab, undo and redo from the page's history, the
 /// arrows, the hide-keyboard key, presets per language, the user's own keys,
-/// and a hardware keyboard putting the toolbar away.
+/// and a hardware keyboard putting the toolbar away while the soft keyboard
+/// is down.
 library;
 
 import 'dart:async';
@@ -278,6 +279,16 @@ void main() {
     keyboard.attached = true;
     await tester.pumpAndSettle();
     expect(_container(tester).read(hardwareKeyboardProvider), isTrue);
+    expect(find.byType(CfSymbolToolbar), findsNothing);
+
+    // The soft keyboard up beside it (Android can show both): the soft
+    // keyboard has no symbols, so the toolbar comes back with it.
+    addTearDown(tester.view.resetViewInsets);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pumpAndSettle();
+    expect(find.byType(CfSymbolToolbar), findsOneWidget);
+    tester.view.resetViewInsets();
+    await tester.pumpAndSettle();
     expect(find.byType(CfSymbolToolbar), findsNothing);
 
     keyboard.attached = false;
