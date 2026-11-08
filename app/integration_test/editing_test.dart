@@ -186,10 +186,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('find_bar')), findsNothing);
 
-    // Go to line 3, column 7: the cursor lands there.
+    // Go to line 3, column 7: the cursor lands there. The dialog follows a
+    // flush of the real page, a round trip pumpAndSettle does not wait for
+    // (gate 42399401256 looked for it too early).
     run('edit.gotoLine');
+    final dialog = find.byKey(const ValueKey('goto_line_dialog'));
+    await pumpUntil(
+      tester,
+      () => dialog.evaluate().isNotEmpty,
+      what: 'the go-to-line dialog',
+    );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('goto_line_dialog')), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('goto_line_field')),
       '3:7',
@@ -206,7 +213,9 @@ void main() {
     expect(host.droppedMessages, 0);
     expect(host.resyncs, 0);
     debugPrint(
-      'editing: ok (page starts ${host.pageStarts}, syncs ${host.syncs}, '
+      'editing: ok (counts 6/5/4 by option, a whole-word replace all undone '
+      'in one step, \$2 = \$1 groups, cursor at ${line3 + 6} = line 3 '
+      'column 7; page starts ${host.pageStarts}, syncs ${host.syncs}, '
       'resyncs ${host.resyncs})',
     );
   });
