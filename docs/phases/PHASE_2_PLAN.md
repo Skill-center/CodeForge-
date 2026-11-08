@@ -233,6 +233,55 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
 
 **Layout:** the Phase 1 keyboard-safe rules are extended to the real editor at every breakpoint.
 
+**As built (W6):**
+- **Find, replace and go to line** (EDITOR_ARCHITECTURE §8): one search session in the page, driven by a Flutter find bar. It covers match case, whole word and regular expressions, counts up to 1,000 with the current match, replace one and replace all (one undo step, `$1` groups), and follows the active tab. Go to line takes `42` or `42:7`. Ctrl+F, Ctrl+H, Ctrl+G and the palette open them.
+- **Symbol toolbar** (EDITOR_ARCHITECTURE §9): the editor pane's last row, on the soft keyboard. From the left it holds Tab, Shift+Tab, the symbols, Undo, Redo and the arrows, with the hide key pinned at the end.
+  - Every key is a 48 dp target.
+  - The rows are per language family, or Compact, Off, or the user's own keys (at most 40, of up to 8 characters).
+  - Pairs leave the cursor between them; a long press gives the other variant.
+  - The keys never take Flutter's focus, so the WebView keeps the keyboard.
+  - The new `insertIndent` command is Tab, on the toolbar and on hardware keyboards.
+- **Keyboards:** `softKeyboardVisibleProvider` reads the window's inset, and `MainActivity` reports a hardware keyboard from Android's configuration over `dev.codeforge/keyboard`.
+- **Hardware keys in the editor** (EDITOR_ARCHITECTURE §9, Shortcuts):
+  - Android hands every key to Flutter before the focused WebView, so the workbench's shortcuts act while the editor has the focus.
+  - The editing keys (Tab, Shift+Tab, the arrows, Ctrl+arrows, Page Up/Down, Enter, Space, Escape) are kept from Flutter's app-wide defaults and go on to CodeMirror (`editorPageKeys`).
+  - webview_flutter_android 4.14.1 never reports the WebView's focus. The page's own `editor.focus` report therefore moves Flutter's focus onto the platform view's node, which also makes the page Flutter's text input target.
+  - The emulator gate found both of these problems: on a real device, a hardware Tab would have moved Flutter's focus instead of indenting.
+- **Protocol:** W6 adds the `search.state` event, the `insertIndent` command and three forwarded shortcuts (`find`, `replace`, `gotoLine`). `PROTOCOL_VERSION` stays 1.
+- **The keys gate** (`integration_test/keys_test.dart`, EDITOR_ARCHITECTURE §9):
+  - The test asks for input in the device log, and the gate's injector answers with real touches (`input tap`), single keys (`input keyevent`) and chords.
+  - Chords are written to the emulator's keyboard device with `sendevent`, with adbd as root on the google_apis image (a userdebug build).
+  - `input keycombination` injects from Android's virtual keyboard device, so Flutter never sees the modifier held.
+  - The gate turns on Android's setting for a soft keyboard beside a hardware one, then turns it off for the hardware-key steps, and restores it afterwards.
+  - Each integration-test attempt is limited to 10 minutes and retried as an infrastructure failure (BUILD_AND_RELEASE.md).
+- **Deviations from this plan:**
+  - App shortcuts are not caught in the WebView first. Android gives keys to Flutter before the WebView, so the workbench's own shortcuts handle them. The page still forwards the same shortcuts over the bridge for any key that reaches it first.
+  - The toolbar does not simply collapse beside a hardware keyboard. It steps aside while the soft keyboard is down, and comes back when a soft keyboard comes up beside the hardware one, because the user is then typing on screen again (ARCHITECTURE §5).
+- **Evidence:**
+  - **Step 1, find, replace and go to line** (commit d4d2256, evidence 970d248):
+    - CI 42437560827: `+512: All tests passed!`, `flutter analyze` clean, format 0 changed, coverage 87.8 %.
+    - Phase gate 42437560830: all 9 emulator runs passed. `editing: ok (counts 6/5/4 by option, a whole-word replace all undone in one step, $2 = $1 groups, cursor at 42 = line 3 column 7; page starts 1, syncs 1, resyncs 0)` and `00:14 +1: All tests passed!`.
+  - **Step 2, toolbar and keyboards** (commit e45ea41):
+    - CI 42517731644: `+539: All tests passed!`, `flutter analyze` clean, format 0 changed. Line coverage of hand-written code is 4656/5310 (87.7 %), with services at 73.4 % and 1239 generated lines excluded.
+    - Phase gate 42517731718: all 10 emulator runs passed on attempt 1. The keys group reported `keys: ok (toolbar () and Tab under a finger typed at the cursor and kept the focus, soft keyboard up throughout: true; hardware keyboard attached: true, toolbar shown by the soft keyboard beside the hardware one (the input method kept a soft keyboard up with the setting off); then from the keyboard, with the soft keyboard up: Tab, Shift+Tab, Ctrl+Z, Ctrl+Shift+Z, Ctrl+S, Ctrl+Tab (g6/keys.js to main.js), Ctrl+W, Ctrl+F, Escape, Ctrl+Shift+P, Escape; resyncs 0)` and `00:37 +1: All tests passed!`. Its first check found the toolbar away beside the hardware keyboard while the soft keyboard was down.
+    - The editing group still passed with the same line, the editor bridge passed (page starts 2, syncs 2, resyncs 0), and the release cold start median was 976 ms (budget 1500).
+    - In phase gate 42509926650, after the setting went off and the hide key was tapped, a tap in the editor left the soft keyboard down and the toolbar out of the way.
+  - **Gate runs that failed on the way:**
+    - Gradle downloads stalled (42477797842, 42478331067): the distribution is now cached.
+    - The injector never saw the requests (42479571017, 42482002996): it now polls `logcat -d`, and the test prints in the root zone.
+    - The test binding dropped device touches (42484555140).
+    - Tab never reached the page (42491602659): `editorPageKeys`, then the focus following the page.
+    - Modifiers arrived released (42494656149, 42497788524): `input keycombination`. The emulator console reached nothing (42507384710), and `sendevent` needed root (42509926650).
+    - The test expected the wrong next tab (42512666974, 42515305565): the workspace's `main.js` is open too, so Ctrl+Tab wraps to it.
+    - A smoke test hung after install until the job's 75-minute cap (42500759166): hence the 10-minute limit per attempt.
+- **Gate status:**
+  - **G5 Editing:** met. Highlighting, bracket matching, auto-close, auto-indent and folding are covered by vitest; find and replace with regular expressions, undo and redo, and go to line by vitest, widget tests and the emulator.
+  - **G6 Keyboards:** met. The toolbar inserts at the cursor without closing the IME, its keys are 48 dp, and Tab and Shift+Tab work. Save, find, undo, redo, the palette, close tab and next tab work from a hardware keyboard while the editor has the focus. Widget tests cover all of this, and so does emulator key injection on the real page.
+- **Known limits:**
+  - Selection handles at line boundaries are drawn by Android System WebView, so only a phone can check them. Phone run 1 saw a selection ending at the start of a line draw its end handle at the end of the line before. [PHASE_2_SELECTION_MATRIX.md](PHASE_2_SELECTION_MATRIX.md) is the manual matrix for selection, copy and paste, and undo and redo; it is parked and non-blocking (§5).
+  - Keys from Android's virtual keyboard device whose modifier press carries no meta state (`adb shell input keycombination`) reach Flutter without the modifier. The page's forwarded shortcuts caught Ctrl+S, Ctrl+W and Ctrl+Z that way, but not Ctrl+Tab, Ctrl+F or Ctrl+Shift+P (phase gate 42509926650), for reasons not yet known. Hardware keyboards are not affected.
+  - Gboard sometimes keeps a soft keyboard up beside a hardware keyboard even with Android's setting off, and the toolbar then shows with it.
+
 ### W7 — Large files, tests & quality (continuous + 1 session)
 
 - **Large files:** measure open, scroll, typing and memory at 1, 5 and 10 MB on the emulator. Set a policy from the numbers, for example plain-text mode above one threshold and a refusal with a clear message above a hard cap.

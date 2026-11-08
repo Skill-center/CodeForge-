@@ -32,7 +32,7 @@ Both engines built with identical scope (JS/TS/Python/JSON/HTML/CSS highlighting
 | 1 MB file open + scroll | no OOM; scroll jank < 5% frames > 32 ms |
 | WebView RSS after 10 min editing | ≤ 250 MB |
 | Bundle size (gz, shipped) | ≤ 1.5 MB |
-| Selection handles, copy/paste, undo/redo | all pass manual matrix |
+| Selection handles, copy/paste, undo/redo | all pass manual matrix ([PHASE_2_SELECTION_MATRIX.md](phases/PHASE_2_SELECTION_MATRIX.md)) |
 
 CM6 must pass all; Monaco is given the same suite for the record. Result + raw numbers recorded in `docs/phases/PHASE_2_REPORT.md`; ADR-0004 flips to Accepted with the winner. **If CM6 fails the IME suite, we stop and reassess (custom Flutter editor fallback study) rather than ship a corrupting editor.**
 
