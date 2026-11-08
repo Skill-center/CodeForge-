@@ -5,39 +5,17 @@
   "engines": {
     "codemirror": {
       "engine": "codemirror",
-      "startedAt": "2026-11-08T15:07:01.415Z",
+      "startedAt": "2026-11-08T15:44:10.519Z",
       "inputMode": "editcontext",
       "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
       "inputLatency": {
         "keys": 60,
         "textMatches": true,
         "count": 60,
-        "p50Ms": 10.8,
-        "p95Ms": 32.4,
-        "maxMs": 59.8,
+        "p50Ms": 10,
+        "p95Ms": 43.6,
+        "maxMs": 64.8,
         "meanMs": 13.9,
-        "events": {
-          "keydown": 60,
-          "beforeinput": 60,
-          "textupdate": 60
-        }
-      },
-      "error": "Runtime.evaluate timed out",
-      "handBackError": "Runtime.evaluate timed out"
-    },
-    "monaco": {
-      "engine": "monaco",
-      "startedAt": "2026-11-08T15:09:13.780Z",
-      "inputMode": "editcontext",
-      "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
-      "inputLatency": {
-        "keys": 60,
-        "textMatches": true,
-        "count": 60,
-        "p50Ms": 19.2,
-        "p95Ms": 33.8,
-        "maxMs": 41.6,
-        "meanMs": 19.4,
         "events": {
           "keydown": 60,
           "beforeinput": 60,
@@ -114,38 +92,158 @@
         ]
       },
       "memorySession": {
-        "openMs": 132.9,
+        "openMs": 43.3,
         "scroll": {
-          "frames": 22,
+          "frames": 24,
           "slowFrames": 21,
-          "slowFramePct": 95.5,
-          "p95FrameMs": 133.4,
-          "maxFrameMs": 133.4,
+          "slowFramePct": 87.5,
+          "p95FrameMs": 150,
+          "maxFrameMs": 216.7,
           "thresholdMs": 32,
-          "distancePx": 12100
+          "distancePx": 12400
         }
       },
       "jsHeap": {
-        "usedMB": 35.6,
-        "totalMB": 51
+        "usedMB": 12.1,
+        "totalMB": 28
       },
       "processMemory": {
         "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-        "appPssMB": 432.7,
+        "appPssMB": null,
         "renderers": [
           {
-            "pid": 4290,
+            "pid": 4488,
+            "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+            "pssMB": 40.5
+          }
+        ],
+        "rendererPssMB": 40.5,
+        "totalPssMB": null
+      },
+      "error": "Runtime.evaluate timed out",
+      "handBackError": "Runtime.evaluate timed out"
+    },
+    "monaco": {
+      "engine": "monaco",
+      "startedAt": "2026-11-08T15:46:30.448Z",
+      "inputMode": "editcontext",
+      "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
+      "inputLatency": {
+        "keys": 60,
+        "textMatches": true,
+        "count": 60,
+        "p50Ms": 21.1,
+        "p95Ms": 49.4,
+        "maxMs": 65.3,
+        "meanMs": 22.4,
+        "events": {
+          "keydown": 60,
+          "beforeinput": 60,
+          "textupdate": 60
+        }
+      },
+      "composition": {
+        "cases": 9,
+        "failures": 0,
+        "results": [
+          {
+            "id": "latin-predictive",
+            "expected": "hello world",
+            "actual": "hello world",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "autocorrect-replace",
+            "expected": "the",
+            "actual": "the",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "pinyin",
+            "expected": "你好",
+            "actual": "你好",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "japanese",
+            "expected": "漢字",
+            "actual": "漢字",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "hangul",
+            "expected": "한글",
+            "actual": "한글",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "emoji",
+            "expected": "😀👍🏽👩‍💻",
+            "actual": "😀👍🏽👩‍💻",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "cancel-composition",
+            "expected": "ab",
+            "actual": "ab",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "mid-line",
+            "expected": "call(value);",
+            "actual": "call(value);",
+            "ok": true,
+            "error": null
+          },
+          {
+            "id": "backspace-in-composition",
+            "expected": "copy",
+            "actual": "copy",
+            "ok": true,
+            "error": null
+          }
+        ]
+      },
+      "memorySession": {
+        "openMs": 177.4,
+        "scroll": {
+          "frames": 22,
+          "slowFrames": 20,
+          "slowFramePct": 90.9,
+          "p95FrameMs": 133.4,
+          "maxFrameMs": 200,
+          "thresholdMs": 32,
+          "distancePx": 12700
+        }
+      },
+      "jsHeap": {
+        "usedMB": 33.5,
+        "totalMB": 48.1
+      },
+      "processMemory": {
+        "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
+        "appPssMB": 405.2,
+        "renderers": [
+          {
+            "pid": 4488,
             "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
             "pssMB": 23.6
           },
           {
-            "pid": 7358,
+            "pid": 7529,
             "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-            "pssMB": 145.2
+            "pssMB": 143.6
           }
         ],
-        "rendererPssMB": 168.8,
-        "totalPssMB": 601.5
+        "rendererPssMB": 167.2,
+        "totalPssMB": 572.4
       },
       "pageErrors": []
     }
