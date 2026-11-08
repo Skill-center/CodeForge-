@@ -1,23 +1,21 @@
 Editor benchmark (Phase 2 W3) — CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (profile mode is refused on emulators); accel=kvm
 
 codemirror 6.43.15  page 293.8 KiB gzipped  input editcontext  runs 3
-  ok  cold load → first editor frame         125.9 ms  (budget 800 ms)
-  OVER typing p95, engine path                 82.9 ms  (budget 32 ms)
-      input p95, DevTools key events              n/a  (budget 32 ms)
-  OVER 1 MiB scroll, frames > 32 ms             97.4 %  (budget 5 %)
+  ok  cold load → first editor frame         122.8 ms  (budget 800 ms)
+  OVER typing p95, engine path                 88.5 ms  (budget 32 ms)
+  OVER input p95, DevTools key events          32.9 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms             97.1 %  (budget 5 %)
       IME composition failures                    n/a  (budget 0)
       memory, app + renderer PSS                  n/a  (budget 250 MB)
   ok  shipped size, gzipped                  300833 B  (budget 1572864 B)
-      1 MiB open 124.3 ms, 1 MiB typing p95 72.3 ms, features ok, highlighting ok
-      missing: driver results
+      1 MiB open 117.1 ms, 1 MiB typing p95 71.4 ms, features ok, highlighting ok
 
 monaco 0.57.0  page 1029.4 KiB gzipped  input editcontext  runs 3
-  ok  cold load → first editor frame         357.5 ms  (budget 800 ms)
-  OVER typing p95, engine path                   79 ms  (budget 32 ms)
-      input p95, DevTools key events              n/a  (budget 32 ms)
+  ok  cold load → first editor frame         401.5 ms  (budget 800 ms)
+  OVER typing p95, engine path                 98.8 ms  (budget 32 ms)
+  OVER input p95, DevTools key events          46.3 ms  (budget 32 ms)
   OVER 1 MiB scroll, frames > 32 ms              100 %  (budget 5 %)
-      IME composition failures                    n/a  (budget 0)
-      memory, app + renderer PSS                  n/a  (budget 250 MB)
+  ok  IME composition failures                      0  (budget 0)
+  OVER memory, app + renderer PSS             596.5 MB  (budget 250 MB)
   ok  shipped size, gzipped                 1054113 B  (budget 1572864 B)
-      1 MiB open 281.7 ms, 1 MiB typing p95 112.4 ms, features ok, highlighting ok
-      missing: driver results
+      1 MiB open 322.7 ms, 1 MiB typing p95 100.6 ms, features ok, highlighting ok
