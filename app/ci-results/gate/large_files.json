@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "kind": "codeforge-large-files-gate",
+  "gate": "G7",
+  "generatedAt": "2026-11-09T12:11:02.511Z",
+  "environment": {
+    "device": "CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU",
+    "build": "debug APK (the DevTools socket needs it; Flutter refuses profile mode on emulators)",
+    "userAgent": null,
+    "accel": "kvm",
+    "system_image": "system-images;android-36;google_apis;x86_64"
+  },
+  "method": {
+    "app": null,
+    "page": {
+      "scroll": "scrollTop of .cm-scroller stepped every frame at 6 px/ms for 3000 ms from the cursor's view, bouncing at the ends; frames over 32 ms are slow",
+      "typing": "Input.dispatchKeyEvent key presses 60 ms apart at the cursor on the middle line, each timed from its input event to the end of the next frame (bench/input_recorder.ts)",
+      "open": "the page's synchronous work on the doc.open message (window.codeforge.receive, wrapped), and from its arrival to the end of the next painted frame",
+      "longTasks": "PerformanceObserver longtask entries (over 50 ms) between prepare and measure, and during the scroll and typing",
+      "memory": "dumpsys meminfo TOTAL PSS of the app process and every WebView sandboxed renderer, with the file open"
+    }
+  },
+  "budgets": {
+    "typingP95Ms": {
+      "max": 32,
+      "label": "input → frame p95, DevTools keys mid-file"
+    },
+    "scrollSlowFramePct": {
+      "max": 5,
+      "exclusive": true,
+      "label": "scrolling, frames over 32 ms"
+    },
+    "totalPssMB": {
+      "max": 250,
+      "label": "memory, app + renderer PSS"
+    }
+  },
+  "typed": null,
+  "baselineMemory": null,
+  "files": [],
+  "store": null,
+  "releaseMemory": null,
+  "problems": [
+    "no app-side report (CODEFORGE_LARGE_JSON lines) in the test output"
+  ]
+}

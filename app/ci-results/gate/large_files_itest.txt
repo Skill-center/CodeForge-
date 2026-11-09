@@ -1,0 +1,110 @@
+Resolving dependencies...
+Downloading packages...
+  built_collection 5.1.2 (6.0.0 available)
+  code_assets 2.1.0 (2.2.0 available)
+  flutter_riverpod 3.4.3 (3.5.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  native_toolchain_c 0.19.5 (0.19.6 available)
+  objective_c 9.6.2 (9.6.3 available)
+  riverpod 3.4.3 (3.5.0 available)
+  test_api 0.7.12 (0.7.15 available)
+Got dependencies!
+8 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/large_files_test.dart
+Running Gradle task 'assembleDebug'...                          
+integration_test/large_files_test.dart:141:15: Error: The getter 'isOk' isn't defined for the type 'Result<FileStamp>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+ - 'FileStamp' is from 'package:codeforge/core/files/file_stamp.dart' ('lib/core/files/file_stamp.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+      written.isOk,
+              ^^^^
+integration_test/large_files_test.dart:143:41: Error: The getter 'failureOrNull' isn't defined for the type 'Result<FileStamp>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+ - 'FileStamp' is from 'package:codeforge/core/files/file_stamp.dart' ('lib/core/files/file_stamp.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'failureOrNull'.
+      reason: 'writing $name: ${written.failureOrNull?.message}',
+                                        ^^^^^^^^^^^^^
+integration_test/large_files_test.dart:219:26: Error: The getter 'isOk' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+          expect(written.isOk, isTrue, reason: 'a $mib MiB snapshot ($mode)');
+                         ^^^^
+integration_test/large_files_test.dart:243:25: Error: The getter 'isOk' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+        expect(appended.isOk, isTrue, reason: 'a change ($mode)');
+                        ^^^^
+integration_test/large_files_test.dart:382:18: Error: The getter 'isOk' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+          opened.isOk,
+                 ^^^^
+integration_test/large_files_test.dart:384:44: Error: The getter 'failureOrNull' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'failureOrNull'.
+          reason: 'opening $name: ${opened.failureOrNull?.message}',
+                                           ^^^^^^^^^^^^^
+integration_test/large_files_test.dart:397:21: Error: The getter 'isOk' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+        expect(went.isOk, isTrue, reason: 'going to the middle of $name');
+                    ^^^^
+integration_test/large_files_test.dart:424:17: Error: The getter 'isOk' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+          saved.isOk,
+                ^^^^
+integration_test/large_files_test.dart:426:42: Error: The getter 'failureOrNull' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'failureOrNull'.
+          reason: 'saving $name: ${saved.failureOrNull?.message}',
+                                         ^^^^^^^^^^^^^
+integration_test/large_files_test.dart:465:23: Error: The getter 'isOk' isn't defined for the type 'Result<void>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isOk'.
+    expect(keptOpened.isOk, isTrue, reason: 'opening $_kept again');
+                      ^^^^
+integration_test/large_files_test.dart:476:14: Error: The getter 'valueOrNull' isn't defined for the type 'Result<List<SavedTab>>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+ - 'List' is from 'dart:core'.
+ - 'SavedTab' is from 'package:codeforge/services/storage/session_store.dart' ('lib/services/storage/session_store.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull'.
+            .valueOrNull ??
+             ^^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command '/opt/hostedtoolcache/flutter/stable-3.47.9-x64/flutter/bin/flutter'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 15s
+Running Gradle task 'assembleDebug'...                             15.5s
+00:00 +0 -1: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/large_files_test.dart [E]
+  Failed to load "/home/runner/work/CodeForge-/CodeForge-/app/integration_test/large_files_test.dart": Gradle task assembleDebug failed with exit code 1
+  package:flutter_tools/src/base/common.dart 34:3                    throwToolExit
+  package:flutter_tools/src/android/gradle.dart 653:7                AndroidGradleBuilder.buildGradleApp
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/android/gradle.dart 246:5                AndroidGradleBuilder.buildApk
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/android/android_device.dart 571:7        AndroidDevice.startApp
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/integration_test_device.dart 59:39  IntegrationTestTestDevice.start
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/test/flutter_platform.dart 679:51        FlutterPlatform._startTest.<fn>
+  ===== asynchronous gap ===========================
+  package:flutter_tools/src/base/async_guard.dart 108:24             asyncGuard.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/large_files_test.dart: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/large_files_test.dart

@@ -1,0 +1,16 @@
+Large files (Phase 2 W7, gate G7): open, scroll, typing and memory
+CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (the DevTools socket needs it; Flutter refuses profile mode on emulators)
+Budgets (ADR-0004): typing p95 <= 32 ms, scroll frames over 32 ms < 5 %, memory <= 250 MB
+
+open: documents.open until the page shows the document (app side, read+decode / bridge+page);
+page: its own work on the doc.open message / until the next frame was painted.
+file  language  MiB  lines  open ms  app/bridge  page ms  long tasks  scroll slow  typing p95  memory MB  save ms
+
+Release build memory: not measured
+
+Notes: the emulator renders in software, which bounds every frame-timed number (ADR-0004);
+compare sizes and languages with each other, not with the budgets. App-side times come from a
+debug (JIT) build, so they are pessimistic; the page-side numbers do not depend on the app build.
+
+Problems:
+  - no app-side report (CODEFORGE_LARGE_JSON lines) in the test output
