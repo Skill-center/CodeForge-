@@ -217,13 +217,15 @@ INFRA_SEEN=0
 # connects: gate 42500759166 sat 65 minutes after installing the smoke test,
 # until the job's limit stopped it. An attempt past the limit counts as an
 # infrastructure failure and is retried. The longest group (keys) takes
-# about 3 minutes with its build.
+# about 3 minutes with its build. A group may set ITEST_LIMIT and
+# ITEST_ATTEMPTS for its own call (large files: longer, fewer attempts).
 ITEST_LIMIT=10m
+ITEST_ATTEMPTS=3
 run_itest() {
   local name="$1" file="$2"
   shift 2
   local attempt rc=1 stuck
-  for attempt in 1 2 3; do
+  for attempt in $(seq 1 "$ITEST_ATTEMPTS"); do
     wait_for_framework "$name#$attempt" 600 || true
     timeout --kill-after=30s "$ITEST_LIMIT" \
       flutter test "$file" -d emulator-5554 --reporter expanded \
@@ -469,6 +471,56 @@ node ../editor/tool/bench_report.mjs \
   --out-txt "$RESULTS/editor_bench.txt" \
   || echo "editor benchmark report failed (record-only)"
 [ "$bench_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Large files (Phase 2 W7, G7: open, scroll, typing, memory at 1/5/10 MiB)"
+# The test opens 1, 5 and 10 MiB files in the real app (as .js and as .txt)
+# and asks the DevTools driver for each measurement in the device log; the
+# driver answers through files in the app's folder (run-as). It ends with
+# large_1mb.js open: the release build then goes over the same data with
+# `install -r` (same package and signing key), restores that session, and
+# its memory is sampled: ADR-0004's release-like number (Flutter refuses
+# profile mode on emulators, and a clean install opens no editor). Budget
+# misses are information for the large-file policy; the test fails only
+# when a step cannot run.
+"$ADB" logcat -c >/dev/null 2>&1 || true
+node ../editor/tool/large_cdp.mjs --adb "$ADB" --package "$APP_ID" \
+  --out "$RESULTS/large_files_cdp.json" --timeout 2400 \
+  > "$RESULTS/large_files_cdp.txt" 2>&1 &
+large_driver=$!
+large_ok=1
+ITEST_LIMIT=18m ITEST_ATTEMPTS=2 run_itest large_files_itest \
+  integration_test/large_files_test.dart --no-uninstall || large_ok=0
+# The driver leaves by itself once the test says it is done.
+for _ in $(seq 1 10); do
+  kill -0 "$large_driver" 2>/dev/null || break
+  sleep 1
+done
+kill "$large_driver" 2>/dev/null || true
+wait "$large_driver" 2>/dev/null || true
+if [ "$large_ok" = "1" ] && [ -f build/gate/app-release-x64.apk ]; then
+  {
+    "$ADB" shell am force-stop "$APP_ID"
+    if "$ADB" install -r build/gate/app-release-x64.apk; then
+      "$ADB" shell am start -W -n "$APP_ID/.MainActivity"
+      # The session restores, the page loads and opens the 1 MiB file.
+      sleep 25
+      "$ADB" shell dumpsys activity activities | grep -m3 -E "mResumedActivity|topResumedActivity"
+      node ../editor/tool/large_cdp.mjs --adb "$ADB" --package "$APP_ID" \
+        --memory-only --out "$RESULTS/large_files_release.json"
+    fi
+  } > "$RESULTS/large_files_release.txt" 2>&1 \
+    || echo "release-build memory sample failed (record-only)"
+fi
+node ../editor/tool/large_report.mjs \
+  --itest "$RESULTS/large_files_itest.txt" \
+  --cdp "$RESULTS/large_files_cdp.json" \
+  --release "$RESULTS/large_files_release.json" \
+  --env accel="$ACCEL" --env system_image="$SYSTEM_IMAGE" \
+  --out-json "$RESULTS/large_files.json" \
+  --out-txt "$RESULTS/large_files.txt" \
+  || echo "large-file report failed (record-only)"
+[ "$large_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Integration — restore pair (G5: establish → process death → verify)"
