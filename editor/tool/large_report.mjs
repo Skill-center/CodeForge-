@@ -84,10 +84,15 @@ export function buildReport({ itest, cdp, release, env = {}, generatedAt = new D
   const problems = [];
   if (!itest) problems.push('no app-side report (CODEFORGE_LARGE_JSON lines) in the test output');
   if (!cdp) problems.push('no DevTools driver report');
+  if (itest && itest.complete === false) {
+    problems.push(`the app-side report is partial: the test stopped after ${itest.files?.length ?? 0} file(s)`);
+  }
   for (const error of cdp?.errors ?? []) problems.push(`driver, request ${error.request} (${error.kind}): ${error.error}`);
   const files = (itest?.files ?? []).map((app) => {
     const measure = cdp?.files?.[app.file]?.measure ?? null;
     if (cdp && !measure) problems.push(`${app.file}: no page-side measurements`);
+    if (app.gotoOk === false) problems.push(`${app.file}: go to line failed, so typing was measured where the cursor was`);
+    for (const event of app.trouble ?? []) problems.push(`${app.file}: ${event}`);
     return {
       file: app.file,
       language: app.language,
@@ -99,10 +104,13 @@ export function buildReport({ itest, cdp, release, env = {}, generatedAt = new D
         openMs: app.openMs ?? null,
         openReturnMs: app.openReturnMs ?? null,
         pageAnswerMs: app.pageAnswerMs ?? null,
+        gotoOk: app.gotoOk ?? null,
+        gotoMs: app.gotoMs ?? null,
         typedArrived: app.typedArrived ?? null,
         syncMs: app.syncMs ?? null,
         persistMs: app.persistMs ?? null,
         saveMs: app.saveMs ?? null,
+        trouble: app.trouble ?? [],
       },
       page: pageSide(measure),
       checks: {

@@ -113,6 +113,21 @@ describe('large-file report (tool/large_report.mjs)', () => {
     );
   });
 
+  it('reports a partial run, warnings and a failed go to line with their file', () => {
+    const partial = {
+      ...itest,
+      complete: false,
+      files: [{ ...itest.files[0], gotoOk: false, trouble: ['editor request_timeout {type: cmd.gotoLine}'] }],
+    };
+    const report = buildReport({ itest: partial, cdp: { ...cdp, errors: [] }, release: null, generatedAt: 'now' });
+    expect(report.files[0].app.trouble).toEqual(['editor request_timeout {type: cmd.gotoLine}']);
+    expect(report.problems).toEqual([
+      'the app-side report is partial: the test stopped after 1 file(s)',
+      'large_1mb.js: go to line failed, so typing was measured where the cursor was',
+      'large_1mb.js: editor request_timeout {type: cmd.gotoLine}',
+    ]);
+  });
+
   it('says what is missing when a side gave nothing', () => {
     const report = buildReport({ itest: null, cdp: null, release: null, generatedAt: 'now' });
     expect(report.files).toEqual([]);

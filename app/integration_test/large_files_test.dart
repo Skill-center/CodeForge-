@@ -26,8 +26,11 @@
 /// gate then installs the release build over the same data, which restores
 /// that session, and samples its memory (ADR-0004's release-like number).
 /// The report is printed as CODEFORGE_LARGE_JSON lines, which
-/// editor/tool/large_report.mjs merges into ci-results/gate/large_files.*.
-/// The test fails when a step cannot run, never on a budget.
+/// editor/tool/large_report.mjs merges into ci-results/gate/large_files.*,
+/// so far after each file and complete at the end: a test stopped by a
+/// later file keeps the earlier numbers. The test fails when a step cannot
+/// run, never on a budget; bridge warnings (a request timing out, say) are
+/// recorded with the file's numbers instead.
 library;
 
 import 'dart:async';
@@ -41,6 +44,7 @@ import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/editor/journal.dart';
+import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/core/logging/logger.dart';
 import 'package:codeforge/services/contracts.dart';
@@ -68,7 +72,26 @@ const String _typed =
 /// Left open for the gate's release-build memory sample.
 const String _kept = 'large_1mb.js';
 
-/// Events that mean the bridge or the documents went wrong.
+/// How the app side is measured, for the report.
+const Map<String, String> _method = {
+  'open':
+      'documents.open (read, decode, doc.open built and sent) until '
+      'the page reports the document shown (editor.history on '
+      'activation); then cmd.gotoLine to the middle line',
+  'sync':
+      "from the driver's answer until the app's copy of the "
+      'document has the typed text',
+  'persist': 'the journal catching up after the typing',
+  'save': 'documents.save: edits flushed, encoded, written atomically',
+  'store':
+      "a database of its own beside the app's: 3 snapshots per size "
+      'and 20 one-character changes, synchronous NORMAL then FULL; '
+      "digest: the journal's first-edit textDigest on the UI isolate",
+};
+
+/// Bridge and document events worth reporting with a file's numbers: they
+/// do not stop the test (a timeout at 10 MiB is a finding), but they mark
+/// the numbers.
 const Set<String> _trouble = {
   'request_timeout',
   'request_failed',
@@ -153,13 +176,17 @@ String get _build {
   return kProfileMode ? 'profile' : 'release';
 }
 
-void _expectNoTrouble(DateTime since, String what) {
-  final trouble = [
+bool _isTrouble(LogRecord record) => _trouble.contains(record.event);
+
+bool _isWarning(LogRecord record) => record.level.index >= LogLevel.warn.index;
+
+/// What the app logged since [since] that [matches] picks, as text.
+List<String> _logged(DateTime since, bool Function(LogRecord) matches) {
+  return [
     for (final record in appLogger.records)
-      if (!record.time.isBefore(since) && _trouble.contains(record.event))
+      if (!record.time.isBefore(since) && matches(record))
         '${record.tag} ${record.event} ${record.fields}',
   ];
-  expect(trouble, isEmpty, reason: what);
 }
 
 void _deleteDatabase(String path) {
@@ -364,6 +391,20 @@ void main() {
     }
 
     final results = <Map<String, Object?>>[];
+    Map<String, Object?> report([Map<String, Object?>? store]) {
+      return {
+        'schema': 1,
+        'build': _build,
+        'complete': store != null,
+        'typed': _typed,
+        'method': _method,
+        'files': results,
+        'store': store,
+        'warnings': _logged(started, _isWarning),
+        'leftOpen': store == null ? null : _kept,
+      };
+    }
+
     var baselineAsked = false;
     for (final mib in _sizesMiB) {
       final names = ['large_${mib}mb.js', 'large_${mib}mb.txt'];
@@ -394,8 +435,6 @@ void main() {
         final going = Stopwatch()..start();
         final went = await host.gotoLine(written.lines ~/ 2);
         final gotoMs = going.elapsedMilliseconds;
-        expect(went.isOk, isTrue, reason: 'going to the middle of $name');
-        _expectNoTrouble(since, 'opening $name');
         await tester.pump(const Duration(milliseconds: 500));
 
         await ask(
@@ -431,7 +470,6 @@ void main() {
           () => host.textOf(doc.docId) == null,
           what: 'closing $name',
         );
-        _expectNoTrouble(since, 'typing into, saving and closing $name');
         File('$workspace/$name').deleteSync();
         results.add({
           'file': name,
@@ -442,17 +480,21 @@ void main() {
           'openReturnMs': openReturned - openStart,
           'pageAnswerMs': pageShown - openReturned,
           'openMs': pageShown - openStart,
+          'gotoOk': went.isOk,
           'gotoMs': gotoMs,
           'typedArrived': typedArrived,
           'syncMs': syncMs,
           'persistMs': persistMs,
           'saveMs': saveMs,
+          'trouble': _logged(since, _isTrouble),
         });
         debugPrint(
           'large-files: $name opened in ${pageShown - openStart} ms '
           '(app ${openReturned - openStart}, page ${pageShown - openReturned})'
           ', saved in $saveMs ms',
         );
+        // So far: a test stopped by a later file keeps these numbers.
+        await _printReport(report());
       }
     }
 
@@ -486,35 +528,6 @@ void main() {
 
     step += 1;
     Zone.root.print('LARGEGATE $run.$step done');
-    bool afterStart(LogRecord record) => !record.time.isBefore(started);
-    final warnings = [
-      for (final record in appLogger.records)
-        if (afterStart(record) && record.level.index >= LogLevel.warn.index)
-          '${record.tag} ${record.event} ${record.fields}',
-    ];
-    await _printReport({
-      'schema': 1,
-      'build': _build,
-      'typed': _typed,
-      'method': {
-        'open':
-            'documents.open (read, decode, doc.open built and sent) until '
-            'the page reports the document shown (editor.history on '
-            'activation); then cmd.gotoLine to the middle line',
-        'sync':
-            "from the driver's answer until the app's copy of the "
-            'document has the typed text',
-        'persist': 'the journal catching up after the typing',
-        'save': 'documents.save: edits flushed, encoded, written atomically',
-        'store':
-            "a database of its own beside the app's: 3 snapshots per size "
-            'and 20 one-character changes, synchronous NORMAL then FULL; '
-            "digest: the journal's first-edit textDigest on the UI isolate",
-      },
-      'files': results,
-      'store': store,
-      'warnings': warnings,
-      'leftOpen': _kept,
-    });
+    await _printReport(report(store));
   }, timeout: const Timeout(Duration(minutes: 14)));
 }
