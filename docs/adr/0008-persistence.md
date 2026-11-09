@@ -30,4 +30,16 @@ The decision above put buffer journals in files, with only their metadata in Dri
 
 **Cost.** Each snapshot writes the document's whole text into SQLite. Timed snapshots of documents over 512 KiB happen at most once a minute; tab switches and pauses still take one. W7 measures this with large files. Runtime markers stay in files, as decided.
 
+**Measured in W7.** The phase gate's large-file group times the store on the emulator, with the app's database settings and `synchronous = NORMAL`, then `FULL`. The table gives the median ms per write in four gate runs (42616081317 / 42659207710 / 42665305004 / 42676631509), on hosts of different speed:
+
+| | snapshot, `NORMAL` | snapshot, `FULL` | digest of the saved text |
+|---|---|---|---|
+| 1 MiB | 15 / 35 / 34 / 23 | 10 / 20 / 43 / 22 | 8 / 25 / 28 / 10 |
+| 5 MiB | 85 / 109 / 133 / 87 | 98 / 82 / 127 / 77 | 41 / 67 / 77 / 65 |
+| 10 MiB | 144 / 211 / 250 / 137 | 151 / 147 / 233 / 161 | 80 / 184 / 151 / 104 |
+| one change | 0.3 / 0.6 / 0.8 / 0.6 | 0.7 / 0.9 / 1.2 / 0.6 | |
+
+- **`NORMAL` stays.** On the emulator, `FULL` cost nothing measurable on snapshots (which mode was faster changed from run to run) and up to 0.4 ms more per change. The emulator's storage is virtual, though, so its syncs say little about a phone's flash, where `FULL` pays a sync on every keystroke batch. What `NORMAL` can lose is the last moments of typing after an operating-system crash or a power cut; an app crash or kill loses no committed write. That does not justify a cost on every keystroke batch that has not been measured on a phone. A phone measurement could reopen it.
+- **The digest** (SHA-256 of the saved text, which the journal stores with each document and a restore compares with the file) runs on the UI isolate, once per saved text: at the first edit after an open or a save, and on restore. In a debug build it took up to 28 ms at 1 MiB and 80 to 184 ms at 10 MiB, a pause on the first edit of a very large file. These are debug-build times; if the pause shows on a phone, the digest can move to a background isolate.
+
 **Schema and migrations.** The schema starts at v1 (`app/lib/services/storage/app_database.dart`), with its dump in `app/drift_schemas/app/drift_schema_v1.json`. The migration harness is `app/test/drift/app/`: a v1 fixture goes through drift_dev's `SchemaVerifier` there. Each later version adds its dump, its migration step and a fixture test from the previous version. The code generated from the schema (`*.g.dart`, `*.steps.dart`, the test helpers) is produced by CI's bootstrap mode, committed, and checked as current on every run (TESTING.md §1.2).

@@ -287,6 +287,42 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
 - **Large files:** measure open, scroll, typing and memory at 1, 5 and 10 MB on the emulator. Set a policy from the numbers, for example plain-text mode above one threshold and a refusal with a clear message above a hard cap.
 - **Tests:** the test pyramid in §6, per-layer coverage, and goldens for the new chrome.
 
+**As built (W7):**
+- **Large files** (EDITOR_ARCHITECTURE §10):
+  - **Measured on the emulator.** The phase gate's large-file group (`integration_test/large_files_test.dart` with `editor/tool/large_cdp.mjs`) opens 1, 5 and 10 MiB of the benchmark's JavaScript through the app, as `.js` and as `.txt`, after a `.js` file just under the threshold. For each file it records the open, a jump to the middle line, the page's own work, long tasks, a 3 s scroll, 60 real key events typed at the middle line, memory and a save. The same group times the session store's writes (ADR-0008) and measures a release build's memory with a 1 MiB file restored. The report is `app/ci-results/gate/large_files.txt`, with every number in `large_files.json`.
+  - **Plain text above 512 KiB.** A document longer than 524,288 characters that would be highlighted opens as plain text, without highlighting, folding, syntax-aware indentation or comment toggling. A banner says what is off and offers *Highlight anyway*, and the language chip turns amber. A `.txt` file loses nothing and gets no banner. The policy decides on open, when a document comes back after a kill, and on Save As, never while typing.
+  - **Why 512 KiB.** The emulator ranks the costs but cannot judge them against the budgets, because it renders in software. On the phone (W3), a highlighted 1 MiB document typed at a p95 of 133 to 136 ms against the 32 ms budget, so the line has to sit below 1 MiB. 512 KiB is where the journal already treats documents as large.
+  - **Refused above 10 MiB** (was 16 MiB), before the file is read. The message gives the file's size and the limit.
+  - **What the policy changed** (gate 42659207710, against 42616081317 without it): the 1 MiB `.js` file had no long tasks after the open (6 tasks, 594 ms, when highlighted) and typed like the `.txt` file of the same size (median 28 against 23.8 ms). In the same run, the highlighted 512 KiB file, half the size, typed at a median of 50.6 ms. A release build restoring the 1 MiB file took 224.5 to 227.6 MB in the three runs with the policy (236 MB when highlighted), within the 250 MB budget.
+- **Quality (G8):**
+  - **Dialogs beside the keyboard.** The app's six alert dialogs are `CfAlertDialog`s (`design_system/components/dialogs.dart`): their title and content scroll above pinned actions, with tighter margins when the keyboard leaves less than 480 dp. `keyboard_insets_test` opens each one beside the keyboard at the five gate sizes, at 1.0× and 1.3× text. It checks that nothing overflows, that the dialog stays in the room above the keyboard, and that its confirming action and, where it has one, its text field are in view.
+  - **The accessibility sweep** now covers the open find and replace bar, the dialogs, the file menu and the large-file banner. The symbol toolbar has been in its workspace screens, wherever it fits, since W6. The sweep found a labelled text field 47 dp tall, because the theme made text fields dense. They are no longer dense, so Material keeps them at least 48 dp tall.
+  - **The protocol contract runs on both sides.** The Dart test holds `protocol.dart`'s message types equal to the page validator's tables and to the shared fixtures. vitest reads the Dart tables back, checks that the fixtures cover them, and that the page's validator knows every type. The page bundle did not change.
+  - **Goldens for the new chrome** (`chrome_golden_test`): find and replace with a query and the large-file banner at 412×915, and go to line beside the keyboard at 800×360.
+  - **The test pyramid in §6** is in place, layer by layer (TESTING.md §1.2): vitest for the page, the bridge contract on both sides, Dart unit tests (files on real temporary folders, journal property tests, Drift migrations), widget tests over the scripted editor page, and the emulator groups.
+  - **Coverage per layer**, hand-written code (CI 42678576228): core 92.3 %, design system 95.2 %, application 92.6 %, features 87.4 %, services 73.4 % and the app root 72.4 %; 4736 of 5382 lines (88.0 %). Much of what services miss is platform glue that only runs on a device (the WebView surfaces and the app's directories), and the emulator gate runs it.
+- **Deviation from this plan:** the sizes are MiB, not MB. The 10 MiB files stop 128 characters short of the cap, so that they open.
+- **Evidence:**
+  - **Step 1, measuring** (commit 1da630f, evidence 14838fd): CI 42616081306 `+539: All tests passed!`, coverage 87.7 %. Phase gate 42616081317: all 11 emulator groups passed, with the numbers without the policy.
+  - **Step 2, the policy** (commits b8430fa and 65fe2ca, evidence b303746): CI 42659207677 `+552: All tests passed!`, `flutter analyze` clean, format 0 changed. Phase gate 42659207710: all 11 groups passed on attempt 1, in the run's second attempt; the first stopped while building the debug APK, before any test.
+  - **Step 3, quality** (commits ed3e50e, 8064be0, decd7ec and ea8ef61):
+    - CI 42678576228 (ea8ef61): `+563: All tests passed!`, `flutter analyze` clean, format 0 changed; the editor job passed 187 tests.
+    - Phase gate 42676631509 (decd7ec; ea8ef61 changed only a test and a document): all 11 groups passed on attempt 1. The release build restoring the 1 MiB file took 224.6 MB, and the release cold start median was 906 ms (budget 1500).
+    - Phase gate 42665305004 (ed3e50e), before the text fields changed: all 11 groups passed on attempt 1, and the release build restoring the 1 MiB file took 227.6 MB.
+  - **Runs that failed on the way:**
+    - CI 42611941480 and phase gate 42611941538 (46799b1): the large-file test imported `Result` without its helpers.
+    - Phase gate 42654133163 (b8430fa): the 10 MiB test files were over the new cap. CI 42654133167 timed out because the scripted editor page laid out the whole document.
+    - CI 42665305010 (ed3e50e): the new sweep found the 47 dp text fields, and at 1.3× text a tap in the keyboard test landed below the screen.
+    - Phase gate 42667620018 (8064be0) never started a job.
+- **Gate status:**
+  - **G7 Large files:** met. Open, scroll, typing and memory are measured at 1, 5 and 10 MiB (`large_files.json` in gate 42616081317 without the policy, and in 42659207710, 42665305004 and 42676631509 with it). The policy is implemented and tested in unit, controller, service and widget tests, and the gate checks it on every file it opens.
+  - **G8 Quality:** met. CI is green in both jobs, the protocol contract tests run on both sides, the accessibility suite covers the new chrome (find bar, toolbar, banner, dialogs and file menu), and nothing overflows at any gate size, with the keyboard up too.
+- **Known limits:**
+  - ADR-0004's large-file and memory carry-overs are answered on the emulator only. The phone runs are parked (§5).
+  - Not measured: minified files (very long single lines), and documents between 512 KiB and 1 MiB on a phone. The policy counts characters, not lines.
+  - The emulator's scroll numbers carry no signal: 85 to 100 % of frames are over 32 ms for every file, highlighted or not, because it renders in software.
+  - The session store's digest of the saved text runs on the UI isolate, once per saved text: up to 28 ms at 1 MiB and 80 to 184 ms at 10 MiB in a debug build (ADR-0008).
+
 ### W8 — Documentation & phase exit (0.5 session)
 
 PHASE_2_REPORT.md with run ids, ADR-0004 accepted with numbers, and the documents in §7.

@@ -276,3 +276,22 @@ Gate 42616081317 ran a debug APK on the emulator. Software rendering bounds ever
 - **The line sits below 1 MiB.** On a phone (W3, realme C51), a highlighted 1 MiB document typed at a p95 of 133 to 136 ms against the 32 ms budget (ADR-0004), so it has to open as plain text. The gate's 1 MiB file (1,048,614 characters) is twice the threshold.
 - **Memory.** The release build restoring a session with the 1 MiB file open took 236 MB (app 137.8 + renderers 98.2), within the 250 MB budget.
 - **Not measured:** very long single lines (minified files), documents between 512 KiB and 1 MiB on a phone, and line counts; the policy counts characters only.
+
+### With the policy
+
+Gate 42659207710 measured the same files with the policy in place (`large_files.txt` in evidence b303746); the table is that run. Gates 42665305004 and 42676631509 repeated it. Hosts differ from run to run (in 42665305004 every column was 1.4 to 2 times higher), so each run is read on its own.
+
+| | 512 KiB js | 1 MiB js | 1 MiB txt | 5 MiB js | 5 MiB txt | 10 MiB js | 10 MiB txt |
+|---|---|---|---|---|---|---|---|
+| opened as | JavaScript | plain text | plain text | plain text | plain text | plain text | plain text |
+| typing median / p95 (ms) | 50.6 / 152.7 | 28 / 73.3 | 23.8 / 75.3 | 35 / 110.6 | 24.5 / 78.1 | 26 / 70.8 | 25.9 / 76.8 |
+| long tasks after the open | 6, 567 ms | none | 1, 63 ms | 1, 297 ms | 1, 190 ms | 1, 421 ms | 1, 345 ms |
+| open, until the page shows it (ms) | 169 | 151 | 159 | 613 | 573 | 1125 | 1055 |
+| save (ms) | 86 | 113 | 116 | 397 | 338 | 540 | 704 |
+
+- **Over the line, a `.js` file types like a `.txt` file.** Without the policy, the highlighted `.js` files typed 1.35 to 2.1 times slower (median) than the `.txt` files of the same size. With it, the ratio was 0.9 to 1.2 in the three runs, apart from 1.4 at 5 MiB in one.
+- **Highlighting's long tasks are gone above the line.** In all four runs, a highlighted open was followed by 4 to 6 long tasks, 0.3 to 0.7 s in all. Over the line, a `.js` file has at most two, like the `.txt` files.
+- **Below the line, highlighting still costs.** In the three runs, the highlighted 512 KiB file, half the size, typed 1.4 to 2 times slower (median) than the 1 MiB `.js` file as plain text.
+- **Release memory** with the 1 MiB file restored was 224.5 to 227.6 MB as plain text in the three runs, against 236 MB highlighted in the run without the policy. All four are within the 250 MB budget.
+- **Opening and saving** grow with the size, whatever the language. In this run, opening took about 0.6 s at 5 MiB and 1.1 s at 10 MiB, about half of it on the app's side (reading and decoding, in a debug build).
+- The session store's costs at these sizes are in ADR-0008.

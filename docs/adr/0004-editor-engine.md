@@ -67,6 +67,11 @@ Carried forward, not met yet:
 - **Memory:** the ≤ 250 MB budget was only measured on the emulator's debug build (CM6: 509 MB for app + renderer; 121.5 MB for the renderer alone). A release-like measurement on hardware is still needed; W7 adds it.
 - **Selection handles at line boundaries:** part of W6's manual selection matrix.
 
+**Answered in W7** (PHASE_2_PLAN.md, As built W7; EDITOR_ARCHITECTURE.md §10):
+- **Large files:** the large-file policy opens a document over 512 KiB as plain text, so a 1 MiB file is highlighted only if the user asks. On the emulator, a 1 MiB `.js` file then typed like a plain-text file of the same size and had no long tasks after the open (gate 42659207710). Whether that brings the phone within the typing and scroll budgets needs the phone. The runs on hardware are parked (PHASE_2_PLAN.md §5), so this stays open until one. The emulator's scroll numbers cannot answer it: 85 to 100 % of frames are slow for every file, highlighted or not, because it renders in software.
+- **Memory:** a release build on the emulator, restoring a session with the 1 MiB file open, took 236 MB highlighted (gate 42616081317), and 224.5 to 227.6 MB as plain text (gates 42659207710, 42665305004 and 42676631509). All four are within the 250 MB budget. A measurement on hardware is on the parked list too.
+- **Selection handles:** parked with the manual selection matrix (PHASE_2_SELECTION_MATRIX.md, W6).
+
 ## Consequences
 - Editor workstream 2 starts only after the gate; protocol layer is engine-agnostic so the swap cost is bounded.
 - LSP features (completion/hover/diagnostics UI) are wired by us to CM6 — more integration work than Monaco's built-ins, but mobile-correct.
