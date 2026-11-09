@@ -2,28 +2,26 @@ Large files (Phase 2 W7, gate G7): open, scroll, typing and memory
 CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (the DevTools socket needs it; Flutter refuses profile mode on emulators)
 WebView: Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36
 Budgets (ADR-0004): typing p95 <= 32 ms, scroll frames over 32 ms < 5 %, memory <= 250 MB
+Large-file policy: plain text above 524288 characters; files over 10485760 bytes are refused
 
 open: documents.open until the page shows the document (app side, read+decode / bridge+page);
-page: its own work on the doc.open message / until the next frame was painted.
-file            language    MiB  lines   open ms  app/bridge  page ms     long tasks  scroll slow  typing p95  memory MB  save ms
-large_1mb.js    javascript  1    35107   163      79/84       65.8/74.2   6, 594 ms   88.2 % ✗     109.4 ms ✗  536.2 ✗    126
-large_1mb.txt   plaintext   1    35107   123      56/67       30.9/52.5   1, 51 ms    90 % ✗       66.8 ms ✗   573.5 ✗    75
-large_5mb.js    javascript  5    174624  424      198/226     77/85.8     5, 534 ms   88.6 % ✗     107.5 ms ✗  632.4 ✗    239
-large_5mb.txt   plaintext   5    174624  439      213/226     83.2/102.4  1, 162 ms   88.6 % ✗     81.7 ms ✗   707.7 ✗    204
-large_10mb.js   javascript  10   347779  824      475/349     130/179.8   5, 691 ms   90.9 % ✗     110.6 ms ✗  776 ✗      573
-large_10mb.txt  plaintext   10   347779  800      450/350     95.2/111.8  1, 267 ms   94.3 % ✗     113.5 ms ✗  861.8 ✗    525
+page: its own work on the doc.open message / until the next frame was painted;
+typing: input to frame, median / p95 (the budget is on p95).
+file            language    MiB  lines   open ms  app/bridge  page ms      long tasks  scroll slow  typing p50/p95   memory MB  save ms
+large_512kb.js  javascript  0.5  17621   165      86/79       57.5/68.7    7, 659 ms   93.1 % ✗     67.2/142.9 ms ✗  520.8 ✗    91
+large_1mb.js    plaintext*  1    35107   128      92/36       11.7/44      0, 0 ms     89.7 % ✗     26.5/90.2 ms ✗   556.6 ✗    155
+large_1mb.txt   plaintext   1    35107   159      117/42      25.9/58.2    0, 0 ms     85.7 % ✗     26.1/80.4 ms ✗   551.6 ✗    219
+large_5mb.js    plaintext*  5    174624  678      331/347     158.6/182.2  2, 337 ms   89.7 % ✗     37.3/91.5 ms ✗   620.8 ✗    469
+large_5mb.txt   plaintext   5    174624  566      315/251     86.2/100.9   1, 212 ms   92.9 % ✗     29/129.3 ms ✗    646.7 ✗    471
+* plain text by the large-file policy: highlighting, folding and syntax indentation are off
 
-Before the first open: app 420.2 MB + renderers 83.6 MB = 503.8 MB
+Before the first open: app 420.6 MB + renderers 83.9 MB = 504.5 MB
 
-Session store (ADR-0008), median ms per write, synchronous NORMAL (the app) against FULL:
-size            snapshot NORMAL  snapshot FULL  digest (UI isolate)
-1 MiB           15               10             8
-5 MiB           85               98             41
-10 MiB          144              151            80
-1 change (x20)  0.3              0.7
-
-Release build, session restored with large_1mb.js open: app 137.8 MB + renderers 98.2 MB = 236 MB ✓
+Release build memory: not measured
 
 Notes: the emulator renders in software, which bounds every frame-timed number (ADR-0004);
 compare sizes and languages with each other, not with the budgets. App-side times come from a
 debug (JIT) build, so they are pessimistic; the page-side numbers do not depend on the app build.
+
+Problems:
+  - the app-side report is partial: the test stopped after 5 file(s)
