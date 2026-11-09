@@ -5,17 +5,17 @@
   "engines": {
     "codemirror": {
       "engine": "codemirror",
-      "startedAt": "2026-11-09T18:01:48.077Z",
+      "startedAt": "2026-11-09T19:03:24.524Z",
       "inputMode": "editcontext",
       "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
       "inputLatency": {
         "keys": 60,
         "textMatches": true,
         "count": 60,
-        "p50Ms": 25.8,
-        "p95Ms": 83.6,
-        "maxMs": 103.5,
-        "meanMs": 36.4,
+        "p50Ms": 13.1,
+        "p95Ms": 36,
+        "maxMs": 69.6,
+        "meanMs": 16.3,
         "events": {
           "keydown": 60,
           "beforeinput": 60,
@@ -91,50 +91,22 @@
           }
         ]
       },
-      "memorySession": {
-        "openMs": 85.4,
-        "scroll": {
-          "frames": 17,
-          "slowFrames": 16,
-          "slowFramePct": 94.1,
-          "p95FrameMs": 250,
-          "maxFrameMs": 250,
-          "thresholdMs": 32,
-          "distancePx": 13000
-        }
-      },
-      "jsHeap": {
-        "usedMB": 11.3,
-        "totalMB": 19.6
-      },
-      "processMemory": {
-        "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-        "appPssMB": 393.9,
-        "renderers": [
-          {
-            "pid": 7249,
-            "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-            "pssMB": 135.5
-          }
-        ],
-        "rendererPssMB": 135.5,
-        "totalPssMB": 529.4
-      },
-      "pageErrors": []
+      "error": "DevTools connection closed",
+      "handBackError": "Runtime.evaluate timed out"
     },
     "monaco": {
       "engine": "monaco",
-      "startedAt": "2026-11-09T18:04:08.852Z",
+      "startedAt": "2026-11-09T19:05:16.177Z",
       "inputMode": "editcontext",
       "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
       "inputLatency": {
         "keys": 60,
         "textMatches": true,
         "count": 60,
-        "p50Ms": 38.7,
-        "p95Ms": 95.3,
-        "maxMs": 103.6,
-        "meanMs": 44.8,
+        "p50Ms": 22.3,
+        "p95Ms": 52.3,
+        "maxMs": 69.1,
+        "meanMs": 26.1,
         "events": {
           "keydown": 60,
           "beforeinput": 60,
@@ -211,33 +183,38 @@
         ]
       },
       "memorySession": {
-        "openMs": 383.4,
+        "openMs": 201.9,
         "scroll": {
-          "frames": 15,
-          "slowFrames": 13,
-          "slowFramePct": 86.7,
-          "p95FrameMs": 449.9,
-          "maxFrameMs": 449.9,
+          "frames": 19,
+          "slowFrames": 18,
+          "slowFramePct": 94.7,
+          "p95FrameMs": 150.1,
+          "maxFrameMs": 150.1,
           "thresholdMs": 32,
-          "distancePx": 12599
+          "distancePx": 12000
         }
       },
       "jsHeap": {
-        "usedMB": 33.5,
-        "totalMB": 48.1
+        "usedMB": 31.6,
+        "totalMB": 45.2
       },
       "processMemory": {
         "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-        "appPssMB": 439.8,
+        "appPssMB": 426.4,
         "renderers": [
           {
-            "pid": 7793,
+            "pid": 4345,
             "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-            "pssMB": 181.5
+            "pssMB": 23.6
+          },
+          {
+            "pid": 7386,
+            "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+            "pssMB": 175.6
           }
         ],
-        "rendererPssMB": 181.5,
-        "totalPssMB": 621.3
+        "rendererPssMB": 199.2,
+        "totalPssMB": 625.6
       },
       "pageErrors": []
     }
