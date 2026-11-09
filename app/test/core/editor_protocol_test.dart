@@ -49,6 +49,18 @@ List<String> _tsList(String source, String name) {
   ];
 }
 
+/// The message types in validate.ts: the keys, two spaces in, of
+/// `const <name>: Record<string, Check> = {...};`.
+Set<String> _tsTypes(String source, String name) {
+  final start = source.indexOf('const $name: Record<string, Check> = {');
+  if (start < 0) {
+    throw StateError('$name not found in validate.ts');
+  }
+  final block = source.substring(start, source.indexOf('\n};', start));
+  final key = RegExp("^  '?([A-Za-z.]+)'?:", multiLine: true);
+  return {for (final match in key.allMatches(block)) match.group(1)!};
+}
+
 void main() {
   group('valid fixtures are accepted', () {
     for (final (direction, dir) in [
@@ -107,6 +119,39 @@ void main() {
           before: before.length,
           after: after.length,
         ));
+      });
+    }
+  });
+
+  group('message types mirror editor/src/protocol/validate.ts', () {
+    final source = File(
+      '$_editorRoot/src/protocol/validate.ts',
+    ).readAsStringSync();
+
+    for (final (direction, table, dir) in [
+      (
+        MessageDirection.hostToEditor,
+        'HOST_TO_EDITOR',
+        'protocol/valid/host_to_editor',
+      ),
+      (
+        MessageDirection.editorToHost,
+        'EDITOR_TO_HOST',
+        'protocol/valid/editor_to_host',
+      ),
+    ]) {
+      test('${direction.wireName}: both sides accept the same types', () {
+        final page = _tsTypes(source, table);
+        expect(page, isNotEmpty);
+        expect(messageTypes(direction), page);
+      });
+
+      test('${direction.wireName}: every type has a valid fixture', () {
+        final covered = {
+          for (final (_, fixture) in _fixtures(dir))
+            (fixture['message']! as Map<String, Object?>)['type'],
+        };
+        expect(covered, messageTypes(direction));
       });
     }
   });

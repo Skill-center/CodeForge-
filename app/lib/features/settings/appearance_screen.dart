@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../application/settings_controller.dart';
 import '../../design_system/components/buttons.dart';
+import '../../design_system/components/dialogs.dart';
 import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
@@ -191,7 +192,7 @@ class _ToolbarKeysDialogState extends State<_ToolbarKeysDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return CfAlertDialog(
       key: const ValueKey('toolbar_keys_dialog'),
       title: const Text('Your toolbar keys'),
       content: TextField(

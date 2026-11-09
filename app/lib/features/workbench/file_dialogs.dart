@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../core/files/workspace_path.dart';
+import '../../design_system/components/dialogs.dart';
 
 /// What to do with unsaved changes.
 enum UnsavedChoice { save, discard, cancel }
@@ -16,7 +17,7 @@ Future<UnsavedChoice> askUnsavedChanges(
 ) async {
   final choice = await showDialog<UnsavedChoice>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => CfAlertDialog(
       key: const ValueKey('unsaved_dialog'),
       title: Text('Save changes to $name?'),
       content: const Text('Your changes are lost if you don’t save them.'),
@@ -57,7 +58,7 @@ Future<ConflictChoice> askRestoredConflict(
   final choice = await showDialog<ConflictChoice>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => AlertDialog(
+    builder: (context) => CfAlertDialog(
       key: const ValueKey('conflict_dialog'),
       title: Text(
         fileGone ? '$name is no longer available' : '$name changed on disk',
@@ -98,7 +99,7 @@ Future<bool> askToConfirm(
 }) async {
   final confirmed = await showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => CfAlertDialog(
       key: const ValueKey('confirm_dialog'),
       title: Text(title),
       content: Text(message),
@@ -191,7 +192,7 @@ class _FilePathDialogState extends State<_FilePathDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return CfAlertDialog(
       key: const ValueKey('file_path_dialog'),
       title: Text(widget.title),
       content: TextField(

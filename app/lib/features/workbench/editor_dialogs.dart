@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../core/editor/line_target.dart';
+import '../../design_system/components/dialogs.dart';
 
 /// Asks where to move the cursor in a document of [lineCount] lines; null
 /// when cancelled.
@@ -51,7 +52,7 @@ class _GoToLineDialogState extends State<_GoToLineDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return CfAlertDialog(
       key: const ValueKey('goto_line_dialog'),
       title: const Text('Go to line'),
       content: TextField(

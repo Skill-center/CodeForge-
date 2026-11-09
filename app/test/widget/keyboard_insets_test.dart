@@ -12,7 +12,9 @@ import 'dart:async';
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/editor/find_controller.dart';
 import 'package:codeforge/core/editor/large_files.dart';
+import 'package:codeforge/design_system/components/dialogs.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
+import 'package:codeforge/features/settings/appearance_screen.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/features/workbench/panels/find_bar.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -22,6 +24,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/memory_file_service.dart';
 import 'test_harness.dart';
+import 'workbench_dialogs.dart';
 
 const List<(double, double, String)> _gateSizes = [
   (360, 800, 'small phone portrait'),
@@ -85,6 +88,40 @@ Future<void> _pumpLargeFile(
 /// Lets debounced writes fire before the test's timer check.
 Future<void> _flush(WidgetTester tester) =>
     tester.pump(const Duration(milliseconds: 500));
+
+/// The open dialog lies whole in the [room] above the keyboard, its
+/// [confirm] action on it and its text [field], when it has one, at least
+/// partly in view; nothing overflowed. Then it is closed.
+Future<void> _expectDialogFits(
+  WidgetTester tester,
+  double room,
+  String at, {
+  required String confirm,
+  String? field,
+}) async {
+  expect(tester.takeException(), isNull, reason: at);
+  final dialog = find.byType(CfAlertDialog);
+  expect(dialog, findsOneWidget, reason: at);
+  final surface = tester.getRect(
+    find.descendant(of: dialog, matching: find.byType(Material)).first,
+  );
+  expect(surface.top, greaterThanOrEqualTo(-0.5), reason: at);
+  expect(surface.bottom, lessThanOrEqualTo(room + 0.5), reason: at);
+  final action = tester.getRect(find.byKey(ValueKey(confirm)));
+  expect(surface.inflate(0.5).intersect(action), action, reason: at);
+  if (field != null) {
+    // The first is the dialog's own, holding its title and content.
+    final scrollViews = find.descendant(
+      of: dialog,
+      matching: find.byType(SingleChildScrollView),
+    );
+    final view = tester.getRect(scrollViews.first);
+    final box = tester.getRect(find.byKey(ValueKey(field)));
+    expect(box.overlaps(view), isTrue, reason: at);
+  }
+  Navigator.of(tester.element(dialog)).pop();
+  await tester.pumpAndSettle();
+}
 
 void main() {
   for (final scale in const [1.0, 1.3]) {
@@ -157,6 +194,51 @@ void main() {
               reason: label,
             );
           }
+        }
+        await _flush(tester);
+      });
+
+      testWidgets('dialogs fit beside the keyboard at every gate size (G8)', (
+        tester,
+      ) async {
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        for (final (width, height, label) in _gateSizes) {
+          setSurface(tester, width, height);
+          _raiseKeyboard(tester, width, height);
+          final room = height - _keyboardHeight(width, height);
+          await _pumpWorkspace(tester, TerminalStop.half);
+          for (final dialog in workbenchDialogs) {
+            unawaited(dialog.open(tester.element(find.byType(EditorPane))));
+            await tester.pumpAndSettle();
+            await _expectDialogFits(
+              tester,
+              room,
+              '${dialog.name} at $label',
+              confirm: dialog.confirm,
+              field: dialog.field,
+            );
+          }
+
+          // The toolbar keys, typed in Settings > Appearance: the keyboard
+          // comes up once the dialog's field takes the focus.
+          tester.view.resetViewInsets();
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pumpWidget(TestHarness().wrap(const AppearanceScreen()));
+          await tester.pumpAndSettle();
+          final tile = find.byKey(const ValueKey('toolbar_keys_tile'));
+          await tester.scrollUntilVisible(tile, 100);
+          await tester.tap(tile);
+          await tester.pumpAndSettle();
+          _raiseKeyboard(tester, width, height);
+          await tester.pumpAndSettle();
+          await _expectDialogFits(
+            tester,
+            room,
+            'toolbar keys at $label',
+            confirm: 'toolbar_keys_save',
+            field: 'toolbar_keys_field',
+          );
         }
         await _flush(tester);
       });

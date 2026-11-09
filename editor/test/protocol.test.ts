@@ -1,8 +1,25 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { type Direction, MAX_MESSAGE_CHARS } from '../src/protocol/types';
+import { type Direction, MAX_MESSAGE_CHARS, PROTOCOL_VERSION } from '../src/protocol/types';
 import { parseMessage, validateMessage } from '../src/protocol/validate';
-import { readFixtures } from './helpers';
+import { FIXTURES, readFixtures } from './helpers';
+
+/**
+ * The message types the app accepts travelling in [direction]: the keys, two
+ * spaces in, of `_hostToEditor` / `_editorToHost` in
+ * app/lib/core/editor/protocol.dart, sorted.
+ */
+function appTypes(direction: Direction): string[] {
+  const source = readFileSync(join(FIXTURES, '..', '..', '..', 'app', 'lib', 'core', 'editor', 'protocol.dart'), 'utf8');
+  const name = direction === 'host-to-editor' ? '_hostToEditor' : '_editorToHost';
+  const start = source.indexOf(`final Map<String, _Check> ${name} = {`);
+  if (start < 0) throw new Error(`${name} not found in protocol.dart`);
+  const block = source.slice(start, source.indexOf('\n};', start));
+  return [...block.matchAll(/^ {2}'([A-Za-z.]+)':/gm)].map((match) => match[1] ?? '').sort();
+}
 
 interface Valid {
   description: string;
@@ -39,19 +56,26 @@ describe('protocol fixtures (shared with the Dart validator)', () => {
     });
   }
 
-  it('covers every host message type at least once', () => {
-    const types = new Set(readFixtures<Valid>('protocol/valid/host_to_editor').map((f) => (f.data.message as { type: string }).type));
-    expect([...types].sort()).toEqual(
-      ['cmd.exec', 'cmd.gotoLine', 'cmd.insert', 'doc.activate', 'doc.close', 'doc.flush', 'doc.open', 'doc.replace', 'doc.setLanguage', 'doc.snapshot', 'editor.configure', 'search.set'].sort(),
-    );
-  });
+  // The contract: the fixtures cover every type the app's validator knows and
+  // this validator knows each of them; the Dart test (editor_protocol_test)
+  // holds the app's tables equal to the ones in validate.ts.
+  for (const [dir, direction] of groups) {
+    it(`covers every ${direction} message type at least once`, () => {
+      const types = new Set(readFixtures<Valid>(dir).map((f) => (f.data.message as { type: string }).type));
+      expect([...types].sort()).toEqual(appTypes(direction));
+    });
 
-  it('covers every editor message type at least once', () => {
-    const types = new Set(readFixtures<Valid>('protocol/valid/editor_to_host').map((f) => (f.data.message as { type: string }).type));
-    expect([...types].sort()).toEqual(
-      ['app.shortcut', 'doc.changed', 'doc.viewState', 'editor.focus', 'editor.history', 'editor.log', 'editor.ready', 'ime.composition', 'response', 'search.state'].sort(),
-    );
-  });
+    it(`knows every ${direction} message type the app knows`, () => {
+      const types = appTypes(direction);
+      expect(types.length).toBeGreaterThan(0);
+      const answer = (type: string) => {
+        const result = validateMessage({ v: PROTOCOL_VERSION, id: 'contract', type, payload: {} }, direction);
+        return result.ok ? 'ok' : result.code;
+      };
+      for (const type of types) expect(answer(type), type).not.toBe('unknown_type');
+      expect(answer('no.such')).toBe('unknown_type');
+    });
+  }
 });
 
 describe('protocol details', () => {

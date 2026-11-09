@@ -10,6 +10,7 @@ import 'dart:async';
 
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/core/editor/large_files.dart';
+import 'package:codeforge/design_system/components/dialogs.dart';
 import 'package:codeforge/design_system/components/file_tree.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/design_system/tokens/geometry.dart';
@@ -24,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/memory_file_service.dart';
 import 'test_harness.dart';
+import 'workbench_dialogs.dart';
 
 /// The G3 gate surfaces (same as workbench_layout_test).
 const List<(double, double)> _gateSizes = [
@@ -274,6 +276,34 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('large_file_notice')), findsOneWidget);
       await _expectAccessibleTargets(tester);
+      await _flush(tester);
+      semantics.dispose();
+    });
+
+    testWidgets('workbench dialogs and the file menu (G8)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      setSurface(tester, 412, 915);
+      await _pump(tester, _workspace);
+      for (final dialog in workbenchDialogs) {
+        unawaited(dialog.open(tester.element(find.byType(EditorPane))));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(ValueKey(dialog.confirm)),
+          findsOneWidget,
+          reason: dialog.name,
+        );
+        await _expectAccessibleTargets(tester);
+        Navigator.of(tester.element(find.byType(CfAlertDialog))).pop();
+        await tester.pumpAndSettle();
+      }
+
+      await tester.tap(find.byKey(const ValueKey('editor_menu')));
+      await tester.pumpAndSettle();
+      final newFile = find.byKey(const ValueKey('menu_new_file'));
+      expect(newFile, findsOneWidget);
+      await _expectAccessibleTargets(tester);
+      Navigator.of(tester.element(newFile)).pop();
+      await tester.pumpAndSettle();
       await _flush(tester);
       semantics.dispose();
     });

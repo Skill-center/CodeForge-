@@ -504,6 +504,17 @@ final Map<String, _Check> _editorToHost = {
   'response': _responsePayload,
 };
 
+/// The message types accepted travelling in [direction]: the validator's
+/// table, which the contract test holds equal to the page's
+/// (editor/src/protocol/validate.ts).
+Set<String> messageTypes(MessageDirection direction) {
+  final table = switch (direction) {
+    MessageDirection.hostToEditor => _hostToEditor,
+    MessageDirection.editorToHost => _editorToHost,
+  };
+  return table.keys.toSet();
+}
+
 const List<String> _envelopeKeys = ['v', 'id', 'type', 'payload'];
 
 /// Validates an already decoded [value] as a message travelling in
