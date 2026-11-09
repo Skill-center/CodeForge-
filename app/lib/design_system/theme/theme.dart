@@ -105,6 +105,9 @@ abstract final class CfTheme {
           vertical: CfSpacing.md,
         ),
         isDense: true,
+        // A field is a touch target too: dense and labelled, without a
+        // helper line, it came to 47 dp (G8 accessibility sweep).
+        constraints: const BoxConstraints(minHeight: CfSpacing.minTouchTarget),
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: colors.accentEmber,

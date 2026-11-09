@@ -228,6 +228,8 @@ void main() {
           await tester.pumpAndSettle();
           final tile = find.byKey(const ValueKey('toolbar_keys_tile'));
           await tester.scrollUntilVisible(tile, 100);
+          // Lay out its last scroll before tapping where the tile now is.
+          await tester.pumpAndSettle();
           await tester.tap(tile);
           await tester.pumpAndSettle();
           _raiseKeyboard(tester, width, height);

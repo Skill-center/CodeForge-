@@ -280,7 +280,7 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('workbench dialogs and the file menu (G8)', (tester) async {
+    testWidgets('dialogs and the file menu (G8)', (tester) async {
       final semantics = tester.ensureSemantics();
       setSurface(tester, 412, 915);
       await _pump(tester, _workspace);
@@ -303,6 +303,20 @@ void main() {
       expect(newFile, findsOneWidget);
       await _expectAccessibleTargets(tester);
       Navigator.of(tester.element(newFile)).pop();
+      await tester.pumpAndSettle();
+
+      // The toolbar keys, from Settings > Appearance.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(TestHarness().wrap(const AppearanceScreen()));
+      await tester.pumpAndSettle();
+      final tile = find.byKey(const ValueKey('toolbar_keys_tile'));
+      await tester.scrollUntilVisible(tile, 200);
+      await tester.pumpAndSettle();
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('toolbar_keys_save')), findsOneWidget);
+      await _expectAccessibleTargets(tester);
+      Navigator.of(tester.element(find.byType(CfAlertDialog))).pop();
       await tester.pumpAndSettle();
       await _flush(tester);
       semantics.dispose();
