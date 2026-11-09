@@ -642,8 +642,14 @@ final class FakeEditorSurface implements EditorSurface {
   /// focus when the page reports its own.
   final FocusNode viewFocus = FocusNode(debugLabel: 'fake editor view');
 
-  /// The active document as plain text, styled from the configured palette,
-  /// so screens and goldens show what the editor would.
+  /// How much of the active document the view lays out: more than fits on
+  /// a screen at any gate size, even in the smallest font (10 px). The real
+  /// page renders only the lines on screen, while laying out all of a
+  /// half-megabyte document here (the large-file tests, W7) takes seconds.
+  static const int viewChars = 16 * 1024;
+
+  /// The start of the active document as plain text, styled from the
+  /// configured palette, so screens and goldens show what the editor would.
   @override
   Widget buildView(BuildContext context) {
     return Focus(
@@ -665,7 +671,7 @@ final class FakeEditorSurface implements EditorSurface {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Text(
-                  doc?.text ?? '',
+                  _start(doc?.text ?? ''),
                   key: const ValueKey('fake_editor_text'),
                   style: TextStyle(
                     fontFamily: 'JetBrainsMono',
@@ -692,6 +698,18 @@ final class FakeEditorSurface implements EditorSurface {
     await _messages.close();
     await _events.close();
   }
+}
+
+/// The first [FakeEditorSurface.viewChars] code units of [text], without
+/// splitting a surrogate pair.
+String _start(String text) {
+  const limit = FakeEditorSurface.viewChars;
+  if (text.length <= limit) {
+    return text;
+  }
+  final last = text.codeUnitAt(limit - 1);
+  final end = last >= 0xD800 && last <= 0xDBFF ? limit - 1 : limit;
+  return text.substring(0, end);
 }
 
 Color _cssColor(String hex) {

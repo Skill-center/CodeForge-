@@ -421,9 +421,16 @@ void main() {
       };
     }
 
+    // The 10 MiB files stop just under the size cap, which a file of the
+    // full 10 MiB plus the generator's last line would be over: the text
+    // is ASCII, so its characters are its bytes.
     final sets = [
       (names: const [_limitFile], chars: _limitChars),
-      for (final mib in _sizesMiB) (names: _namesFor(mib), chars: mib * _mib),
+      for (final mib in _sizesMiB)
+        (
+          names: _namesFor(mib),
+          chars: math.min(mib * _mib, maxTextFileBytes - 128),
+        ),
     ];
     var baselineAsked = false;
     for (final (:names, :chars) in sets) {
@@ -444,6 +451,13 @@ void main() {
           reason: 'opening $name: ${opened.failureOrNull?.message}',
         );
         final doc = container.read(documentControllerProvider).documents[name]!;
+        // The policy on the device: highlighted up to the limit, plain text
+        // above it; a .txt file is plain text anyway.
+        expect(
+          doc.largeFile,
+          name.endsWith('.js') && written.chars > plainTextAboveChars,
+          reason: 'the large-file policy on $name',
+        );
         await pumpUntil(
           tester,
           () => shown.containsKey(doc.docId),
