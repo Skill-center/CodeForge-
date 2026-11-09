@@ -96,6 +96,7 @@ export function buildReport({ itest, cdp, release, env = {}, generatedAt = new D
     return {
       file: app.file,
       language: app.language,
+      largeFile: app.largeFile ?? null,
       chars: app.chars,
       mib: round(app.chars / MIB, 2),
       lines: app.lines,
@@ -157,6 +158,7 @@ export function buildReport({ itest, cdp, release, env = {}, generatedAt = new D
       ...env,
     },
     method: { app: itest?.method ?? null, page: cdp?.method ?? null },
+    policy: itest?.policy ?? null,
     budgets: BUDGETS,
     typed: itest?.typed ?? null,
     baselineMemory: baseline ? { memory: baseline.memory ?? null, jsHeap: baseline.jsHeap ?? null } : null,
@@ -188,17 +190,24 @@ export function renderText(report) {
   out.push(`${report.environment.device}; ${report.environment.build}`);
   if (report.environment.userAgent) out.push(`WebView: ${report.environment.userAgent}`);
   out.push(`Budgets (ADR-0004): typing p95 <= ${BUDGETS.typingP95Ms.max} ms, scroll frames over 32 ms < ${BUDGETS.scrollSlowFramePct.max} %, memory <= ${BUDGETS.totalPssMB.max} MB`);
+  if (report.policy) {
+    const { plainTextAboveChars, maxTextFileBytes } = report.policy;
+    out.push(
+      `Large-file policy: plain text above ${num(plainTextAboveChars)} characters; files over ${num(maxTextFileBytes)} bytes are refused`,
+    );
+  }
   out.push('');
   out.push('open: documents.open until the page shows the document (app side, read+decode / bridge+page);');
-  out.push('page: its own work on the doc.open message / until the next frame was painted.');
+  out.push('page: its own work on the doc.open message / until the next frame was painted;');
+  out.push('typing: input to frame, median / p95 (the budget is on p95).');
   const rows = [
-    ['file', 'language', 'MiB', 'lines', 'open ms', 'app/bridge', 'page ms', 'long tasks', 'scroll slow', 'typing p95', 'memory MB', 'save ms'],
+    ['file', 'language', 'MiB', 'lines', 'open ms', 'app/bridge', 'page ms', 'long tasks', 'scroll slow', 'typing p50/p95', 'memory MB', 'save ms'],
   ];
   for (const f of report.files) {
     const p = f.page;
     rows.push([
       f.file,
-      f.language ?? '–',
+      `${f.language ?? '–'}${f.largeFile ? '*' : ''}`,
       num(f.mib),
       num(f.lines),
       num(f.app.openMs),
@@ -206,12 +215,15 @@ export function renderText(report) {
       `${num(p?.open?.processMs)}/${num(p?.open?.paintedMs)}`,
       p?.openLongTasks ? `${p.openLongTasks.count}, ${p.openLongTasks.totalMs} ms` : '–',
       `${num(p?.scroll?.slowFramePct, ' %')}${mark(f.checks.scrollSlowFramePct)}`,
-      `${num(p?.typing?.p95Ms, ' ms')}${mark(f.checks.typingP95Ms)}`,
+      `${num(p?.typing?.p50Ms)}/${num(p?.typing?.p95Ms, ' ms')}${mark(f.checks.typingP95Ms)}`,
       `${num(p?.memory?.totalPssMB)}${mark(f.checks.totalPssMB)}`,
       num(f.app.saveMs),
     ]);
   }
   out.push(table(rows));
+  if (report.files.some((f) => f.largeFile)) {
+    out.push('* plain text by the large-file policy: highlighting, folding and syntax indentation are off');
+  }
   if (report.baselineMemory?.memory) {
     const m = report.baselineMemory.memory;
     out.push('');

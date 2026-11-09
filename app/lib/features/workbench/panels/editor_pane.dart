@@ -26,6 +26,11 @@ import 'symbol_toolbar.dart';
 class EditorPane extends ConsumerWidget {
   const EditorPane({super.key});
 
+  /// The most the large-file banner may take, padding included: its
+  /// message and action at the gate's text scales on a narrow phone. Taller
+  /// text scrolls inside it rather than pushing the editor out.
+  static const double largeFileBannerExtent = 160;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final documents = ref.watch(documentControllerProvider);
@@ -47,7 +52,8 @@ class EditorPane extends ConsumerWidget {
     // touch row of the editor, then the tab strip, then the bar's other
     // rows. The symbol toolbar and the journal banner come only when there
     // is room left for them too; a hardware keyboard has the toolbar's keys,
-    // so with one attached the toolbar steps aside.
+    // so with one attached the toolbar steps aside. The large-file banner
+    // (W7) yields to all of them, and waits while the journal's is up.
     return LayoutBuilder(
       builder: (context, constraints) {
         final height = constraints.maxHeight;
@@ -84,6 +90,19 @@ class EditorPane extends ConsumerWidget {
             (!hardwareKeyboard || softKeyboard) &&
             height >=
                 tabsExtent + findExtent + CfSymbolToolbar.extent + editorRow;
+        final journalBanner =
+            documents.journalProblem != null &&
+            height >= tabStripExtent + findExtent + 160;
+        final largeFileRoom =
+            tabsExtent +
+            findExtent +
+            (showToolbar ? CfSymbolToolbar.extent : 0) +
+            largeFileBannerExtent +
+            2 * editorRow;
+        final largeFileNotice =
+            (activeDoc?.largeFileNotice ?? false) &&
+            !journalBanner &&
+            height >= largeFileRoom;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -120,8 +139,7 @@ class EditorPane extends ConsumerWidget {
                   ],
                 ),
               ),
-            if (documents.journalProblem != null &&
-                height >= tabStripExtent + findExtent + 160)
+            if (journalBanner)
               const Padding(
                 padding: EdgeInsets.all(CfSpacing.sm),
                 child: CfBanner(
@@ -132,8 +150,15 @@ class EditorPane extends ConsumerWidget {
                       'would lose them. Save your files to keep them safe.',
                 ),
               ),
+            if (largeFileNotice && activeDoc != null)
+              _LargeFileNotice(path: activeDoc.path),
             if (findOpen)
               ClipRect(
+                // Keyed like the editor body: when a banner and the toolbar
+                // go in the same layout (the keyboard rising), an unkeyed
+                // bar between them would be rebuilt, and its focused field
+                // would take the keyboard down with it.
+                key: const ValueKey('find_bar_clip'),
                 child: SizedBox(
                   height: findExtent,
                   child: OverflowBox(
@@ -179,6 +204,39 @@ class EditorPane extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// What the large-file policy switched off for the document at [path] (W7,
+/// EDITOR_ARCHITECTURE §10), at most [EditorPane.largeFileBannerExtent]
+/// tall: longer text scrolls inside it.
+class _LargeFileNotice extends ConsumerWidget {
+  const _LargeFileNotice({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    DocumentController documents() =>
+        ref.read(documentControllerProvider.notifier);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxHeight: EditorPane.largeFileBannerExtent,
+      ),
+      child: SingleChildScrollView(
+        primary: false,
+        padding: const EdgeInsets.all(CfSpacing.sm),
+        child: CfBanner(
+          key: const ValueKey('large_file_notice'),
+          message:
+              'Large file: opened as plain text, without highlighting or '
+              'folding, so typing stays fast.',
+          actionLabel: 'Highlight anyway',
+          onAction: () => documents().highlightAnyway(path),
+          onDismiss: () => documents().dismissLargeFileNotice(path),
+        ),
+      ),
     );
   }
 }

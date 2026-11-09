@@ -159,7 +159,7 @@ Both pages load the same way. Monaco runs without web workers, and that is docum
 - **Known limits (carried):**
   - Unsaved text does not survive process death until the W5 journal (G4).
   - UTF-8 only; app-private folder only (SAF in Phase 3); no file watching, so outside changes are caught at save time.
-  - 16 MiB read cap (W7 measures large files).
+  - 16 MiB read cap (W7 measures large files). *W7: a 10 MiB cap, and plain text above 512 KiB (EDITOR_ARCHITECTURE §10).*
   - Permission bits are not kept on save.
 
 ### W5 — Zero-loss persistence (1–2 sessions)

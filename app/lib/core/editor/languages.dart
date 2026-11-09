@@ -3,6 +3,9 @@
 /// highlights what it is told.
 library;
 
+/// The language of text without syntax support: nothing is highlighted.
+const String plainTextLanguage = 'plaintext';
+
 /// File extension (lower case) → one of `editorLanguageIds`.
 const Map<String, String> editorLanguageByExtension = {
   'js': 'javascript',
@@ -24,7 +27,7 @@ const Map<String, String> editorLanguageByExtension = {
   'md': 'markdown',
   'markdown': 'markdown',
   // Explicitly plain: a shebang line does not turn notes into a script.
-  'txt': 'plaintext',
+  'txt': plainTextLanguage,
 };
 
 /// Whole file names (lower case) whose extension, if any, says nothing:
@@ -75,7 +78,7 @@ String languageForPath(String path, {String? firstLine}) {
       return byShebang;
     }
   }
-  return 'plaintext';
+  return plainTextLanguage;
 }
 
 /// The language a `#!` line names, or null when it names none we know:

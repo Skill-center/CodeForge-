@@ -1,18 +1,20 @@
 /// Large files on the real page in the emulator (Phase 2 W7, gate G7).
 ///
 /// 1, 5 and 10 MiB of generated JavaScript (the W3 benchmark's
-/// `largeJavaScript`, editor/bench/samples.ts), each opened through the app
-/// as `.js` (highlighted) and as `.txt` (plain text). The cursor goes to the
-/// middle line, and editor/tool/large_cdp.mjs, attached to the page through
-/// the WebView's DevTools socket (debug builds only), measures what only
-/// the page sees: the long tasks of the open, scrolling frames, real key
+/// `largeJavaScript`, editor/bench/samples.ts), each opened through the app as
+/// `.js` and as `.txt`, after the largest `.js` document the large-file policy
+/// (core/editor/large_files.dart) still highlights; above that size the policy
+/// opens `.js` as plain text as well, and the report says so. The cursor goes
+/// to the middle line, and editor/tool/large_cdp.mjs, attached to the page
+/// through the WebView's DevTools socket (debug builds only), measures what
+/// only the page sees: the long tasks of the open, scrolling frames, real key
 /// events typed at the cursor timed to the next frame, and the app's and
 /// renderer's memory. The test asks for each step in the device log
 /// (`LARGEGATE <run>.<n> prepare|measure|done …`, printed in the root zone,
-/// which logs under the `flutter` tag) and waits for the driver's answer:
-/// an empty `files/largegate/ack.<id>.ok` (or `.failed`) that the driver
-/// writes through `run-as`. The typed text must then reach the app's copy
-/// of the document: edits of a large document travel back.
+/// which logs under the `flutter` tag) and waits for the driver's answer: an
+/// empty `files/largegate/ack.<id>.ok` (or `.failed`) that the driver writes
+/// through `run-as`. The typed text must then reach the app's copy of the
+/// document: edits of a large document travel back.
 ///
 /// The app side is timed here: the write, the open (read and decode, then
 /// the page's own report of the document), the typed text's sync, the
@@ -44,6 +46,7 @@ import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/editor/journal.dart';
+import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/core/logging/logger.dart';
@@ -63,6 +66,15 @@ import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 
 const int _mib = 1024 * 1024;
 const List<int> _sizesMiB = [1, 5, 10];
+
+/// The largest document the large-file policy still highlights, measured
+/// first: what highlighting costs at the policy's limit.
+const String _limitFile = 'large_${plainTextAboveChars ~/ 1024}kb.js';
+
+/// Its target size: the generator overshoots by less than a line.
+const int _limitChars = plainTextAboveChars - 128;
+
+List<String> _namesFor(int mib) => ['large_${mib}mb.js', 'large_${mib}mb.txt'];
 
 /// What the driver types: the W3 driver's 60 keys (bench_cdp.mjs
 /// KEY_TEXT), letters and spaces only.
@@ -402,13 +414,20 @@ void main() {
         'store': store,
         'warnings': _logged(started, _isWarning),
         'leftOpen': store == null ? null : _kept,
+        'policy': {
+          'plainTextAboveChars': plainTextAboveChars,
+          'maxTextFileBytes': maxTextFileBytes,
+        },
       };
     }
 
+    final sets = [
+      (names: const [_limitFile], chars: _limitChars),
+      for (final mib in _sizesMiB) (names: _namesFor(mib), chars: mib * _mib),
+    ];
     var baselineAsked = false;
-    for (final mib in _sizesMiB) {
-      final names = ['large_${mib}mb.js', 'large_${mib}mb.txt'];
-      final written = await _writeFiles(files, names, mib * _mib);
+    for (final (:names, :chars) in sets) {
+      final written = await _writeFiles(files, names, chars);
       for (final name in names) {
         await ask(
           'prepare $name${baselineAsked ? '' : ' memory'}',
@@ -474,6 +493,7 @@ void main() {
         results.add({
           'file': name,
           'language': doc.language,
+          'largeFile': doc.largeFile,
           'chars': written.chars,
           'lines': written.lines,
           'writeMs': written.writeMs[name],

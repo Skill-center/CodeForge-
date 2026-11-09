@@ -30,12 +30,16 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - Tests: the page's search session, Tab and paired inserts (vitest); the toolbar, presets, focus and keys in the workbench (widget tests); and on the emulator, the real find bar over the real page, plus real touches on the toolbar and key chords from the emulator's own keyboard.
 - W6 verified by CI 42437560827 (`+512: All tests passed!`) and phase gate 42437560830 for find, replace and go to line (gate G5). The toolbar and keyboards were verified by CI 42517731644 (`+539: All tests passed!`) and phase gate 42517731718, where every touch, key and shortcut passed on attempt 1 (gate G6).
 
+- **W7 large files:** a document over 512 KiB that would be highlighted opens as plain text, so typing stays fast. A banner says what that turns off (highlighting, folding, syntax-aware indentation and comment toggling) and offers *Highlight anyway*, or it can be dismissed; the language chip turns amber. A plain `.txt` loses nothing and gets no banner.
+- The phase gate measures large files on the emulator: opening, scrolling, typing, memory and saving at 1, 5 and 10 MiB, as JavaScript and as plain text, with the session store's write costs and a release build's memory with a 1 MiB file restored (EDITOR_ARCHITECTURE.md §10).
+
 ### Fixed — Phase 2
 - **Editor commands in the moment after the editor page starts could fail** with "no document is active". The host reports ready when the page announces itself and reopens the documents just after that. A toolbar key, shortcut, save or snapshot sent in between reached a page with no document. Such commands now wait for the reopen. Found by the W5 zero-loss gate (phase gate 42379885027, `edit_a`).
 - **Rotating the phone reloaded the editor page**, which cost every open document its undo history. Text, cursor and scroll were restored from the host's copies. Portrait and landscape use different workbench layouts, and the editor pane was rebuilt in each. It now moves between them under one key.
 - **Selected text on the cursor's line was invisible**, in the editor and in the benchmark page: the copy menu and handles appeared, but no highlight. The active line's opaque background covered CodeMirror's selection layer. A line is now highlighted only around a plain cursor, as in VS Code (`editor/src/editor/active_line.ts`). The owner found this in the W3 phone run. Verified in CI 42216855073 and phase gate 42216855184.
 
 ### Changed — Phase 2
+- **Files over 10 MB are refused** (was 16 MB), before they are read: 10 MiB is the largest size the phase gate measured end to end. The message gives the file's size and the limit.
 - **Open tabs moved from the shell envelope to the app database**, imported once on the first W5 start; each tab now also gets back its cursor and scroll (ARCHITECTURE.md §2.6 has the migration note).
 - **ADR-0008 amended:** buffer journals live in SQLite, not files, because a snapshot must replace the changes it covers in one transaction.
 - CI: bootstrap mode generates Drift's code and migration helpers and commits them; every run checks the committed copies are current, and the phase gate generates them before building. Dependency resolution output is kept for the diagnostics commit.

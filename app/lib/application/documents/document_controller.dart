@@ -25,6 +25,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/editor/journal.dart';
 import '../../core/editor/languages.dart';
+import '../../core/editor/large_files.dart';
 import '../../core/editor/shadow_document.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/file_stamp.dart';
@@ -149,14 +150,17 @@ final class DocumentController extends Notifier<DocumentsState> {
     SavedTab? view,
   }) {
     _nextDocId += 1;
+    final (:language, :large) = _languageFor(path, file.text);
     final doc = OpenDocument(
       path: path,
       docId: 'd$_nextDocId',
-      language: languageForPath(path, firstLine: firstLineOf(file.text)),
+      language: language,
       format: file.format,
       savedText: file.text,
       stamp: file.stamp,
       mixedLineEndings: file.mixedLineEndings,
+      largeFile: large,
+      largeFileNotice: large,
     );
     _addTab(doc, background: background);
     unawaited(
@@ -208,6 +212,45 @@ final class DocumentController extends Notifier<DocumentsState> {
       unawaited(
         _report('editor_activate_failed', path, _host.activate(doc.docId)),
       );
+    }
+  }
+
+  /// Switches highlighting on for [path], which the large-file policy
+  /// opened as plain text: its user accepts slower typing, jumping and
+  /// opening in it (core/editor/large_files.dart). Until the tab closes.
+  void highlightAnyway(String path) {
+    final doc = state.documents[path];
+    if (doc == null || !doc.largeFile) {
+      return;
+    }
+    final text = _host.textOf(doc.docId) ?? doc.savedText;
+    final language = languageForPath(path, firstLine: firstLineOf(text));
+    _replace(
+      doc.copyWith(
+        language: language,
+        largeFile: false,
+        largeFileNotice: false,
+      ),
+    );
+    appLogger.info(
+      'documents',
+      'large_file_highlighted',
+      fields: {'path': path, 'language': language},
+    );
+    unawaited(
+      _report(
+        'editor_language_failed',
+        path,
+        _host.setLanguage(doc.docId, language),
+      ),
+    );
+  }
+
+  /// Takes [path]'s large-file banner down; the document stays plain text.
+  void dismissLargeFileNotice(String path) {
+    final doc = state.documents[path];
+    if (doc != null && doc.largeFileNotice) {
+      _replace(doc.copyWith(largeFileNotice: false));
     }
   }
 
@@ -407,7 +450,14 @@ final class DocumentController extends Notifier<DocumentsState> {
       // file is written, and the tabs stay as they are.
       return const Ok(null);
     }
-    final language = languageForPath(newPath, firstLine: firstLineOf(text));
+    // A highlighted document stays highlighted (its user may have switched
+    // highlighting on); plain text meets the large-file policy again.
+    final highlighted =
+        !current.largeFile && current.language != plainTextLanguage;
+    final natural = languageForPath(newPath, firstLine: firstLineOf(text));
+    final (:language, :large) = highlighted
+        ? (language: natural, large: false)
+        : _languageFor(newPath, text, natural: natural);
     final moved = current.copyWith(
       path: newPath,
       language: language,
@@ -416,6 +466,8 @@ final class DocumentController extends Notifier<DocumentsState> {
       mixedLineEndings: false,
       dirty: _differs(doc.docId, text),
       clearConflict: true,
+      largeFile: large,
+      largeFileNotice: large && (!current.largeFile || current.largeFileNotice),
     );
     String rename(String p) => p == path ? newPath : p;
     final active = state.activePath;
@@ -660,17 +712,27 @@ final class DocumentController extends Notifier<DocumentsState> {
           conflict = DocumentConflict.deleted;
         }
     }
+    // A document kept as plain text for its size was journaled as plain
+    // text: the policy decides again, from its path.
+    final journaled = snapshot.language;
+    final (:language, :large) = _languageFor(
+      path,
+      replay.text,
+      natural: journaled == plainTextLanguage ? null : journaled,
+    );
     _nextDocId += 1;
     final doc = OpenDocument(
       path: path,
       docId: 'd$_nextDocId',
-      language: snapshot.language,
+      language: language,
       format: snapshot.format,
       savedText: savedText,
       stamp: stamp,
       dirty: replay.text != savedText,
       mixedLineEndings: mixedLineEndings,
       conflict: conflict,
+      largeFile: large,
+      largeFileNotice: large,
     );
     _addTab(doc, background: true);
     // Registers the document at once (the page hears about it when ready),
@@ -833,6 +895,27 @@ final class DocumentController extends Notifier<DocumentsState> {
     return anchor == null || head == null
         ? null
         : EditorSelection(anchor: anchor, head: head);
+  }
+
+  /// The language a document of [text] at [path] gets, and whether the
+  /// large-file policy made it plain text (core/editor/large_files.dart).
+  /// [natural] is the language it would have otherwise, when known.
+  ({String language, bool large}) _languageFor(
+    String path,
+    String text, {
+    String? natural,
+  }) {
+    final language =
+        natural ?? languageForPath(path, firstLine: firstLineOf(text));
+    if (!opensAsPlainText(text.length, language)) {
+      return (language: language, large: false);
+    }
+    appLogger.info(
+      'documents',
+      'large_file_plain_text',
+      fields: {'path': path, 'chars': text.length, 'language': language},
+    );
+    return (language: plainTextLanguage, large: true);
   }
 
   Future<void> _report(

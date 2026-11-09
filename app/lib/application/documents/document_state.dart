@@ -18,6 +18,8 @@ final class OpenDocument {
     this.dirty = false,
     this.mixedLineEndings = false,
     this.conflict,
+    this.largeFile = false,
+    this.largeFileNotice = false,
   });
 
   /// Workspace-relative path.
@@ -54,6 +56,15 @@ final class OpenDocument {
   /// Both stay as they are until then.
   final DocumentConflict? conflict;
 
+  /// Opened as plain text because of its size (core/editor/large_files.dart)
+  /// rather than for want of a language: highlighting stays off until the
+  /// user switches it on.
+  final bool largeFile;
+
+  /// The banner saying what [largeFile] switched off is up, until the user
+  /// dismisses it or switches highlighting on.
+  final bool largeFileNotice;
+
   /// The tab label.
   String get name => pathBaseName(path);
 
@@ -66,6 +77,8 @@ final class OpenDocument {
     bool? dirty,
     bool? mixedLineEndings,
     bool clearConflict = false,
+    bool? largeFile,
+    bool? largeFileNotice,
   }) {
     return OpenDocument(
       path: path ?? this.path,
@@ -77,6 +90,8 @@ final class OpenDocument {
       dirty: dirty ?? this.dirty,
       mixedLineEndings: mixedLineEndings ?? this.mixedLineEndings,
       conflict: clearConflict ? null : conflict,
+      largeFile: largeFile ?? this.largeFile,
+      largeFileNotice: largeFileNotice ?? this.largeFileNotice,
     );
   }
 }

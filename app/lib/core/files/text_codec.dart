@@ -16,9 +16,10 @@ import '../errors/failure.dart';
 /// The UTF-8 byte-order mark.
 const List<int> utf8Bom = [0xEF, 0xBB, 0xBF];
 
-/// The largest file the editor opens until the large-file policy (Phase 2
-/// W7) decides how bigger files behave.
-const int maxTextFileBytes = 16 * 1024 * 1024;
+/// The largest file the editor opens: the large-file policy's hard cap
+/// (core/editor/large_files.dart), checked before anything is read. 10 MiB
+/// is the largest size the phase gate measured end to end.
+const int maxTextFileBytes = 10 * 1024 * 1024;
 
 /// How a file breaks its lines on disk.
 enum LineEnding {

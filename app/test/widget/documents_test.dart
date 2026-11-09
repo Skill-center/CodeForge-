@@ -1,14 +1,15 @@
-/// Documents in the workbench (Phase 2 W4 and W5, gates G2–G4): many tabs,
-/// asking before unsaved changes are lost, Save As and New File dialogs,
-/// refused files, line-ending chips, keyboard shortcuts, tabs that come
-/// back after a restart, and unsaved edits that survive the app being
-/// killed. The editor is the scripted page; files and the session store
-/// are the harness's in-memory ones.
+/// Documents in the workbench (Phase 2 W4, W5 and W7, gates G2–G4 and G7):
+/// many tabs, asking before unsaved changes are lost, Save As and New File
+/// dialogs, refused files, line-ending chips, keyboard shortcuts, tabs that
+/// come back after a restart, unsaved edits that survive the app being
+/// killed, and large files opened as plain text. The editor is the scripted
+/// page; files and the session store are the harness's in-memory ones.
 library;
 
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/documents/document_state.dart';
 import 'package:codeforge/application/editor/editor_providers.dart';
+import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/features/workbench/workbench_screen.dart';
@@ -434,6 +435,52 @@ void main() {
     expect(page.documents[app.docId]!.text, mine);
     expect(_state(tester).documents['main.js']!.dirty, isTrue);
     await tester.pump(const Duration(seconds: 2));
+  });
+
+  testWidgets('a large file opens as plain text under a banner (W7)', (
+    tester,
+  ) async {
+    await _pumpWorkbench(
+      tester,
+      before: (harness) {
+        harness.files
+          ..putText('big.js', 'x' * (plainTextAboveChars + 1))
+          ..putText('big.py', 'x' * (plainTextAboveChars + 1));
+      },
+    );
+    final banner = find.byKey(const ValueKey('large_file_notice'));
+    Finder language(String label) => find.descendant(
+      of: find.byKey(const ValueKey('status_language')),
+      matching: find.text(label),
+    );
+    expect(banner, findsNothing, reason: 'main.js');
+
+    await tester.tap(find.byKey(const ValueKey('tree_big.js')));
+    await tester.pumpAndSettle();
+    expect(banner, findsOneWidget);
+    expect(language('plaintext'), findsOneWidget);
+    // The banner belongs to its document: another tab has none.
+    await tester.tap(_tabText('main.js'));
+    await tester.pumpAndSettle();
+    expect(banner, findsNothing);
+    await tester.tap(_tabText('big.js'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Highlight anyway'));
+    await tester.pumpAndSettle();
+    expect(banner, findsNothing);
+    expect(language('javascript'), findsOneWidget);
+    expect(_state(tester).documents['big.js']!.largeFile, isFalse);
+
+    // Dismissed, the banner goes and the document stays plain text.
+    await tester.tap(find.byKey(const ValueKey('tree_big.py')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: banner, matching: find.byIcon(Icons.close)),
+    );
+    await tester.pumpAndSettle();
+    expect(banner, findsNothing);
+    expect(language('plaintext'), findsOneWidget);
   });
 
   testWidgets('the editor says when unsaved changes are not backed up', (

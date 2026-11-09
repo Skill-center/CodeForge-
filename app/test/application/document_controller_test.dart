@@ -1,5 +1,6 @@
-/// DocumentController (Phase 2 W4, W5): open documents, tabs, dirty state,
-/// save, Save As, New File, tab restore and the hot-exit journal, over an
+/// DocumentController (Phase 2 W4, W5, W7): open documents, tabs, dirty
+/// state, save, Save As, New File, tab restore, the hot-exit journal and the
+/// large-file policy, over an
 /// in-memory workspace, an in-memory session store and the scripted editor
 /// page. Plain tests in real time.
 library;
@@ -14,6 +15,8 @@ import 'package:codeforge/application/shell_controller.dart';
 import 'package:codeforge/application/workbench_intents.dart';
 import 'package:codeforge/application/workspace_controller.dart';
 import 'package:codeforge/core/editor/journal.dart';
+import 'package:codeforge/core/editor/languages.dart';
+import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/core/editor/protocol.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/text_codec.dart';
@@ -878,6 +881,126 @@ void main() {
       await w.documents.persisted;
       expect(w.state.journalProblem, isNull);
       expect(_replayed((await w.journal()).single), endsWith('xy'));
+    });
+  });
+
+  group('large files (W7)', () {
+    // One character over the policy's threshold.
+    final big = 'x' * (plainTextAboveChars + 1);
+
+    test('a large document opens as plain text, and says so', () async {
+      final w = _World();
+      w.files
+        ..putText('big.js', big)
+        ..putText('edge.js', 'x' * plainTextAboveChars)
+        ..putText('big.txt', big);
+      await w.startEditor();
+      await w.documents.open('big.js');
+      await w.documents.open('edge.js');
+      await w.documents.open('big.txt');
+      await _drain();
+      final doc = w.doc('big.js');
+      expect(doc.language, plainTextLanguage);
+      expect(doc.largeFile, isTrue);
+      expect(doc.largeFileNotice, isTrue);
+      expect(w.page.documents[doc.docId]!.language, plainTextLanguage);
+      // At the threshold a document is still highlighted.
+      expect(w.doc('edge.js').language, 'javascript');
+      expect(w.doc('edge.js').largeFile, isFalse);
+      // Plain text has nothing to switch off, so nothing to say.
+      final notes = w.doc('big.txt');
+      expect(notes.language, plainTextLanguage);
+      expect(notes.largeFile, isFalse);
+      expect(notes.largeFileNotice, isFalse);
+    });
+
+    test('highlight anyway turns it on; dismissing keeps it off', () async {
+      final w = _World();
+      w.files
+        ..putText('big.js', big)
+        ..putText('big.py', big);
+      await w.startEditor();
+      await w.documents.open('main.js');
+      await w.documents.open('big.js');
+      await w.documents.open('big.py');
+      await _drain();
+
+      w.documents.dismissLargeFileNotice('big.py');
+      final py = w.doc('big.py');
+      expect(py.largeFileNotice, isFalse);
+      expect(py.largeFile, isTrue);
+      expect(py.language, plainTextLanguage);
+
+      final docId = w.doc('big.js').docId;
+      w.documents.highlightAnyway('big.js');
+      await _drain();
+      final js = w.doc('big.js');
+      expect(js.language, 'javascript');
+      expect(js.largeFile, isFalse);
+      expect(js.largeFileNotice, isFalse);
+      expect(w.page.documents[docId]!.language, 'javascript');
+      // Only what the policy made plain text: the rest is left alone.
+      w.documents
+        ..highlightAnyway('main.js')
+        ..highlightAnyway('missing.js');
+      expect(w.doc('main.js').language, 'javascript');
+      expect(w.state.openPaths, ['main.js', 'big.js', 'big.py']);
+    });
+
+    test('save as keeps it plain, unless it was highlighted', () async {
+      final w = _World();
+      w.files
+        ..putText('big.js', big)
+        ..putText('loud.js', big)
+        ..putText('big.txt', big);
+      await w.startEditor();
+      for (final path in const ['big.js', 'loud.js', 'big.txt']) {
+        await w.documents.open(path);
+      }
+      await _drain();
+      w.documents.highlightAnyway('loud.js');
+      await _drain();
+
+      expect((await w.documents.saveAs('big.js', 'big.ts')).isOk, isTrue);
+      expect((await w.documents.saveAs('loud.js', 'loud.ts')).isOk, isTrue);
+      expect((await w.documents.saveAs('big.txt', 'from.js')).isOk, isTrue);
+      await _drain();
+      final plain = w.doc('big.ts');
+      expect(plain.language, plainTextLanguage);
+      expect(plain.largeFile, isTrue);
+      expect(plain.largeFileNotice, isTrue);
+      // Its user switched highlighting on: it follows the new name.
+      final loud = w.doc('loud.ts');
+      expect(loud.language, 'typescript');
+      expect(loud.largeFile, isFalse);
+      expect(w.page.documents[loud.docId]!.language, 'typescript');
+      // Plain text by name until now: the policy meets it under the new one.
+      final renamed = w.doc('from.js');
+      expect(renamed.language, plainTextLanguage);
+      expect(renamed.largeFile, isTrue);
+      expect(renamed.largeFileNotice, isTrue);
+      expect(w.page.documents[renamed.docId]!.language, plainTextLanguage);
+    });
+
+    test('a large document restored from the journal is plain again', () async {
+      final files = MemoryFileService()..putText('big.js', big);
+      final sessions = MemorySessionStore();
+      final first = _World(files: files, sessions: sessions);
+      await first.startEditor();
+      await first.documents.open('big.js');
+      await _drain();
+      first.page.typeText('// unsaved\n');
+      await _drain();
+      await first.documents.persisted;
+      first.kill();
+
+      final second = await _restart(files, sessions);
+      final doc = second.doc('big.js');
+      expect(doc.dirty, isTrue);
+      expect(doc.language, plainTextLanguage);
+      expect(doc.largeFile, isTrue);
+      expect(doc.largeFileNotice, isTrue);
+      expect(second.page.documents[doc.docId]!.language, plainTextLanguage);
     });
   });
 

@@ -9,7 +9,10 @@ library;
 
 import 'dart:async';
 
+import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/editor/find_controller.dart';
+import 'package:codeforge/core/editor/large_files.dart';
+import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/features/workbench/panels/find_bar.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -17,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/memory_file_service.dart';
 import 'test_harness.dart';
 
 const List<(double, double, String)> _gateSizes = [
@@ -49,6 +53,33 @@ Future<void> _pumpWorkspace(WidgetTester tester, TerminalStop stop) async {
   );
   await tester.pumpWidget(harness.app());
   await tester.pumpAndSettle();
+}
+
+/// The workspace at [stop] with a file big enough for the large-file banner
+/// (W7) open, and the find bar too when [withFind].
+Future<void> _pumpLargeFile(
+  WidgetTester tester,
+  TerminalStop stop, {
+  bool withFind = false,
+}) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  final harness = TestHarness(
+    shell: ShellState(lastRoute: '/workspace', terminalStop: stop),
+    files: MemoryFileService()
+      ..putText('big.js', 'x' * (plainTextAboveChars + 1)),
+  );
+  await tester.pumpWidget(harness.app());
+  await tester.pumpAndSettle();
+  final container = ProviderScope.containerOf(
+    tester.element(find.byType(EditorPane)),
+    listen: false,
+  );
+  unawaited(container.read(documentControllerProvider.notifier).open('big.js'));
+  await tester.pumpAndSettle();
+  if (withFind) {
+    unawaited(container.read(findControllerProvider.notifier).open());
+    await tester.pumpAndSettle();
+  }
 }
 
 /// Lets debounced writes fire before the test's timer check.
@@ -131,6 +162,91 @@ void main() {
       });
     });
   }
+
+  testWidgets('the large-file banner fits or steps aside (W7)', (tester) async {
+    final banner = find.byKey(const ValueKey('large_file_notice'));
+    final shownAt = <String>{};
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    for (final scale in const [1.0, 1.3]) {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      for (final keyboard in const [false, true]) {
+        for (final (width, height, label) in _gateSizes) {
+          setSurface(tester, width, height);
+          if (keyboard) {
+            _raiseKeyboard(tester, width, height);
+          } else {
+            tester.view.resetViewInsets();
+          }
+          for (final stop in const [TerminalStop.closed, TerminalStop.half]) {
+            for (final withFind in const [false, true]) {
+              final at =
+                  '$label ${scale}x keyboard=$keyboard ${stop.name} '
+                  'find=$withFind';
+              await _pumpLargeFile(tester, stop, withFind: withFind);
+              expect(tester.takeException(), isNull, reason: at);
+              if (banner.evaluate().isEmpty) {
+                continue;
+              }
+              shownAt.add(label);
+              // Shown, it leaves the editor at least two touch rows.
+              final body = tester.getRect(
+                find.byKey(const ValueKey('editor_body')),
+              );
+              expect(body.height, greaterThanOrEqualTo(95.5), reason: at);
+            }
+          }
+        }
+      }
+    }
+    // Not vacuous: there is room for it on a phone and a tablet.
+    expect(shownAt, containsAll(['phone portrait', 'tablet portrait']));
+    await _flush(tester);
+  });
+
+  testWidgets('the find bar outlives the banner and toolbar leaving together', (
+    tester,
+  ) async {
+    final harness = TestHarness(
+      files: MemoryFileService()
+        ..putText('big.js', 'x' * (plainTextAboveChars + 1)),
+    );
+    final height = ValueNotifier<double>(500);
+    addTearDown(height.dispose);
+    await tester.pumpWidget(
+      harness.wrap(
+        ValueListenableBuilder<double>(
+          valueListenable: height,
+          builder: (context, value, _) => Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(height: value, child: const EditorPane()),
+          ),
+        ),
+      ),
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(EditorPane)),
+      listen: false,
+    );
+    await container.read(documentControllerProvider.notifier).open('big.js');
+    await tester.pumpAndSettle();
+    unawaited(container.read(findControllerProvider.notifier).open());
+    await tester.pumpAndSettle();
+    final banner = find.byKey(const ValueKey('large_file_notice'));
+    expect(banner, findsOneWidget);
+    expect(find.byType(CfSymbolToolbar), findsOneWidget);
+    final bar = tester.state(find.byType(FindBar));
+
+    // The keyboard rising on a small phone: the banner and the toolbar go
+    // in one layout, the tabs and the find row stay. The bar, and the field
+    // holding the keyboard, must be the same element afterwards.
+    height.value = 170;
+    await tester.pumpAndSettle();
+    expect(banner, findsNothing);
+    expect(find.byType(CfSymbolToolbar), findsNothing);
+    expect(find.byType(CfTabStrip), findsOneWidget);
+    expect(tester.state(find.byType(FindBar)), same(bar));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('compact portrait: terminal yields, editor keeps 191 dp', (
     tester,

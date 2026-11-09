@@ -6,16 +6,23 @@
 /// machine can check is asserted here.
 library;
 
+import 'dart:async';
+
+import 'package:codeforge/application/documents/document_controller.dart';
+import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/design_system/components/file_tree.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/design_system/tokens/geometry.dart';
 import 'package:codeforge/features/settings/about_screen.dart';
 import 'package:codeforge/features/settings/appearance_screen.dart';
+import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/memory_file_service.dart';
 import 'test_harness.dart';
 
 /// The G3 gate surfaces (same as workbench_layout_test).
@@ -242,6 +249,30 @@ void main() {
       expect(find.byType(CfTabStrip), findsOneWidget);
       expect(find.byKey(const ValueKey('tab_close_main.js')), findsOneWidget);
       expect(find.byKey(const ValueKey('terminal_toggle')), findsOneWidget);
+      await _expectAccessibleTargets(tester);
+      await _flush(tester);
+      semantics.dispose();
+    });
+
+    testWidgets('large-file banner (W7)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      setSurface(tester, 412, 915);
+      final harness = TestHarness(
+        shell: const ShellState(lastRoute: '/workspace'),
+        files: MemoryFileService()
+          ..putText('big.js', 'x' * (plainTextAboveChars + 1)),
+      );
+      await tester.pumpWidget(harness.app());
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(EditorPane)),
+        listen: false,
+      );
+      unawaited(
+        container.read(documentControllerProvider.notifier).open('big.js'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('large_file_notice')), findsOneWidget);
       await _expectAccessibleTargets(tester);
       await _flush(tester);
       semantics.dispose();

@@ -11,6 +11,7 @@ library;
 
 import 'dart:io';
 
+import '../../core/editor/large_files.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/file_stamp.dart';
 import '../../core/files/text_codec.dart';
@@ -138,8 +139,8 @@ final class LocalFileService implements FileService {
         if (before.size > maxTextFileBytes) {
           return Err(
             FileFailure(
-              '$path is larger than ${maxTextFileBytes ~/ (1024 * 1024)} MB, '
-              'the most the editor opens for now.',
+              '$path is ${formatMegabytes(before.size)}: the editor opens '
+              'files up to ${formatMegabytes(maxTextFileBytes)}.',
               problem: FileProblem.tooLarge,
             ),
           );

@@ -158,13 +158,16 @@ void main() {
 
     test('a file over the size cap is refused', () async {
       final files = await _opened();
-      // Sparse: no 16 MiB actually written.
+      // Sparse: no 10 MiB actually written.
       final handle = _file('big.txt').openSync(mode: FileMode.write)
         ..truncateSync(maxTextFileBytes + 1);
       handle.closeSync();
+      final refused = (await files.readText('big.txt')).failureOrNull;
+      expect(refused, _fails(FileProblem.tooLarge));
+      // Both sizes, so the user knows how far over it is (W7).
       expect(
-        (await files.readText('big.txt')).failureOrNull,
-        _fails(FileProblem.tooLarge),
+        refused?.message,
+        'big.txt is 10.1 MB: the editor opens files up to 10 MB.',
       );
     });
   });

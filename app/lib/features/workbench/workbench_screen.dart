@@ -574,6 +574,10 @@ class _StatusStripRow extends ConsumerWidget {
                     CfStatusChip(
                       key: const ValueKey('status_language'),
                       label: activeDoc.language,
+                      color: activeDoc.largeFile ? colors.warning : null,
+                      tooltip: activeDoc.largeFile
+                          ? 'Large file: opened as plain text'
+                          : null,
                     ),
                     CfStatusChip(
                       key: const ValueKey('status_eol'),

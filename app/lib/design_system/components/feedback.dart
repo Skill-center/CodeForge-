@@ -9,7 +9,9 @@ import 'buttons.dart';
 
 enum CfBannerKind { info, warning, danger }
 
-/// Inline banner for phase notices and honest capability labels.
+/// Inline banner for phase notices and honest capability labels. An action
+/// sits under the message, at its end, so a narrow phone keeps the
+/// message's full width; the dismiss cross stays beside it.
 class CfBanner extends StatelessWidget {
   const CfBanner({
     super.key,
@@ -53,20 +55,29 @@ class CfBanner extends StatelessWidget {
           ),
           const SizedBox(width: CfSpacing.sm),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: CfSpacing.xs),
-              child: Text(
-                message,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: CfSpacing.xs),
+                  child: Text(
+                    message,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+                if (actionLabel != null)
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: CfButton(
+                      label: actionLabel!,
+                      variant: CfButtonVariant.ghost,
+                      onPressed: onAction,
+                    ),
+                  ),
+              ],
             ),
           ),
-          if (actionLabel != null)
-            CfButton(
-              label: actionLabel!,
-              variant: CfButtonVariant.ghost,
-              onPressed: onAction,
-            ),
           if (onDismiss != null)
             CfIconButton(
               icon: Icons.close,

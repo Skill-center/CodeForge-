@@ -100,7 +100,7 @@ If WebView editing proves unreliable on target devices after the gate, the docum
 
 - **One app-private workspace in Phase 2.** `LocalFileService` (`app/lib/services/files/local_file_service.dart`) works in `<filesDir>/workspaces/demo`. MainActivity answers a single method, `filesDir`, on the `dev.codeforge/paths` channel; path_provider is not used (TECH_STACK.md §4). The first open writes the demo project into `<root>.seeding` and renames it into place, so a half-written demo never looks like a workspace. Picking a folder through the system (SAF) is Phase 3.
 - **Paths are checked twice.** They are workspace-relative and `/`-separated. First as text (`app/lib/core/files/workspace_path.dart`): absolute paths, `.` and `..`, empty segments, control characters, the characters `\ : * ? " < > |` (other systems' separators, and what FAT-formatted storage cannot hold), over-long names and paths, and the save temp suffix are refused with a sentence the UI shows. Then on disk: the deepest existing ancestor, with symbolic links resolved, must lie inside the canonical (symlink-free) root. A link that stays inside works; a link that points out is refused (`outsideWorkspace`). Listings skip links and save temp files.
-- **Reading.** Files up to 16 MiB; larger ones are refused (`tooLarge`; W7 measures large files). The file is stat'ed before and after reading, and read again if it changed meanwhile, so the stamp always matches the bytes. The codec (`app/lib/core/files/text_codec.dart`) decodes strict UTF-8. A byte-order mark is removed and remembered. Line breaks become `\n` for the editor and the file's style is remembered: CRLF when CRLF and lone CR breaks are the majority. Files that mix styles are flagged, and their line-ending chip turns amber; saving writes one style throughout. UTF-16/32 byte-order marks, NUL bytes and malformed UTF-8 are refused as `notText` with a reason; nothing is converted.
+- **Reading.** Files up to 10 MiB; larger ones are refused (`tooLarge`) before anything is read, with both sizes in the message (§10). The file is stat'ed before and after reading, and read again if it changed meanwhile, so the stamp always matches the bytes. The codec (`app/lib/core/files/text_codec.dart`) decodes strict UTF-8. A byte-order mark is removed and remembered. Line breaks become `\n` for the editor and the file's style is remembered: CRLF when CRLF and lone CR breaks are the majority. Files that mix styles are flagged, and their line-ending chip turns amber; saving writes one style throughout. UTF-16/32 byte-order marks, NUL bytes and malformed UTF-8 are refused as `notText` with a reason; nothing is converted.
 - **Writing is atomic.** The text is encoded in the remembered format and written to `.<name>.cf-tmp` beside the target, then flushed, closed and renamed over the target. A failure at any step deletes the temp file and leaves the target as it was; `test/services/local_file_service_test.dart` interrupts a save just before the rename to prove it. The data reaches the device before the rename, and the rename replaces the file in one step, so after a crash the file is the old version or the new one, never a mix of the two.
 - **Conflicts are caught at save time.** Each document keeps the stamp (modified time and size) it was read or last saved with. A save passes it on, and if the file changed since, the save stops with `changedOnDisk`; the workbench asks before overwriting. Without file watching (Phase 3), an outside change is noticed when saving, not when it happens.
 - **Failures are typed.** Every operation returns a `FileFailure` with a `FileProblem` (`notFound`, `exists`, `wrongType`, `invalidPath`, `outsideWorkspace`, `notText`, `tooLarge`, `changedOnDisk`, `inUse`, `io`) and a message written for the user.
@@ -238,3 +238,41 @@ The new `insertIndent` command is the Tab key, on the toolbar and on hardware ke
 The injector writes chords to the emulator's hardware keyboard device (`sendevent`, each change followed by a sync report), so Android reports them as that keyboard's. It finds the device by its keys (both Ctrl and Tab) and logs it, and `keys_getevent.txt` records what the input devices reported during the test. Writing to an input device takes adbd as root: the shell user may read input devices but not write them (gate 42509926650 got Permission denied), and the gate's google_apis image is a userdebug build that allows `adb root`. The gate logs the build type and the shell user's id. `input keycombination` is no good for chords. It injects from Android's virtual keyboard device, and the modifier's own press carries no meta state. Flutter 3.47.9 trusts a virtual device's meta state and does not make up the press, so it never sees the modifier held, and Ctrl+Tab reaches the app as a plain Tab (gate 42497788524 logged exactly that). The emulator console's `event send` was accepted but reached nothing (gate 42507384710). The injector falls back to `input keycombination` if the device refuses, and logs it.
 
 A step or check that fails is recorded, the rest still run, and the test fails at the end, so one run reports on all of them. When a step times out, the test prints the text, the cursor, where the focus is, and every key Flutter received since the request, with the keys held with it (a `HardwareKeyboard` handler that lets each key go on). It also prints every change of the active tab and every shortcut the page forwarded, all timed within the step. That is how gate 42515305565 showed Ctrl+Tab working: the tab changed to `main.js` the moment Tab went down, while the test still expected the other test file.
+
+## 10. Large files (as built in W7)
+
+The phase gate measures large documents on the emulator: `app/integration_test/large_files_test.dart` with `editor/tool/large_cdp.mjs`, reported in `app/ci-results/gate/large_files.txt`. The policy below follows from its first complete run, 42616081317.
+
+### The policy
+
+`app/lib/core/editor/large_files.dart` holds both limits.
+
+- **Plain text above 512 KiB.** A document longer than 524,288 characters (UTF-16 code units, as the page and the protocol count text) that would be highlighted opens as plain text. Without a parser the page does no syntax highlighting, folding, syntax-aware indentation (a new line keeps the previous line's indentation) or comment toggling. Bracket matching, bracket closing, search, go to line, undo and the journal all stay. The boundary is the one the journal already draws for large documents (§7), which snapshot at most once a minute.
+- **A banner says what is off.** It reads "Large file: opened as plain text, without highlighting or folding, so typing stays fast.", with *Highlight anyway* and a dismiss cross. The status strip's language chip turns amber and its tooltip says the same.
+  - *Highlight anyway* re-highlights the same document (`doc.setLanguage`), so undo and the cursor stay. The choice lasts until the tab closes and is not remembered across restarts.
+  - A `.txt` file loses nothing, so it gets no banner.
+  - The banner gives way to the journal's warning. It shows only when the pane can keep two touch rows of the editor below it, with the keyboard up too; taller text scrolls inside it.
+- **When the policy decides:**
+  - on open;
+  - when a journaled document comes back after a kill (§7). A document kept plain for its size was journaled as plain text, so the policy decides again from its path;
+  - on Save As. A highlighted document stays highlighted under its new name; a plain one meets the policy again.
+
+  It does not decide while typing: a document that grows past the line keeps its highlighting until it is opened again.
+- **Refused above 10 MiB.** `maxTextFileBytes` is checked against the file's size before anything is read, and the message gives both sizes ("big.log is 12.3 MB: the editor opens files up to 10 MB."). Sizes round up to a tenth, so a file over the limit never reads as the limit. 10 MiB is the largest size the gate measured end to end: open, type and save.
+
+### Why these numbers
+
+Gate 42616081317 ran a debug APK on the emulator. Software rendering bounds every frame-timed number there, so compare the columns with each other, not with the budgets. Typing is 60 real key events at the middle line, timed from input to the next frame.
+
+| | 1 MiB js | 1 MiB txt | 5 MiB js | 5 MiB txt | 10 MiB js | 10 MiB txt |
+|---|---|---|---|---|---|---|
+| typing median / mean (ms) | 44.2 / 50.8 | 27 / 29.9 | 56.4 / 61.7 | 41.8 / 41.2 | 60.3 / 65.0 | 28.2 / 42.1 |
+| go to the middle line (ms) | 119 | 6 | 90 | 5 | 47 | 42 |
+| long tasks after the open | 6, 594 ms | 1, 51 ms | 5, 534 ms | 1, 162 ms | 5, 691 ms | 1, 267 ms |
+| open, until the page shows it (ms) | 163 | 123 | 424 | 439 | 824 | 800 |
+
+- **Highlighting costs at every size.** Typing is 1.4 to 2.1 times slower (median and mean). A jump to the middle takes about 100 ms more at 1 and 5 MiB, and the open is followed by half a second or more of long tasks.
+- **The cost hardly grows with size.** Typing is slower by 15 to 30 ms (mean) from 1 MiB to 10 MiB, which suggests a cost per edit rather than one proportional to the length.
+- **The line sits below 1 MiB.** On a phone (W3, realme C51), a highlighted 1 MiB document typed at a p95 of 133 to 136 ms against the 32 ms budget (ADR-0004), so it has to open as plain text. The gate's 1 MiB file (1,048,614 characters) is twice the threshold.
+- **Memory.** The release build restoring a session with the 1 MiB file open took 236 MB (app 137.8 + renderers 98.2), within the 250 MB budget.
+- **Not measured:** very long single lines (minified files), documents between 512 KiB and 1 MiB on a phone, and line counts; the policy counts characters only.

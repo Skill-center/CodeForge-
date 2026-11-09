@@ -16,8 +16,8 @@ const itest = {
   build: 'debug',
   typed: 'abc',
   files: [
-    { file: 'large_1mb.js', language: 'javascript', chars: 1048614, lines: 35107, openMs: 900, openReturnMs: 400, pageAnswerMs: 500, saveMs: 120 },
-    { file: 'large_1mb.txt', language: 'plaintext', chars: 1048614, lines: 35107, openMs: 700, openReturnMs: 380, pageAnswerMs: 320, saveMs: 110 },
+    { file: 'large_1mb.js', language: 'javascript', largeFile: false, chars: 1048614, lines: 35107, openMs: 900, openReturnMs: 400, pageAnswerMs: 500, saveMs: 120 },
+    { file: 'large_1mb.txt', language: 'plaintext', largeFile: false, chars: 1048614, lines: 35107, openMs: 700, openReturnMs: 380, pageAnswerMs: 320, saveMs: 110 },
   ],
   store: {
     pragma: { NORMAL: 1, FULL: 2 },
@@ -25,6 +25,7 @@ const itest = {
     changes: { count: 4, normalMs: [1, 2, 3, 4], fullMs: [5, 6, 7, 8] },
   },
   leftOpen: 'large_1mb.js',
+  policy: { plainTextAboveChars: 524288, maxTextFileBytes: 10485760 },
 };
 
 const cdp = {
@@ -38,7 +39,7 @@ const cdp = {
         openLongTasks: { supported: true, count: 2, totalMs: 201, maxMs: 101 },
         dom: { lines: 93 },
         scroll: { slowFramePct: 9.5 },
-        typing: { p95Ms: 31.9 },
+        typing: { p50Ms: 20.4, p95Ms: 31.9 },
         memory: { totalPssMB: 251 },
       },
     },
@@ -128,6 +129,24 @@ describe('large-file report (tool/large_report.mjs)', () => {
     ]);
   });
 
+  it('marks the files the large-file policy made plain text', () => {
+    const policyMade = {
+      ...itest,
+      files: [{ ...itest.files[0], language: 'plaintext', largeFile: true }],
+    };
+    const report = buildReport({ itest: policyMade, cdp, release: null, generatedAt: 'now' });
+    expect(report.files[0].largeFile).toBe(true);
+    expect(report.policy).toEqual({ plainTextAboveChars: 524288, maxTextFileBytes: 10485760 });
+    const text = renderText(report);
+    const row = text.split('\n').find((line) => line.startsWith('large_1mb.js'));
+    expect(row).toMatch(/^large_1mb\.js\s+plaintext\*\s/);
+    expect(text).toContain('* plain text by the large-file policy: highlighting, folding and syntax indentation are off');
+    // Reports from before the policy have neither.
+    const before = buildReport({ itest: { ...itest, policy: undefined }, cdp, release: null, generatedAt: 'now' });
+    expect(before.policy).toBeNull();
+    expect(renderText(before)).not.toContain('Large-file policy');
+  });
+
   it('says what is missing when a side gave nothing', () => {
     const report = buildReport({ itest: null, cdp: null, release: null, generatedAt: 'now' });
     expect(report.files).toEqual([]);
@@ -148,7 +167,9 @@ describe('large-file report (tool/large_report.mjs)', () => {
     expect(jsRow).toContain('72.3/119.3');
     expect(jsRow).toContain('2, 201 ms');
     expect(jsRow).toContain('9.5 % ✗');
-    expect(jsRow).toContain('31.9 ms ✓');
+    expect(jsRow).toContain('20.4/31.9 ms ✓');
+    expect(text).toContain('Large-file policy: plain text above 524288 characters; files over 10485760 bytes are refused');
+    expect(text).not.toContain('* plain text by the large-file policy');
     expect(jsRow).toContain('251 ✗');
     expect(text).toContain('Before the first open: app 150 MB + renderers 60 MB = 210 MB');
     expect(text).toMatch(/1 MiB\s+30\s+55\s+30/);
