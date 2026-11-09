@@ -9,6 +9,7 @@ library;
 import 'dart:async';
 
 import 'package:codeforge/application/documents/document_controller.dart';
+import 'package:codeforge/application/editor/find_controller.dart';
 import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/design_system/components/dialogs.dart';
 import 'package:codeforge/design_system/components/file_tree.dart';
@@ -275,6 +276,26 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('large_file_notice')), findsOneWidget);
+      await _expectAccessibleTargets(tester);
+      await _flush(tester);
+      semantics.dispose();
+    });
+
+    testWidgets('find and replace bar (G8)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      setSurface(tester, 412, 915);
+      await _pump(tester, _workspace);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(EditorPane)),
+        listen: false,
+      );
+      unawaited(
+        container.read(findControllerProvider.notifier).open(replace: true),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('find_query')), 'lang');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('find_replace_all')), findsOneWidget);
       await _expectAccessibleTargets(tester);
       await _flush(tester);
       semantics.dispose();
