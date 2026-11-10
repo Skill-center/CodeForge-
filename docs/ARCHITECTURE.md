@@ -1,6 +1,6 @@
 # CodeForge Architecture
 
-**Status:** Accepted for Phase 1 · Decisions recorded in [adr/](adr/) · Audit basis: [EXISTING_RUNTIME_AUDIT.md](EXISTING_RUNTIME_AUDIT.md)
+**Status:** Accepted for Phase 1 · as built through Phase 2 in §2.4–§2.7 · Decisions recorded in [adr/](adr/) · Audit basis: [EXISTING_RUNTIME_AUDIT.md](EXISTING_RUNTIME_AUDIT.md)
 
 ---
 
@@ -133,6 +133,22 @@ app/lib/
   - *Tabs leave the shell envelope.* W4 stored open tabs and the active tab in `codeforge.shell.v1`. On the first W5 start, when the database has no tabs for the workspace, the envelope's tabs are imported once and the envelope's tab fields are cleared. The envelope's schema version stays 1: the fields remain, empty, so a W4 build reading the envelope finds no tabs and opens `main.js`. W4 envelope tabs carry no selection or scroll, so they import with the cursor at the start.
   - *The database is new.* Schema v1 is the first version and no older database exists, so there is no migration yet. ADR-0008's amendment gives the rule for every later version.
 
+### 2.7 As built in Phase 2 W6–W7 (keyboards, find, large files, dialogs)
+
+- **Keyboards** (`lib/application/keyboard_state.dart`):
+  - `softKeyboardVisibleProvider` reads the window's bottom inset, which a Scaffold body cannot read itself.
+  - `hardwareKeyboardProvider` follows a `HardwareKeyboardSource`. On Android that is `MainActivity` reporting its configuration over the `dev.codeforge/keyboard` MethodChannel (`lib/services/platform/hardware_keyboard.dart`); tests replace it.
+  - The symbol toolbar reads both (§5).
+- **Find and replace** (`lib/application/editor/find_controller.dart`) drives the page's single search session over protocol v1 (`search.set`, `search.state`) and follows the active tab (EDITOR_ARCHITECTURE.md §8).
+- **Large files** (EDITOR_ARCHITECTURE.md §10):
+  - The policy is pure Dart in `lib/core/editor/large_files.dart` (`plainTextAboveChars`, `opensAsPlainText`).
+  - The refusal size, `maxTextFileBytes` (10 MiB), lives with the codec (`lib/core/files/text_codec.dart`). `LocalFileService` checks it with `stat` before reading.
+  - `DocumentController` decides between plain and highlighted text at open, at restore and on Save As, never while typing. The editor pane shows the banner.
+- **Dialogs** (`lib/design_system/components/dialogs.dart`):
+  - `CfAlertDialog` is the design system's alert dialog, and the app's six alert dialogs use it. It scrolls its title and content above pinned actions, and tightens its margins when the keyboard leaves less than 480 dp.
+  - The command palette stays a plain `Dialog`.
+  - Text fields are not dense, so Material keeps them at least 48 dp tall.
+
 ## 3. Android host structure
 
 ```
@@ -184,8 +200,15 @@ Layout state (panel sizes, active activity, sheet positions) is part of workspac
 
 - Flutter UI: main isolate. Heavy pure-Dart work (search indexing of small trees, diffing) in isolates; **all process I/O in Kotlin** (bounded thread pools), streamed to Dart via EventChannels with backpressure (coalesced chunks, max event rate).
 - Runtime child processes owned by `SessionRegistry`; foreground-service notification while sessions run (Phase 4+); all children killed on workspace close/app task removal unless user opts into persistence; no orphaned processes (process-group kill, verified by tests).
-- WebViews: created lazily, one editor WebView reused across tabs (CM6 states swapped), destroyed on background memory pressure with state persisted first.
+- WebViews: created lazily, one editor WebView reused across tabs (CM6 states swapped), destroyed on background memory pressure with state persisted first. *As built in Phase 2: one editor WebView, reused across tabs. It is not destroyed under memory pressure. If Android kills its renderer, the app process ends with it (webview_flutter_android 4.14.1 has no `onRenderProcessGone`), and the journal restores unsaved text on the next start (§2.6).*
 
 ## 7. What Phase 1 builds vs. later
 
 Phase 1 ships the **entire UI skeleton with fake services** — every screen navigable, every layout adaptive, theme system real, zero native runtime. Service interfaces are defined in Phase 1 so Phases 2–7 swap fakes for real implementations without touching presentation code. This is the dependency-inversion payoff: the risky native work proceeds in parallel with zero UI churn.
+
+**Phase 2** swapped in the first real implementations:
+- the `dart:io` `FileService` (§2.5);
+- the WebView `EditorSurface`, with CodeMirror 6 behind protocol v1 (EDITOR_ARCHITECTURE.md);
+- the Drift session store with the hot-exit journal (§2.6).
+
+The workbench's demo code view gave way to the real editor pane. Features still reach files only through controllers, and the import lint enforces it. The exit report is [PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md).

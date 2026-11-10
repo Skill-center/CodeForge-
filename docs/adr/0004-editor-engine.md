@@ -1,6 +1,6 @@
 # ADR-0004: CodeMirror 6 is the editor engine (Monaco challenged and measured)
 
-**Status:** **Accepted** 2026-11-06 (Phase 2 W3): CodeMirror 6, on the emulator gate and the owner's phone run · proposed 2026-11-05
+**Status:** **Accepted** 2026-11-06 (Phase 2 W3): CodeMirror 6, on the emulator gate and the owner's phone run · proposed 2026-11-05 · confirmed at the Phase 2 exit (2026-11-10). W7 answered the large-file and memory carry-overs on the emulator, and their runs on hardware are parked ([PHASE_2_REPORT.md](../phases/PHASE_2_REPORT.md) §7–§8)
 
 ## Context
 Spec §3: evaluate Monaco first (VS Code lineage), choose on actual Android device testing. Desk findings: Monaco 0.57.0 upstream states mobile browsers are **not supported**; bundle is multi-MB. CodeMirror 6 (view 6.43.15) is built around native mobile selection/IME, ~135 KB gz core, MIT. Both are WebView-hosted; neither is the IDE itself (workbench is Flutter).
@@ -11,7 +11,7 @@ Spec §3: evaluate Monaco first (VS Code lineage), choose on actual Android devi
 - Gate metrics (EDITOR_ARCHITECTURE.md §1): cold load ≤ 800 ms, keystroke p95 ≤ 32 ms, zero IME corruption across the Gboard/CJK/hardware matrix, 1 MB file scroll jank < 5%, WebView RSS ≤ 250 MB, bundle ≤ 1.5 MB gz.
 - If CM6 fails the IME suite outright: stop, reassess (native Flutter editor study) — never ship a corrupting editor.
 
-## Evidence so far (Phase 2 W3)
+## Evidence (Phase 2 W3)
 - **Harness:** built at identical scope for both engines (`editor/bench/`; how each metric is measured: EDITOR_ARCHITECTURE.md §1, "As built in W3").
 - **Desk run, indicative only:** headless Chromium 153 on a Linux sandbox at 412×780, DPR 2, software rendering. This is not an Android WebView and not the gate.
 
@@ -72,7 +72,9 @@ Carried forward, not met yet:
 - **Memory:** a release build on the emulator, restoring a session with the 1 MiB file open, took 236 MB highlighted (gate 42616081317), and 224.5 to 227.6 MB as plain text (gates 42659207710, 42665305004 and 42676631509). All four are within the 250 MB budget. A measurement on hardware is on the parked list too.
 - **Selection handles:** parked with the manual selection matrix (PHASE_2_SELECTION_MATRIX.md, W6).
 
+At the Phase 2 exit these three stay on the parked list (PHASE_2_REPORT.md §8). A phone cannot run the large-file check yet: the in-app benchmark always highlights its 1 MiB file, and Phase 2 has no way to put a large file into the workspace without a computer. The report proposes a Developer action that writes the gate's files, plus a plain-text pass in the benchmark.
+
 ## Consequences
 - Editor workstream 2 starts only after the gate; protocol layer is engine-agnostic so the swap cost is bounded.
 - LSP features (completion/hover/diagnostics UI) are wired by us to CM6 — more integration work than Monaco's built-ins, but mobile-correct.
-- The raw numbers are above and in the evidence files; PHASE_2_REPORT.md cites them when Phase 2 closes.
+- The raw numbers are above and in the evidence files; [PHASE_2_REPORT.md](../phases/PHASE_2_REPORT.md) §7 cites them at the Phase 2 exit.

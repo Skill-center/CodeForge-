@@ -4,6 +4,8 @@
 
 **Phase 1 update (2026-11-06):** the Flutter, Dart-package and Android build rows below are now **as built and CI-proven** — every Phase 1 CI run builds with exactly these pins (run ids in [phases/PHASE_1_REPORT.md](phases/PHASE_1_REPORT.md)). Per the plan's W1 rule ("template defaults win over aspirational pins"), the Android toolchain follows the Flutter 3.47.9 template rather than t1's older AGP 8.13.2 / Gradle 9.2.1 / NDK 27.2; reconciling toward t1 is a Phase 4 task, only if vendoring the runtime modules requires it.
 
+**Phase 2 update (2026-11-10):** the editor and persistence rows below are now **as built and CI-proven**: the WebView plugin, CodeMirror 6, the editor toolchain, Drift and SQLite (run ids in [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md)). ADR-0004 chose CodeMirror 6 over Monaco. Every npm version is an exact pin in `editor/package.json`, installed with `npm ci` from the committed lockfile.
+
 ---
 
 ## 1. Core stack (locked by spec + audit)
@@ -22,11 +24,11 @@
 | Renderer | Flutter engine | **Skia** in Phase 1 (`EnableImpeller=false` in the manifest) | Impeller's OpenGLES backend never sized its surface on the software-GL CI emulator (gate run 1); Skia renders reliably there. Re-enabling Impeller is deferred until it can be validated on arm64 hardware (Phase 4 device lab at the latest) |
 | State management | **Riverpod** | 3.4.3 | Compile-safe DI + reactive state; spec mandate; active maintenance |
 | Navigation | **GoRouter** | 18.1.3 | Declarative, deep links, shell routes for workbench; Flutter team-maintained |
-| Typed platform channels | **Pigeon** | 29.1.0 (not yet added) | Generates Dart+Kotlin contracts; no hand-rolled MethodChannel string maps. W4's single method (`dev.codeforge/paths` → `filesDir`) is a plain MethodChannel; Pigeon comes with the first real Kotlin surface (Phase 3 SAF broker) |
+| Typed platform channels | **Pigeon** | 29.1.0 (not yet added) | Generates Dart+Kotlin contracts; no hand-rolled MethodChannel string maps. Phase 2 has two small plain MethodChannels: W4's `dev.codeforge/paths` (`filesDir`) and W6's `dev.codeforge/keyboard` (whether a hardware keyboard is attached, and when that changes). Pigeon comes with the first real Kotlin surface (Phase 3 SAF broker) |
 | WebView | **webview_flutter** | 4.14.1 | Official plugin; Android WebView host for editor |
 | WebView (Android) | webview_flutter_android | 4.14.1 | Pinned alongside: the editor host hardens the WebView through its Android-only API (file/content access off, debugging in debug builds only). It exposes no request interception and no `onRenderProcessGone` (see SECURITY.md §3) |
 | Hashing | crypto | 3.0.8 | SHA-256 check of the bundled editor page against its manifest before it runs; it was already in the lockfile as a transitive dependency, now declared directly |
-| Local DB | **Drift** (SQLite) | 2.35.3 | Typed queries, migrations, reactive streams; Phase 2+ |
+| Local DB | **Drift** (SQLite) | **2.35.3** — as built (Phase 2 W5) | Typed queries, migrations, reactive streams. Schema v1 holds workspaces, open tabs and the hot-exit journal (ADR-0008). SQLite comes from the `sqlite3` package's build hook (3.9.0, a prebuilt, hash-checked library per ABI), so there is no `sqlite3_flutter_libs` and no NDK build. Codegen: drift_dev 2.35.2 and build_runner 2.17.1, dev dependencies that CI runs (BUILD_AND_RELEASE §2.1) |
 | Preferences | shared_preferences | 2.5.6 | Settings only; structured state goes to Drift |
 | Lints | flutter_lints | 6.0.0 | Baseline + custom import-boundary rules |
 
@@ -34,12 +36,13 @@
 
 | Component | Choice | Verified version | Notes |
 |---|---|---|---|
-| Editor engine | **CodeMirror 6** (primary candidate) | @codemirror/view 6.43.15, state 6.7.6 | Mobile-native selection/IME, modular, ~135 KB gz core; ADR-0004 device gate decides finally |
+| Editor engine | **CodeMirror 6** (chosen: ADR-0004 Accepted 2026-11-06) | @codemirror/view **6.43.15**, state **6.7.6**, commands 6.11.1, language 6.13.1, search 6.7.2, autocomplete 6.20.4, @lezer/highlight 1.2.5, and the language packages for JavaScript 6.2.5, Python 6.2.1, JSON 6.0.2, HTML 6.4.12, CSS 6.3.1 and Markdown 6.5.2 | Mobile-native selection and IME, modular. As built, the shipped page with all of it is 285.1 KiB gzipped (budget 1.5 MB). It was chosen over Monaco on the emulator gate and the owner's low-end phone (PHASE_2_REPORT §7.1) |
 | Editor challenger | Monaco | 0.57.0 | Benchmarked in the Phase 2 gate; upstream states mobile browsers unsupported — uphill battle, evidence required to overturn CM6. As built (W3): an exact-pinned **dev** dependency of `editor/`, used only for the benchmark page (no web workers, in-process fallback); never part of the shipped editor page. Its bundled third-party notices (marked, DOMPurify) ship with the benchmark page |
 | Terminal frontend (fallback) | **@xterm/xterm** | 6.0.0 (+ addon-fit 0.11.0) | Only if ADR-0006 picks WebView route (license-driven or PlatformView perf fails) |
 | Terminal frontend (primary candidate) | vendored **terminal-view** (native) | t1 @ 0e26d7a | Proven touch/IME/selection; via Flutter PlatformView; license gate ADR-0011 |
 | JS build | **esbuild** | 0.28.2 | Single-file bundle, deterministic, fast CI; no webpack |
-| JS language | TypeScript | 5.9.x line (npm `latest` is 7.0.2 — the Go-based rewrite; pin 5.x until ecosystem settles, evaluate in Phase 2) | Type-safe bridge protocol |
+| JS language | TypeScript | **5.9.3** — as built (exact pin). npm `latest` is the 7.x Go-based rewrite; Phase 2 stayed on 5.9, and moving is a separate upgrade | Type-safe bridge protocol |
+| JS tests | **vitest** + happy-dom | 5.1.0 + 21.0.4 — as built | The page's unit and contract tests (187 at the Phase 2 exit) and the bundle verifier's DOM |
 
 ## 3. Runtime (vendored, not dependency-managed)
 
@@ -65,7 +68,7 @@ From t1 @ `0e26d7a` — versions as shipped in the audited sealed payload:
 3. **License screening at intake.** Allowed: MIT, BSD, Apache-2.0, ISC, MPL-2.0 (file-level). GPL/LGPL only via the vendored-runtime aggregation path with notices, or via explicit ADR-0011 decision for terminal modules. CI runs a license check on pub + npm trees.
 4. **Offline-first.** No dependency may require network at runtime for core features. Fonts, icons, editor bundles, terminal assets all ship in the APK.
 5. **Upgrade cadence.** Monthly dependency PR (automated diff + CI), never mid-phase unless security-driven. Flutter/AGP upgrades are their own PR with full gate suite.
-6. **Codegen restraint.** Phase 1: no build_runner in the critical path (hand-written immutables). Drift introduces codegen in Phase 2, contained to the data layer.
+6. **Codegen restraint.** Phase 1: no build_runner in the critical path (hand-written immutables). Drift introduces codegen in Phase 2, contained to the data layer. *As built: Drift's code is the only generated code. CI generates it and fails any run whose committed copy differs.*
 
 ## 5. Explicitly rejected (with reasons)
 
@@ -84,4 +87,4 @@ From t1 @ `0e26d7a` — versions as shipped in the audited sealed payload:
 
 ## 6. CI toolchain
 
-GitHub Actions (ADR-0009). **As built in Phase 1:** ubuntu-latest, Temurin 17, Flutter **3.47.9** from `.flutter-version` via `subosito/flutter-action`, the runner's preinstalled Android SDK (platform 36; NDK 28.2 resolved by the Flutter Gradle plugin), and for instrumented gates an API 36 **`google_apis` x86_64** emulator — hardware-accelerated through KVM (udev rule + settle), with software emulation (TCG) only as a recorded fallback. The `aosp_atd` image planned in Phase 0 was rejected after gate run 1 (stripped system services crashed). Node 24 LTS for editor builds arrives in Phase 2; the arm64 device lab for release gates in Phase 4+. Details: [BUILD_AND_RELEASE.md](BUILD_AND_RELEASE.md).
+GitHub Actions (ADR-0009). **As built in Phase 1:** ubuntu-latest, Temurin 17, Flutter **3.47.9** from `.flutter-version` via `subosito/flutter-action`, the runner's preinstalled Android SDK (platform 36; NDK 28.2 resolved by the Flutter Gradle plugin), and for instrumented gates an API 36 **`google_apis` x86_64** emulator — hardware-accelerated through KVM (udev rule + settle), with software emulation (TCG) only as a recorded fallback. The `aosp_atd` image planned in Phase 0 was rejected after gate run 1 (stripped system services crashed). As built in Phase 2: Node 24 LTS (`editor/.nvmrc`) runs the editor job with `npm ci`. The arm64 device lab for release gates comes in Phase 4+. Details: [BUILD_AND_RELEASE.md](BUILD_AND_RELEASE.md).

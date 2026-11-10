@@ -30,7 +30,7 @@
 
 Manual: TalkBack spot-check checklist in the Phase 1 report (owner, on hardware).
 
-### 1.2 Added in Phase 2 (so far: W1 editor page, W2 host and bridge, W3 engine benchmark, W4 files and tabs, W5 zero-loss persistence, W6 find, replace and go to line, the symbol toolbar and keyboards, W7 large files and the quality suite)
+### 1.2 Added in Phase 2 (W1 editor page, W2 host and bridge, W3 engine benchmark, W4 files and tabs, W5 zero-loss persistence, W6 find, replace and go to line, the symbol toolbar and keyboards, W7 large files and the quality suite)
 
 | Suite | Where | What it proves |
 |---|---|---|
@@ -68,6 +68,11 @@ Every test run is bounded so a hang fails fast and says where. `test/flutter_tes
 
 A widget test runs in a fake-async zone, so whatever its body awaits has to complete inside that zone. Code a test awaits must not await `StreamSubscription.cancel()`: it completes through a root-zone future. That resumes the test outside the zone's control, and the next thing it awaits never completes, so the test stalls until its timeout. For this reason `EditorHost.dispose()` stops its streams without awaiting them.
 
+**Totals at the Phase 2 exit** (CI 42678576228 and phase gate 42676631509; PHASE_2_REPORT §5):
+- 563 Flutter tests in 44 files (`+563: All tests passed!`), and 187 vitest tests in 15 files.
+- 11 emulator groups from 10 integration tests.
+- Coverage of hand-written code: 4736/5382 lines (88.0 %). By layer: core 92.3 %, application 92.6 %, design system 95.2 %, features 87.4 %, services 73.4 % and the app root 72.4 %.
+
 ## 2. Fakes-first discipline
 
 Every service interface ships with an in-memory fake in Phase 1. Widget/controller tests run against fakes — fast, deterministic, no device. Native implementations are validated by contract tests that run the **same test suite** against fake and native impls (interface contract tests), so divergence is caught mechanically.
@@ -97,8 +102,19 @@ External keyboard tests: hardware keymap suite on tablet + phone (OTG/BT). IME m
 - PR pipeline: analyze + unit + widget + contract + JS + JVM tests + debug build. Target < 15 min.
 - Nightly: instrumented emulator suite + runtime gates + perf smoke.
 - Phase gates: full matrix incl. arm64 device runs (self-hosted or owner device via `adb` over network for gates; documented in BUILD_AND_RELEASE.md).
+- **As built through Phase 2:**
+  - `ci.yml` runs the Flutter and editor jobs on every push, in about 7 minutes.
+  - The emulator suite runs in `phase-gate.yml` on every `[phase-gate]` commit (11 groups, about 29 minutes), not nightly.
+  - The arm64 runs are the owner's phone runs, and they are parked (PHASE_2_REPORT §8).
 - Evidence: test reports + perf numbers uploaded as workflow artifacts; phase exit reports cite run ids (t1 discipline). **A claim of "green" without a run id is a process violation.**
 
 ## 6. Manual test charters (per phase)
 
 Exploratory charters for feel-level quality (touch targets, animation jank, empty states, error copy) recorded in `docs/phases/PHASE_N_REPORT.md` with device + build hash. Automation covers correctness; humans cover premium.
+
+Phase 2's manual checks:
+- the phone checklist ([PHASE_2_PHONE_CHECKLIST.md](phases/PHASE_2_PHONE_CHECKLIST.md)), whose run 1 was done on 2026-11-06;
+- the selection matrix ([PHASE_2_SELECTION_MATRIX.md](phases/PHASE_2_SELECTION_MATRIX.md));
+- TalkBack items 11–15 (PHASE_2_REPORT §8), on top of Phase 1's ten.
+
+All of them except run 1 are parked.

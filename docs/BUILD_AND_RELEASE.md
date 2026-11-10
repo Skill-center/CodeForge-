@@ -1,6 +1,6 @@
 # Build & Release
 
-**Status:** Design accepted Phase 0 (ADR-0009/0010) · **`ci.yml` and `phase-gate.yml` are implemented (Phase 1)** — see §2.1 for how they differ from this spec; `runtime-gates.yml`, `release.yml` and `deps.yml` remain spec until their phases.
+**Status:** Design accepted Phase 0 (ADR-0009/0010) · **`ci.yml` and `phase-gate.yml` are implemented (Phase 1)**, with the editor job and the editor's gate groups added in Phase 2 (§2.2). §2.1 says how they differ from this spec; `runtime-gates.yml`, `release.yml` and `deps.yml` remain spec until their phases.
 
 ---
 
@@ -33,6 +33,36 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 - Commit-backs from `ci.yml` push through `tool/ci/push_with_retry.sh` (fetch + rebase on rejection).
 - **Phone test build (Phase 2 W3):** after the release x86_64 APK, `phase-gate.yml` builds the editor benchmark pages (`npm run build:bench`) and then a **profile arm64 APK** that bundles them. It is uploaded as the artifact `codeforge-phone-profile-arm64` (kept 30 days), and its SHA-256 is printed in the step log. Profile mode is optimised like release but keeps Settings → Developer (`!kReleaseMode`). It is signed with the runner's throwaway debug key, which changes with every run, so an earlier CodeForge build must be uninstalled before a new one installs. The release APK is built before the pages exist, so it never contains them.
 - Infrastructure retries are explicit and logged: an integration test is retried only on known *infrastructure* signatures (package service missing, broken adb pipe, device offline, …) or when an attempt outlives its 10-minute limit (`flutter test` can wait forever for an app that never connects; gate 42500759166 sat 65 minutes after installing the smoke test, until the job's limit stopped it); an assertion failure is never retried. Every attempt is listed in `attempts.txt`.
+
+### 2.2 As built in Phase 2: the editor job and the gate's groups
+
+- **The `editor` job** (`ci.yml`) runs in `editor/`, with Node from `editor/.nvmrc`, an npm cache keyed by `editor/package-lock.json` and a 15-minute limit. Its steps, in order:
+  1. `npm ci` from the lockfile.
+  2. `tsc --noEmit`.
+  3. vitest: unit and contract tests.
+  4. The licence gate for the page's runtime packages (`tool/check_licenses.mjs`).
+  5. The page build (`tool/build.mjs`), which writes `app/assets/editor/editor.html` and its `manifest.json`.
+  6. Page verification (`tool/verify_bundle.mjs`):
+     - exactly one inline script, whose hash the CSP pins and the manifest records;
+     - no external references in the markup, and a default-deny CSP;
+     - the manifest's SHA-256 matches the file, and the gzipped size is within budget;
+     - booted in happy-dom, the page announces `editor.ready`, answers protocol requests, batches an edit into one `doc.changed`, rejects a bad payload, and logs no errors.
+
+  Each step records its output in `editor-results/` and may fail on its own, so one run reports every problem. "Enforce editor gates" then fails the job if any step failed.
+- **Artifacts and the Flutter job:** the editor job uploads `editor-page` (the built page) and `editor-results`.
+  - The Flutter job `needs: editor` and downloads the page into `app/assets/editor/` before it resolves dependencies, so every test run and APK uses the page built from the same commit. The page itself is gitignored.
+  - In bootstrap mode the editor results are committed to `app/ci-results/editor/`.
+- **The phase gate's groups** (`tool/ci/emulator_gate.sh`), in this order:
+  1. `smoke`.
+  2. `editor`: the bridge, on the real page.
+  3. `editing` (G5).
+  4. `keys` (G6), with the key injector.
+  5. `editor_bench_codemirror` and `editor_bench_monaco` (G1), with the DevTools driver.
+  6. `large_files_itest` (G7): an 18-minute limit and 2 attempts.
+  7. The restore pair: `restore_a` → `am force-stop` → `restore_b`.
+  8. The edit pair: `edit_a` → renderer crash → `am force-stop` → `edit_b`.
+
+  The release x86_64 APK serves the cold start and the large-file group's release-memory step. The benchmark pages and the profile arm64 APK for phone runs are built after it (§2.1). The final Phase 2 gate, 42676631509, took 29 minutes, and the final CI run, 42678576228, 7 minutes.
 
 ## 3. Toolchain pins in CI
 

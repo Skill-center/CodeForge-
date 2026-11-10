@@ -4,7 +4,7 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
-### Added — Phase 2, in progress (plan: [phases/PHASE_2_PLAN.md](phases/PHASE_2_PLAN.md))
+### Added — Phase 2 (2026-11-10) · evidence: [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md) (plan: [phases/PHASE_2_PLAN.md](phases/PHASE_2_PLAN.md))
 - **W1 editor page** (`editor/`): a CodeMirror 6 page in TypeScript speaking protocol v1, validated in both directions, with batched incremental change sets and highlighting for JavaScript/JSX, TypeScript/TSX, Python, JSON, HTML, CSS and Markdown. It builds to one self-contained, reproducible HTML file with a hash-pinned CSP, and comes with a runtime licence gate, a bundle verifier and a CI `editor` job.
 - **W2 host and bridge:** the editor runs in the app, in the Android System WebView (`webview_flutter` 4.14.1) behind an `EditorSurface` interface. The page is checked against its manifest SHA-256 before it loads, and the WebView is locked down: no navigation, no file or content access, no dialogs, remote debugging only in debug builds.
 - **Protocol and host:** a Dart mirror of protocol v1 is proven against the shared fixtures. The host correlates requests and responses with timeouts and rate-limits the page. It keeps a shadow copy of every open document, applies only exactly fitting changes (anything else triggers a snapshot resync), and reopens every document from the shadows whenever the page restarts.
@@ -36,6 +36,8 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - Tests: the protocol contract runs on both sides, so a message type that the app and the page do not both know fails CI. Every dialog is checked beside the keyboard at each gate size, at normal and 1.3× text, and the accessibility sweep covers the find bar, the dialogs and the file menu. Goldens show find and replace, the large-file banner, and go to line beside the keyboard.
 - W7 verified by CI 42616081306 and phase gate 42616081317 for the measurements, CI 42659207677 (`+552: All tests passed!`) and phase gate 42659207710 for the policy (gate G7), and CI 42678576228 (`+563: All tests passed!`) and phase gate 42676631509 for the quality suite (gate G8).
 
+- **W8 phase exit:** [PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md) records every gate with its run ids, the ADR-0004 tables, the large-file numbers, the artifacts, the parked owner checks and the full gate history. The review found two gaps, both listed in the report: Android Auto Backup (see Changed), and tab state that TalkBack doesn't hear. Phase 2 is built and CI-verified, and awaits the owner's acceptance. The final tree is CI 42678576228 (`+563: All tests passed!`, editor job 187/187) and phase gate 42676631509 (all 11 groups on attempt 1).
+
 ### Fixed — Phase 2
 - **Text fields with a label were 47 dp tall**, under the 48 dp touch target: the theme made them dense. They are no longer dense, so Material keeps every text field at least 48 dp tall. Found by the W7 accessibility sweep (CI 42665305010).
 - **Editor commands in the moment after the editor page starts could fail** with "no document is active". The host reports ready when the page announces itself and reopens the documents just after that. A toolbar key, shortcut, save or snapshot sent in between reached a page with no document. Such commands now wait for the reopen. Found by the W5 zero-loss gate (phase gate 42379885027, `edit_a`).
@@ -43,6 +45,14 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - **Selected text on the cursor's line was invisible**, in the editor and in the benchmark page: the copy menu and handles appeared, but no highlight. The active line's opaque background covered CodeMirror's selection layer. A line is now highlighted only around a plain cursor, as in VS Code (`editor/src/editor/active_line.ts`). The owner found this in the W3 phone run. Verified in CI 42216855073 and phase gate 42216855184.
 
 ### Changed — Phase 2
+- **SECURITY.md §4 corrected: Android Auto Backup is on.** The manifest leaves Android's default in place. So when the user has device backup turned on, Android copies the workspace, any unsaved text and the settings to the user's own Google Drive, end-to-end encrypted on Android 9+ with a screen lock. The section had said there was no cloud sync by default. Opting out is an owner decision (PHASE_2_REPORT §1).
+- Docs synced at the Phase 2 exit:
+  - EDITOR_ARCHITECTURE: its status, and `search.state` in §2's protocol list;
+  - ADR-0004: its status;
+  - SECURITY §3: the shipped page's hashes, and renderer crashes recovered by the journal;
+  - TESTING: totals, CI and the manual checks;
+  - BUILD_AND_RELEASE §2.2: the editor job and the gate's groups;
+  - ARCHITECTURE §2.7, TECH_STACK, PERFORMANCE §4, ROADMAP and README.
 - **Files over 10 MB are refused** (was 16 MB), before they are read: 10 MiB is the largest size the phase gate measured end to end. The message gives the file's size and the limit.
 - **Open tabs moved from the shell envelope to the app database**, imported once on the first W5 start; each tab now also gets back its cursor and scroll (ARCHITECTURE.md §2.6 has the migration note).
 - **ADR-0008 amended:** buffer journals live in SQLite, not files, because a snapshot must replace the changes it covers in one transaction.
