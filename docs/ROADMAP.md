@@ -1,6 +1,6 @@
 # CodeForge Roadmap
 
-**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · **Phase 2 built and CI-verified, awaiting owner acceptance**. Exit report: [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md) (plan: [phases/PHASE_2_PLAN.md](phases/PHASE_2_PLAN.md))
+**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · Phase 2 accepted 2026-11-10 ([report](phases/PHASE_2_REPORT.md)) · **Phase 3 planned**: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md)
 **Rule:** no phase starts while the previous has unresolved critical issues; every phase exits with a report citing CI run ids (spec §8/§12).
 
 ---
@@ -26,8 +26,8 @@ P6 and P7 can run in parallel after P5/P4 respectively; P8 after P2+P5. P1–P3 
 |---|---|---|---|
 | **0 — Audit & feasibility** ✅ | Understand t1; validate architecture | This doc set: audit + 11 ADRs + Phase 1 plan | Corrections: sealed≠Seald, 136 MB≠50 MB; Node 26 verified |
 | **1 — Foundation & design system** ✅ accepted 2026-11-06 (phone checks parked) | Premium navigable shell, CI alive | Home/workbench/settings + placeholders, adaptive 3 breakpoints, dark/light, goldens green, ci.yml green | Design tokens frozen (UI_DESIGN_SYSTEM v1.1, contrast-gated); G6 nav-frame profiling carried to Phase 2; ADR-0004 prep carried to Phase 2 |
-| **2 — Workbench & editor** 🟢 built 2026-11-10, awaiting owner acceptance (phone checks parked; [report](phases/PHASE_2_REPORT.md)) | Real editing of local files | CM6 gate passed; multi-tab, save/restore, IME suite, kill-mid-edit zero loss, 1 MB perf | **ADR-0004 decided with numbers** (CodeMirror 6, 2026-11-06); large-file policy: plain text above 512 KiB, files over 10 MiB refused |
-| **3 — Workspace & files** | Project-based IDE | SAF open-folder, explorer CRUD, file watch, state survives restart, recents | Storage scoping security review |
+| **2 — Workbench & editor** ✅ accepted 2026-11-10 (phone checks parked; [report](phases/PHASE_2_REPORT.md)) | Real editing of local files | CM6 gate passed; multi-tab, save/restore, IME suite, kill-mid-edit zero loss, 1 MB perf | **ADR-0004 decided with numbers** (CodeMirror 6, 2026-11-06); large-file policy: plain text above 512 KiB, files over 10 MiB refused |
+| **3 — Workspace & files** 🟡 planned ([plan](phases/PHASE_3_PLAN.md)) | Project-based IDE | SAF open-folder, explorer CRUD, file watch, state survives restart, recents | Storage scoping security review |
 | **4 — Runtime integration** | Sealed userland alive | ExecModel+SealedShell gates green incl. **arm64 device**; versions via UI; ExecAudit=0; warm start ≤100 ms | **ADR-0006 terminal frontend**, **ADR-0007 minSdk**, **ADR-0011 license** resolved |
 | **5 — Terminal & execution** | Write→run→output loop | Multi-session, Run File/Project (JS/Py/sh), flood-safe, kill-clean, E2E scenario part 1 | Native-addon limitation UX shipped |
 | **6 — Language intelligence** | ≥1 full LSP | Pyright or TS LSP under sealed Node: completion/diagnostics/goto/rename; restart-on-crash; p95 ≤300 ms | LSP server compatibility spike first |
@@ -63,7 +63,7 @@ On 2026-11-06 the owner parked every check that needs their phone. Where an emul
 
 | Decision | Needed by | ADR |
 |---|---|---|
-| Android Auto Backup: opt out until Phase 10 designs backup, or keep it and tell the user (found in Phase 2 W8) | Phase 3 start | SECURITY §4 |
+| ~~Android Auto Backup: opt out until Phase 10 designs backup, or keep it and tell the user (found in Phase 2 W8)~~ **decided 2026-11-10:** an offer to the user, off by default (Phase 3 W1) | Phase 3 start | SECURITY §4 |
 | License direction (GPLv3 vs permissive-with-xterm) | Phase 4 start (affects terminal frontend) | 0011 |
 | minSdk 26 verification appetite vs raise to 29 | Phase 4 exit | 0007 |
 | arm64 device access for gates (self-hosted runner or manual) | Phase 4 exit | 0009 |

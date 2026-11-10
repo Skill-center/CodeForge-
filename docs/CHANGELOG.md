@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Decisions by the owner at Phase 2's acceptance (2026-11-10)
+- Phase 2 accepted, with the phone checks parked ([phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md)).
+- Android backup becomes an offer to the user, off by default. Phase 3 W1 builds the switch.
+- The on-disk log sink is built in Phase 3.
+- The parked large-file checks become phone-only: a Developer action that writes the gate's files, and a plain-text pass in the benchmark, in Phase 3 W1.
+- Phase 3 planned: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md).
+
 ### Added — Phase 2 (2026-11-10) · evidence: [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md) (plan: [phases/PHASE_2_PLAN.md](phases/PHASE_2_PLAN.md))
 - **W1 editor page** (`editor/`): a CodeMirror 6 page in TypeScript speaking protocol v1, validated in both directions, with batched incremental change sets and highlighting for JavaScript/JSX, TypeScript/TSX, Python, JSON, HTML, CSS and Markdown. It builds to one self-contained, reproducible HTML file with a hash-pinned CSP, and comes with a runtime licence gate, a bundle verifier and a CI `editor` job.
 - **W2 host and bridge:** the editor runs in the app, in the Android System WebView (`webview_flutter` 4.14.1) behind an `EditorSurface` interface. The page is checked against its manifest SHA-256 before it loads, and the WebView is locked down: no navigation, no file or content access, no dialogs, remote debugging only in debug builds.

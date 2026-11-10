@@ -1,6 +1,6 @@
 # Phase 2 Implementation Plan — Workbench & Editor Engine
 
-**Status:** **Built and CI-verified, awaiting owner acceptance** (2026-11-10; started 2026-11-06). Exit report: [PHASE_2_REPORT.md](PHASE_2_REPORT.md) · Prerequisite: Phase 1 accepted on 2026-11-06 ([report](PHASE_1_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **Executed; accepted by the owner on 2026-11-10** (started 2026-11-06). Results, evidence and deviations: [PHASE_2_REPORT.md](PHASE_2_REPORT.md) · Next: [PHASE_3_PLAN.md](PHASE_3_PLAN.md) · Prerequisite: Phase 1 accepted on 2026-11-06 ([report](PHASE_1_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 2, §4.4, §6.1, §6.3 · **Architecture:** [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [ADR-0004](../adr/0004-editor-engine.md) (engine), [ADR-0008](../adr/0008-persistence.md) (persistence) · **Security:** [SECURITY.md](../SECURITY.md) §3 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -342,7 +342,7 @@ PHASE_2_REPORT.md with run ids, ADR-0004 accepted with numbers, and the document
 - **Not built:** the on-disk log sink carried in from Phase 1 (§0). It is proposed for Phase 3.
 - **Evidence:** documentation only. The final tree is CI 42678576228 and phase gate 42676631509 (W7, Step 3).
 - **Gate status:**
-  - **G9 Docs:** met, subject to the owner's review of the report.
+  - **G9 Docs:** met; the owner accepted the report on 2026-11-10.
 
 ## 4. Deliverables
 

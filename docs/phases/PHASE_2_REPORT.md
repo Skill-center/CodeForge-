@@ -1,6 +1,6 @@
 # Phase 2 Report — Workbench & Editor Engine
 
-**Status:** **Built and CI-verified, awaiting owner acceptance** · **Date:** 2026-11-10 · **Branch:** `arena/f57c33ee-codeforge`
+**Status:** **Accepted by the owner on 2026-11-10**, with the phone checks parked (§8) · **Date:** 2026-11-10 · **Branch:** `arena/f57c33ee-codeforge`
 **Plan:** [PHASE_2_PLAN.md](PHASE_2_PLAN.md) · **Spec:** §8 Phase 2, §4.4, §6.1, §6.3 · **Rule:** every claim below cites a CI run or an evidence commit. Where something was not measured or not built, this report says so.
 
 ---
@@ -44,13 +44,11 @@ No one else can read that copy, but the app never tells the user about it. SECUR
   - ADR-0008 keeps `synchronous = NORMAL`;
   - ADR-0004's large-file and memory carry-overs are answered on the emulator, and their phone runs stay parked.
 
-**Decisions requested now:**
-1. **Accept Phase 2.** Under the plan's definition of done, the parked phone checks (§8) don't block acceptance.
-2. **Auto Backup:**
-   - **Recommended:** opt out (`android:allowBackup="false"`, or extraction rules that exclude the workspace and the database) until Phase 10 designs explicit backup and export. It would ship in Phase 3's first package.
-   - **Or:** keep backups on and tell the user in the app.
-3. **Carry the on-disk log sink to Phase 3.** Phase 2 did not build it (§3).
-4. **A way to run the parked large-file checks on the phone** (§8): a Developer action that writes the gate's large files into the workspace, and a plain-text pass in the benchmark. Proposed for Phase 3's first package.
+**Owner decisions at acceptance (2026-11-10).** The report asked four questions; the owner answered:
+1. **Phase 2 is accepted** ("accept"), with the phone checks (§8) parked, as the plan's definition of done allows.
+2. **Android backup becomes an offer to the user, off by default** ("keep it as a offer to user, by default it's false"). The report had recommended opting out, or keeping backups on and telling the user. Phase 3 W1 builds a switch, off by default ([PHASE_3_PLAN.md](PHASE_3_PLAN.md)).
+3. **The on-disk log sink is built in Phase 3** (§3).
+4. **The parked large-file checks become phone-only** (§8): a Developer action that writes the gate's large files, and a plain-text pass in the benchmark, in Phase 3's first package.
 
 ## 2. Evidence index
 
@@ -281,7 +279,7 @@ None of these blocks acceptance (plan §5, definition of done). They are tracked
 | Item | Impact | Where it goes |
 |---|---|---|
 | Files live only in the app's workspace folder: no folders elsewhere on the device, no file watching | Outside changes are caught at save time, and the user is asked | Phase 3 (SAF, file watching with `doc.replace`) |
-| Android Auto Backup is on by default (§1) | app files, unsaved text and settings can reach the user's Google Drive | **owner decision**; the fix ships in Phase 3's first package |
+| Android Auto Backup is on by default (§1) | app files, unsaved text and settings can reach the user's Google Drive | owner decision 2026-11-10: an offer to the user, off by default; Phase 3 W1 |
 | The tab strip shows the active tab and unsaved changes only visually (found in the W8 review) | TalkBack reads each tab's file name and "Close <file name>", but not which tab is active or has unsaved changes. The close prompt still asks before unsaved text is closed | Phase 3's first package: tab semantics, with a widget test |
 | On-disk log sink not built | logs are memory only (500 records, copyable from About) | Phase 3 |
 | Large-file checks on arm64 (typing, scroll, memory), FULL on flash, and the save pause | ADR-0004 and ADR-0008 answered on the emulator only | parked (§8); the proposed Developer action makes them phone jobs |
@@ -344,10 +342,10 @@ None of these blocks acceptance (plan §5, definition of done). They are tracked
 - **CI with two jobs**, about 7 minutes. The emulator gate has 11 groups and takes about 29 minutes.
 
 **Phase 3 entry items:**
-- owner acceptance of Phase 2;
-- the Auto Backup decision;
-- the on-disk log sink;
+- owner acceptance of Phase 2 (done 2026-11-10);
+- the Auto Backup decision (decided: an offer to the user, off by default);
+- the on-disk log sink (Phase 3, by the owner's decision);
 - tab semantics for TalkBack (§9.2);
-- the Developer action for large test files and the benchmark's plain-text pass, if you want them;
-- the Phase 3 plan, with ROADMAP's storage-scoping security review;
+- the Developer action for large test files and the benchmark's plain-text pass (wanted: Phase 3's first package);
+- the Phase 3 plan, with ROADMAP's storage-scoping security review ([PHASE_3_PLAN.md](PHASE_3_PLAN.md));
 - keeping permission bits on save before user folders arrive.
