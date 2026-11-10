@@ -97,7 +97,10 @@ void main() {
     final tile = find.byKey(const ValueKey('settings_large_files'));
     await tester.ensureVisible(tile);
     await tester.pumpAndSettle();
-    expect(find.textContaining("The large-file gate's 7 files"), findsOneWidget);
+    expect(
+      find.textContaining("The large-file gate's 7 files"),
+      findsOneWidget,
+    );
 
     await tester.tap(tile);
     await tester.pumpAndSettle();

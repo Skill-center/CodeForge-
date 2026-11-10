@@ -133,72 +133,72 @@ class _CfTabStripState extends State<CfTabStrip> {
         container: true,
         selected: active,
         child: InkWell(
-        onTap: () => widget.onActivate(tab.id),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
-          padding: const EdgeInsets.only(left: CfSpacing.md),
-          // Painted over the tab instead of insetting it, so the tab
-          // and its close button stay a full 48 dp tall.
-          foregroundDecoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: active ? colors.accentEmber : Colors.transparent,
-                width: 2,
-              ),
-              right: BorderSide(color: colors.borderSubtle),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (tab.icon != null) ...[
-                Icon(tab.icon, size: 14, color: colors.textSecondary),
-                const SizedBox(width: CfSpacing.xs + 2),
-              ],
-              Flexible(
-                child: Text(
-                  tab.label,
-                  semanticsLabel: tab.dirty
-                      ? '${tab.label}, unsaved changes'
-                      : null,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: active ? colors.textPrimary : colors.textSecondary,
-                  ),
+          onTap: () => widget.onActivate(tab.id),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
+            padding: const EdgeInsets.only(left: CfSpacing.md),
+            // Painted over the tab instead of insetting it, so the tab
+            // and its close button stay a full 48 dp tall.
+            foregroundDecoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: active ? colors.accentEmber : Colors.transparent,
+                  width: 2,
                 ),
+                right: BorderSide(color: colors.borderSubtle),
               ),
-              Semantics(
-                button: true,
-                label: 'Close ${tab.label}',
-                child: InkWell(
-                  key: ValueKey('tab_close_${tab.id}'),
-                  onTap: () => widget.onClose(tab.id),
-                  child: SizedBox(
-                    width: CfSpacing.minTouchTarget,
-                    height: CfSpacing.tabStripHeight,
-                    child: Center(
-                      child: tab.dirty
-                          ? Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: colors.accentEmber,
-                                shape: BoxShape.circle,
-                              ),
-                            )
-                          : Icon(
-                              Icons.close,
-                              size: 14,
-                              color: colors.textSecondary,
-                            ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (tab.icon != null) ...[
+                  Icon(tab.icon, size: 14, color: colors.textSecondary),
+                  const SizedBox(width: CfSpacing.xs + 2),
+                ],
+                Flexible(
+                  child: Text(
+                    tab.label,
+                    semanticsLabel: tab.dirty
+                        ? '${tab.label}, unsaved changes'
+                        : null,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: active ? colors.textPrimary : colors.textSecondary,
                     ),
                   ),
                 ),
-              ),
-            ],
+                Semantics(
+                  button: true,
+                  label: 'Close ${tab.label}',
+                  child: InkWell(
+                    key: ValueKey('tab_close_${tab.id}'),
+                    onTap: () => widget.onClose(tab.id),
+                    child: SizedBox(
+                      width: CfSpacing.minTouchTarget,
+                      height: CfSpacing.tabStripHeight,
+                      child: Center(
+                        child: tab.dirty
+                            ? Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: colors.accentEmber,
+                                  shape: BoxShape.circle,
+                                ),
+                              )
+                            : Icon(
+                                Icons.close,
+                                size: 14,
+                                color: colors.textSecondary,
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

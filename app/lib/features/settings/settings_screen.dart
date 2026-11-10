@@ -40,7 +40,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(switch (result) {
-          Ok<int>(:final value) => 'Wrote ${_files(value)} to $largeTestFolder/',
+          Ok<int>(:final value) =>
+            'Wrote ${_files(value)} to $largeTestFolder/',
           Err<int>(:final failure) => failure.message,
         }),
       ),

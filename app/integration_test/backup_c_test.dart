@@ -60,7 +60,9 @@ void main() {
 
     final container = appContainer(tester);
     final docId = await waitForMainJs(tester);
-    final doc = container.read(documentControllerProvider).documents['main.js']!;
+    final doc = container
+        .read(documentControllerProvider)
+        .documents['main.js']!;
     expect(doc.dirty, isFalse, reason: 'an unsaved edit came back');
     expect(
       container.read(editorHostProvider).textOf(docId),

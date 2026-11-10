@@ -56,7 +56,9 @@ void main() {
     expect(find.byKey(const ValueKey('welcome_dismiss')), findsNothing);
     final container = appContainer(tester);
     final docId = await waitForMainJs(tester);
-    final doc = container.read(documentControllerProvider).documents['main.js']!;
+    final doc = container
+        .read(documentControllerProvider)
+        .documents['main.js']!;
     expect(doc.dirty, isTrue, reason: 'the unsaved edit stays unsaved');
     expect(doc.savedText, DemoWorkspace.files['main.js']);
     expect(container.read(editorHostProvider).textOf(docId), backupGateText);

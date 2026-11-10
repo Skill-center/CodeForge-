@@ -245,23 +245,19 @@ void main() {
       skip: Platform.isWindows ? 'no permission bits on Windows' : false,
     );
 
-    test(
-      'setFileMode sets exactly the bits asked for',
-      () {
-        final path = _file('main.js').path;
-        Directory(_root).createSync(recursive: true);
-        File(path).writeAsStringSync('x');
-        for (final mode in [0x1A0, 0x1ED, 0x124, 0x180]) {
-          expect(setFileMode(path, mode), isTrue, reason: mode.toRadixString(8));
-          expect(File(path).statSync().mode & fileModeBits, mode);
-        }
-        // The kind of file above the permission bits is never passed on.
-        expect(setFileMode(path, 0x81A4), isTrue);
-        expect(File(path).statSync().mode & fileModeBits, 0x1A4);
-        expect(setFileMode('$_root/missing/file', 0x1A4), isFalse);
-      },
-      skip: Platform.isWindows ? 'no permission bits on Windows' : false,
-    );
+    test('setFileMode sets exactly the bits asked for', () {
+      final path = _file('main.js').path;
+      Directory(_root).createSync(recursive: true);
+      File(path).writeAsStringSync('x');
+      for (final mode in [0x1A0, 0x1ED, 0x124, 0x180]) {
+        expect(setFileMode(path, mode), isTrue, reason: mode.toRadixString(8));
+        expect(File(path).statSync().mode & fileModeBits, mode);
+      }
+      // The kind of file above the permission bits is never passed on.
+      expect(setFileMode(path, 0x81A4), isTrue);
+      expect(File(path).statSync().mode & fileModeBits, 0x1A4);
+      expect(setFileMode('$_root/missing/file', 0x1A4), isFalse);
+    }, skip: Platform.isWindows ? 'no permission bits on Windows' : false);
 
     test('new files are exclusive, even in new folders', () async {
       final files = await _opened();

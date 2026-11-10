@@ -66,7 +66,7 @@ void main() {
     // One node per tab: its name, whether it is the active one, a tap.
     expect(
       tester.getSemantics(tabText('app.py')),
-      containsSemantics(
+      isSemantics(
         label: 'app.py',
         hasSelectedState: true,
         isSelected: true,
@@ -75,7 +75,7 @@ void main() {
     );
     expect(
       tester.getSemantics(tabText('main.js')),
-      containsSemantics(
+      isSemantics(
         label: 'main.js',
         hasSelectedState: true,
         isSelected: false,
@@ -88,16 +88,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.getSemantics(tabText('app.py')),
-      containsSemantics(label: 'app.py, unsaved changes', isSelected: true),
+      isSemantics(label: 'app.py, unsaved changes', isSelected: true),
     );
     expect(
       tester.getSemantics(tabText('main.js')),
-      containsSemantics(label: 'main.js', isSelected: false),
+      isSemantics(label: 'main.js', isSelected: false),
     );
     // The close button stays a node of its own.
     expect(
       tester.getSemantics(find.byKey(const ValueKey('tab_close_app.py'))),
-      containsSemantics(label: 'Close app.py', isButton: true),
+      isSemantics(label: 'Close app.py', isButton: true),
     );
     semantics.dispose();
   });

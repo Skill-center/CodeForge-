@@ -91,7 +91,8 @@ class AboutScreen extends ConsumerWidget {
             CfSettingsTile(
               leading: const Icon(Icons.receipt_long_outlined),
               title: 'Recent logs',
-              subtitle: 'Kept on this device, never backed up; secrets redacted',
+              subtitle:
+                  'Kept on this device, never backed up; secrets redacted',
               trailing: const Icon(Icons.chevron_right, size: 18),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(

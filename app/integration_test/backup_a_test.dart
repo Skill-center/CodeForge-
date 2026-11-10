@@ -73,14 +73,10 @@ Future<void> setBackupFromHome(WidgetTester tester, {required bool on}) async {
   await tester.ensureVisible(toggle);
   await tester.pumpAndSettle();
   await tester.tap(toggle);
-  await pumpUntil(
-    tester,
-    () {
-      final state = container.read(backupControllerProvider);
-      return !state.busy && state.enabled == on;
-    },
-    what: 'the host to save the backup switch',
-  );
+  await pumpUntil(tester, () {
+    final state = container.read(backupControllerProvider);
+    return !state.busy && state.enabled == on;
+  }, what: 'the host to save the backup switch');
   expect((await hostBackupStatus()).enabled, on);
 }
 
