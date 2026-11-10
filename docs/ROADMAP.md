@@ -1,6 +1,6 @@
 # CodeForge Roadmap
 
-**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · Phase 2 accepted 2026-11-10 ([report](phases/PHASE_2_REPORT.md)) · **Phase 3 planned**: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md)
+**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · Phase 2 accepted 2026-11-10 ([report](phases/PHASE_2_REPORT.md)) · **Phase 3 in progress** (W1 done): [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md)
 **Rule:** no phase starts while the previous has unresolved critical issues; every phase exits with a report citing CI run ids (spec §8/§12).
 
 ---
@@ -58,7 +58,7 @@ On 2026-11-06 the owner parked every check that needs their phone. Where an emul
 | Large files on arm64 with the policy: 1 MiB typing and scrolling (ADR-0004) | Phase 2 W7 | **a phone only, since Phase 3 W1:** Settings → Developer → *Create large test files* writes the gate's files into the workspace, and the engine benchmark's plain-text pass measures the 1 MiB file as plain text (phone profile APK; [checklist](phases/PHASE_2_PHONE_CHECKLIST.md)) | the gate's large-file group |
 | Memory on hardware (ADR-0004) | Phase 2 W7 | a phone and a computer with adb (`dumpsys meminfo`) | the gate's release-build measurement (224.6 MB) |
 | FULL against NORMAL on flash, and the save pause (ADR-0008) | Phase 2 W7 | the save pause: **a phone only, since Phase 3 W1** (the Developer action's files); FULL against NORMAL: a phone and adb, to time the store | the gate's session-store timings |
-| Backup with a real Google account | Phase 3 W1 (ADR-0012) | a phone with a Google account and device backup on, the CI debug APK ([checklist](phases/PHASE_2_PHONE_CHECKLIST.md)) | the gate's `backup` group (Android's local transport) |
+| Backup with a real Google account | Phase 3 W1 (ADR-0012) | a phone with a Google account and device backup on, the W1 phone APK ([checklist](phases/PHASE_2_PHONE_CHECKLIST.md) §8.2) | the gate's `backup` group (Android's local transport) |
 
 ## Owner decision queue (non-blocking for P1–P3)
 

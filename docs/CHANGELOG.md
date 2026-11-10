@@ -29,6 +29,7 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - **Saves keep the file's permission bits:** an executable script stays executable.
 - **CI:** the Android host's Kotlin unit tests run on every push.
 - **Phase gate:** a `backup` group checks, with Android's local transport, that by default a backup holds nothing; that with the switch on a reinstall restores the project and its unsaved text but not the logs; and that with it off a reinstall gives a fresh app. The restore pair also checks that the log file survives a process kill.
+- W1 verified by CI 42862715832 (`+607: All tests passed!`, Kotlin 7 of 7) and phase gate 42862715744. On its second attempt every group passed on its first try. The first attempt failed only the W6 keyboard test, once: a tap that did not focus the editor, cause unknown. In both attempts the default backup was declined, the on and off backups succeeded, and the reinstalls brought back exactly what ADR-0012 says (gate G6).
 
 ### Added — Phase 2 (2026-11-10) · evidence: [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md) (plan: [phases/PHASE_2_PLAN.md](phases/PHASE_2_PLAN.md))
 - **W1 editor page** (`editor/`): a CodeMirror 6 page in TypeScript speaking protocol v1, validated in both directions, with batched incremental change sets and highlighting for JavaScript/JSX, TypeScript/TSX, Python, JSON, HTML, CSS and Markdown. It builds to one self-contained, reproducible HTML file with a hash-pinned CSP, and comes with a runtime licence gate, a bundle verifier and a CI `editor` job.

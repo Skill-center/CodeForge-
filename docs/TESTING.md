@@ -120,6 +120,9 @@ External keyboard tests: hardware keymap suite on tablet + phone (OTG/BT). IME m
   - `ci.yml` runs the Flutter and editor jobs on every push, in about 7 minutes.
   - The emulator suite runs in `phase-gate.yml` on every `[phase-gate]` commit (11 groups, about 29 minutes), not nightly.
   - The arm64 runs are the owner's phone runs, and they are parked (PHASE_2_REPORT §8).
+- **Since Phase 3 W1:**
+  - `ci.yml` also runs the Android host's Kotlin unit tests.
+  - The gate adds the backup group: three integration tests and three backups. A full run took 33 minutes (phase gate 42862715744).
 - Evidence: test reports + perf numbers uploaded as workflow artifacts; phase exit reports cite run ids (t1 discipline). **A claim of "green" without a run id is a process violation.**
 
 ## 6. Manual test charters (per phase)

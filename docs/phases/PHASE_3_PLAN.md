@@ -1,6 +1,6 @@
 # Phase 3 Implementation Plan — Workspace & Files
 
-**Status:** **In progress** (2026-11-10): W1 built, see *As built (W1)*; the owner's "next" starts W2 · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **In progress** (2026-11-10): W1 done (CI 42862715832, phase gate 42862715744), see *As built (W1)*; the owner's "next" starts W2 · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 3 (Workspace & File Management), §7 (security claims), §12.19 (stored data survives upgrades) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §2.5, §3 and §4, [ADR-0001](../adr/0001-flutter-kotlin-hybrid.md) (SAF belongs to the Kotlin host), [ADR-0008](../adr/0008-persistence.md) (Drift), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) §4 (storage model) · **Security:** [SECURITY.md](../SECURITY.md) §1 and §4 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -128,7 +128,33 @@
     - `backup_b` finds the file, the unsaved edit, the settings and the switch, and a log file holding only its own session. It then turns the switch off. After a second backup and reinstall:
     - `backup_c` finds a fresh app, with the switch off as the only thing restored.
   - The group wipes the transport and restores the device's backup settings afterwards. It is record-only on an image without a local transport.
-- **Evidence:** CI and phase-gate run ids are added after the runs.
+- **Evidence** (commit a558bd3):
+  - **CI 42862715832:**
+    - `01:30 +607: All tests passed!` (563 at Phase 2's exit), and the analyzer found no issues.
+    - Kotlin: `kotlin_tests=7 failures=0 errors=0`. Goldens: `+22: All tests passed!`. The bootstrap regenerated `settings_412x915_dark.png` for the Privacy section.
+    - Coverage of hand-written code: 5052/5721 lines (88.3 %, 88.0 % at Phase 2's exit).
+    - vitest: 188 tests in 15 files.
+  - **Phase gate 42862715744, attempt 2:** every group passed on its first try (`gate_result=pass`). Cold start was 837 ms. The job took 33 minutes of its 75.
+  - **Backup group (`backup.txt`), the same in both attempts:**
+    - The default backup: `Transport rejected`. The agent recorded `lastRunContent nothing`, so Android kept nothing.
+    - Switch on: `Success`, writing `everything`.
+    - `backup_b` after the reinstall: "restored backup-gate.md, 255 unsaved chars in main.js, the settings and the switch; log sessions 1".
+    - Switch off: `Success`, writing `switch`.
+    - `backup_c` after the reinstall: "fresh app, switch off, last pass switch; no backup-gate.md, main.js clean".
+    - `backup_after_restore.txt` lists the restored files. The log folder held only `backup_b`'s own 76-byte session.
+  - **Restore pair:** "log file 872 chars, part A record at 613, this session from 655". Part A's error was on disk after the kill.
+  - **Plain-text pass** (`editor_bench.txt`, record-only; software rendering bounds the frame numbers):
+    - CodeMirror 6 opened the 1 MiB file as plain text in 87.8 ms, with typing p95 85.8 ms.
+    - Monaco: 164.4 ms and 80 ms.
+  - **Attempt 1:**
+    - Everything passed except `keys` (Phase 2 W6), at its first step: the injected tap (`tap 540 1256`, exit 0, the same point as in W7's runs) never focused the editor within 30 s. The gate retries a test only for infrastructure errors, so attempt 1 failed.
+    - The same commit passed `keys` on attempt 2, and `keys` had passed in the seven gate runs before this one.
+    - W1 changes nothing on that path: the tab strip gained semantics only, and the test's files are new, so no `chmod` runs.
+    - **The cause is unknown.** The injector's `adb root` answered nothing in attempt 1, but it did the same in three earlier runs that passed. If it recurs, the step needs evidence it does not record today: which window had focus when the tap landed.
+- **Found on the emulator: Android's restore stamps files with January 1970.**
+  - The restored files' modification times read 1970-01-21. AOSP's `FullBackup.restoreFile` passes the tar header's seconds to `File.setLastModified`, which takes milliseconds.
+  - A restore also keeps only the owner's permission bits (`mode & 0700`).
+  - Nothing breaks today: the app compares file stamps only for equality and journals by digest. W4's explorer and W5's watch must not show these times or order files by them as if they were real.
 
 ### W2 — Storage broker and folders (2 sessions) 🔑 critical path → G1
 

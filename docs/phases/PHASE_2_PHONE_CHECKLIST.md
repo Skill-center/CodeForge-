@@ -76,7 +76,7 @@ Tap the **copy icon** at the top right ("Copy results"), then paste into the cha
 
 ## 8. Phase 3 additions (parked, non-blocking)
 
-Both need a build from Phase 3 W1 on: the `codeforge-phone-profile-arm64` artifact of a phase gate run listed in PHASE_3_PLAN.md (*As built (W1)*, evidence). Install it as in §1.
+Both need a build from Phase 3 W1 on: the `codeforge-phone-profile-arm64` artifact of phase gate [42862715744](https://github.com/Skill-center/CodeForge-/actions/runs/42862715744) ([artifact 13791121202](https://github.com/Skill-center/CodeForge-/actions/runs/42862715744/artifacts/13791121202), commit a558bd3), kept until 2026-12-10. Install it as in §1.
 
 ### 8.1 Large files with the policy (phone only since Phase 3 W1, about 10 minutes)
 

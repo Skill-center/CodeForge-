@@ -59,8 +59,12 @@ PHASE_3_PLAN W1 said that turning the switch off "makes the next backup empty". 
   - In both cases, that backup stays until Android replaces or expires it. Both need the user to have turned backup on before.
 - **A device-to-device transfer with the switch off** carries nothing, or only the switch.
 - **Phase 10's export (ADR-0008) is separate,** an explicit user action. This ADR covers only Android's backup.
+- **A restore stamps files with January 1970.**
+  - AOSP's `FullBackup.restoreFile` passes the tar header's seconds to `File.setLastModified`, which takes milliseconds. The gate's restored files read 1970-01-21.
+  - It also keeps only the owner's permission bits (`mode & 0700`).
+  - The app compares file stamps only for equality and journals by digest, so nothing breaks. Code that shows modification times or orders files by them must not trust a restored file's.
 - **Evidence:**
   - `BackupPolicyTest` (JVM);
   - the controller and Settings tests (Dart);
-  - the phase gate's `backup` group, which runs `bmgr` against Android's local transport on the emulator (TESTING.md §1.3).
+  - the phase gate's `backup` group, which runs `bmgr` against Android's local transport on the emulator (TESTING.md §1.3). First run: phase gate 42862715744 (PHASE_3_PLAN, *As built (W1)*).
   - A real Google account is a parked phone check.
