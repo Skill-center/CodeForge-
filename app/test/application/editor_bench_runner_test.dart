@@ -84,7 +84,12 @@ void main() {
       expect(monaco['runs'], 2);
       expect(monaco['featuresOk'], isTrue);
       expect(monaco['highlightOk'], isTrue);
-      expect((monaco['medians']! as Map<String, Object?>)['readyMs'], 300);
+      final medians = monaco['medians']! as Map<String, Object?>;
+      expect(medians['readyMs'], 300);
+      // Phase 3 W1: the plain-text pass over the same 1 MiB.
+      expect(medians['plainOpenMs'], 40);
+      expect(medians['plainTypingP95Ms'], 18);
+      expect(medians['plainScrollSlowFramePct'], 0.5);
 
       final report = jsonDecode(runner.reportJson()) as Map<String, Object?>;
       expect(report['kind'], 'codeforge-editor-bench');

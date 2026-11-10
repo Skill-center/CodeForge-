@@ -55,15 +55,16 @@ On 2026-11-06 the owner parked every check that needs their phone. Where an emul
 | ~~Editor engine benchmark on arm64 (ADR-0004)~~ **done 2026-11-06** | Phase 2 G1 | a phone, the in-app benchmark screen (profile APK) | result: CodeMirror 6 chosen (ADR-0004 Accepted); the emulator runs the same benchmark in every phase gate |
 | Gboard IME matrix (swipe, voice, CJK, emoji) | Phase 2 G1 | a phone with Gboard | scripted composition events on the emulator |
 | Selection matrix: handles at line boundaries, copy and paste, undo and redo | Phase 2 W6 (an ADR-0004 carry-over) | a phone, about 10 minutes ([PHASE_2_SELECTION_MATRIX.md](phases/PHASE_2_SELECTION_MATRIX.md)) | none: Android System WebView draws the handles |
-| Large files on arm64 with the policy: 1 MiB typing and scrolling (ADR-0004) | Phase 2 W7 | a phone with a large file in the workspace. That needs a computer in Phase 2; the report proposes a Developer action that writes the gate's files | the gate's large-file group |
+| Large files on arm64 with the policy: 1 MiB typing and scrolling (ADR-0004) | Phase 2 W7 | **a phone only, since Phase 3 W1:** Settings → Developer → *Create large test files* writes the gate's files into the workspace, and the engine benchmark's plain-text pass measures the 1 MiB file as plain text (phone profile APK; [checklist](phases/PHASE_2_PHONE_CHECKLIST.md)) | the gate's large-file group |
 | Memory on hardware (ADR-0004) | Phase 2 W7 | a phone and a computer with adb (`dumpsys meminfo`) | the gate's release-build measurement (224.6 MB) |
-| FULL against NORMAL on flash, and the save pause (ADR-0008) | Phase 2 W7 | a phone with a large file (the same blocker), or adb | the gate's session-store timings |
+| FULL against NORMAL on flash, and the save pause (ADR-0008) | Phase 2 W7 | the save pause: **a phone only, since Phase 3 W1** (the Developer action's files); FULL against NORMAL: a phone and adb, to time the store | the gate's session-store timings |
+| Backup with a real Google account | Phase 3 W1 (ADR-0012) | a phone with a Google account and device backup on, the CI debug APK ([checklist](phases/PHASE_2_PHONE_CHECKLIST.md)) | the gate's `backup` group (Android's local transport) |
 
 ## Owner decision queue (non-blocking for P1–P3)
 
 | Decision | Needed by | ADR |
 |---|---|---|
-| ~~Android Auto Backup: opt out until Phase 10 designs backup, or keep it and tell the user (found in Phase 2 W8)~~ **decided 2026-11-10:** an offer to the user, off by default (Phase 3 W1) | Phase 3 start | SECURITY §4 |
+| ~~Android Auto Backup: opt out until Phase 10 designs backup, or keep it and tell the user (found in Phase 2 W8)~~ **decided 2026-11-10:** an offer to the user, off by default; built in Phase 3 W1 | Phase 3 start | 0012 |
 | License direction (GPLv3 vs permissive-with-xterm) | Phase 4 start (affects terminal frontend) | 0011 |
 | minSdk 26 verification appetite vs raise to 29 | Phase 4 exit | 0007 |
 | arm64 device access for gates (self-hosted runner or manual) | Phase 4 exit | 0009 |

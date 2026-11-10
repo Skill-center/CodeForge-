@@ -17,6 +17,8 @@
 #   editing.txt                    Phase 2 W6 G5: find, replace, go to line
 #   keys.txt / keys_injector.txt   Phase 2 W6 G6: toolbar touches and hardware
 #                                  shortcuts, injected through adb (below)
+#   backup.txt / backup_*.txt      Phase 3 W1 G6: Android backup on → restore,
+#                                  off → a fresh app (local transport)
 #   editor_bench.json|.txt         Phase 2 W3 engine benchmark (CodeMirror 6
 #                                  vs Monaco; information for ADR-0004), from
 #                                  editor_bench_<engine>.txt + the DevTools
@@ -539,6 +541,12 @@ restore_pair() {
   # ... and the app database (tabs since Phase 2 W5).
   "$ADB" shell run-as "$APP_ID" ls -l files/ \
     > "$RESULTS/files_after_a.txt" 2>&1 || true
+  # ... and the log file (Phase 3 W1): part A's last record, an error
+  # logged just before this kill, must already be on disk.
+  "$ADB" shell run-as "$APP_ID" ls -l no_backup/logs \
+    > "$RESULTS/logs_after_a.txt" 2>&1 || true
+  "$ADB" shell run-as "$APP_ID" tail -n 3 no_backup/logs/codeforge.log \
+    >> "$RESULTS/logs_after_a.txt" 2>&1 || true
   "$ADB" shell am force-stop "$APP_ID" | tee "$RESULTS/force_stop.txt"
   sleep 3
   local pid
@@ -653,6 +661,160 @@ for pair in 1 2; do
     | tee -a "$RESULTS/attempts.txt"
 done
 [ "$edit_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Integration — backup (Phase 3 W1, G6: switch on → backup → reinstall restores; switch off → a fresh app)"
+# Android's backup with its local transport standing in for Google Drive
+# (developer.android.com/identity/data/testingbackup). First the default:
+# a backup of the app as installed, switch never touched, must hold nothing
+# (the transport declines the empty backup, so Android keeps none). Then
+# part A turns the switch on, saves a file and leaves an unsaved edit; CI
+# backs the app up and reinstalls it, and Android restores it at install
+# time; part B checks the project, the edit, the settings and the switch
+# are back and the logs are not, then turns the switch off; after a second
+# backup and reinstall part C checks the app is fresh and only the switch
+# came back.
+# `bmgr backupnow` skips a stopped app (a force-stop, as `flutter test`
+# leaves it, marks it stopped), so the plain app is launched first; it
+# runs in the background while Android backs it up, like a real backup.
+# Record-only when the image has no local transport.
+BACKUP_TRANSPORT=""
+BACKUP_PREVIOUS=""
+BACKUP_WAS_ENABLED=""
+backup_setup() {
+  local out="$RESULTS/backup_setup.txt"
+  : > "$out"
+  BACKUP_WAS_ENABLED=$("$ADB" shell bmgr enabled 2>&1 | tr -d '\r')
+  echo "before: $BACKUP_WAS_ENABLED" | tee -a "$out"
+  # The service itself can be off for the user (deactivated), apart from
+  # the enabled flag.
+  if "$ADB" shell bmgr activated 2>&1 | tr -d '\r' | tee -a "$out" \
+      | grep -q deactivated; then
+    "$ADB" shell bmgr activate true 2>&1 | tr -d '\r' | tee -a "$out"
+  fi
+  "$ADB" shell bmgr enable true 2>&1 | tr -d '\r' | tee -a "$out"
+  "$ADB" shell bmgr list transports 2>&1 | tr -d '\r' \
+    > "$RESULTS/backup_transports.txt"
+  cat "$RESULTS/backup_transports.txt" >> "$out"
+  BACKUP_PREVIOUS=$(awk '$1 == "*" {print $2}' "$RESULTS/backup_transports.txt" | head -1)
+  BACKUP_TRANSPORT=$(grep -oE '[^ *]*LocalTransport' "$RESULTS/backup_transports.txt" | head -1)
+  if [ -z "$BACKUP_TRANSPORT" ]; then
+    echo "no local backup transport on this image" | tee -a "$out"
+    return 2
+  fi
+  "$ADB" shell bmgr transport "$BACKUP_TRANSPORT" 2>&1 | tr -d '\r' | tee -a "$out"
+  # Restore at install, and a finished setup (backups wait for it).
+  "$ADB" shell settings put secure backup_auto_restore 1
+  local setup
+  setup=$("$ADB" shell settings get secure user_setup_complete 2>/dev/null | tr -d '\r')
+  echo "user_setup_complete=$setup" | tee -a "$out"
+  if [ "$setup" != "1" ]; then
+    "$ADB" shell settings put secure user_setup_complete 1
+  fi
+  "$ADB" shell bmgr enabled 2>&1 | tr -d '\r' | tee -a "$out"
+  echo "transport=$BACKUP_TRANSPORT previous=${BACKUP_PREVIOUS:-none}" | tee -a "$out"
+}
+# backup_wipe <evidence file>: nothing of the app left in the local
+# transport, and no app. `bmgr wipe` ignores a package that is not
+# installed, so the app is installed first if need be.
+backup_wipe() {
+  local out="$1"
+  if ! "$ADB" shell pm path "$APP_ID" 2>/dev/null | grep -q '^package:'; then
+    "$ADB" install build/gate/app-plain-debug.apk 2>&1 | tail -1 | tee -a "$out"
+  fi
+  "$ADB" shell bmgr wipe "$BACKUP_TRANSPORT" "$APP_ID" 2>&1 | tr -d '\r' \
+    | tee -a "$out"
+  "$ADB" uninstall "$APP_ID" 2>&1 | tr -d '\r' | tee -a "$out"
+}
+# backup_now <label> <expected result>: launch the plain app (clears the
+# stopped state), send it to the background, back it up, keep what the
+# agent recorded, and check bmgr's result for the app.
+backup_now() {
+  local label="$1" expected="$2" out="$RESULTS/backup_now_$1.txt" pid=""
+  : > "$out"
+  if [ ! -f build/gate/app-plain-debug.apk ]; then
+    echo "no plain debug APK: cannot launch the app for a backup" | tee -a "$out"
+    return 1
+  fi
+  "$ADB" install -r build/gate/app-plain-debug.apk 2>&1 | tail -1 | tee -a "$out"
+  "$ADB" shell am start -n "$APP_ID/.MainActivity" 2>&1 | tr -d '\r' | tee -a "$out"
+  for _ in $(seq 1 30); do
+    pid=$("$ADB" shell pidof "$APP_ID" 2>/dev/null | tr -d '\r')
+    [ -n "$pid" ] && break
+    sleep 1
+  done
+  echo "app pid: ${pid:-none}" | tee -a "$out"
+  # Let the restored session settle, then leave the app in the background.
+  sleep 10
+  "$ADB" shell input keyevent KEYCODE_HOME
+  sleep 3
+  "$ADB" shell bmgr backupnow "$APP_ID" 2>&1 | tr -d '\r' | tee -a "$out"
+  "$ADB" shell run-as "$APP_ID" cat shared_prefs/codeforge.backup.xml \
+    > "$RESULTS/backup_switch_$label.txt" 2>&1 || true
+  grep -q "Package $APP_ID with result: $expected" "$out"
+}
+backup_group() {
+  # Clean slate: a re-run must not restore the previous attempt's backup.
+  backup_wipe "$RESULTS/backup_setup.txt"
+  # The default, switch never touched: the agent writes nothing, which the
+  # transport declines, so there is nothing to restore.
+  backup_now default "Transport rejected" || return 1
+  "$ADB" uninstall "$APP_ID" 2>&1 | tr -d '\r' | tee "$RESULTS/backup_uninstall_default.txt"
+  run_itest backup_a integration_test/backup_a_test.dart --no-uninstall \
+    || return 1
+  backup_now on Success || return 1
+  "$ADB" uninstall "$APP_ID" 2>&1 | tr -d '\r' | tee "$RESULTS/backup_uninstall_on.txt"
+  run_itest backup_b integration_test/backup_b_test.dart --no-uninstall \
+    || return 1
+  # Evidence: what the restore put back (no_backup/ holds this run's log only).
+  "$ADB" shell run-as "$APP_ID" ls -lR files shared_prefs no_backup \
+    > "$RESULTS/backup_after_restore.txt" 2>&1 || true
+  backup_now off Success || return 1
+  "$ADB" uninstall "$APP_ID" 2>&1 | tr -d '\r' | tee "$RESULTS/backup_uninstall_off.txt"
+  # Kept installed: the transport is wiped below, which needs the app.
+  run_itest backup_c integration_test/backup_c_test.dart --no-uninstall \
+    || return 1
+}
+backup_ok=0
+backup_setup
+backup_rc=$?
+if [ "$backup_rc" -eq 2 ]; then
+  echo "backup group skipped: no local transport (record-only)" \
+    | tee "$RESULTS/backup.txt"
+  backup_ok=1
+else
+  for pair in 1 2; do
+    INFRA_SEEN=0
+    if backup_group; then
+      backup_ok=1
+      break
+    fi
+    [ "$INFRA_SEEN" = "1" ] || break
+    echo "backup group attempt $pair hit infrastructure failures — re-running the whole group" \
+      | tee -a "$RESULTS/attempts.txt"
+  done
+  {
+    echo "backup_group=$([ "$backup_ok" = "1" ] && echo pass || echo fail)"
+    echo "transport=$BACKUP_TRANSPORT"
+    grep -h "with result" "$RESULTS"/backup_now_*.txt 2>/dev/null
+  } | tee "$RESULTS/backup.txt"
+  # The annotations have no slot left: attempts.txt carries the verdict.
+  cat "$RESULTS/backup.txt" >> "$RESULTS/attempts.txt"
+  # Leave the device as it was: nothing of the app in the local transport
+  # and no app (the cold-start install below must restore nothing), the
+  # previous transport, and backups off again if they were.
+  backup_wipe "$RESULTS/backup.txt"
+  if [ -n "$BACKUP_PREVIOUS" ]; then
+    "$ADB" shell bmgr transport "$BACKUP_PREVIOUS" 2>&1 | tr -d '\r' \
+      | tee -a "$RESULTS/backup.txt"
+  fi
+  case "$BACKUP_WAS_ENABLED" in
+    *disabled*)
+      "$ADB" shell bmgr enable false 2>&1 | tr -d '\r' | tee -a "$RESULTS/backup.txt"
+      ;;
+  esac
+fi
+[ "$backup_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

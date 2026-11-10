@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../application/logs.dart';
 import '../../core/logging/logger.dart';
 import '../../core/version.dart';
 import '../../design_system/components/buttons.dart';
@@ -59,7 +60,7 @@ class AboutScreen extends ConsumerWidget {
             ),
             Center(
               child: Text(
-                'v$appVersion · Phase 1 shell',
+                'v$appVersion · preview',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -90,7 +91,7 @@ class AboutScreen extends ConsumerWidget {
             CfSettingsTile(
               leading: const Icon(Icons.receipt_long_outlined),
               title: 'Recent logs',
-              subtitle: 'In-memory ring buffer, secrets redacted',
+              subtitle: 'Kept on this device, never backed up; secrets redacted',
               trailing: const Icon(Icons.chevron_right, size: 18),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -156,7 +157,9 @@ class _LogsScreen extends StatelessWidget {
             icon: Icons.copy_outlined,
             tooltip: 'Copy logs',
             onPressed: () async {
-              final text = records.map((r) => r.render()).join('\n');
+              // The log files' newest 256 KiB, earlier sessions too; this
+              // session's records if the file is not running.
+              final text = await recentLogText();
               await Clipboard.setData(ClipboardData(text: text));
               if (context.mounted) {
                 ScaffoldMessenger.of(

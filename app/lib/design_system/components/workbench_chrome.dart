@@ -126,7 +126,13 @@ class _CfTabStripState extends State<CfTabStrip> {
     return Material(
       key: _tabKeys.putIfAbsent(tab.id, GlobalKey.new),
       color: active ? colors.surfaceBase : colors.surfacePanel,
-      child: InkWell(
+      // One node per tab that a screen reader announces as selected or
+      // not, with "unsaved changes" when the dirty dot shows (Phase 3 W1).
+      // The close button stays a node of its own.
+      child: Semantics(
+        container: true,
+        selected: active,
+        child: InkWell(
         onTap: () => widget.onActivate(tab.id),
         child: Container(
           constraints: const BoxConstraints(minWidth: 96, maxWidth: 200),
@@ -152,6 +158,9 @@ class _CfTabStripState extends State<CfTabStrip> {
               Flexible(
                 child: Text(
                   tab.label,
+                  semanticsLabel: tab.dirty
+                      ? '${tab.label}, unsaved changes'
+                      : null,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: active ? colors.textPrimary : colors.textSecondary,
@@ -189,6 +198,7 @@ class _CfTabStripState extends State<CfTabStrip> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

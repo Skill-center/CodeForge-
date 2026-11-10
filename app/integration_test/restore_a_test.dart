@@ -2,12 +2,18 @@
 /// light theme, workspace route, terminal half-open, a second tab active —
 /// and let it persist (prefs for the shell, the app database for tabs). CI force-stops the process after this test;
 /// restore_b_test verifies survival.
+///
+/// The log file too (Phase 3 W1, G6): part A opens it as bootstrap does and
+/// ends with an error record, with no flush asked for, just before the
+/// kill. Part B finds it before its own session's marker.
 library;
 
 import 'package:codeforge/app.dart';
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/errors/failure.dart';
+import 'package:codeforge/core/logging/logger.dart';
+import 'package:codeforge/services/logging/file_log_sink.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:codeforge/services/storage/session_store.dart';
@@ -19,6 +25,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 
+/// The record part A logs last and part B looks for in the log file.
+const String restoreLogMarker = 'restore-gate: logged just before the kill';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -28,6 +37,9 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     await pumpRealApp(tester, prefs);
+    // As bootstrap does after the first frame.
+    final log = await startFileLog(appLogger);
+    expect(log, isNotNull, reason: 'the log file did not open');
 
     // Fresh state: dismiss welcome, enter workspace.
     await tester.tap(find.byKey(const ValueKey('welcome_dismiss')));
@@ -98,5 +110,9 @@ void main() {
       ['app.py'],
     );
     expect(shellRaw, isNot(contains('main.js')));
+
+    // Last: an error record, and nothing that writes it out but the sink
+    // itself. CI force-stops the process right after this test.
+    appLogger.error('gate', 'log_marker', fields: {'note': restoreLogMarker});
   });
 }

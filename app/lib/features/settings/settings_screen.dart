@@ -1,4 +1,6 @@
-/// Settings root page. Every toggle here is real and persisted (G5).
+/// Settings root page. Every toggle here is real and persisted (G5); the
+/// backup switch is the host's, which keeps it where Android's backup agent
+/// can read it (ADR-0012).
 library;
 
 import 'package:flutter/foundation.dart';
@@ -6,11 +8,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../application/bench/large_test_files.dart';
 import '../../application/settings_controller.dart';
 import '../../application/shell_controller.dart';
+import '../../core/editor/large_samples.dart';
+import '../../core/errors/failure.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/tokens/geometry.dart';
+import 'privacy_section.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -28,9 +34,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
   }
 
+  Future<void> _createLargeFiles() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ref.read(largeTestFilesProvider.notifier).create();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(switch (result) {
+          Ok<int>(:final value) => 'Wrote ${_files(value)} to $largeTestFolder/',
+          Err<int>(:final failure) => failure.message,
+        }),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsControllerProvider);
+    final largeFiles = ref.watch(largeTestFilesProvider);
     // Nothing beneath a go()-reached top-level route: system back returns
     // home, matching the app-bar back button (G2).
     return PopScope<Object?>(
@@ -73,6 +93,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     .read(settingsControllerProvider.notifier)
                     .setReducedMotion(!settings.reducedMotion),
               ),
+              const PrivacySection(),
               const CfSectionHeader('Coming in later phases'),
               const CfSettingsTile(
                 leading: Icon(Icons.folder_outlined),
@@ -129,6 +150,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_right, size: 18),
                   onTap: () => context.go('/settings/frame-timing'),
                 ),
+                CfSettingsTile(
+                  key: const ValueKey('settings_large_files'),
+                  leading: const Icon(Icons.note_add_outlined),
+                  title: 'Create large test files',
+                  subtitle: largeTestFilesLine(largeFiles),
+                  onTap: largeFiles.running ? null : _createLargeFiles,
+                ),
               ],
               const SizedBox(height: CfSpacing.xl),
             ],
@@ -138,3 +166,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 }
+
+/// What the Developer action's row says under its title.
+String largeTestFilesLine(LargeTestFilesState state) {
+  if (state.running) {
+    return 'Writing ${state.current ?? 'the files'}…';
+  }
+  if (state.failure case final failure?) {
+    return 'Stopped after ${_files(state.written)}: ${failure.message}';
+  }
+  if (state.written > 0) {
+    final mb = (state.bytes / (1024 * 1024)).toStringAsFixed(1);
+    return 'Wrote ${_files(state.written)} ($mb MB) to $largeTestFolder/';
+  }
+  return "The large-file gate's ${largeSamples.length} files, 512 KiB to "
+      '10 MiB, written to $largeTestFolder/ in the workspace';
+}
+
+String _files(int count) => count == 1 ? '1 file' : '$count files';

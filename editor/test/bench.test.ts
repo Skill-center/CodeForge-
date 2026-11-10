@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { describe, expect, it } from 'vitest';
 
 import cases from '../bench/composition_cases.json';
@@ -54,6 +56,23 @@ describe('benchmark documents', () => {
     expect(text.endsWith('\n')).toBe(true);
     expect(largeJavaScript(1024 * 1024)).toBe(text);
     expect(text).not.toMatch(/[^\x09\x0a\x20-\x7e]/); // ASCII: characters equal bytes
+  });
+
+  it('generates the large-file gate\'s files, pinned by SHA-256', () => {
+    // The app's port (app/lib/core/editor/large_samples.dart) writes the
+    // same bytes, for the gate and for Settings → Developer → Create large
+    // test files; app/test/core/large_samples_test.dart pins the same.
+    const pins: Array<[number, number, string]> = [
+      [524160, 524164, 'afc78e8f04e8ce74613755f4459287c4c10223d0feb003fe8bda3ebd711c357e'],
+      [1048576, 1048614, 'bdc70485be76830f76676be3fa652f55f68cbd906f502f3dddfd6c7d31928055'],
+      [5242880, 5242929, '909e9b7c99b1d21ac5da67c9b2b440e4930341b044602c407105dd6b6068f756'],
+      [10485632, 10485681, 'c21701a8065528b5562ea35f2d86f1661bf7e605dde6351ad66c2d6ea8e51c64'],
+    ];
+    for (const [target, length, digest] of pins) {
+      const text = largeJavaScript(target);
+      expect(text.length).toBe(length);
+      expect(createHash('sha256').update(text, 'utf8').digest('hex')).toBe(digest);
+    }
   });
 
   it('offers the same stub completions to both engines', () => {

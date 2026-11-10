@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What Android's backup takes when the user turns it on (ADR-0012), on
+     Android 12 and later: a cloud backup and a device-to-device transfer
+     take the same files, and the same switch covers both.
+     CodeForgeBackupAgent applies these rules only while the switch is on;
+     with it off, a backup holds the switch's own file alone. Restores pass
+     the same rules. Keep both sections and backup_rules.xml equal to
+     BackupPolicy.included (BackupPolicyTest checks it). Logs live in
+     no_backup/, which Android never backs up. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="workspaces" />
+        <include domain="file" path="codeforge.sqlite" />
+        <include domain="file" path="codeforge.sqlite-wal" />
+        <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
+        <include domain="sharedpref" path="codeforge.backup.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="workspaces" />
+        <include domain="file" path="codeforge.sqlite" />
+        <include domain="file" path="codeforge.sqlite-wal" />
+        <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
+        <include domain="sharedpref" path="codeforge.backup.xml" />
+    </device-transfer>
+</data-extraction-rules>

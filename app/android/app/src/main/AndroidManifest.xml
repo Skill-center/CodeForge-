@@ -1,12 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- CodeForge Phase 1: the release shell is fully offline and declares no
          permissions. Runtime/storage permissions arrive with their phases and
-         are reviewed against docs/SECURITY.md. -->
+         are reviewed against docs/SECURITY.md.
+         Backup (Phase 3 W1, ADR-0012): Android's backup is the user's choice,
+         off by default. CodeForgeBackupAgent writes the projects, the database
+         and the settings only while the switch in Settings > Privacy is on;
+         fullBackupOnly keeps file-based Auto Backup, and the rules files list
+         what it may take (logs never: they live in no_backup/). -->
     <application
         android:label="CodeForge"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="true"
+        android:allowBackup="true"
+        android:backupAgent=".CodeForgeBackupAgent"
+        android:fullBackupOnly="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"

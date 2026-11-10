@@ -15,7 +15,7 @@ Spec allows SharedPreferences or DataStore for settings and SQLite/Drift for loc
 ## Consequences
 - Phase 1 stays codegen-free; Drift's build_runner enters with the data layer only.
 - Clear ownership: prefs = user intent, Drift = workspace truth, files = bytes, runtime markers = runtime truth.
-- Backup/restore (Phase 10) exports prefs + Drift DB + workspace manifest — one documented format.
+- Backup/restore (Phase 10) exports prefs + Drift DB + workspace manifest — one documented format. Android's own backup is separate: the user's choice, off by default ([ADR-0012](0012-backup-opt-in.md), Phase 3 W1).
 
 ## Amendment — Phase 2 W5 (2026-11-07): buffer journals in SQLite, not files
 

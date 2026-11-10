@@ -13,6 +13,8 @@
  *   to the end of the next frame (no OS or IME in the loop; the DevTools
  *   driver and the manual check cover real input events);
  * - large file: open time, typing in the middle, scroll frame intervals;
+ *   then the same text as plain text (Phase 3 W1), as the app opens files
+ *   above its large-file limit (512 KiB): an additive `largePlain` field;
  * - memory: performance.memory after the session, kept raw only (Chromium
  *   quantizes it and caches it per renderer process; the gate measures
  *   process PSS with dumpsys instead);
@@ -66,6 +68,17 @@ export interface SuiteResult {
   largeFile: {
     bytes: number;
     lines: number;
+    openMs: number;
+    typing: Summary;
+    scroll: FrameSummary & { distancePx: number };
+  };
+  /**
+   * The same text opened as plain text (Phase 3 W1): no parser and no
+   * highlighting, as the app's large-file policy opens files above 512 KiB.
+   * Additive (the schema stays 1); record-only.
+   */
+  largePlain: {
+    bytes: number;
     openMs: number;
     typing: Summary;
     scroll: FrameSummary & { distancePx: number };
@@ -229,6 +242,17 @@ export async function startBench(engine: BenchEngine): Promise<void> {
       post({ type: 'progress', step: 'scroll' });
       const scroll = await scrollTimed(engine, options.scrollMs, options.scrollPxPerMs);
 
+      // The same text as plain text: the same cursor, keys and scroll.
+      post({ type: 'progress', step: 'large-plain' });
+      await afterPaint();
+      const plainStart = performance.now();
+      engine.setDocument(big, 'plaintext');
+      const plainOpenMs = round1((await afterPaint()) - plainStart);
+      engine.setCursor(middle);
+      await afterPaint();
+      const plainTyping = await typeTimed(engine, TYPING_TEXT.slice(0, options.largeKeys), options.keyGapMs);
+      const plainScroll = await scrollTimed(engine, options.scrollMs, options.scrollPxPerMs);
+
       const memoryInfo = (performance as unknown as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } })
         .memory;
       const result: SuiteResult = {
@@ -248,6 +272,12 @@ export async function startBench(engine: BenchEngine): Promise<void> {
           openMs,
           typing: largeTyping,
           scroll,
+        },
+        largePlain: {
+          bytes: big.length,
+          openMs: plainOpenMs,
+          typing: plainTyping,
+          scroll: plainScroll,
         },
         memory: memoryInfo
           ? { usedJSHeapMB: toMB(memoryInfo.usedJSHeapSize), totalJSHeapMB: toMB(memoryInfo.totalJSHeapSize) }

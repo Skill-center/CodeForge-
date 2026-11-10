@@ -376,8 +376,14 @@ void main() {
       final semantics = tester.ensureSemantics();
       setSurface(tester, 412, 915);
       await _pump(tester, _settings);
-      // getSemantics walks up to the node the Switch is merged into.
-      final node = tester.getSemantics(find.byType(Switch));
+      // getSemantics walks up to the node the Switch is merged into. Two
+      // rows have switches since Phase 3 W1 (motion and backup).
+      final node = tester.getSemantics(
+        find.descendant(
+          of: find.byKey(const ValueKey('settings_reduced_motion')),
+          matching: find.byType(Switch),
+        ),
+      );
       expect(
         node,
         isSemantics(

@@ -356,6 +356,11 @@ List<String> benchSummaryLines(Map<String, Object?> summary) {
       ..add('  1 MiB typing p95 ${fmt(m['largeTypingP95Ms'], 'ms')}')
       ..add('  scroll >32 ms    ${fmt(m['scrollSlowFramePct'], '%')}')
       ..add(
+        '  as plain text    ${fmt(m['plainOpenMs'], 'ms')} open, '
+        'typing p95 ${fmt(m['plainTypingP95Ms'], 'ms')}, '
+        'scroll >32 ms ${fmt(m['plainScrollSlowFramePct'], '%')}',
+      )
+      ..add(
         '  features ${entry['featuresOk'] == true ? 'ok' : 'FAILED'}, '
         'highlighting ${entry['highlightOk'] == true ? 'ok' : 'FAILED'}',
       );

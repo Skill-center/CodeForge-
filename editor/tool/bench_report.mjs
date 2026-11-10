@@ -134,6 +134,10 @@ for (const engine of ['codemirror', 'monaco']) {
   lines.push(
     `      1 MiB open ${fmt(medians.largeOpenMs, ' ms')}, 1 MiB typing p95 ${fmt(medians.largeTypingP95Ms, ' ms')}, ` +
       `features ${summary?.featuresOk ? 'ok' : 'n/a'}, highlighting ${summary?.highlightOk ? 'ok' : 'n/a'}`,
+    // Phase 3 W1: the same 1 MiB as plain text, as the app opens files
+    // above its large-file limit. Record-only: no budget of its own.
+    `      1 MiB as plain text: open ${fmt(medians.plainOpenMs, ' ms')}, typing p95 ${fmt(medians.plainTypingP95Ms, ' ms')}, ` +
+      `scroll frames > 32 ms ${fmt(medians.plainScrollSlowFramePct, ' %')} (record-only)`,
   );
   const failed = (driven?.composition?.results ?? []).filter((r) => !r.ok);
   if (failed.length > 0) lines.push(`      composition failures: ${failed.map((r) => `${r.id} → ${JSON.stringify(r.actual)}`).join('; ')}`);

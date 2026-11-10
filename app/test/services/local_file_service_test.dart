@@ -11,6 +11,7 @@ import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
+import 'package:codeforge/services/files/file_mode.dart';
 import 'package:codeforge/services/files/local_file_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -220,6 +221,47 @@ void main() {
       expect(_file('main.js').readAsStringSync(), 'new\n');
       expect(File('$_root/.main.js.cf-tmp').existsSync(), isFalse);
     });
+
+    test(
+      'a save keeps the permission bits: 755 stays 755, 600 stays 600',
+      () async {
+        final files = await _opened();
+        for (final mode in ['755', '600']) {
+          // The system's chmod sets them, to check ours independently.
+          final set = Process.runSync('chmod', [mode, _file('main.js').path]);
+          expect(set.exitCode, 0, reason: '${set.stderr}');
+          expect(
+            (await files.writeText('main.js', 'saved as $mode\n')).isOk,
+            isTrue,
+          );
+          expect(_file('main.js').readAsStringSync(), 'saved as $mode\n');
+          expect(
+            _file('main.js').statSync().mode & fileModeBits,
+            int.parse(mode, radix: 8),
+            reason: 'after a save of a $mode file',
+          );
+        }
+      },
+      skip: Platform.isWindows ? 'no permission bits on Windows' : false,
+    );
+
+    test(
+      'setFileMode sets exactly the bits asked for',
+      () {
+        final path = _file('main.js').path;
+        Directory(_root).createSync(recursive: true);
+        File(path).writeAsStringSync('x');
+        for (final mode in [0x1A0, 0x1ED, 0x124, 0x180]) {
+          expect(setFileMode(path, mode), isTrue, reason: mode.toRadixString(8));
+          expect(File(path).statSync().mode & fileModeBits, mode);
+        }
+        // The kind of file above the permission bits is never passed on.
+        expect(setFileMode(path, 0x81A4), isTrue);
+        expect(File(path).statSync().mode & fileModeBits, 0x1A4);
+        expect(setFileMode('$_root/missing/file', 0x1A4), isFalse);
+      },
+      skip: Platform.isWindows ? 'no permission bits on Windows' : false,
+    );
 
     test('new files are exclusive, even in new folders', () async {
       final files = await _opened();

@@ -3,11 +3,16 @@
 /// scripted benchmark pages (test/support/fake_bench_surface.dart).
 library;
 
+import 'dart:convert';
+
 import 'package:codeforge/application/bench/editor_bench_runner.dart';
+import 'package:codeforge/application/bench/large_test_files.dart';
+import 'package:codeforge/core/editor/large_samples.dart';
 import 'package:codeforge/features/settings/developer/editor_benchmark_screen.dart';
 import 'package:codeforge/features/settings/developer/frame_timing_screen.dart';
 import 'package:codeforge/services/perf/frame_stats.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,7 +68,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('DEVELOPER'), findsOneWidget);
     expect(find.byKey(const ValueKey('settings_frame_timing')), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings_large_files')), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings_editor_benchmark')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('settings_editor_benchmark')));
     await tester.pumpAndSettle();
     expect(find.byType(EditorBenchmarkScreen), findsOneWidget);
@@ -73,6 +83,47 @@ void main() {
 
     // Let the shell's debounced route persistence fire before teardown.
     await tester.pump(const Duration(milliseconds: 500));
+  });
+
+  testWidgets("Create large test files writes the gate's seven files", (
+    tester,
+  ) async {
+    setSurface(tester, 412, 1400);
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/settings'),
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    final tile = find.byKey(const ValueKey('settings_large_files'));
+    await tester.ensureVisible(tile);
+    await tester.pumpAndSettle();
+    expect(find.textContaining("The large-file gate's 7 files"), findsOneWidget);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(find.text('Wrote 7 files to $largeTestFolder/'), findsOneWidget);
+    expect(find.textContaining('Wrote 7 files ('), findsOneWidget);
+    expect(harness.files.writes, [
+      for (final sample in largeSamples) '$largeTestFolder/${sample.name}',
+    ]);
+    // Byte for byte what the generator makes, whose digests
+    // test/core/large_samples_test.dart pins.
+    final digests = <int, Digest>{};
+    for (final sample in largeSamples) {
+      final bytes = harness.files.bytesOf('$largeTestFolder/${sample.name}')!;
+      final expected = digests.putIfAbsent(
+        sample.chars,
+        () => sha256.convert(utf8.encode(largeJavaScript(sample.chars))),
+      );
+      expect(sha256.convert(bytes), expected, reason: sample.name);
+    }
+
+    // Again: the files are replaced, not refused.
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(harness.files.writes, hasLength(14));
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('benchmark runs both engines and shows the medians', (
@@ -94,6 +145,13 @@ void main() {
     expect(results, contains('CodeMirror (3 runs'));
     expect(results, contains('Monaco (3 runs'));
     expect(results, matches(RegExp(r'first frame +300\.0 ms')));
+    expect(
+      results,
+      contains(
+        'as plain text    40.0 ms open, typing p95 18.0 ms, '
+        'scroll >32 ms 0.5 %',
+      ),
+    );
 
     await tester.tap(find.byKey(const ValueKey('bench_copy')));
     await tester.pump();

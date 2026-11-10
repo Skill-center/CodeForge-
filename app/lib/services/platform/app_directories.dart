@@ -19,6 +19,17 @@ Future<String> applicationFilesPath() async {
   return path;
 }
 
+/// The folder Android never backs up (`Context.getNoBackupFilesDir()`),
+/// whatever the backup switch and the rules files say: the logs live here
+/// (Phase 3 W1, ADR-0012). Throws when the platform does not answer.
+Future<String> noBackupFilesPath() async {
+  final path = await _pathsChannel.invokeMethod<String>('noBackupFilesDir');
+  if (path == null || path.isEmpty) {
+    throw StateError('The platform reported no no-backup folder.');
+  }
+  return path;
+}
+
 /// The Phase 2 workspace folder: `<files>/workspaces/demo`.
 Future<String> demoWorkspacePath() async =>
     '${await applicationFilesPath()}/workspaces/demo';

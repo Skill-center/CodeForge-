@@ -19,6 +19,7 @@ import '../../core/files/workspace_path.dart';
 import '../../core/logging/logger.dart';
 import '../contracts.dart';
 import 'demo_workspace.dart';
+import 'file_mode.dart';
 
 /// Runs after a save's temporary file is complete, just before it replaces
 /// the target. A test seam: throwing here is a save interrupted at the
@@ -231,6 +232,9 @@ final class LocalFileService implements FileService {
       } finally {
         await handle.close();
       }
+      if (exists) {
+        _keepMode(temp.path, existing.mode, path);
+      }
       await _beforeCommit?.call(real);
       if (mode == WriteMode.createNew && target.existsSync()) {
         await _discard(temp);
@@ -371,6 +375,20 @@ final class LocalFileService implements FileService {
       );
     }
     return Ok(real + absolute.substring(existing.length));
+  }
+
+  /// The new file takes the old one's permission bits before it replaces
+  /// it (Phase 3 W1): an executable script stays executable, a private file
+  /// stays private. A file whose bits cannot be set is still saved.
+  void _keepMode(String tempPath, int mode, String path) {
+    if (Platform.isWindows || setFileMode(tempPath, mode)) {
+      return;
+    }
+    appLogger.warn(
+      'files',
+      'mode_not_kept',
+      fields: {'path': path, 'mode': (mode & fileModeBits).toRadixString(8)},
+    );
   }
 
   Future<void> _discard(File temp) async {

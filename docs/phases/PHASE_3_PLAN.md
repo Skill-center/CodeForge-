@@ -1,6 +1,6 @@
 # Phase 3 Implementation Plan — Workspace & Files
 
-**Status:** **Planned** (2026-11-10). The owner's "next" starts W1 · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **In progress** (2026-11-10): W1 built, see *As built (W1)*; the owner's "next" starts W2 · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 3 (Workspace & File Management), §7 (security claims), §12.19 (stored data survives upgrades) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §2.5, §3 and §4, [ADR-0001](../adr/0001-flutter-kotlin-hybrid.md) (SAF belongs to the Kotlin host), [ADR-0008](../adr/0008-persistence.md) (Drift), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) §4 (storage model) · **Security:** [SECURITY.md](../SECURITY.md) §1 and §4 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -81,6 +81,54 @@
   - A save in a project keeps the file's mode. The temporary file takes the original's mode before the rename, through libc's `chmod` over `dart:ffi`; Dart has no chmod.
   - A test saves an executable file and checks its mode.
   - SAF saves write in place (W2), so they keep the file's mode anyway.
+
+**As built (W1):**
+- **Backup, the user's choice, off by default** ([ADR-0012](../adr/0012-backup-opt-in.md)):
+  - **Settings → Privacy:**
+    - *Back up with Android*, off. The explanation under the switch states what Android copies, where it goes and on what terms. Folders from shared storage and the logs are never included, and turning the switch off replaces the copy with one that holds only the setting.
+    - The row shows the last pass the agent ran: when, whether it was a cloud backup or a device transfer, and whether it was end-to-end encrypted. A backup refused as too large shows its size against the quota.
+  - **Host:**
+    - `BackupPolicy.kt` holds what a backup may contain, as plain data.
+    - `BackupSwitch.kt` keeps the switch, the run records and the quota records in `codeforge.backup.xml`, and writes each with `commit()`.
+    - `CodeForgeBackupAgent.kt` makes the choice on each pass.
+    - The manifest declares `allowBackup`, `backupAgent`, `fullBackupOnly` and both rules files. `backup_rules.xml` covers Android 11 and lower; `data_extraction_rules.xml` covers 12 and later, with the same list for cloud backup and device transfer.
+  - **Dart:**
+    - `BackupService` over `dev.codeforge/backup` (`status`, `setEnabled`); W2 folds the channel into the Pigeon API.
+    - `BackupController` shows the host's answer, never only the request, and a change the host did not save leaves the switch as it was.
+  - **Deviation from this plan:** "off" writes nothing only while no backup with everything can exist. After one, it writes the switch's file alone. An empty backup is declined (AOSP's `LocalTransport.checkFullBackupSize`), and the one with everything would stay.
+- **Log file** (`services/logging/file_log_sink.dart`):
+  - **Files:** `no_backup/logs/codeforge.log` and the previous `codeforge.1.log`, at most 1 MiB each.
+  - **Lines:** each session starts with a marker line, `=== session <utc> · CodeForge <version> · pid <pid> ===`, followed by one line per record, cut at 8 KiB.
+  - **Writes:**
+    - Errors go to disk and are synced before `add` returns.
+    - Other records are batched and written at 16 KiB, after 5 s, or when the app is hidden, paused or detached.
+    - A write that fails turns the file off for the session.
+  - **Logger:** it gained `addSink`/`removeSink`, and it cuts `content://` URIs to their authority for every sink.
+  - **Startup and copying:**
+    - Bootstrap starts the file after the first frame and replays the records already in memory.
+    - Settings → About → Recent logs → *Copy* takes the newest 256 KiB across both files.
+    - Saving the logs to a file through Android's picker waits for W2's broker.
+- **Create large test files** (Settings → Developer; debug and profile builds):
+  - It writes the gate's seven files into `large-files/` in the workspace, replacing earlier copies, and lists the folder in the explorer. The row shows progress and the result.
+  - The generator moved to `lib/core/editor/large_samples.dart`, which the gate uses too.
+  - Each file's SHA-256 is pinned twice: in `test/core/large_samples_test.dart`, and in `editor/test/bench.test.ts`, computed from `samples.ts`.
+- **Plain-text benchmark pass:**
+  - After the 1 MiB file's highlighted pass, the harness opens the same text as plain text, types the same 30 keys in the middle and scrolls for 3 s.
+  - The results go in an additive `largePlain` field (the schema stays 1), and they are record-only.
+  - The medians `plainOpenMs`, `plainTypingP95Ms` and `plainScrollSlowFramePct` appear in the runner's summary, on the Developer screen and in `editor_bench.txt`.
+- **Tab semantics:** each tab is one node that a screen reader announces as selected or not. A tab with the dirty dot is labelled "<name>, unsaved changes". The close button stays a separate node.
+- **Permission bits:**
+  - `services/files/file_mode.dart` calls libc's `chmod` through `dart:ffi`.
+  - `LocalFileService` gives the temporary file the old file's mode before the rename. If `chmod` fails, the save goes on and logs a warning.
+- **CI:** a *Kotlin unit tests* step runs `:app:testDebugUnitTest` (JUnit 4.13.2) after the APK build. Its counts go to `ci-results/kotlin-tests.txt` and the run summary, and the quality gate fails on a failure or on no tests.
+- **Phase gate:**
+  - The restore pair also checks the log file: part A logs an error just before the kill, and part B finds it on disk ahead of its own session marker (`logs_after_a.txt`).
+  - The new `backup` group (TESTING.md §1.3) runs `bmgr` with Android's local transport. First the default: a backup of the app as installed is declined, so nothing is kept. Then three tests:
+    - `backup_a` turns the switch on in Settings, saves a file and leaves an unsaved edit. The app is then backed up and reinstalled, and Android restores it at install.
+    - `backup_b` finds the file, the unsaved edit, the settings and the switch, and a log file holding only its own session. It then turns the switch off. After a second backup and reinstall:
+    - `backup_c` finds a fresh app, with the switch off as the only thing restored.
+  - The group wipes the transport and restores the device's backup settings afterwards. It is record-only on an image without a local transport.
+- **Evidence:** CI and phase-gate run ids are added after the runs.
 
 ### W2 — Storage broker and folders (2 sessions) 🔑 critical path → G1
 

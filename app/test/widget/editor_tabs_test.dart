@@ -46,6 +46,62 @@ void main() {
     expect(saveButton().onTap, isNull);
   });
 
+  testWidgets('a screen reader hears the active tab and unsaved changes', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    setSurface(tester, 1280, 800);
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/workspace'),
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    Finder tabText(String label) => find.descendant(
+      of: find.byType(CfTabStrip),
+      matching: find.text(label),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('tree_app.py')));
+    await tester.pumpAndSettle();
+    // One node per tab: its name, whether it is the active one, a tap.
+    expect(
+      tester.getSemantics(tabText('app.py')),
+      containsSemantics(
+        label: 'app.py',
+        hasSelectedState: true,
+        isSelected: true,
+        hasTapAction: true,
+      ),
+    );
+    expect(
+      tester.getSemantics(tabText('main.js')),
+      containsSemantics(
+        label: 'main.js',
+        hasSelectedState: true,
+        isSelected: false,
+        hasTapAction: true,
+      ),
+    );
+
+    // Unsaved changes are said, not only shown as the dot.
+    harness.editorSurface.typeText('// typed\n');
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSemantics(tabText('app.py')),
+      containsSemantics(label: 'app.py, unsaved changes', isSelected: true),
+    );
+    expect(
+      tester.getSemantics(tabText('main.js')),
+      containsSemantics(label: 'main.js', isSelected: false),
+    );
+    // The close button stays a node of its own.
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('tab_close_app.py'))),
+      containsSemantics(label: 'Close app.py', isButton: true),
+    );
+    semantics.dispose();
+  });
+
   testWidgets('closing the active tab falls back to the previous tab', (
     tester,
   ) async {

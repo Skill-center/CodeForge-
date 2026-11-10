@@ -47,6 +47,12 @@ Map<String, Object?> fakeSuiteResult(
     'typing': {'p95Ms': 30},
     'scroll': {'slowFramePct': 1.5},
   },
+  'largePlain': {
+    'bytes': 1048576,
+    'openMs': 40,
+    'typing': {'p95Ms': 18},
+    'scroll': {'slowFramePct': 0.5},
+  },
   'errors': <Object?>[],
 };
 

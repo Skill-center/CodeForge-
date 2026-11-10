@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What Android's backup takes when the user turns it on (ADR-0012), on
+     Android 11 and lower; Android 12 and later read
+     data_extraction_rules.xml. CodeForgeBackupAgent applies these rules only
+     while the switch is on; with it off, a backup holds the switch's own
+     file alone. Restores pass the same rules. Keep both files equal to
+     BackupPolicy.included (BackupPolicyTest checks it). Logs live in
+     no_backup/, which Android never backs up. -->
+<full-backup-content>
+    <include domain="file" path="workspaces" />
+    <include domain="file" path="codeforge.sqlite" />
+    <include domain="file" path="codeforge.sqlite-wal" />
+    <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
+    <include domain="sharedpref" path="codeforge.backup.xml" />
+</full-backup-content>

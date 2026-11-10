@@ -2,6 +2,7 @@
 ///
 /// SharedPreferences is awaited BEFORE runApp so the very first frame
 /// already has the user's theme and layout — no default-state flash (G5).
+/// The log file opens after the first frame, never before it (Phase 3 W1).
 library;
 
 import 'dart:async';
@@ -16,6 +17,7 @@ import 'application/providers.dart';
 import 'core/logging/logger.dart';
 import 'services/editor/bench/bench_pages.dart';
 import 'services/editor/editor_page.dart';
+import 'services/logging/file_log_sink.dart';
 import 'services/perf/frame_stats.dart';
 import 'services/settings/settings_store.dart';
 import 'services/shell/shell_state.dart';
@@ -73,6 +75,11 @@ Future<void> bootstrap() async {
           child: const CodeForgeApp(),
         ),
       );
+
+      // The log file (About → Recent logs → Copy): what was logged so far,
+      // then everything. Off the first frame's path; if the folder cannot
+      // be written, the in-memory records carry on alone.
+      unawaited(startFileLog(appLogger));
     },
     (error, stack) {
       appLogger.error('zone', 'uncaught', fields: {'error': '$error'});

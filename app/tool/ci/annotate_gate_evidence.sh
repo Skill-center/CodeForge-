@@ -21,6 +21,7 @@ note() {
 note result "$dir/gate-result.txt" 5
 note host "$dir/host.txt" 30
 note readiness "$dir/readiness.txt" 30
+# attempts.txt ends with the backup group's verdict (Phase 3 W1).
 note attempts "$dir/attempts.txt" 30
 # restore_a gave its place to the large-file numbers (W7): restore_b,
 # attempts and the result still say how the restore pair went.

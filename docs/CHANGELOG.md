@@ -11,6 +11,25 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - The parked large-file checks become phone-only: a Developer action that writes the gate's files, and a plain-text pass in the benchmark, in Phase 3 W1.
 - Phase 3 planned: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md).
 
+### Added — Phase 3 W1, owner items and carry-overs (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md))
+- **Android backup is now the user's choice, off by default** ([ADR-0012](adr/0012-backup-opt-in.md)):
+  - Settings → Privacy → *Back up with Android*, off. It says what Android copies (projects, unsaved text, settings), where (the user's Google Drive) and on what terms, and the row shows the last pass Android ran.
+  - A backup agent decides on every pass:
+    - **on:** the projects, the database and the settings, never the logs;
+    - **off:** nothing, so Android keeps no backup;
+    - **off after a backup with everything:** only the switch, which replaces it.
+  - A device-to-device transfer follows the same switch.
+- **Log file:**
+  - The app's log records also go to two rotating files of at most 1 MiB each, in the folder Android never backs up. Errors are written at once, so a crash's last records survive it.
+  - Settings → About → Recent logs → *Copy* includes the previous session's records.
+  - Document URIs are cut to their authority in every record.
+- **Settings → Developer → *Create large test files*** (debug and profile builds) writes the large-file gate's seven files into the workspace, byte for byte, so the large-file policy can be tried on a phone.
+- **The engine benchmark** also measures its 1 MiB file as plain text, the path the large-file policy takes.
+- **Accessibility:** TalkBack says which tab is selected and which has unsaved changes.
+- **Saves keep the file's permission bits:** an executable script stays executable.
+- **CI:** the Android host's Kotlin unit tests run on every push.
+- **Phase gate:** a `backup` group checks, with Android's local transport, that by default a backup holds nothing; that with the switch on a reinstall restores the project and its unsaved text but not the logs; and that with it off a reinstall gives a fresh app. The restore pair also checks that the log file survives a process kill.
+
 ### Added — Phase 2 (2026-11-10) · evidence: [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md) (plan: [phases/PHASE_2_PLAN.md](phases/PHASE_2_PLAN.md))
 - **W1 editor page** (`editor/`): a CodeMirror 6 page in TypeScript speaking protocol v1, validated in both directions, with batched incremental change sets and highlighting for JavaScript/JSX, TypeScript/TSX, Python, JSON, HTML, CSS and Markdown. It builds to one self-contained, reproducible HTML file with a hash-pinned CSP, and comes with a runtime licence gate, a bundle verifier and a CI `editor` job.
 - **W2 host and bridge:** the editor runs in the app, in the Android System WebView (`webview_flutter` 4.14.1) behind an `EditorSurface` interface. The page is checked against its manifest SHA-256 before it loads, and the WebView is locked down: no navigation, no file or content access, no dialogs, remote debugging only in debug builds.

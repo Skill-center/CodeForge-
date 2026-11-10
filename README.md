@@ -54,7 +54,7 @@ app/                     ← the Flutter app
   android/               ← Kotlin host, minSdk 26 / target 36
 editor/                  ← the editor page: TypeScript + CodeMirror 6, protocol v1, benchmark pages, build and verify tools
 .github/workflows/       ← ci.yml (every push: Flutter + editor jobs) · phase-gate.yml (emulator gate)
-docs/                    ← architecture, ADRs 0001–0011, phase plans and reports
+docs/                    ← architecture, ADRs 0001–0012, phase plans and reports
 README.md · AGENTS.md · CONTRIBUTING.md
 ```
 

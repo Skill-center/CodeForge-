@@ -12,6 +12,7 @@ import '../services/contracts.dart';
 import '../services/fakes.dart';
 import '../services/files/local_file_service.dart';
 import '../services/platform/app_directories.dart';
+import '../services/platform/backup_channel.dart';
 import '../services/settings/settings_store.dart';
 import '../services/shell/shell_state.dart';
 import '../services/storage/app_database.dart';
@@ -47,6 +48,12 @@ final sessionStoreProvider = Provider<SessionStore>((ref) {
   );
   ref.onDispose(() => unawaited(store.close()));
   return store;
+});
+
+/// Android's backup switch (ADR-0012), over the host's channel. Tests
+/// override this with a fake; without a host it reports itself unavailable.
+final backupServiceProvider = Provider<BackupService>((ref) {
+  return const ChannelBackupService();
 });
 
 final terminalServiceProvider = Provider<TerminalService>((ref) {

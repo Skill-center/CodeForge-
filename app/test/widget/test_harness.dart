@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/fake_backup_service.dart';
 import '../support/fake_bench_surface.dart';
 import '../support/fake_editor_surface.dart';
 import '../support/fake_hardware_keyboard.dart';
@@ -36,13 +37,15 @@ final class TestHarness {
     MemoryFileService? files,
     SessionStore? sessionStore,
     FakeHardwareKeyboard? hardwareKeyboard,
+    FakeBackupService? backup,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
        shellStore = InMemoryShellStateStore(shell),
        files = files ?? MemoryFileService(),
        sessionStore = sessionStore ?? MemorySessionStore(),
-       hardwareKeyboard = hardwareKeyboard ?? FakeHardwareKeyboard();
+       hardwareKeyboard = hardwareKeyboard ?? FakeHardwareKeyboard(),
+       backup = backup ?? FakeBackupService();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -57,6 +60,10 @@ final class TestHarness {
 
   /// Whether a hardware keyboard is attached (none unless a test says so).
   final FakeHardwareKeyboard hardwareKeyboard;
+
+  /// Android's backup switch (off, available, never run, unless a test
+  /// says otherwise).
+  final FakeBackupService backup;
 
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
@@ -77,6 +84,7 @@ final class TestHarness {
     fileServiceProvider.overrideWithValue(files),
     sessionStoreProvider.overrideWithValue(sessionStore),
     hardwareKeyboardSourceProvider.overrideWithValue(hardwareKeyboard),
+    backupServiceProvider.overrideWithValue(backup),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),
     editorBenchRunnerFactoryProvider.overrideWithValue(
       benchRunnerFactory ?? fakeBenchRunnerFactory(),

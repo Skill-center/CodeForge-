@@ -73,3 +73,28 @@ Tap the **copy icon** at the top right ("Copy results"), then paste into the cha
 | Run | Date | Phone | Build | Result |
 |---|---|---|---|---|
 | 1 | 2026-11-06 | realme C51 (RMX3830: Unisoc T612, 4 GB, Android 13) | gate 42206498197, profile arm64 | Benchmark: CodeMirror 6 met cold load and typing on this low-end phone, and Monaco did not beat it (ADR-0004, now Accepted). Frame timing: 3.4 % of frames over 32 ms, which completes Phase 1 G6. The selection bug found here was fixed. The typing check's instructions were unclear and are now on screen. Evidence: [phase2-phone-2026-11-06](evidence/phase2-phone-2026-11-06/README.md) |
+
+## 8. Phase 3 additions (parked, non-blocking)
+
+Both need a build from Phase 3 W1 on: the `codeforge-phone-profile-arm64` artifact of a phase gate run listed in PHASE_3_PLAN.md (*As built (W1)*, evidence). Install it as in §1.
+
+### 8.1 Large files with the policy (phone only since Phase 3 W1, about 10 minutes)
+
+1. **Settings → DEVELOPER → Create large test files.** Wait for the row to read "Wrote 7 files (… MB) to large-files/". The files are the large-file gate's, byte for byte (512 KiB, and 1, 5 and 10 MiB as `.js` and as `.txt`).
+2. Open the workspace, then in the explorer open **large-files**:
+   - `large_512kb.js` opens highlighted.
+   - `large_1mb.js` opens as plain text, with a banner offering *Highlight anyway*. Tap into the middle, type a line, and fling-scroll: is it smooth? Then try *Highlight anyway*.
+   - `large_10mb.js` and `large_10mb.txt` open as plain text.
+3. **Settings → DEVELOPER → Editor benchmark → Run benchmark.** The results now include a line "as plain text": the 1 MiB file's open, typing p95 and scroll as plain text. Copy the results as in §4.
+4. **Send back:** the benchmark JSON and one sentence per file on typing and scrolling.
+
+### 8.2 Backup with a real Google account (about 15 minutes, ADR-0012)
+
+You need device backup on: Android Settings → Google → Backup (Google One), and a screen lock if you want the copy end-to-end encrypted. **Reinstall the same APK file throughout.** Android restores data only into an app signed with the same key, and every CI build has its own key.
+
+1. Open CodeForge → **Settings → PRIVACY.** *Back up with Android* should be off, and the row should read "Off".
+2. Turn it on. Open the workspace, type a line into `main.js` without saving, and create a file with a few words in it, saved.
+3. Android Settings → Google → Backup → **Back up now**, and wait until it finishes. The Privacy row should now read "On · last backup run …", with "end-to-end encrypted" if the phone has a screen lock.
+4. Uninstall CodeForge, then install the same APK again and open it. The workspace should come back with the saved file and with `main.js` still unsaved, holding your line. The Privacy row should read "On".
+5. Turn the switch off, then **Back up now** again. Uninstall, install the same APK and open it. The app should be fresh (the welcome screen), with no project changes, and the Privacy row should read "Off · the last backup held only this setting".
+6. **Send back:** the Privacy row's text after steps 1, 3, 4 and 5, and whether steps 4 and 5 came back as described.

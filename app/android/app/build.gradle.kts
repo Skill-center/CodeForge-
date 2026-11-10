@@ -44,3 +44,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // JVM unit tests of the host's own logic (src/test): the backup policy
+    // and its rules files since Phase 3 W1. CI runs :app:testDebugUnitTest.
+    testImplementation("junit:junit:4.13.2")
+}

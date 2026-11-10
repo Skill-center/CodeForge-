@@ -47,6 +47,7 @@ import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/core/editor/large_files.dart';
+import 'package:codeforge/core/editor/large_samples.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/core/logging/logger.dart';
@@ -65,16 +66,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 
 const int _mib = 1024 * 1024;
-const List<int> _sizesMiB = [1, 5, 10];
+const List<int> _sizesMiB = largeSampleSizesMiB;
 
 /// The largest document the large-file policy still highlights, measured
 /// first: what highlighting costs at the policy's limit.
-const String _limitFile = 'large_${plainTextAboveChars ~/ 1024}kb.js';
+const String _limitFile = largeLimitName;
 
 /// Its target size: the generator overshoots by less than a line.
-const int _limitChars = plainTextAboveChars - 128;
+const int _limitChars = largeLimitChars;
 
-List<String> _namesFor(int mib) => ['large_${mib}mb.js', 'large_${mib}mb.txt'];
+List<String> _namesFor(int mib) => largeSampleNames(mib);
 
 /// What the driver types: the W3 driver's 60 keys (bench_cdp.mjs
 /// KEY_TEXT), letters and spaces only.
@@ -119,36 +120,6 @@ const Set<String> _trouble = {
   'editor_close_failed',
   'editor_activate_failed',
 };
-
-/// editor/bench/samples.ts `largeJavaScript`, ported: at least [chars]
-/// characters of ASCII JavaScript, cut at a line end. Blocks differ by
-/// number, so no two lines of neighbouring blocks are identical.
-String largeJavaScript(int chars) {
-  final out = StringBuffer();
-  var size = 0;
-  for (var n = 0; size < chars; n += 1) {
-    final block =
-        '// Block $n: generated for the large-file benchmark.\n'
-        'export function compute$n(items, factor = ${n % 97}) {\n'
-        '  const result = [];\n'
-        '  for (let i = 0; i < items.length; i += 1) {\n'
-        '    const value = items[i] * factor + $n;\n'
-        '    if (value % 2 === 0) {\n'
-        "      result.push({ id: i, value, label: 'item-' + i + '-$n' });\n"
-        '    } else {\n'
-        '      result.push(null); // odd values are skipped\n'
-        '    }\n'
-        '  }\n'
-        '  return result.filter(Boolean);\n'
-        '}\n'
-        '\n';
-    out.write(block);
-    size += block.length;
-  }
-  final text = out.toString();
-  final cut = text.indexOf('\n', chars - 1);
-  return cut < 0 ? text : text.substring(0, cut + 1);
-}
 
 int _lineCount(String text) {
   var lines = 0;
@@ -423,14 +394,12 @@ void main() {
 
     // The 10 MiB files stop just under the size cap, which a file of the
     // full 10 MiB plus the generator's last line would be over: the text
-    // is ASCII, so its characters are its bytes.
+    // is ASCII, so its characters are its bytes (core/editor/
+    // large_samples.dart, which the Developer action writes too).
     final sets = [
       (names: const [_limitFile], chars: _limitChars),
       for (final mib in _sizesMiB)
-        (
-          names: _namesFor(mib),
-          chars: math.min(mib * _mib, maxTextFileBytes - 128),
-        ),
+        (names: _namesFor(mib), chars: largeSampleChars(mib)),
     ];
     var baselineAsked = false;
     for (final (:names, :chars) in sets) {

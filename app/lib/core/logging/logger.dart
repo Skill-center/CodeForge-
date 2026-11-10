@@ -1,9 +1,10 @@
 /// Structured logging with a bounded in-memory ring buffer and redaction.
 ///
-/// Phase 1: memory buffer + injectable sink (debug console in bootstrap).
-/// The on-disk sink arrives with the storage layer in Phase 2; the interface
-/// does not change. Redaction happens here, never at call sites
-/// (docs/SECURITY.md §4).
+/// Records go to the ring buffer (About → Recent logs) and to the sinks:
+/// the debug console in debug builds (bootstrap), and since Phase 3 W1 a
+/// file in the folder Android never backs up
+/// (services/logging/file_log_sink.dart). Redaction happens here, never at
+/// call sites (docs/SECURITY.md §4), so every sink gets redacted records.
 library;
 
 import 'dart:collection';
@@ -44,25 +45,48 @@ final RegExp _secretKeyPattern = RegExp(
   caseSensitive: false,
 );
 
-/// Returns a copy of [fields] with secret-looking values redacted.
+/// A `content://` URI: its authority, then the rest up to white space.
+final RegExp _contentUriPattern = RegExp(r'content://([^/\s]*)[^\s]*');
+
+/// Returns a copy of [fields] with secret-looking values redacted, and
+/// `content://` URIs in text cut to their authority: a document URI names
+/// the user's folders and files (Phase 3's storage broker).
 Map<String, Object?> redactFields(Map<String, Object?> fields) {
   return fields.map((key, value) {
     if (_secretKeyPattern.hasMatch(key)) {
       return MapEntry(key, '[redacted]');
     }
+    if (value is String && value.contains('content://')) {
+      return MapEntry(
+        key,
+        value.replaceAllMapped(
+          _contentUriPattern,
+          (match) => 'content://${match[1]}/…',
+        ),
+      );
+    }
     return MapEntry(key, value);
   });
 }
 
-/// App-wide structured logger. Pure Dart; the sink is injected at bootstrap.
+/// App-wide structured logger. Pure Dart; sinks are added at bootstrap.
 final class CfLogger {
   CfLogger({this.capacity = 500, LogSink? sink}) : _sink = sink;
 
   final int capacity;
   LogSink? _sink;
+  final List<LogSink> _sinks = [];
   final Queue<LogRecord> _buffer = Queue<LogRecord>();
 
+  /// The console sink (bootstrap): replaced, never added to.
   set sink(LogSink? value) => _sink = value;
+
+  /// Adds a sink that receives every record from now on, after the
+  /// console sink.
+  void addSink(LogSink sink) => _sinks.add(sink);
+
+  /// Removes a sink [addSink] added; true if it was there.
+  bool removeSink(LogSink sink) => _sinks.remove(sink);
 
   /// Unmodifiable view of the ring buffer, oldest first.
   List<LogRecord> get records => List.unmodifiable(_buffer);
@@ -85,6 +109,9 @@ final class CfLogger {
       _buffer.removeFirst();
     }
     _sink?.call(record);
+    for (final sink in List.of(_sinks)) {
+      sink(record);
+    }
   }
 
   void debug(

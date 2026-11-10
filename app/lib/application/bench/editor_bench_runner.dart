@@ -89,6 +89,10 @@ const Map<String, List<String>> benchMetrics = {
   'largeOpenMs': ['largeFile', 'openMs'],
   'largeTypingP95Ms': ['largeFile', 'typing', 'p95Ms'],
   'scrollSlowFramePct': ['largeFile', 'scroll', 'slowFramePct'],
+  // Phase 3 W1: the same text as plain text (record-only).
+  'plainOpenMs': ['largePlain', 'openMs'],
+  'plainTypingP95Ms': ['largePlain', 'typing', 'p95Ms'],
+  'plainScrollSlowFramePct': ['largePlain', 'scroll', 'slowFramePct'],
 };
 
 /// A scope check passed: `true`, or a highlight entry with spans.

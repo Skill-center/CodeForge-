@@ -353,6 +353,35 @@ jobs:
             echo "apk_bytes=$size"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # The host's Kotlin unit tests (src/test; Phase 3 W1: the backup
+      # policy and its rules files). After the APK build, which wrote
+      # android/local.properties and fetched what Gradle needs. The JUnit
+      # counts go to ci-results and the summary, so no log download is
+      # needed, and a run that found no tests fails.
+      - name: Kotlin unit tests
+        id: kotlin_tests
+        continue-on-error: true
+        run: |
+          status=0
+          ( cd android && timeout --kill-after=30s 15m \
+              ./gradlew :app:testDebugUnitTest --console=plain ) \
+            > ci-results/kotlin-tests.txt 2>&1 || status=$?
+          tests=0; failures=0; errors=0
+          for f in build/app/test-results/testDebugUnitTest/TEST-*.xml; do
+            [ -f "$f" ] || continue
+            head=$(grep -o '<testsuite [^>]*>' "$f" | head -n 1)
+            t=$(printf '%s' "$head" | sed -n 's/.* tests="\([0-9]*\)".*/\1/p')
+            fl=$(printf '%s' "$head" | sed -n 's/.* failures="\([0-9]*\)".*/\1/p')
+            e=$(printf '%s' "$head" | sed -n 's/.* errors="\([0-9]*\)".*/\1/p')
+            tests=$((tests + ${t:-0}))
+            failures=$((failures + ${fl:-0}))
+            errors=$((errors + ${e:-0}))
+          done
+          summary="kotlin_tests=$tests failures=$failures errors=$errors gradle_exit=$status"
+          echo "$summary" | tee -a ci-results/kotlin-tests.txt >> "$GITHUB_STEP_SUMMARY"
+          [ "$status" -eq 0 ] && [ "$tests" -gt 0 ] \
+            && [ "$failures" -eq 0 ] && [ "$errors" -eq 0 ]
+
       - name: Coverage summary
         if: always()
         run: |
@@ -413,7 +442,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build kotlin_tests; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -424,6 +453,7 @@ jobs:
               licenses) outcome="${{ steps.licenses.outcome }}" ;;
               tests) outcome="${{ steps.tests.outcome }}" ;;
               build) outcome="${{ steps.build.outcome }}" ;;
+              kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
             esac
             echo "$gate: $outcome"
             [ "$outcome" = "success" ] || fail=1
