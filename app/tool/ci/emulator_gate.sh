@@ -19,6 +19,11 @@
 #                                  shortcuts, injected through adb (below)
 #   backup.txt / backup_*.txt      Phase 3 W1 G6: Android backup on → restore,
 #                                  off → a fresh app (local transport)
+#   folders.txt / folders_*.txt    Phase 3 W2 G1: a folder from shared storage
+#                                  through Android's picker, every operation
+#                                  checked on disk, process death, a missing
+#                                  folder and a lost grant (driver log,
+#                                  picker screen, fixture, disk after part A)
 #   editor_bench.json|.txt         Phase 2 W3 engine benchmark (CodeMirror 6
 #                                  vs Monaco; information for ADR-0004), from
 #                                  editor_bench_<engine>.txt + the DevTools
@@ -815,6 +820,208 @@ else
   esac
 fi
 [ "$backup_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Integration — folders (Phase 3 W2, G1: Android's folder picker, every operation checked on disk, process death, a missing folder, a lost grant)"
+# /sdcard/Documents/cf-gate and a folder beside it come from the fixture
+# (integration_test/folder_fixture.dart, written by
+# tool/ci/write_folder_fixture.dart, then `adb push`). Part A taps Open
+# Folder; this script drives Android's folder picker (DocumentsUI) with
+# `uiautomator dump` and `input tap`, then answers the test's checks. As
+# with the keys group, the test asks for one thing at a time in the device
+# log (FOLDERGATE <run>.<n> pick <folder> | disk <path> | list <path> |
+# rmtree | mkdir | done) and waits; the answer goes into the app's files
+# folder through run-as (files/foldergate/<run>.<n>), where the test reads
+# it (integration_test/folder_gate.dart). Between the parts the app is
+# force-stopped: part B must find the folder open again, so its grant
+# survived the process death. Each part runs once per attempt (a retry
+# would meet the folder as the failed attempt left it); the whole pair
+# runs again, from a fresh fixture, after an infrastructure failure.
+FOLDER_ROOT=/sdcard/Documents
+GATE_FOLDER=cf-gate
+GATE_OUTSIDE=cf-gate-outside
+# A path the driver may act on: names of letters, digits and ._- only.
+folder_safe_path() {
+  case "$1" in
+    "" | /* | */ | *//* | *[!A-Za-z0-9._/-]*) return 1 ;;
+  esac
+  case "/$1/" in
+    */../* | */./*) return 1 ;;
+  esac
+  return 0
+}
+# folder_answer <id> <answer>: the answer, cut to characters a shell word
+# can hold, into the app's files folder.
+folder_answer() {
+  local answer
+  answer=$(printf '%s' "$2" | tr -c 'A-Za-z0-9._,:/-' '?')
+  "$ADB" shell "run-as $APP_ID sh -c 'mkdir -p files/foldergate && echo $answer > files/foldergate/$1'" \
+    < /dev/null
+}
+# What is at <path> in the gate folder: the file's SHA-256, dir or absent.
+folder_disk() {
+  local p="$FOLDER_ROOT/$GATE_FOLDER/$1" kind
+  kind=$("$ADB" shell "if [ -d $p ]; then echo dir; elif [ -f $p ]; then echo file; else echo absent; fi" \
+    < /dev/null | tr -d '\r')
+  if [ "$kind" = file ]; then
+    "$ADB" shell sha256sum "$p" < /dev/null | tr -d '\r' | cut -d' ' -f1
+  else
+    echo "$kind"
+  fi
+}
+# The names in <path> (. is the gate folder), dotfiles too, sorted by byte.
+folder_list() {
+  local p="$FOLDER_ROOT/$GATE_FOLDER"
+  [ "$1" = . ] || p="$p/$1"
+  "$ADB" shell ls -1a "$p" < /dev/null 2>&1 | tr -d '\r' | grep -vx '\.\|\.\.' \
+    | LC_ALL=C sort | paste -sd, -
+}
+# The screen now (a dump that failed leaves no file, never an old screen).
+folder_screen() {
+  "$ADB" shell "rm -f /sdcard/codeforge-ui.xml; uiautomator dump /sdcard/codeforge-ui.xml" \
+    < /dev/null > /dev/null 2>&1
+  "$ADB" shell cat /sdcard/codeforge-ui.xml < /dev/null > "$RESULTS/folders_ui.xml" 2>/dev/null
+}
+# Android's folder picker, opened inside the gate folder: "Use this
+# folder", once the folder's own entries show, then "Allow" in the dialog
+# that asks. A picker that opened elsewhere is walked into Documents, then
+# into the gate folder. The last screen stays in folders_ui.xml.
+folder_pick() {
+  local xy="" step _
+  for _ in $(seq 1 40); do
+    folder_screen
+    if python3 tool/ci/ui_node.py "$RESULTS/folders_ui.xml" 'hello\.txt|notes|src' any > /dev/null \
+        && xy=$(python3 tool/ci/ui_node.py "$RESULTS/folders_ui.xml" 'use this folder'); then
+      break
+    fi
+    xy=""
+    step=$(python3 tool/ci/ui_node.py "$RESULTS/folders_ui.xml" "$GATE_FOLDER") \
+      || step=$(python3 tool/ci/ui_node.py "$RESULTS/folders_ui.xml" 'Documents') \
+      || step=""
+    # shellcheck disable=SC2086 # "x y", two words by design.
+    [ -n "$step" ] && "$ADB" shell input tap $step < /dev/null
+    sleep 1.5
+  done
+  if [ -z "$xy" ]; then
+    echo "failed:no-use-this-folder"
+    return 1
+  fi
+  # shellcheck disable=SC2086
+  "$ADB" shell input tap $xy < /dev/null
+  for _ in $(seq 1 30); do
+    sleep 1
+    folder_screen
+    if xy=$(python3 tool/ci/ui_node.py "$RESULTS/folders_ui.xml" 'allow'); then
+      # shellcheck disable=SC2086
+      "$ADB" shell input tap $xy < /dev/null
+      echo picked
+      return 0
+    fi
+  done
+  echo "failed:no-allow"
+  return 1
+}
+folder_driver() {
+  local last="" line id kind arg answer
+  echo "driver: polling the log for requests ($(date +%T))"
+  while :; do
+    line=$("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null \
+      | grep 'FOLDERGATE [0-9.]* [a-z]' | tail -n 1 | tr -d '\r')
+    # shellcheck disable=SC2086 # a request is a list of words by design.
+    set -- ${line#*FOLDERGATE }
+    id="${1:-}"
+    kind="${2:-}"
+    arg="${3:-}"
+    if [ -z "$id" ] || [ "$id" = "$last" ]; then
+      sleep 0.25
+      continue
+    fi
+    last="$id"
+    case "$kind" in
+      pick) answer=$(folder_pick) ;;
+      disk)
+        if folder_safe_path "$arg"; then answer=$(folder_disk "$arg"); else answer=bad-path; fi
+        ;;
+      list)
+        if [ "$arg" = . ] || folder_safe_path "$arg"; then
+          answer=$(folder_list "$arg")
+        else
+          answer=bad-path
+        fi
+        ;;
+      rmtree) "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" < /dev/null; answer=done ;;
+      mkdir) "$ADB" shell mkdir -p "$FOLDER_ROOT/$GATE_FOLDER" < /dev/null; answer=done ;;
+      done) echo "request $id: done ($(date +%T))"; continue ;;
+      *) answer=unknown-request ;;
+    esac
+    folder_answer "$id" "$answer"
+    echo "request $id: $kind $arg -> $answer ($(date +%T))"
+  done
+}
+folders_pair() {
+  # Clean slate: no app (so no grant), and the folders as the fixture has
+  # them.
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+  rm -rf build/gate/folder-fixture
+  {
+    dart run tool/ci/write_folder_fixture.dart build/gate/folder-fixture \
+      && "$ADB" shell mkdir -p "$FOLDER_ROOT" < /dev/null \
+      && "$ADB" push build/gate/folder-fixture/. "$FOLDER_ROOT/" < /dev/null
+  } > "$RESULTS/folders_fixture.txt" 2>&1 || return 1
+  "$ADB" shell ls -laR "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" \
+    < /dev/null >> "$RESULTS/folders_fixture.txt" 2>&1
+  "$ADB" logcat -c < /dev/null
+  ITEST_ATTEMPTS=1 run_itest folders_a integration_test/folders_a_test.dart \
+    --no-uninstall || return 1
+  "$ADB" shell am force-stop "$APP_ID" < /dev/null
+  sleep 3
+  local pid
+  pid=$("$ADB" shell pidof "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
+  if [ -n "$pid" ]; then
+    echo "process still alive after force-stop (pid $pid)" \
+      | tee "$RESULTS/folders_process_after_kill.txt"
+    return 1
+  fi
+  echo "no $APP_ID process after am force-stop — process death confirmed" \
+    | tee "$RESULTS/folders_process_after_kill.txt"
+  # What part A left on disk, before part B looks.
+  "$ADB" shell ls -laR "$FOLDER_ROOT/$GATE_FOLDER" < /dev/null \
+    > "$RESULTS/folders_after_a.txt" 2>&1
+  ITEST_ATTEMPTS=1 run_itest folders_b integration_test/folders_b_test.dart \
+    --no-uninstall || return 1
+  # The folder beside the gate folder: as the fixture wrote it.
+  echo "--- the folder beside it after both parts:" >> "$RESULTS/folders_after_a.txt"
+  "$ADB" shell sha256sum "$FOLDER_ROOT/$GATE_OUTSIDE/secret.txt" < /dev/null \
+    >> "$RESULTS/folders_after_a.txt" 2>&1
+}
+folder_driver > "$RESULTS/folders_driver.txt" 2>&1 &
+folders_driver_pid=$!
+folders_ok=0
+for pair in 1 2; do
+  INFRA_SEEN=0
+  if folders_pair; then
+    folders_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "folders pair attempt $pair hit infrastructure failures — re-running the whole pair" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$folders_driver_pid" 2>/dev/null || true
+wait "$folders_driver_pid" 2>/dev/null || true
+{
+  echo "folders_group=$([ "$folders_ok" = "1" ] && echo pass || echo fail)"
+  echo "folders_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/folders_driver.txt")"
+  echo "folders_disk_checks=$(grep -c ': disk ' "$RESULTS/folders_driver.txt")" \
+    "folders_listings=$(grep -c ': list ' "$RESULTS/folders_driver.txt")"
+} | tee "$RESULTS/folders.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/folders.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no gate folders, and no app.
+"$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$folders_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

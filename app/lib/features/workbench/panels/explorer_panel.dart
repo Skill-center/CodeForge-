@@ -97,6 +97,18 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
     final textTheme = Theme.of(context).textTheme;
     final settings = ref.watch(settingsControllerProvider);
     final workspace = ref.watch(workspaceControllerProvider);
+    // Another workspace's files replaced the open one's while the explorer
+    // shows (the workspace controller starts over): open and list it, as
+    // when the explorer first appears.
+    ref.listen(workspaceControllerProvider, (previous, next) {
+      if (previous != null && !_pristine(previous) && _pristine(next)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            unawaited(ref.read(workspaceControllerProvider.notifier).open());
+          }
+        });
+      }
+    });
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -153,6 +165,10 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
       ],
     );
   }
+
+  /// Nothing opened, failed or listed yet.
+  static bool _pristine(WorkspaceState state) =>
+      state.workspace == null && state.failure == null && state.listings.isEmpty;
 
   Widget _buildTree(WorkspaceState workspace, TextTheme textTheme) {
     final failure = workspace.failure;

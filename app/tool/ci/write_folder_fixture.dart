@@ -2,7 +2,7 @@
 /// directory, for `adb push` to /sdcard/Documents: the gate folder and the
 /// folder beside it (integration_test/folder_fixture.dart).
 ///
-/// Run from app/: dart run tool/ci/write_folder_fixture.dart <directory>
+/// Run from app/: `dart run tool/ci/write_folder_fixture.dart <directory>`
 library;
 
 import 'dart:convert';
