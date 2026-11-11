@@ -1,0 +1,39 @@
+00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart
+Running Gradle task 'assembleDebug'...                             29.7s
+✓ Built build/app/outputs/flutter-apk/app-debug.apk
+Installing build/app/outputs/flutter-apk/app-debug.apk...        1,369ms
+00:00 +0: keys: toolbar touches and hardware shortcuts on the real page
+KEYGATE 1794419650254.1 beside 1
+KEYGATE 1794419650254.2 tap 540 1256
+keys: request 2 (the editor to take the keyboard) timed out. The text was "x\n", the cursor null, the editor focused: false, the soft keyboard up: false, Flutter focus on FocusNode; keys Flutter got: none; tabs and page shortcuts: none
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Timed out after 30 s waiting for the editor to take the keyboard (request 2: tap 540 1256).
+
+When the exception was thrown, this was the stack:
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      pumpUntil (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/smoke_test.dart:28:7)
+<asynchronous suspension>
+#2      main.<anonymous closure>.inject (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:210:9)
+<asynchronous suspension>
+#3      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart:260:5)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  keys: toolbar touches and hardware shortcuts on the real page
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:44 +0 -1: keys: toolbar touches and hardware shortcuts on the real page [E]
+  Test failed. See exception logs above.
+  The test description was: keys: toolbar touches and hardware shortcuts on the real page
+  
+00:44 +0 -1: (tearDownAll)
+00:45 +0 -1: Some tests failed.
+
+Failing tests:
+  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/keys_test.dart: keys: toolbar touches and hardware shortcuts on the real page
