@@ -11,6 +11,16 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - The parked large-file checks become phone-only: a Developer action that writes the gate's files, and a plain-text pass in the benchmark, in Phase 3 W1.
 - Phase 3 planned: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md).
 
+### Added — Phase 3 W2, folders from shared storage (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md))
+- **Open Folder** on Home: Android's folder picker opens a folder on the device as the workspace, and *Continue in <folder>* reopens it. A cold start reopens it too. The app asks for no storage permission: the picker gives it that folder and nothing else.
+- **Files in folders** open, edit and save like the demo project's: UTF-8 text only, byte-order mark and line endings kept, up to 10 MiB. A file changed by another app is not overwritten without asking, also where the folder's storage reports no modification time.
+- **Saves in folders are not atomic,** because Android's document storage can't replace a file in one step. A document stays unsaved, with its text kept, until the write is confirmed, and a failed save says the file on disk may be incomplete.
+- **Each workspace keeps its own tabs and unsaved text** when you switch between the demo project and a folder.
+- **A folder that is gone, or whose access was taken back, says so,** on Home and in the explorer, without a crash.
+- **The storage broker,** the Android host's only code that touches shared storage, behind a typed Pigeon API: every path checked again in Kotlin and walked from the folder's root, names Android's storage would change detected and undone, size limits whatever a provider claims, and a time limit on every call. Its security review is SECURITY §4.1.
+- **Tests:** 37 Kotlin unit tests against an in-memory provider with the quirks of Android's own; Dart tests of the folder file service, the switching and Home. The phase gate gains a `folders` group: the real picker, driven from the host, and every listing, read, write, create, rename, move, copy and delete checked on disk, then a process death, a deleted folder and a released grant.
+- W2 verified by CI 43007795037 (`+631: All tests passed!`, Kotlin 44 of 44) and phase gate 43007795087,. Its `folders` group passed on its first try in both attempts (gate G1). Attempt 2 passed every group; attempt 1 failed only the W6 keyboard test at its first step, as W1's first attempt did.
+
 ### Added — Phase 3 W1, owner items and carry-overs (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md))
 - **Android backup is now the user's choice, off by default** ([ADR-0012](adr/0012-backup-opt-in.md)):
   - Settings → Privacy → *Back up with Android*, off. It says what Android copies (projects, unsaved text, settings), where (the user's Google Drive) and on what terms, and the row shows the last pass Android ran.

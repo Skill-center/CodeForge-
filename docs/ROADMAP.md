@@ -1,6 +1,6 @@
 # CodeForge Roadmap
 
-**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · Phase 2 accepted 2026-11-10 ([report](phases/PHASE_2_REPORT.md)) · **Phase 3 in progress** (W1 done): [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md)
+**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · Phase 2 accepted 2026-11-10 ([report](phases/PHASE_2_REPORT.md)) · **Phase 3 in progress** (W1 and W2 done): [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md)
 **Rule:** no phase starts while the previous has unresolved critical issues; every phase exits with a report citing CI run ids (spec §8/§12).
 
 ---

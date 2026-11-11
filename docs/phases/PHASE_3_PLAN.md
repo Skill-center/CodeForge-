@@ -1,6 +1,6 @@
 # Phase 3 Implementation Plan — Workspace & Files
 
-**Status:** **In progress** (2026-11-10): W1 done (CI 42862715832, phase gate 42862715744), see *As built (W1)*; the owner's "next" starts W2 · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **In progress** (2026-11-11): W1 done (CI 42862715832, phase gate 42862715744) and W2 done (CI 43007795037, phase gate 43007795087), see *As built (W1)* and *As built (W2)*; the owner's "next" starts W3 · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 3 (Workspace & File Management), §7 (security claims), §12.19 (stored data survives upgrades) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §2.5, §3 and §4, [ADR-0001](../adr/0001-flutter-kotlin-hybrid.md) (SAF belongs to the Kotlin host), [ADR-0008](../adr/0008-persistence.md) (Drift), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) §4 (storage model) · **Security:** [SECURITY.md](../SECURITY.md) §1 and §4 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -201,6 +201,63 @@
 - The test then lists, reads, writes, creates, renames, moves, copies and deletes through the real provider. The host checks every result on disk with `sha256sum`.
 - After a force-stop and a relaunch, the grant still works.
 - When the host deletes the folder, the workspace shows it as missing, with no crash.
+
+**As built (W2):**
+- **Security review first:** SECURITY §4.1 (commit 2b85904) landed before the broker's code, with seven threats (S1–S7), each with its mitigation and the tests that prove it. The tests it names are the ones built below.
+- **Pigeon 29.2.0** (a dev dependency; TECH_STACK listed 29.1.0):
+  - `pigeons/storage_api.dart` defines `StorageApi`. CI generates `lib/services/files/native/storage_api.g.dart` and `android/…/storage/StorageApi.g.kt`; `[bootstrap]` commits them.
+  - *Generated code check* regenerates them with Drift's output. It now fails when a generator exits non-zero, not only when a committed copy is stale. The phase gate generates them too, because it builds the pushed commit.
+  - Every method answers through a callback (`@asyncCallback`). The broker runs the work on its own threads, and the generated Kotlin needs no coroutines library.
+  - `tool/lint_imports.dart`: generated Pigeon code is imported only from its own `native/` folder (ARCHITECTURE §2, rule 3).
+  - **Deviation:** the backup channel stays a plain MethodChannel, with the paths and keyboard channels. This plan's W1 text said W2 would fold it into the Pigeon API. Folding two working methods into it would add generated code without making either safer. ADR-0012 is amended, and `MainActivity`'s KDoc no longer promises it.
+- **The broker** (`android/…/storage/`):
+  - **`StorageBroker.kt`** implements the generated interface. MainActivity registers it and passes it the picker's answer (`onActivityResult`: FlutterActivity is not an androidx ComponentActivity).
+  - **Grants:** the picker (`ACTION_OPEN_DOCUMENT_TREE`, starting at `EXTRA_INITIAL_URI` when Dart names a place), then `takePersistableUriPermission` for reading and writing (reading only, when the picker granted no more); listing the grants; releasing one. Every call checks that its tree URI is among the persisted grants (`access_lost` otherwise), and changes need the write grant.
+  - **`StoragePaths`:** every path is parsed again in Kotlin. A name is not empty, `.` or `..`, holds no `/`, NUL or control character, and takes at most 255 bytes in UTF-8. A path has at most 4,096 characters and 128 names.
+  - **`DocumentOps`** (pure Kotlin) does the work over a `DocumentBackend`; `ResolverBackend` is the real one, over ContentResolver and tree-based document URIs.
+    - A path is walked from the grant's root, name by name, through the provider's listings. A `DocumentIdCache` remembers the ids of up to 20,000 paths (the least recently used go first), and an id is used only after a query finds the same name there.
+    - **Writes** go in place with mode `"wt"`, are synced where the provider gives a real file, and the new stamp is read back: its size must be the number of bytes written. A write with an expected stamp is refused when the file changed: size and time, or a SHA-256 of the bytes when the provider gave no time. Missing folders above the file are created.
+    - **Names:** a new name is checked against its folder first, case ignored. A created item that the provider named otherwise is deleted, and a rename named otherwise is undone; both are reported (`name_changed`). A rename that changes only the case goes through a temporary name (`.cf-rename-<hex>`).
+    - **Moves** use the provider's move when the document offers it, and otherwise a copy and a delete. **Copies** stream bytes (Android's file-system provider offers no copy), stop at 64 levels or 10,000 items, and remove a partial copy.
+    - **Limits:** a listing keeps at most 50,000 entries and skips names `StoragePaths` refuses, and repeats (a repeated name can't be reached: `ambiguous`). A read stops one buffer past its cap, whatever size was listed, and no read takes more than 64 MiB.
+  - **Threads:** four background threads and a queue of 64 (`busy` when it is full). Each call has a time limit: 10 s for checks, stats and grants; 20 s for listings and changes; 30 s for reads and writes; 120 s for moves and copies. When it passes, the call's `CancellationSignal` is cancelled and Dart gets `timeout`. Answers go back on the main thread. The log names the call, its outcome, the entry count and the duration; never a URI, a path or a file name.
+- **Dart:**
+  - `services/files/storage_broker.dart` is the broker as the app sees it. `native/pigeon_storage_broker.dart` is the only code that sees the generated types: it waits 5 s longer than Kotlin (the picker has no limit), maps the error codes to `FileProblem`s, and without a host reports folders as unsupported.
+  - `FileProblem` gains `folderMissing`, `accessLost`, `timeout`, `unsupported` and `nameChanged`. `FileStamp` gains `digest`, the SHA-256 that stands in for a time the provider did not give.
+  - **`SafFileService`** implements `FileService` with the strict codec, the 10 MiB cap checked from the listed size, and those stamps. A failed save says the file on disk may be incomplete and that the text is still in the editor, unsaved. `FileService.writeText`'s documentation no longer promises atomic writes in folders.
+- **Workspaces** (W3's recents and database rows are still to come):
+  - `core/files/workspace_location.dart`: a workspace is the demo project or a folder (its tree URI and name). A folder's id in the session store is `folder-` and 32 hex digits of the URI's SHA-256, so the database never holds the URI.
+  - The shell envelope remembers the open folder (`folder`), written at once rather than after the usual delay. Envelopes without it open the demo project.
+  - `fileServiceProvider` follows the open workspace: `LocalFileService` for the project, `SafFileService` for a folder.
+  - `WorkspaceSwitcher` opens a workspace, or the picker and then the folder picked. First `DocumentController.leaveWorkspace()` waits for saves and opens in progress, stores every document's unsaved text and the tabs as a checkpoint does, and closes the documents in the editor while keeping their journals. Then the shell changes, and the new workspace opens.
+  - `WorkspaceController` starts over when the file service changes, and work the previous one still had in flight lands nowhere (`ref.mounted`). The explorer opens and lists the workspace again when that happens under it.
+  - The workbench reopens `main.js` as the first-time fallback in the demo project only. Phase 2's envelope tabs are imported for the demo project only.
+- **Home:** *Open Folder…* (the picker); *Continue in <folder>* for the folder opened last. A folder that is missing, or whose grant is gone, says so in a snack bar, and the demo project still opens.
+- **W1 carry-over:** bootstrap opened the log file right after `runApp`, although its comment and *As built (W1)* said "after the first frame". It now opens it in a post-frame callback.
+- **Tests:**
+  - **JVM** (37 new): `StoragePathsTest`, `DocumentOpsTest` and `CappedReadTest`, against `FakeProvider`, an in-memory provider with the quirks of Android's own (path-based ids, FAT-safe and unique names compared without case, a move refused onto a taken name, recursive delete, no copy flag, no time before 1971).
+  - **Dart:** `saf_file_service_test` (over `test/support/fake_storage_broker.dart`, and the Pigeon client against a mocked channel), `workspace_switch_test`, `open_folder_test`, and the envelope's folder in `shell_state_test`. `TestHarness` takes a fake broker, and without one gives the app an empty fake.
+  - **Emulator, the `folders` group** (TESTING §1.3):
+    - The fixture (`integration_test/folder_fixture.dart`) is written by `tool/ci/write_folder_fixture.dart` and pushed to `/sdcard/Documents`: `cf-gate` with five files, and `cf-gate-outside` beside it.
+    - `folders_a` taps Open Folder. The host drives DocumentsUI with `uiautomator dump` (`tool/ci/ui_node.py` finds the nodes) and `input tap`, then answers the test's checks the way the keys group's injector answers its requests (`integration_test/folder_gate.dart`): the test logs a request and waits, and the answer comes back through `run-as` into the app's files folder.
+    - The app is force-stopped, then `folders_b` runs.
+    - Each part runs once per attempt, since a retry would meet the folder as the failed attempt left it; the whole pair runs again, from a fresh fixture, after an infrastructure failure.
+- **Evidence** (commit b72da16):
+  - **CI 43007795037:**
+    - `01:37 +631: All tests passed!` (607 at W1), and the analyzer found no issues.
+    - Kotlin: `kotlin_tests=44 failures=0 errors=0` (7 at W1). Goldens: `+22: All tests passed!`. The first commit's bootstrap regenerated Home's eight baselines for Open Folder.
+    - *Generated code check*: the generators exited with status 0, and no committed copy differed.
+    - Coverage of hand-written code: 5360/6095 lines (87.9 %; 88.3 % at W1). The Pigeon client's methods that only pass calls on are covered on the emulator.
+  - CI 43006166469 (the first commit, 1fd095e) failed one test: `workbench_layout_test` replaces the app's providers between sizes, and the explorer waited forever on a workspace nobody reopened. b72da16 makes the explorer reopen it.
+  - **Phase gate 43007795087, attempt 1** (job 130479518569, 37 of 75 minutes): the `folders` group passed on its first try (`folders_group=pass`):
+    - **The picker:** DocumentsUI (`com.google.android.documentsui`) opened inside `cf-gate`. The driver tapped *Use this folder*, then *ALLOW* under "Allow CodeForge to access files in cf-gate?".
+    - **Part A** (26 s after the build): 20 disk checks and 3 listings, each as the test expected. The shorter text over the longer one left exactly `short\n` (`c962fa1b…`), and the editor's save left exactly its text. `Readme.md` became `README.md`, with no " (1)" and no temporary name left. The `..` paths were refused by the broker itself, the folder beside it and the Documents folder above both were refused as never granted, and a document URI was refused as no grant.
+    - The force-stop: "no dev.codeforge.app process after am force-stop — process death confirmed".
+    - **Part B** (7 s, 3 disk checks): the folder reopened by itself, so the grant survived. The file part A saved was there, and a new one landed. After the host deleted the folder, the explorer said it was missing. After an empty folder came back and the grant was released, the explorer said access was lost.
+    - The folder beside it still held the fixture's bytes (`secret.txt`, `015e8529…`).
+    - Every other group passed except `keys`, at its first step, as in W1's attempt 1: the injected tap (`tap 540 1256`, exit 0) did not focus the editor within 30 s. Cold start was 1168 ms (W1: 837 ms), and the release build's memory with the 1 MiB file open was 221.6 MB.
+  - **Attempt 2** (job 130497405290, 35 minutes): every group passed on its first try (`gate_result=pass`), `keys` included. The `folders` group passed again with the same 23 disk checks and 3 listings (part A 25 s, part B 6 s), and the backup group gave the same three results as in W1. Cold start was 1083 ms, and the release build's memory was 226.2 MB.
+  - **The `keys` step** has now failed at its first step in two of the last three attempts (W1's first and W2's first), and passed on each rerun. W2 changes nothing on its path: the test reaches the demo project through Home's button, which now goes through the workspace switcher, and the failure comes later, at the tap. The cause is still unknown. W3's first code commit makes the injector record which window has focus after each tap, the evidence W1 named as missing.
 
 ### W3 — Projects, recents and state (1–2 sessions) → G2, G5
 
