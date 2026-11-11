@@ -16,7 +16,11 @@
 #   coldstart*.txt / perf.json     G6 measurement (record-only)
 #   editing.txt                    Phase 2 W6 G5: find, replace, go to line
 #   keys.txt / keys_injector.txt   Phase 2 W6 G6: toolbar touches and hardware
-#                                  shortcuts, injected through adb (below)
+#                                  shortcuts, injected through adb (below);
+#                                  since Phase 3 W3 the injector also records
+#                                  which window had focus around each tap,
+#                                  and keys_first_tap_<run>.png the screen
+#                                  after each run's first tap
 #   backup.txt / backup_*.txt      Phase 3 W1 G6: Android backup on → restore,
 #                                  off → a fresh app (local transport)
 #   folders.txt / folders_*.txt    Phase 3 W2 G1: a folder from shared storage
@@ -330,8 +334,24 @@ press_chord() {
   esac
 }
 
+# Which window has focus, where Android sends the keyboard, and which
+# window the input dispatcher holds focused: what the keys step lacked when
+# its first tap went nowhere (gates 42862715744 and 43007795087, attempt 1
+# each, PHASE_3_PLAN As built W1 and W2). One line, the lines joined by ';'.
+window_focus() {
+  local window input
+  window=$(timeout 10 "$ADB" shell dumpsys window < /dev/null 2>/dev/null \
+    | tr -d '\r' \
+    | grep -E 'mCurrentFocus=|mFocusedApp=|imeInputTarget|imeControlTarget' \
+    | sed 's/^[[:space:]]*//' | sort -u | head -n 6 | paste -s -d ';' -)
+  input=$(timeout 10 "$ADB" shell dumpsys input < /dev/null 2>/dev/null \
+    | tr -d '\r' | grep -E -A1 'FocusedApplications|FocusedWindows' \
+    | sed 's/^[[:space:]]*//' | grep -v '^--$' | head -n 4 | paste -s -d ';' -)
+  echo "window: ${window:-nothing}; input: ${input:-nothing}"
+}
+
 key_injector() {
-  local last="" line id kind status
+  local last="" line id kind status run
   echo "injector: polling the log for requests ($(date +%T))"
   while :; do
     line=$("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null \
@@ -348,7 +368,27 @@ key_injector() {
     shift 2 || true
     # adb shell reads stdin; keep it off whatever the loop is reading.
     case "$kind" in
-      tap) "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null ;;
+      tap)
+        # Focus before and after the tap, and the screen after each run's
+        # first tap (the step that timed out). screencap draws nothing
+        # into the app and turns on no accessibility service, which
+        # uiautomator would (Flutter then builds its semantics tree).
+        echo "request $id: focus before the tap: $(window_focus)"
+        "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null
+        status=$?
+        sleep 0.5
+        echo "request $id: tap $* (exit $status, $(date +%T))"
+        echo "request $id: focus after the tap: $(window_focus)"
+        run="${id%%.*}"
+        if [ ! -f "$RESULTS/keys_first_tap_$run.png" ]; then
+          timeout 20 "$ADB" exec-out screencap -p < /dev/null \
+            > "$RESULTS/keys_first_tap_$run.png" 2>/dev/null \
+            || rm -f "$RESULTS/keys_first_tap_$run.png"
+          echo "request $id: screen after the first tap of run $run:" \
+            "keys_first_tap_$run.png ($(wc -c < "$RESULTS/keys_first_tap_$run.png" 2>/dev/null || echo 0) bytes)"
+        fi
+        continue
+        ;;
       key) "$ADB" shell input keyevent "${1:-}" < /dev/null ;;
       keys)
         if press_chord "$@"; then
