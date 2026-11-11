@@ -1,6 +1,6 @@
 # CodeForge Roadmap
 
-**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · Phase 2 accepted 2026-11-10 ([report](phases/PHASE_2_REPORT.md)) · **Phase 3 in progress** (W1 and W2 done): [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md)
+**Status:** Phase 0 complete (analysis) · Phase 1 accepted 2026-11-06 ([report](phases/PHASE_1_REPORT.md)) · Phase 2 accepted 2026-11-10 ([report](phases/PHASE_2_REPORT.md)) · **Phase 3 in progress** (W1, W2 and W3 done): [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md)
 **Rule:** no phase starts while the previous has unresolved critical issues; every phase exits with a report citing CI run ids (spec §8/§12).
 
 ---
@@ -27,7 +27,7 @@ P6 and P7 can run in parallel after P5/P4 respectively; P8 after P2+P5. P1–P3 
 | **0 — Audit & feasibility** ✅ | Understand t1; validate architecture | This doc set: audit + 11 ADRs + Phase 1 plan | Corrections: sealed≠Seald, 136 MB≠50 MB; Node 26 verified |
 | **1 — Foundation & design system** ✅ accepted 2026-11-06 (phone checks parked) | Premium navigable shell, CI alive | Home/workbench/settings + placeholders, adaptive 3 breakpoints, dark/light, goldens green, ci.yml green | Design tokens frozen (UI_DESIGN_SYSTEM v1.1, contrast-gated); G6 nav-frame profiling carried to Phase 2; ADR-0004 prep carried to Phase 2 |
 | **2 — Workbench & editor** ✅ accepted 2026-11-10 (phone checks parked; [report](phases/PHASE_2_REPORT.md)) | Real editing of local files | CM6 gate passed; multi-tab, save/restore, IME suite, kill-mid-edit zero loss, 1 MB perf | **ADR-0004 decided with numbers** (CodeMirror 6, 2026-11-06); large-file policy: plain text above 512 KiB, files over 10 MiB refused |
-| **3 — Workspace & files** 🟡 in progress, W1 and W2 done ([plan](phases/PHASE_3_PLAN.md)) | Project-based IDE | SAF open-folder, explorer CRUD, file watch, state survives restart, recents | Storage scoping security review |
+| **3 — Workspace & files** 🟡 in progress, W1, W2 and W3 done ([plan](phases/PHASE_3_PLAN.md)) | Project-based IDE | SAF open-folder, explorer CRUD, file watch, state survives restart, recents | Storage scoping security review |
 | **4 — Runtime integration** | Sealed userland alive | ExecModel+SealedShell gates green incl. **arm64 device** (Firebase Test Lab); versions via UI; ExecAudit=0; warm start ≤100 ms; search across files (ripgrep for projects, the app scans SAF folders) | **ADR-0006 terminal frontend** (by its rule), **ADR-0007 minSdk** (26 if the API 26–28 gate passes), **ADR-0011 license** decided by the phase's start |
 | **5 — Terminal & execution** | Write→run→output loop | Multi-session, Run File/Project (JS/Py/sh), flood-safe, kill-clean, E2E scenario part 1 | Native-addon limitation UX shipped |
 | **6 — Language intelligence** | ≥1 full LSP | Pyright or TS LSP under sealed Node: completion/diagnostics/goto/rename; restart-on-crash; p95 ≤300 ms | LSP server compatibility spike first |
@@ -60,7 +60,7 @@ On 2026-11-06 the owner parked every check that needs their phone. Where an emul
 | Memory on hardware (ADR-0004) | Phase 2 W7 | a phone and a computer with adb (`dumpsys meminfo`) | the gate's release-build measurement (224.6 MB) |
 | FULL against NORMAL on flash, and the save pause (ADR-0008) | Phase 2 W7 | the save pause: **a phone only, since Phase 3 W1** (the Developer action's files); FULL against NORMAL: a phone and adb, to time the store | the gate's session-store timings |
 | Backup with a real Google account | Phase 3 W1 (ADR-0012) | a phone with a Google account and device backup on, the W1 phone APK ([checklist](phases/PHASE_2_PHONE_CHECKLIST.md) §8.2) | the gate's `backup` group (Android's local transport) |
-| Folder picker and a folder workspace on the owner's phone | Phase 3 W2 | a phone, whose picker may differ from the emulator's | the gate's `folders` group |
+| Folder picker and a folder workspace on the owner's phone, and since W3 the picker opening at a folder's old place (*Reconnect*) | Phase 3 W2 | a phone, whose picker may differ from the emulator's | the gate's `folders` group, and since W3 the restore pair |
 | Impeller on hardware, if W6 switches to it | Phase 3 W6 | a phone, the profile APK | the gate run with Impeller |
 
 ## Owner decision queue (non-blocking for P1–P3)

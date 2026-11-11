@@ -16,7 +16,7 @@
 
 | Workflow | Trigger | Jobs | Gate? |
 |---|---|---|---|
-| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (from Ph. 4) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check | PR merge blocker |
+| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (since Phase 3 W1) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check | PR merge blocker |
 | `phase-gate.yml` | `[phase-gate]` in the head commit message (manual dispatch once on `main`) | emulator integration tests on API 36 x86_64 `google_apis` (KVM) incl. the process-death restore pair · cold-start measurement on a release x86_64 APK · size report (`perf.json`) | phase exit blocker |
 | `runtime-gates.yml` | changes under native/, runtime/ (Ph. 4+; no nightly run, ADR-0009 amendment) | payload build (pins verified) · `ExecModelTest` + `SealedShellTest` on 34/36 · `ExecAudit`=0 · page-alignment check · bundle-size check · arm64 device leg (Firebase Test Lab, see §4) | release blocker |
 | `release.yml` | version tag `v*` | build GitHub "full" APK (arm64 + x86_64) · build Play AAB (arm64 base + PFD pack) · sign (secrets) · hashes + pins manifest · GitHub Release draft · Play upload to internal track (manual promote) | — |
@@ -63,6 +63,16 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   8. The edit pair: `edit_a` → renderer crash → `am force-stop` → `edit_b`.
 
   The release x86_64 APK serves the cold start and the large-file group's release-memory step. The benchmark pages and the profile arm64 APK for phone runs are built after it (§2.1). The final Phase 2 gate, 42676631509, took 29 minutes, and the final CI run, 42678576228, 7 minutes.
+
+### 2.3 Added in Phase 3
+
+- **Kotlin unit tests** (`ci.yml`, since W1): `:app:testDebugUnitTest` (JUnit 4) runs the backup agent's tests (W1) and the storage broker's (W2), 44 in all at W3. The counts go to `ci-results/kotlin-tests.txt`, and the quality gate fails on a failure or on no tests.
+- **Generated code check:** since W2 it covers Pigeon's output (`pigeons/storage_api.dart`, generated into Dart and Kotlin) and fails when a generator fails. Since schema v2 (W3) that includes Drift's migration steps (`app_database.steps.dart`), which exist from the second schema version on.
+- **The phase gate's groups** after the edit pair:
+  9. `backup` (W1, G6): `backup_a` → a backup → a reinstall → `backup_b` → a backup → a reinstall → `backup_c`, through Android's local transport.
+  10. `folders` (W2, G1): `folders_a` → `am force-stop` → `folders_b`, with Android's folder picker driven from the host, and the host's disk checks.
+
+  Since W3 the restore pair opens a folder through the same picker driver, and its part B switches workspaces. Since W3 the gate also hides Android's error dialogs after boot (`hide_error_dialogs`): in gate 43069846571, System UI's *Application Not Responding* dialog took the keys group's tap. A full run took 33 minutes at W1 (42862715744), 37 at W2 (43007795087, attempt 1) and 38 to 39 at W3 (43069846571, 43076652650).
 
 ## 3. Toolchain pins in CI
 

@@ -180,7 +180,7 @@ The host is a **thin orchestration layer**: it contains no provisioning logic of
 | Credentials (Git tokens, SSH keys) | Android Keystore-backed encrypted store | Phase 7 | never in plain prefs, never logged |
 | Extension manifests/permissions | Drift + files | Phase 8 | signed manifest hash, explicit grants |
 
-As built (W4): workspace files live in `<filesDir>/workspaces/demo`. As built (W5): open tabs, the active tab, each tab's cursor and scroll, and the journal of unsaved text live in `<filesDir>/codeforge.sqlite` (schema v1, §2.6). The shell envelope keeps the route, layout and terminal state.
+As built (W4): workspace files live in `<filesDir>/workspaces/demo`. As built (W5): open tabs, the active tab, each tab's cursor and scroll, and the journal of unsaved text live in `<filesDir>/codeforge.sqlite` (schema v1, §2.6). The shell envelope keeps the route, layout and terminal state. Since Phase 3: projects live in `<filesDir>/workspaces/<name>`, one folder each, and folders from shared storage are reached through the storage broker (W2, SECURITY §4.1). Schema v2 (W3, ADR-0008) adds each workspace's kind and place, which Home's recents show, and each workspace's explorer view. The shell envelope also names the open workspace.
 
 Backward compatibility rule (spec §12.19): every schema change ships a migration + a migration test; workspace data written by version N must open in N+1.
 

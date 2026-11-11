@@ -4,6 +4,15 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 3 W3, projects, recents and state (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md))
+- **Projects:** *New Project* on Home creates one in the app's own storage, empty or with the demo project's files. From its menu a project is renamed (its tabs and unsaved text follow) or deleted, after a question that says how many files it deletes and, when there are any, how many files' unsaved changes it discards.
+- **Home is the launcher:** New Project, Open Folder, the demo project, and the recents. The recents list every project and folder opened, most recent first, each with its kind, its place and whether it is available, missing, or no longer accessible.
+- **Reconnect** reopens the folder picker at a folder's old place. A different folder replaces the entry only after you agree. **Remove from recents** gives the folder's access back to Android; its files stay.
+- **Each workspace keeps its tabs, unsaved text, expanded folders and explorer scroll** when you switch, and a cold start brings back the last workspace with all of it. A workspace that went missing or lost its access opens Home instead, which says so.
+- **Database schema v2,** the first migration: data written by earlier builds opens with nothing lost, and folders opened before find their places again, from the app's grants or the folder that was open ([ADR-0008](adr/0008-persistence.md)).
+- **Tests:** project storage on a real folder, the switching and the recents, Home's launcher, the migration from a v1 file, and the explorer's view. The phase gate's restore pair now opens a folder through Android's real picker, leaves unsaved text in it and in a project, and after the process death checks both, switching between them. The keyboard step records which window has focus around each tap.
+- W3 verified by CI 43069846481 (`+687: All tests passed!`, Kotlin 44 of 44) and phase gate 43076652650, which passed every group on its first try (gates G2 and G5; the restore pair with a folder workspace). The gate before it, 43069846571, passed every group but the keyboard test. Its new focus record showed System UI's *Application Not Responding* dialog holding the window focus, so the injected tap never reached the app. The gate now hides Android's error dialogs.
+
 ### Decisions by the owner on the open items from Phases 0–2 (2026-11-11)
 - **Licence (ADR-0011):** decided by Phase 4's start. Until then: no licence file, nothing GPL-derived vendored, no binary release.
 - **Terminal (ADR-0006):** the ADR's rule stands: Termux's terminal view if the licence is GPLv3 and it passes Phase 4's arm64 gate, otherwise xterm.js.

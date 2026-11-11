@@ -175,9 +175,10 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
         // Version 1 knew the demo project and, from Phase 3 W2, folders by
-        // a hash of their URI ("folder-…"), but not where a folder is: the
-        // open one's place reaches its row when it opens again, and the
-        // others can be reconnected from Home.
+        // a hash of their URI ("folder-…"), but not where a folder is:
+        // Home's recents find the places again, among the app's grants and
+        // in the shell's open folder (recents_controller.dart), and a
+        // folder found in neither can be reconnected.
         await migrator.addColumn(workspaces, workspaces.kind);
         await migrator.addColumn(workspaces, workspaces.location);
         await migrator.addColumn(workspaces, workspaces.displayPath);

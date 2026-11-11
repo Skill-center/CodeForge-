@@ -2,13 +2,13 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 2, the workbench and code editor, was accepted on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)). Phase 3, workspace and files, is in progress ([plan](docs/phases/PHASE_3_PLAN.md)): W1 made Android backup the user's choice, off by default, and W2 opens folders on the device through Android's own picker, with no storage permission.** CodeForge edits real files:
+> **Status: Phase 2, the workbench and code editor, was accepted on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)). Phase 3, workspace and files, is in progress ([plan](docs/phases/PHASE_3_PLAN.md)): W1 made Android backup the user's choice, off by default; W2 opens folders on the device through Android's own picker, with no storage permission; and W3 adds projects and Home's recents, with each workspace's tabs, unsaved text and explorer view kept across switches and restarts.** CodeForge edits real files:
 > - CodeMirror 6 runs in a hardened Android System WebView.
 > - Many tabs can be open, each with its own cursor, scroll and undo.
 > - Find and replace, go to line, a symbol toolbar on the soft keyboard, and hardware shortcuts.
 > - Unsaved text survives the app being killed.
 >
-> Projects and recents, explorer operations and file watching arrive later in Phase 3, the runtime and the terminal in Phases 4–5, and the screens say so honestly. Every claim is backed by a CI run: see the **[Phase 2 Report](docs/phases/PHASE_2_REPORT.md)** and the Phase 3 plan's *As built* sections.
+> Explorer operations and file watching arrive later in Phase 3, the runtime and the terminal in Phases 4–5, and the screens say so honestly. Every claim is backed by a CI run: see the **[Phase 2 Report](docs/phases/PHASE_2_REPORT.md)** and the Phase 3 plan's *As built* sections.
 
 ---
 

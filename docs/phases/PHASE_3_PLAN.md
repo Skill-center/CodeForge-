@@ -1,6 +1,6 @@
 # Phase 3 Implementation Plan — Workspace & Files
 
-**Status:** **In progress** (2026-11-11): W1 done (CI 42862715832, phase gate 42862715744) and W2 done (CI 43007795037, phase gate 43007795087), see *As built (W1)* and *As built (W2)*; the owner's "next" starts W3; the owner decided the open items from Phases 0–2 on 2026-11-11 (§0) · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **In progress** (2026-11-11): W1 done (CI 42862715832, phase gate 42862715744), W2 done (CI 43007795037, phase gate 43007795087) and W3 done (CI 43069846481, phase gate 43076652650), see *As built (W1)*, *(W2)* and *(W3)*; the owner's "next" starts W4; the owner decided the open items from Phases 0–2 on 2026-11-11 (§0) · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 3 (Workspace & File Management), §7 (security claims), §12.19 (stored data survives upgrades) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §2.5, §3 and §4, [ADR-0001](../adr/0001-flutter-kotlin-hybrid.md) (SAF belongs to the Kotlin host), [ADR-0008](../adr/0008-persistence.md) (Drift), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) §4 (storage model) · **Security:** [SECURITY.md](../SECURITY.md) §1 and §4 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -310,6 +310,58 @@
 **Emulator:** the restore pair grows a folder workspace.
 - `restore_a` opens a SAF folder through the picker driver, edits without saving and expands folders. It also leaves unsaved text in a project. Then the app is force-stopped.
 - `restore_b` checks the workspace, the tabs, the unsaved text and the expanded folders. It then switches to the project and back, and both unsaved texts must survive.
+
+**As built (W3):**
+- **The keys flake, found.** The first W3 commit (a3ad26e) makes the keys injector record, before and after each tap, which window has the focus, where the keyboard goes and which window the input dispatcher holds focused (`dumpsys window`, `dumpsys input`). It also keeps the screen after each run's first tap.
+  - In gate 43069846571 (below) the step failed again at its first tap, and the record says why. Before and after the tap, the focused window was System UI's *Application Not Responding* dialog, so the tap and every key went to the dialog, never to the app.
+  - The other groups drive the app from inside: Flutter's integration tests put their input straight into the app, so a dialog over it does not stop them. By the time the restore pair and the `folders` group drove Android's picker, the dialog had gone: both picks went through. The screenshot came out black, so it shows nothing (the emulator draws with SwiftShader, without a window).
+  - **The fix** (commit 0c4337f): after boot the gate sets `hide_error_dialogs`, so Android ends a process that stops responding instead of asking. System UI starts again, and an ANR of the app itself ends the app, which its test then sees. The injector also closes system dialogs if an error dialog still has the focus before a tap, and `keys_events.txt` lists every ANR and crash since boot.
+  - **With the fix,** gate 43076652650 passed `keys` on its first try, and all 5 of its taps found the app's window focused, before and after. The event log held 2 ANRs since boot and no crash. Both ANRs were Google Play services processes that failed to complete startup, 5 minutes before the first tap. The record can't tell whether either would have put a dialog over the app without the fix.
+  - Whether the failed attempts of W1's and W2's gates had the same cause is not known, since they had no focus record. The symptom was the same: a tap that exited 0 and focused nothing.
+- **Drift schema v2** (ADR-0008), the first migration:
+  - `workspaces` gains `kind`, `location` (a project's folder name, or a folder's tree URI) and `display_path`. A new `workspace_views` table keeps each workspace's expanded folders and explorer scroll.
+  - The step adds them, marks W2's `folder-…` rows as folders, and gives each project its id as its folder (v1's only project was the demo).
+  - v1 never recorded where a folder is. Home's recents find the place among the app's grants, whose URIs hash to the same ids, or in the shell's open folder, and store it. A folder found in neither shows *access lost* and can be reconnected.
+  - CI's bootstrap generated the v2 dump, `schema_v2.dart` and `app_database.steps.dart`. `migration_test.dart` is written by hand, so drift_dev's `make-migrations` leaves it alone: the verifier checks 1 → 2, and a v1 file with a row in every table, written with v1's own SQL, opens in v2 with nothing lost.
+  - **The database now holds folders' tree URIs** (`workspaces.location`), which W2's *As built* said it never did: Home needs them to check and reopen each folder. They stay in the app's private storage, like the shell envelope's open folder (SECURITY §4.1, S5).
+- **Projects** (`services/files/project_storage.dart`):
+  - A project is `<filesDir>/workspaces/<name>`, its folder named after it. Its id is random (`project-` and 16 hex digits), so it never changes with the name; a project folder found without a record gets an id made from its folder name.
+  - A new project is written under a hidden name (`.staging-…`) and renamed into place. A deleted one is renamed away (`.deleting-…`) before it is emptied, and a rename that changes only the case goes through `.rename-…`. Hidden and half-written folders are not projects, and names are compared without case.
+  - `projectNameProblem` adds the project rules to `nameProblem`, the name rule files and folders share (`core/files/workspace_path.dart`): no leading `.`, no leading or trailing space, `demo` and the staging suffix reserved, and no name that differs from another project's only in case.
+  - `WorkspaceSwitcher`: `createProject`, empty or with the demo project's files; `renameProject`, the folder and then the record, where a record that can't be written puts the folder back; `deleteProject`, whose open documents close first, then the folder goes, then everything kept for it (tabs, journal, view, record). When the deleted project was open, the demo project opens in its place.
+  - Another project's missing folder is reported as missing and never recreated. The demo project is written again when its folder is gone, and it can be deleted but not renamed.
+- **Home is the launcher** (`features/home/`): New Project (a name dialog, with a switch for the demo project's files), Open Folder…, the demo project's card, and the recents (`application/recents_controller.dart`).
+  - Each entry shows its name, *Project* or *Folder* with its place (`CodeForge projects/<name>`, or the folder's place read from its URI, such as `Internal storage/Documents/cf-gate`), and a status: *available*, *missing* (a project), *folder missing* or *access lost*. There is no status while the check runs. Folders are checked through the broker.
+  - The menu: Open; Rename… and Delete… for projects; Reconnect… and Remove from recents… for folders. Delete's question gives the number of files, and the number of documents with unsaved changes when there are any.
+  - Reconnect opens the picker at the folder's old place, the folder itself as its provider's document (`folderPickerStart`). The same folder reconnects at once. Another one asks *Replace …?* first; the entry then keeps its id, so its tabs, unsaved text and view follow, and the old place's grant is given back. Turned down, the folder picked is given back. A folder already in the recents under another entry is refused.
+  - Remove from recents gives the grant back and forgets the folder; its files stay. A folder that fails to open says why in a snack bar with a *Reconnect* action.
+  - W2's *Continue in <folder>* is gone: the recents replace it.
+- **Switching and restarting:**
+  - The shell envelope's `workspace`, a project or a folder, replaces W2's `folder`, which still reads.
+  - The explorer's view (`application/explorer_view_controller.dart`): each workspace's expanded folders and scroll, stored 400 ms after a change, and at once when the app goes to the background or another workspace opens. The explorer scrolls back once the folders it needs are listed: at most 50 tries, 100 ms apart, counted rather than timed, so a test's fake clock behaves the same.
+  - A cold start into a missing or inaccessible workspace lands on Home, with a snack bar that says why.
+- **Found by CI, fixed before the gate counted:**
+  - **cef5155** (CI 43064976154, `+492 -20`): one analyzer error, a missing import in `explorer_view_controller.dart`, kept 20 suites from compiling.
+  - **1e721a8** (CI 43067325867, `+684 -3`): `explorer_view_test` caught the explorer's view carrying one workspace's expanded folders into the next. Riverpod keeps a notifier object across rebuilds, and with it its fields. 3bdb685 resets them in each build, after the old view is stored, and drops a stored view that arrives after another workspace opened. The gate run started with 1e721a8 (43067325895) was cancelled after its first three groups, since its restore pair would have met the same bug.
+  - In the same run, two accessibility tests of Home with recents found none on short screens (one of them at 800×360): Home is a lazy list, and the tests now scroll to them first.
+- **Emulator: the restore pair grows a folder workspace** (TESTING §1.3):
+  - Part A starts from a clean slate, so its retries stand. It leaves unsaved text in the demo project's `app.py`, writes 40 files into its `docs` folder, expands `src` and `docs` and scrolls the explorer. Then it opens the gate folder through Android's real picker, driven by the host as in the `folders` group, and leaves unsaved text in `src/app.js` with `src` and `src/lib` expanded.
+  - Part B finds the folder open after the kill, with its unsaved tab and expanded folders, and Home's recents with both workspaces. It switches to the project, whose tabs, unsaved text, expanded folders and scroll come back, and then back to the folder. Last, the host confirms that `src/app.js` on disk is still the fixture's.
+  - Part B runs once per pair, because it switches workspaces. The pair pushes the `folders` group's fixture and runs its own picker driver, and the device log is cleared after it.
+- **Evidence:**
+  - **CI 43069846481** (commit 3bdb685):
+    - `01:37 +687: All tests passed!` (631 at W2), and the analyzer found no issues. Kotlin: `kotlin_tests=44 failures=0 errors=0`.
+    - Goldens: `+22: All tests passed!`. 1e721a8's bootstrap regenerated Home's eight baselines for the launcher, and 3bdb685's reproduced them unchanged.
+    - *Generated code check*: the generators exited with status 0, and no committed copy differed, the v2 dump and helpers included.
+    - Coverage of hand-written code: 6297/7068 lines (89.1 %; 87.9 % at W2).
+  - **Phase gate 43069846571** (commit 3bdb685, job 130694447406, 39 of 75 minutes): every group passed on its first try except `keys` (above).
+    - **The restore pair:** part A took 28 s after the build. It asked for the picker once, and the driver answered `picked`; part A then left the folder open with 1 tab, unsaved text in both workspaces and 2 recents. The force-stop: "no dev.codeforge.app process after am force-stop — process death confirmed".
+    - Part B took 14 s: the folder, its unsaved text and expanded folders came back; the project kept its tabs, unsaved text and explorer scroll; and the host found `src/app.js` with the fixture's SHA-256 (`3c58a542…`). The log file held part A's last record ahead of part B's session marker.
+    - `folders` passed on its first try (23 disk checks, 3 listings), the backup group gave the same three results as in W1 and W2, and the edit pair passed. Cold start was 1372 ms (W2: 1168 and 1083 ms; budget 1500 ms), and the release build's memory with the 1 MiB file open was 226.4 MB.
+  - **Phase gate 43076652650** (commit 0c4337f, which changes only the gate script; job 130718108467, 38 of 75 minutes): every group passed on its first try (`gate_result=pass`), `keys` included (above).
+    - The restore pair passed again with the same checks: part A in 25 s, part B in 13 s, one pick, and the fixture's SHA-256 on disk after both parts.
+    - `folders` passed again with 23 disk checks and 3 listings, and the backup group gave the same three results. Cold start was 1177 ms, and the release build's memory with the 1 MiB file open was 225.6 MB.
+  - **CI 43076652940** (commit 0c4337f) passed.
 
 ### W4 — Explorer operations and navigation (2 sessions) → G3
 
