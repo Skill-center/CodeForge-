@@ -19,7 +19,7 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - **A folder that is gone, or whose access was taken back, says so,** on Home and in the explorer, without a crash.
 - **The storage broker,** the Android host's only code that touches shared storage, behind a typed Pigeon API: every path checked again in Kotlin and walked from the folder's root, names Android's storage would change detected and undone, size limits whatever a provider claims, and a time limit on every call. Its security review is SECURITY §4.1.
 - **Tests:** 37 Kotlin unit tests against an in-memory provider with the quirks of Android's own; Dart tests of the folder file service, the switching and Home. The phase gate gains a `folders` group: the real picker, driven from the host, and every listing, read, write, create, rename, move, copy and delete checked on disk, then a process death, a deleted folder and a released grant.
-- W2 verified by CI 43007795037 (`+631: All tests passed!`, Kotlin 44 of 44) and phase gate 43007795087,. Its `folders` group passed on its first try in both attempts (gate G1). Attempt 2 passed every group; attempt 1 failed only the W6 keyboard test at its first step, as W1's first attempt did.
+- W2 verified by CI 43007795037 (`+631: All tests passed!`, Kotlin 44 of 44) and phase gate 43007795087. Its `folders` group passed on its first try in both attempts (gate G1). Attempt 2 passed every group; attempt 1 failed only the W6 keyboard test at its first step, as W1's first attempt did.
 
 ### Added — Phase 3 W1, owner items and carry-overs (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md))
 - **Android backup is now the user's choice, off by default** ([ADR-0012](adr/0012-backup-opt-in.md)):

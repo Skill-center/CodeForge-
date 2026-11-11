@@ -258,7 +258,7 @@
     - The folder beside it still held the fixture's bytes (`secret.txt`, `015e8529…`).
     - Every other group passed except `keys`, at its first step, as in W1's attempt 1: the injected tap (`tap 540 1256`, exit 0) did not focus the editor within 30 s. Cold start was 1168 ms (W1: 837 ms), and the release build's memory with the 1 MiB file open was 221.6 MB.
   - **Attempt 2** (job 130497405290, 35 minutes): every group passed on its first try (`gate_result=pass`), `keys` included. The `folders` group passed again with the same 23 disk checks and 3 listings (part A 25 s, part B 6 s), and the backup group gave the same three results as in W1. Cold start was 1083 ms, and the release build's memory was 226.2 MB.
-  - **The `keys` step** has now failed at its first step in two of the last three attempts (W1's first and W2's first), and passed on each rerun. W2 changes nothing on its path: the test reaches the demo project through Home's button, which now goes through the workspace switcher, and the failure comes later, at the tap. The cause is still unknown. W3's first code commit makes the injector record which window has focus after each tap, the evidence W1 named as missing.
+  - **The `keys` step** has now failed at its first step in two of the last four attempts, the first attempt of W1's gate and of W2's, and passed on each rerun. W2 changes nothing on its path: the test reaches the demo project through Home's button, which now goes through the workspace switcher, and the failure comes later, at the tap. The cause is still unknown. W3's first code commit makes the injector record which window has focus after each tap, the evidence W1 named as missing.
 
 ### W3 — Projects, recents and state (1–2 sessions) → G2, G5
 
