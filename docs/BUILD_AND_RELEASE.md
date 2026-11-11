@@ -72,7 +72,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   9. `backup` (W1, G6): `backup_a` → a backup → a reinstall → `backup_b` → a backup → a reinstall → `backup_c`, through Android's local transport.
   10. `folders` (W2, G1): `folders_a` → `am force-stop` → `folders_b`, with Android's folder picker driven from the host, and the host's disk checks.
 
-  Since W3 the restore pair opens a folder through the same picker driver, and its part B switches workspaces. Since W3 the gate also hides Android's error dialogs after boot (`hide_error_dialogs`): in gate 43069846571, System UI's *Application Not Responding* dialog took the keys group's tap. A full run took 33 minutes at W1 (42862715744), 37 at W2 (43007795087, attempt 1) and 38 to 39 at W3 (43069846571, 43076652650).
+  Since W3 the restore pair opens a folder through the same picker driver, and its part B switches workspaces. Since W3 the gate also hides Android's error dialogs after boot (`hide_error_dialogs`): in gate 43069846571, Android's *Application Not Responding* dialog for System UI took the keys group's tap. A full run took 33 minutes at W1 (42862715744), 37 at W2 (43007795087, attempt 1) and 38 to 39 at W3 (43069846571, 43076652650).
 
 ## 3. Toolchain pins in CI
 
