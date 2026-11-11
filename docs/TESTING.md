@@ -13,8 +13,8 @@
 | Bridge contract | Dart test + vitest, shared JSON fixtures | every message type round-trips; unknown version/type rejected | every PR touching protocol |
 | JS unit | vitest | CM6 change-set apply/rebase, protocol validation, search regex semantics | every PR touching editor/ |
 | Kotlin/JVM unit | Gradle `test` | host services with fakes; vendored sealed-runtime tests unchanged | every PR touching android/native |
-| Android instrumented | `connectedAndroidTest` on emulator | Pigeon channels end-to-end, SAF flows, WebView bridge, lifecycle/process-death | nightly + phase gates |
-| Runtime gates | ported `ExecModelTest`/`SealedShellTest` | exec model + sealed userland on API 34/36 x86_64 **and arm64 device** | Phase 4 gate, then nightly |
+| Android instrumented | `connectedAndroidTest` on emulator | Pigeon channels end-to-end, SAF flows, WebView bridge, lifecycle/process-death | phase gates (no nightly run, §5) |
+| Runtime gates | ported `ExecModelTest`/`SealedShellTest` | exec model + sealed userland on API 34/36 x86_64 **and arm64 device** (Firebase Test Lab, ADR-0009) | Phase 4 gate, then every phase gate |
 | E2E workflow | `integration_test` | spec §10 scenario: open project → create file → edit → save → run → output → edit → commit | phase gates from Ph. 5/7 |
 | Performance | benchmark suite (PERFORMANCE.md) | startup, editor latency, memory, terminal flood, large files | phase gates + release |
 
@@ -120,8 +120,8 @@ External keyboard tests: hardware keymap suite on tablet + phone (OTG/BT). IME m
 ## 5. CI integration
 
 - PR pipeline: analyze + unit + widget + contract + JS + JVM tests + debug build. Target < 15 min.
-- Nightly: instrumented emulator suite + runtime gates + perf smoke.
-- Phase gates: full matrix incl. arm64 device runs (self-hosted or owner device via `adb` over network for gates; documented in BUILD_AND_RELEASE.md).
+- ~~Nightly: instrumented emulator suite + runtime gates + perf smoke.~~ No nightly run, by the owner's decision (2026-11-11): they run in the phase gate, once per work package.
+- Phase gates: full matrix incl. arm64 device runs: from Phase 4 on Firebase Test Lab for the tests that need no computer attached, and in the owner's phone sessions for the rest (ADR-0009, amended 2026-11-11; BUILD_AND_RELEASE §4).
 - **As built through Phase 2:**
   - `ci.yml` runs the Flutter and editor jobs on every push, in about 7 minutes.
   - The emulator suite runs in `phase-gate.yml` on every `[phase-gate]` commit (11 groups, about 29 minutes), not nightly.

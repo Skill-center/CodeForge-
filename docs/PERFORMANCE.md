@@ -44,7 +44,7 @@ Rule carried from t1: **unique-inode bytes are storage truth** (hardlinks make n
 
 `app/integration_test/bench/` + `scripts/perf/`: startup, editor latency (synthetic typing driver), large-file (1 MB/5 MB) open+scroll, terminal flood, workspace tree (10k files) render, search (100 MB corpus) timing, memory sampling. Runs nightly on emulator (relative regression detection, ±15% alert) and on the mid-range arm64 device at phase gates (absolute budgets). Results appended to `docs/phases/PHASE_N_REPORT.md`; release requires no red budget.
 
-As built in Phase 2: the phase gate runs two benchmarks on the KVM emulator, on every `[phase-gate]` commit (not nightly yet):
+As built in Phase 2: the phase gate runs two benchmarks on the KVM emulator, on every `[phase-gate]` commit (no nightly run, by the owner's decision of 2026-11-11):
 - **The editor engine benchmark** (W3): `app/integration_test/editor_bench_test.dart` plus the DevTools driver `editor/tool/bench_cdp.mjs`. It writes `app/ci-results/gate/editor_bench.json`; the method is in EDITOR_ARCHITECTURE.md §1.
 - **The large-file group** (W7): `app/integration_test/large_files_test.dart` plus `editor/tool/large_cdp.mjs`. At 1, 5 and 10 MiB it records the open, the page's work, long tasks, scrolling, typing, memory and the save. It also records the session store's write costs and a release build's memory with a 1 MiB file restored. It writes `large_files.json`/`.txt`; the method is in EDITOR_ARCHITECTURE.md §10.
 

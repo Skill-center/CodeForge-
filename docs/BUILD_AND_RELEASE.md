@@ -8,7 +8,7 @@
 
 1. **Evidence gates, not status badges.** Every release-blocking claim (exec model, bundle size, tests) is a CI job that uploads machine-readable results; phase reports cite run ids. t1's `assert-gate-results.py` pattern is reused: a gate that can't produce its evidence file fails.
 2. **Fail closed.** Unsigned release artifacts are labeled and never published; bundle tasks refuse targetSdk < 36 (t1 guard carried over); size gate fails on per-device > 200 MB.
-3. **PRs are cheap, gates are thorough.** PR pipeline < 15 min; heavy emulator/runtime gates nightly + at phase boundaries.
+3. **PRs are cheap, gates are thorough.** PR pipeline < 15 min; heavy emulator/runtime gates once per work package and at phase boundaries (no nightly run: owner decision 2026-11-11, ADR-0009 amendment).
 4. **Artifacts, not diagnostics branches.** t1 published evidence to hundreds of `diagnostics/*` branches; CodeForge uses workflow artifacts + job summaries (retention 90 days) and a single `ci-evidence` orphan branch only for gate JSON history if needed.
 5. **Reproducibility:** pinned toolchains (Flutter version file, Gradle wrapper, NDK pin, Node version file, lockfiles), pinned bootstrap/package SHA-256s; release notes record all pins + bundle hashes.
 
@@ -18,7 +18,7 @@
 |---|---|---|---|
 | `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (from Ph. 4) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check | PR merge blocker |
 | `phase-gate.yml` | `[phase-gate]` in the head commit message (manual dispatch once on `main`) | emulator integration tests on API 36 x86_64 `google_apis` (KVM) incl. the process-death restore pair · cold-start measurement on a release x86_64 APK · size report (`perf.json`) | phase exit blocker |
-| `runtime-gates.yml` | changes under native/, runtime/ + nightly (Ph. 4+) | payload build (pins verified) · `ExecModelTest` + `SealedShellTest` on 34/36 · `ExecAudit`=0 · page-alignment check · bundle-size check · arm64 device leg (self-hosted runner, see §4) | release blocker |
+| `runtime-gates.yml` | changes under native/, runtime/ (Ph. 4+; no nightly run, ADR-0009 amendment) | payload build (pins verified) · `ExecModelTest` + `SealedShellTest` on 34/36 · `ExecAudit`=0 · page-alignment check · bundle-size check · arm64 device leg (Firebase Test Lab, see §4) | release blocker |
 | `release.yml` | version tag `v*` | build GitHub "full" APK (arm64 + x86_64) · build Play AAB (arm64 base + PFD pack) · sign (secrets) · hashes + pins manifest · GitHub Release draft · Play upload to internal track (manual promote) | — |
 | `deps.yml` | monthly cron | dependency update PR (pub/npm/gradle) with full ci.yml | — |
 
@@ -73,7 +73,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 ## 4. Device testing
 
 - **Emulators (CI-owned):** x86_64 API 34 & 36 — correctness gates (t1-proven).
-- **arm64 hardware (owner device or self-hosted runner):** required for Phase 4 exit (sealed-on-arm64 gap R2), perf budgets, IME matrix, release sign-off. Setup: a self-hosted GitHub Actions runner on a machine with the device attached (`adb`), labeled `arm64-device`; jobs tagged `runs-on: [self-hosted, arm64-device]`. Until a runner exists, gate jobs produce a **manual-checklist artifact** and the phase report records device + build hash + operator — never a silent skip.
+- **arm64 hardware:** required for Phase 4 exit (sealed-on-arm64 gap R2), perf budgets, IME matrix, release sign-off. **Owner decision 2026-11-11 (ADR-0009 amendment):** Firebase Test Lab's physical devices run the tests that need no computer attached (the runtime's instrumentation tests, the in-app benchmark) from a CI job (`gcloud firebase test android run`), with one CI credential the owner adds by Phase 4. The host-driven checks (the folder picker, the key injector, `adb`-timed measurements) stay on the emulator, and the owner's phone sessions cover the rest: those produce a **manual-checklist artifact**, and the phase report records device + build hash + operator — never a silent skip. *(Superseded plan: a self-hosted GitHub Actions runner on a machine with the device attached, labeled `arm64-device`. GitHub advises against self-hosted runners on public repositories.)*
 
 ## 5. Versioning & artifacts
 

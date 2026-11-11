@@ -2,13 +2,13 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 2, the workbench and code editor, was accepted on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)). Phase 3, workspace and files, is planned ([plan](docs/phases/PHASE_3_PLAN.md)).** CodeForge now edits real files:
+> **Status: Phase 2, the workbench and code editor, was accepted on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)). Phase 3, workspace and files, is in progress ([plan](docs/phases/PHASE_3_PLAN.md)): W1 made Android backup the user's choice, off by default, and W2 opens folders on the device through Android's own picker, with no storage permission.** CodeForge edits real files:
 > - CodeMirror 6 runs in a hardened Android System WebView.
 > - Many tabs can be open, each with its own cursor, scroll and undo.
 > - Find and replace, go to line, a symbol toolbar on the soft keyboard, and hardware shortcuts.
 > - Unsaved text survives the app being killed.
 >
-> For now, files live in the app's own workspace folder. Opening folders elsewhere on the device, the runtime and the terminal arrive in Phases 3–5, and the screens say so honestly. Every claim is backed by a CI run: see the **[Phase 2 Report](docs/phases/PHASE_2_REPORT.md)**.
+> Projects and recents, explorer operations and file watching arrive later in Phase 3, the runtime and the terminal in Phases 4–5, and the screens say so honestly. Every claim is backed by a CI run: see the **[Phase 2 Report](docs/phases/PHASE_2_REPORT.md)** and the Phase 3 plan's *As built* sections.
 
 ---
 
@@ -25,7 +25,7 @@
 | [Tech Stack](docs/TECH_STACK.md) | Every dependency, verified versions, rejection reasons |
 | [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
 | [Roadmap](docs/ROADMAP.md) | Phases 0–10, dependencies, decision queue |
-| [ADRs](docs/adr/) | 11 architecture decision records |
+| [ADRs](docs/adr/) | 12 architecture decision records |
 
 ## The foundation
 
@@ -33,13 +33,14 @@ CodeForge stands on an audited, device-proven asset: the **[t1 coding harness](h
 
 Key audit corrections: "Seald" → **sealed** build model; the "~50 MB app" → measured **136 MB base AAB / ~360–380 MB installed** (budgets set accordingly); Node 26 ✅ verified.
 
-## Locked decisions (2026-11-05)
+## Locked decisions (2026-11-05; open items decided 2026-11-11)
 
 - Flutter UI + Kotlin host + vendored t1 runtime modules (Pigeon/EventChannel boundary)
-- Sealed execution model only · compileSdk/targetSdk **36** · minSdk **26** (Phase 4 reconciliation gate)
+- Sealed execution model only · compileSdk/targetSdk **36** · minSdk **26**, to be verified by the Phase 4 reconciliation gate (owner decision 2026-11-11)
 - Riverpod 3 · GoRouter 18 · Drift (Phase 2+) · CodeMirror 6 primary editor candidate (device gate vs Monaco) — *chosen 2026-11-06 ([ADR-0004](docs/adr/0004-editor-engine.md))*
 - GitHub Actions as the build authority · GitHub Releases first, Play-compatible AAB second
-- License: pending owner decision (ADR-0011) — release-gating, not development-blocking
+- License: the owner decides by Phase 4's start (ADR-0011) — release-gating, not development-blocking; the terminal frontend follows it (ADR-0006)
+- arm64 device runs on Firebase Test Lab from Phase 4 (ADR-0009) · Play Console prepared at Phase 4 (ADR-0010) · all work stays on the working branch until v1 ([ROADMAP](docs/ROADMAP.md))
 
 ## Repository layout (today)
 

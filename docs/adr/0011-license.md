@@ -1,6 +1,6 @@
 # ADR-0011: License — pending owner decision; GPLv3 exposure mapped; release-gating
 
-**Status:** Pending (owner) · 2026-11-05 · Blocks: first binary release, terminal frontend final choice (ADR-0006)
+**Status:** Pending (owner) · 2026-11-05 · Blocks: first binary release, terminal frontend final choice (ADR-0006) · **2026-11-11:** the owner confirmed that the decision is made by Phase 4's start, and the interim rules stay until then
 
 ## Context
 Owner chose "decide later". The audit found:
@@ -25,4 +25,4 @@ Owner chose "decide later". The audit found:
 ## Consequences
 - Phase 1–3 proceed unblocked (no vendored runtime yet).
 - The terminal frontend gate (ADR-0006) and this decision resolve together in Phase 4.
-- t1 itself should gain an explicit LICENSE (owner action, tracked in ROADMAP).
+- t1 itself should gain an explicit LICENSE (owner action, tracked in ROADMAP). On 2026-11-11 the owner chose to merge t1's PR #81 now, and to add t1's LICENSE once this ADR is decided.

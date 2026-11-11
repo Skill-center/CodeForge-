@@ -4,6 +4,17 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Decisions by the owner on the open items from Phases 0–2 (2026-11-11)
+- **Licence (ADR-0011):** decided by Phase 4's start. Until then: no licence file, nothing GPL-derived vendored, no binary release.
+- **Terminal (ADR-0006):** the ADR's rule stands: Termux's terminal view if the licence is GPLv3 and it passes Phase 4's arm64 gate, otherwise xterm.js.
+- **minSdk (ADR-0007):** stays 26, to be verified on API 26–28 emulators in Phase 4; a raise to 29 needs the owner's sign-off.
+- **arm64 hardware (ADR-0009, amended):** Firebase Test Lab's real phones run the tests that need no computer attached, from Phase 4.
+- **Play Console (ADR-0010):** prepared at Phase 4, with the closed test that new personal accounts need started well before Phase 10.
+- **t1:** the owner merges PR #81 now; t1's licence follows ADR-0011.
+- **Added to Phase 3** ([phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md) §0): *Save logs to a file* and Material Symbols Rounded icons (W4); a gate run with Impeller before W6 measures anything; the save digest off the UI isolate, the benchmark driver's reconnect, golden diff images, a debug log viewer and a `ProviderObserver` (W6); one phone session with every parked check at the exit (W7).
+- **Placed:** search across files in Phase 4; full support for other text encodings in a later phase.
+- **Unchanged:** the emulator gate runs once per work package, with no nightly run; all work stays on the working branch until v1 or later; undo history after a process death stays a known limitation; the keys flake is diagnosed in W3.
+
 ### Decisions by the owner at Phase 2's acceptance (2026-11-10)
 - Phase 2 accepted, with the phone checks parked ([phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md)).
 - Android backup becomes an offer to the user, off by default. Phase 3 W1 builds the switch.

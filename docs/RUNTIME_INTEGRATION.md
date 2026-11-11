@@ -26,7 +26,7 @@ Alternatives evaluated (spec §2 requires this):
 2. **Vendor `harness-core` subset**: `HarnessConfig`, `HarnessPaths`, `HarnessEnvironment`, `HarnessSession`, `HarnessCommandRunner`, `HarnessSizeReport`, `Toolchain`, `exec/SealedPayloadInstaller`, `packs/{Pack,PackState,PackResult,PackInstaller,PlayPackInstaller,Packs}`. **Excluded**: `HarnessBootstrap`, `provision/*`, `AptPackInstaller`, `PackageCommands` — the apt shape does not ship. `Packs.isSealedBuild` becomes compile-time true; the apt branch is deleted, not toggled (no dead code paths that could fetch code at runtime).
 3. **Vendor PTY JNI + preload**: `termux.c`, `harness-exec.c`, `harness-probe.c`, `Android.mk` with the 16 KB linker flags. Terminal parser/view inclusion depends on ADR-0006.
 4. **Vendor `runtime/` scripts** + pins; wire into Gradle exactly as t1 does (generated assets, SHA-256 verification, `extractNativeLibs=true`, `useLegacyPackaging=true`).
-5. **Port the gates**: `ExecModelTest` + `SealedShellTest` become CodeForge instrumentation tests in `app/android/app/src/androidTest/`. They run in CI on x86_64 emulators at API 34/36 **and on arm64 hardware** (closes audit gap R2) before MVP 4 is declared.
+5. **Port the gates**: `ExecModelTest` + `SealedShellTest` become CodeForge instrumentation tests in `app/android/app/src/androidTest/`. They run in CI on x86_64 emulators at API 34/36 **and on arm64 hardware** (Firebase Test Lab, ADR-0009 amendment; closes audit gap R2) before MVP 4 is declared.
 
 ### The four invariants (non-negotiable, from t1's device failures)
 

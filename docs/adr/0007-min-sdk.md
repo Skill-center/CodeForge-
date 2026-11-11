@@ -1,6 +1,6 @@
 # ADR-0007: minSdk 26 (owner choice) with a Phase 4 reconciliation gate against t1's minSdk 29
 
-**Status:** Needs decision (gate in Phase 4) · 2026-11-05
+**Status:** **Decided by the owner (2026-11-11):** minSdk stays 26, to be verified by the Phase 4 reconciliation gate below; a raise to 29 still needs the owner's sign-off. The ADR becomes Accepted when the gate passes · proposed 2026-11-05 ("needs decision")
 
 ## Context
 Owner selected minSdk 26 (Android 8.0, ~98% reach) before the audit revealed t1 declares **minSdk 29**. The sealed model itself should work below 29 (exec-from-nativeLibraryDir predates W^X; the restriction only bites at target 29+), but t1 never tested 26–28: bionic API availability (e.g. `openpty`, `posix_spawn` usage), Termux bootstrap's `apt-android-7` floor (Android 7+), and WebView vintage are the unknowns.

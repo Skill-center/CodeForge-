@@ -1,6 +1,6 @@
 # Phase 3 Implementation Plan — Workspace & Files
 
-**Status:** **In progress** (2026-11-11): W1 done (CI 42862715832, phase gate 42862715744) and W2 done (CI 43007795037, phase gate 43007795087), see *As built (W1)* and *As built (W2)*; the owner's "next" starts W3 · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **In progress** (2026-11-11): W1 done (CI 42862715832, phase gate 42862715744) and W2 done (CI 43007795037, phase gate 43007795087), see *As built (W1)* and *As built (W2)*; the owner's "next" starts W3; the owner decided the open items from Phases 0–2 on 2026-11-11 (§0) · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 3 (Workspace & File Management), §7 (security claims), §12.19 (stored data survives upgrades) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §2.5, §3 and §4, [ADR-0001](../adr/0001-flutter-kotlin-hybrid.md) (SAF belongs to the Kotlin host), [ADR-0008](../adr/0008-persistence.md) (Drift), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) §4 (storage model) · **Security:** [SECURITY.md](../SECURITY.md) §1 and §4 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -19,7 +19,27 @@
 - File-type glyphs for the explorer (a Phase 1 item, UI_DESIGN_SYSTEM).
 - Pigeon arrives with the first real Kotlin surface, the storage broker (TECH_STACK).
 
-**The phone checks stay parked** (ROADMAP, "Parked owner checks"). Phase 3 adds its own: the folder picker and a folder workspace on the owner's phone, and backup with a real Google account. None of them blocks acceptance unless the owner decides otherwise.
+**The phone checks stay parked** (ROADMAP, "Parked owner checks"). Phase 3 adds its own: the folder picker and a folder workspace on the owner's phone, and backup with a real Google account. None of them blocks acceptance unless the owner decides otherwise. On 2026-11-11 the owner chose to run them all in one session at Phase 3's exit (W7).
+
+**Owner decisions on the open items from Phases 0–2 (2026-11-11).** The owner was asked about each of the 18 items still open, and chose:
+- **For later phases** (ROADMAP's decision queue and the ADRs):
+  - **Licence** ([ADR-0011](../adr/0011-license.md)): decided by Phase 4's start. The interim rules stay: no licence file, nothing GPL-derived vendored, no binary release.
+  - **Terminal frontend** ([ADR-0006](../adr/0006-terminal-frontend.md)): the ADR's rule. Termux's terminal view if the licence is GPLv3 and it passes Phase 4's arm64 gate; otherwise xterm.js.
+  - **minSdk** ([ADR-0007](../adr/0007-min-sdk.md)): stays 26, to be verified on API 26–28 emulators in Phase 4. A raise to 29 still needs the owner's sign-off.
+  - **arm64 hardware** ([ADR-0009](../adr/0009-ci-github-actions.md), amended): Firebase Test Lab's real phones, for the tests that need no computer attached. Owner action by Phase 4: a free Firebase project and one CI credential.
+  - **Play Console and upload key** ([ADR-0010](../adr/0010-distribution.md)): prepared at Phase 4. A personal account created after 13 November 2023 must run a closed test with at least 12 testers for 14 days before production, so that test starts well before Phase 10.
+  - **t1:** the owner merges PR #81 (the commit CodeForge pins, `0e26d7a`) now; t1's LICENSE follows ADR-0011.
+  - **Search across files:** Phase 4, with the runtime: ripgrep for projects, and a scan by the app for SAF folders, which ripgrep can't read.
+  - **Text encodings other than UTF-8:** full support (open, edit and save in the original encoding) in a later phase, not chosen yet. Until then they are refused, never converted.
+- **Built in Phase 3:**
+  - **W3:** the keys flake is diagnosed first: the injector records which window has focus after each tap. Until then a flake still fails the gate and is rerun by hand.
+  - **W4:** *Save logs to a file* (W1 waited for the broker), and Material Symbols Rounded in place of Flutter's Material Icons, as UI_DESIGN_SYSTEM specifies, together with the file glyphs so that the goldens change once.
+  - **W6:** a gate run with Impeller before anything is measured; the save digest off the UI isolate; the benchmark driver reconnecting when its CodeMirror session drops; golden diff images on CI failures; a debug log viewer with filters; a `ProviderObserver` that logs provider failures.
+  - **W7:** one phone session at the exit, with every parked check from Phases 1–3 on one checklist, and fresh APKs.
+- **Unchanged:**
+  - the emulator gate runs once per work package, with no nightly run;
+  - all work stays on this working branch until v1 or later, and `main` keeps its initial commit (GitHub runs scheduled workflows only from `main`, so none is scheduled);
+  - undo history still doesn't survive a process death (the unsaved text does), a known limitation to revisit if it becomes a problem.
 
 ## 1. Objectives
 
@@ -262,6 +282,8 @@
 
 ### W3 — Projects, recents and state (1–2 sessions) → G2, G5
 
+**First, the keys flake** (*As built (W2)*; owner decision 2026-11-11): the keys injector records which window has focus after each tap, the evidence W1 named as missing. Until the cause is found, a flake still fails the gate and is rerun by hand.
+
 **Drift schema v2, the first real migration** (ADR-0008):
 - `workspaces` gains its kind (project or folder), its location (the project's folder name, or the tree URI) and a display path.
 - A new `workspace_views` table keeps each workspace's expanded folders and explorer scroll.
@@ -320,6 +342,10 @@
 - Folders are listed when expanded, and hidden files follow the existing setting.
 - File-type glyphs for the 20 most common extensions, with a generic fallback, following UI_DESIGN_SYSTEM's icon rules (a Phase 1 item). Goldens cover them.
 
+**Owner decisions (2026-11-11):**
+- **Icons:** the app's icons move from Flutter's Material Icons to a bundled Material Symbols Rounded subset, as UI_DESIGN_SYSTEM specifies, in the same change as the file glyphs, so that the goldens change once. TECH_STACK records the font's source, version and licence.
+- **Save logs to a file:** About → Recent logs gains *Save*, which writes the log files' redacted text to a file the user picks through Android's create-document picker. The broker gains that picker.
+
 **Go to File** (Ctrl+P, and in the palette):
 - fuzzy matching over the workspace's file names, from an index built in the background and kept current by W5;
 - `.git` and `node_modules` are skipped by default, and the index stops at 50,000 entries and says so.
@@ -350,6 +376,10 @@ This is the plan's one addition to ROADMAP's list: with real projects, finding a
 
 ### W6 — Tests, performance and quality (continuous + 1 session) → G6, G7, G8
 
+- **Renderer, before anything is measured** (owner decision 2026-11-11):
+  - The app has run on Skia since Phase 1, because Impeller's OpenGLES backend never sized its surface on the CI emulator. Flutter 3.47.9 now warns in the gate's log that the opt-out "is going to go away in an upcoming Flutter release".
+  - One gate run removes the opt-out. If every group passes, Impeller stays and W6 measures it. If a group fails because of the renderer, Skia stays, the failure is recorded, the owner is asked again, and Flutter stays at 3.47.9 until Phase 4's device testing.
+  - Impeller on the owner's phone joins the exit session's checklist.
 - **Kotlin tests in CI:** a new step runs Gradle's unit tests (`testDebugUnitTest`) for the broker's pure logic (names, path resolution, scoping) and the backup agent's choice.
 - **Manifest check:** a CI test fails if the merged manifest declares any storage permission, or if its backup attributes drift from ADR-0012.
 - **Measurements in the gate,** recorded as evidence. As in Phase 2, frame-timed numbers are judged on a phone.
@@ -362,11 +392,19 @@ This is the plan's one addition to ROADMAP's list: with real projects, finding a
   - `keyboard_insets_test` opens the new dialogs beside the keyboard.
   - Goldens cover the new chrome.
 - **Coverage per layer,** as in Phase 2. The gate runs the platform glue that host tests can't.
-- **New parked phone checks:** the folder picker and a folder workspace on the owner's phone, whose picker may differ from the emulator's, and backup with a real Google account.
+- **The save digest leaves the UI isolate** (owner decision 2026-11-11): the SHA-256 of the saved text took up to 28 ms at 1 MiB and 80–184 ms at 10 MiB in a debug build (PHASE_2_REPORT §9.2). It moves to a background isolate, and a test shows that frames keep coming while a 10 MiB digest runs.
+- **The benchmark's DevTools driver reconnects** (owner decision) when its CodeMirror session drops ("DevTools connection closed", "Runtime.evaluate timed out"), so that every gate has complete figures. In Phase 2, 7 of the last 11 gates had no CM6 debug-memory figure.
+- **Developer tooling** (owner decision; Phase 1 items):
+  - **golden diff images:** when a golden test fails, CI commits the failure images back with its diagnostics;
+  - **a debug log viewer:** Settings → Developer (debug and profile builds), with level and tag filters;
+  - **a `ProviderObserver`** that logs provider failures through the logger, with its redaction.
+- **New parked phone checks:** the folder picker and a folder workspace on the owner's phone, whose picker may differ from the emulator's, and backup with a real Google account. By the owner's decision (2026-11-11), they run with the older ones in one session at the exit (W7).
 
 ### W7 — Documentation and phase exit (0.5 session) → G9
 
 PHASE_3_REPORT.md with run ids, and the documents in §7.
+
+**The phone session** (owner decision 2026-11-11): W7 writes one checklist with every parked check from Phases 1–3 (ROADMAP's table, including the folder picker and a folder workspace, backup with a Google account, and Impeller if W6 switched to it), and builds fresh debug and profile APKs. The owner runs it in one session, and the results go into PHASE_3_REPORT. Memory and FULL against NORMAL need a computer with adb.
 
 ## 4. Deliverables
 
@@ -376,13 +414,15 @@ PHASE_3_REPORT.md with run ids, and the documents in §7.
   - projects and recents (schema v2), with Home as the launcher;
   - the explorer's operations, file glyphs and Go to File;
   - the watcher;
-  - the log sink, Settings → Privacy, the Developer action and tab semantics.
+  - the log sink, Settings → Privacy, the Developer action and tab semantics;
+  - Save logs, Material Symbols Rounded icons, the debug log viewer and the `ProviderObserver`.
 - **Editor:** the benchmark's plain-text pass.
 - **CI:**
   - Pigeon codegen and its check;
   - the Kotlin unit tests and the manifest check;
-  - the gate's `folders` and `watch` groups, with the picker driver.
-- **Docs:** see §7.
+  - the gate's `folders` and `watch` groups, with the picker driver;
+  - one gate run with Impeller, the benchmark driver's reconnect, and golden diff images on failure.
+- **Docs:** see §7, and the phone checklist (W7).
 
 ## 5. Acceptance criteria (measurable gates)
 
@@ -393,21 +433,21 @@ PHASE_3_REPORT.md with run ids, and the documents in §7.
 | **G3 Explorer** | on both kinds of workspace: new file and folder, rename (case-only too), move, copy, duplicate and delete<br>open tabs and the journal follow every change<br>a name collision never overwrites<br>the tree builds only visible rows at 10,000 entries | service tests on a real folder + widget tests + gate |
 | **G4 Outside changes** | an outside edit reaches a clean open document exactly, within 2 s on the emulator<br>unsaved text is never overwritten<br>new and deleted files reach the explorer<br>the app's own saves cause no reload<br>changes made in the background are caught on resume | gate `watch` group + unit tests |
 | **G5 Restart** | after a process death, everything comes back: the last workspace (project or folder), its tabs with their unsaved text, its expanded folders and explorer scroll, and the recents | the restore pair, extended |
-| **G6 Owner items** | backup is off by default<br>with it on, a backup and reinstall restore a project and its unsaved text, never the logs; with it off, they restore a fresh app<br>the log sink rotates, redacts and survives a crash<br>the Developer action writes byte-identical gate files, and the benchmark's plain-text pass runs<br>TalkBack hears the active tab and unsaved changes<br>project saves keep permission bits | JVM, unit and widget tests; gate (`bmgr`) |
-| **G7 Performance** | the W6 measurements are recorded<br>release cold start ≤ 1500 ms | gate JSON |
+| **G6 Owner items** | backup is off by default<br>with it on, a backup and reinstall restore a project and its unsaved text, never the logs; with it off, they restore a fresh app<br>the log sink rotates, redacts and survives a crash<br>the Developer action writes byte-identical gate files, and the benchmark's plain-text pass runs<br>TalkBack hears the active tab and unsaved changes<br>project saves keep permission bits<br>the owner's items of 2026-11-11 (§0): Save logs, Material Symbols icons, the save digest off the UI isolate, the benchmark driver's reconnect, golden diff images, the debug log viewer and the `ProviderObserver` | JVM, unit and widget tests; gate (`bmgr`); W4 and W6 tests and gate runs |
+| **G7 Performance** | the W6 measurements are recorded, on the renderer the app ships (after W6's Impeller run)<br>release cold start ≤ 1500 ms | gate JSON |
 | **G8 Quality & security** | CI green (Flutter, editor and Kotlin)<br>no storage permission in the manifest<br>SECURITY §4's storage review done, each threat with its test<br>the accessibility suite covers the new chrome<br>no overflow with the keyboard up | run ids + review |
 | **G9 Docs** | docs synced; PHASE_3_REPORT with run ids | review |
 
-**Definition of done:** every gate is green with cited evidence, no critical issue is open, and the owner accepts the report. The phone checks (§0) stay parked and don't block acceptance unless the owner decides otherwise.
+**Definition of done:** every gate is green with cited evidence, no critical issue is open, and the owner accepts the report. The phone checks (§0) are run in one session at the exit, by the owner's decision of 2026-11-11 (W7); they don't block acceptance unless the owner decides otherwise.
 
 ## 6. Tests
 
 | Layer | Tool | Phase 3 additions |
 |---|---|---|
 | Kotlin/JVM unit | Gradle `testDebugUnitTest` (new in CI) | name validation, path resolution and scoping in the broker; the backup agent's choice |
-| Dart unit | flutter_test | the larger `FileService` on a real temporary folder: create, rename (case-only too), move, copy, delete, collisions, permission bits<br>`SafFileService` against a fake broker<br>the v1 → v2 migration from a fixture<br>journal re-keying on rename<br>the watcher's coalescing and own-write filter<br>log rotation and redaction<br>Go to File's matching<br>the large-file generator's hashes |
-| Widget | flutter_test + fakes | Home's recents and their statuses; the explorer's menus, dialogs and keyboard navigation; tab semantics; Settings → Privacy; the virtualised tree at 10,000 entries |
-| Integration (emulator) | integration_test + gate scripts | the `folders` group, through the real picker and provider; the `watch` group; the restore pair with a folder workspace and a switch; backup and restore with `bmgr`; the W6 measurements |
+| Dart unit | flutter_test | the larger `FileService` on a real temporary folder: create, rename (case-only too), move, copy, delete, collisions, permission bits<br>`SafFileService` against a fake broker<br>the v1 → v2 migration from a fixture<br>journal re-keying on rename<br>the watcher's coalescing and own-write filter<br>log rotation and redaction<br>Go to File's matching<br>the large-file generator's hashes<br>the save digest in a background isolate |
+| Widget | flutter_test + fakes | Home's recents and their statuses; the explorer's menus, dialogs and keyboard navigation; tab semantics; Settings → Privacy; the virtualised tree at 10,000 entries; the debug log viewer's filters; Save logs |
+| Integration (emulator) | integration_test + gate scripts | the `folders` group, through the real picker and provider; the `watch` group; the restore pair with a folder workspace and a switch; backup and restore with `bmgr`; the W6 measurements; the gate run with Impeller |
 
 ## 7. Documentation
 
@@ -418,8 +458,9 @@ Updated in W7:
 - ADR-0008 (schema v2) and the new ADR-0012 (backup);
 - RUNTIME_INTEGRATION §4 (the storage model, as built);
 - TESTING, BUILD_AND_RELEASE (Pigeon codegen, the Kotlin tests, the new gate groups), TECH_STACK and PERFORMANCE §4;
-- UI_DESIGN_SYSTEM (the explorer's menus and file glyphs);
+- UI_DESIGN_SYSTEM (the explorer's menus, the file glyphs and the Material Symbols icons, as built);
 - CHANGELOG, ROADMAP and README;
+- the phone checklist for the exit session;
 - the new PHASE_3_REPORT.
 
 ## 8. Known limitations (planned) and out of scope
@@ -427,17 +468,18 @@ Updated in W7:
 **Out of scope:**
 - running code, the terminal, and running from a folder (Phases 4–5);
 - Git, including how it works on SAF folders (Phase 7, which ROADMAP gives a spike);
-- search across files (not yet placed in ROADMAP);
+- search across files (Phase 4, by the owner's decision of 2026-11-11);
 - a side-by-side view for conflicts (Phase 7's diff view);
 - copying between projects and folders, as import and export (decided with the runtime in Phase 4);
 - workspaces with several roots;
-- encodings other than UTF-8, and viewers for binary files.
+- encodings other than UTF-8 (full support in a later phase, by the owner's decision of 2026-11-11), and viewers for binary files.
 
 **Planned limitations:**
 - Saves to SAF folders are not atomic; the journal keeps the text until a save is confirmed (W2).
 - Providers other than the device's shared storage are best effort.
 - Watching covers what the user can see (up to 64 folders), plus stamp checks of open documents. A change deep inside a collapsed folder shows when that folder is opened.
 - Frame-timed numbers come from an emulator until the parked phone runs.
+- Undo history doesn't survive a process death; the unsaved text does (Phase 2; accepted by the owner on 2026-11-11).
 
 ## 9. Risks & mitigations
 
@@ -453,3 +495,4 @@ Updated in W7:
 | Testing backup on the emulator, where the local transport may be missing | the agent's choice is unit-tested; `bmgr` where the image allows it; otherwise a parked phone check, stated in the report |
 | Bursts of changes from other tools | 300 ms coalescing, only visible folders refreshed, at most 64 watched folders |
 | Android's limit on how many grants an app keeps | removing a recent folder releases its grant, and the number of grants is logged |
+| Impeller fails on the CI emulator, or a later Flutter removes the Skia opt-out | W6 tries Impeller in one gate run before measuring; if it fails, Skia stays, the owner is asked again, and Flutter stays at 3.47.9 until Phase 4's device testing |

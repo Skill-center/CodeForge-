@@ -16,3 +16,4 @@ Play forbids post-install executable downloads and caps base modules at 200 MB/d
 - Users get full toolchain freedom via GitHub immediately; Play users get the same core with store-delivered packs.
 - One codebase, two packagings — CI builds both from the same pins; divergence is a gate failure.
 - Play Console account + upload key are owner tasks (Phase 10 prep at Phase 4).
+- **2026-11-11 (owner):** they are prepared at Phase 4, as planned. A personal developer account created after 13 November 2023 must run a closed test with at least 12 testers, opted in for 14 days in a row, before it can apply for production access (organisation accounts are exempt). The closed test therefore starts well before Phase 10.
