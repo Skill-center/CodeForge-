@@ -19,7 +19,7 @@
 1. **A switch, off by default.**
    - It sits in Settings → Privacy as *Back up with Android*.
    - It is stored in the host's own preferences file, `shared_prefs/codeforge.backup.xml` (`BackupSwitch.kt`), which the agent can read without Flutter.
-   - Dart reads and sets it over the `dev.codeforge/backup` channel; W2 folds this into the Pigeon API.
+   - Dart reads and sets it over the `dev.codeforge/backup` channel. *Amended in Phase 3 W2:* the channel stays a plain MethodChannel; W2's Pigeon API covers the storage broker alone, and folding two working methods into it would add generated code without making either safer.
    - A change is committed to disk before the switch shows it, and it calls `BackupManager.dataChanged()`.
 2. **The agent decides.**
    - `CodeForgeBackupAgent` is declared in the manifest with `android:backupAgent` and `android:fullBackupOnly="true"`, so Android keeps file-based Auto Backup.

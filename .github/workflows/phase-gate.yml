@@ -64,11 +64,14 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      # Drift's generated database code (Phase 2 W5). The gate builds the
-      # pushed commit, which on a [bootstrap] push predates CI's commit-back
-      # of the generated files; on later commits this reproduces them.
+      # Drift's generated database code (Phase 2 W5) and the storage
+      # broker's Pigeon API (Phase 3 W2). The gate builds the pushed commit,
+      # which on a [bootstrap] push predates CI's commit-back of the
+      # generated files; on later commits this reproduces them.
       - name: Generate code
-        run: dart run build_runner build
+        run: |
+          dart run build_runner build
+          dart run pigeon --input pigeons/storage_api.dart
 
       # The Gradle distribution: cached between runs, and fetched with
       # retries when the cache has none, because services.gradle.org stalls

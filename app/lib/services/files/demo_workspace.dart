@@ -2,10 +2,12 @@
 /// "Files").
 library;
 
+import '../../core/files/workspace_location.dart';
+
 /// The demo project. The first run writes it to the workspace folder as
 /// real files (LocalFileService); tests seed in-memory workspaces with it.
 abstract final class DemoWorkspace {
-  static const String id = 'demo';
+  static const String id = demoWorkspaceId;
   static const String displayName = 'Demo Workspace';
 
   static const Map<String, String> files = {

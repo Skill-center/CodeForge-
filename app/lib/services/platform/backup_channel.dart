@@ -1,7 +1,8 @@
 /// Android's backup switch and what Android last did with it (Phase 3 W1,
 /// ADR-0012), over the `dev.codeforge/backup` channel (MainActivity,
 /// BackupSwitch.kt). Off unless the user turns it on in Settings → Privacy.
-/// Phase 3 W2 folds the channel into the Pigeon API.
+/// It stays a plain channel: Phase 3 W2's Pigeon API is the storage
+/// broker's alone.
 library;
 
 import 'package:flutter/services.dart';

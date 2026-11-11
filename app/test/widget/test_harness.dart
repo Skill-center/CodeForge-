@@ -3,7 +3,8 @@
 /// scripted pages (test/support/fake_editor_surface.dart): platform views
 /// cannot run under `flutter test`. Files live in an in-memory workspace
 /// (test/support/memory_file_service.dart): real I/O never completes in
-/// testWidgets' fake async zone.
+/// testWidgets' fake async zone. Folders from shared storage come from a
+/// fake storage broker (test/support/fake_storage_broker.dart).
 library;
 
 import 'package:codeforge/app.dart';
@@ -26,6 +27,7 @@ import '../support/fake_backup_service.dart';
 import '../support/fake_bench_surface.dart';
 import '../support/fake_editor_surface.dart';
 import '../support/fake_hardware_keyboard.dart';
+import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';
 
 final class TestHarness {
@@ -38,6 +40,7 @@ final class TestHarness {
     SessionStore? sessionStore,
     FakeHardwareKeyboard? hardwareKeyboard,
     FakeBackupService? backup,
+    this.broker,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -65,6 +68,11 @@ final class TestHarness {
   /// says otherwise).
   final FakeBackupService backup;
 
+  /// Folders from shared storage. With one, [files] is the built-in
+  /// project's alone and the app switches between workspaces as it does
+  /// on a device; without, [files] is every workspace's.
+  final FakeStorageBroker? broker;
+
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
 
@@ -81,7 +89,13 @@ final class TestHarness {
   List<Override> _overrides() => [
     settingsStoreProvider.overrideWithValue(settingsStore),
     shellStateStoreProvider.overrideWithValue(shellStore),
-    fileServiceProvider.overrideWithValue(files),
+    if (broker case final broker?) ...[
+      projectFileServiceProvider.overrideWithValue(files),
+      storageBrokerProvider.overrideWithValue(broker),
+    ] else ...[
+      fileServiceProvider.overrideWithValue(files),
+      storageBrokerProvider.overrideWithValue(FakeStorageBroker()),
+    ],
     sessionStoreProvider.overrideWithValue(sessionStore),
     hardwareKeyboardSourceProvider.overrideWithValue(hardwareKeyboard),
     backupServiceProvider.overrideWithValue(backup),

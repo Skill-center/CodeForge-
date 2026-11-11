@@ -1,3 +1,4 @@
+import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,6 +75,35 @@ void main() {
       expect(decodeShellState(raw).lastRoute, '/');
       const ok = '{"schemaVersion":1,"data":{"lastRoute":"/settings"}}';
       expect(decodeShellState(ok).lastRoute, '/settings');
+    });
+
+    test('the open folder round trips; a bad one is dropped', () {
+      const folder = FolderLocation(
+        treeUri:
+            'content://com.android.externalstorage.documents/tree/primary%3Acf',
+        name: 'cf',
+      );
+      const state = ShellState(folder: folder);
+      expect(decodeShellState(encodeShellState(state)).folder, folder);
+      expect(decodeShellState(encodeShellState(const ShellState())).folder, isNull);
+      // Phase 3 W1 envelopes have no folder: the built-in project opens.
+      const w1 = '{"schemaVersion":1,"data":{"lastRoute":"/workspace"}}';
+      expect(decodeShellState(w1).folder, isNull);
+      for (final bad in [
+        '"content://x"',
+        '{"uri":"file:///sdcard/x","name":"x"}',
+        '{"uri":42,"name":"x"}',
+      ]) {
+        final raw = '{"schemaVersion":1,"data":{"folder":$bad}}';
+        expect(decodeShellState(raw).folder, isNull, reason: bad);
+      }
+      const unnamed =
+          '{"schemaVersion":1,"data":{"folder":{"uri":"content://a/tree/b"}}}';
+      expect(decodeShellState(unnamed).folder?.name, 'Folder');
+      expect(
+        state.copyWith(clearFolder: true).folder,
+        isNull,
+      );
     });
 
     test('layout dimensions are clamped', () {

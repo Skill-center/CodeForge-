@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/files/workspace_location.dart';
 import '../../core/files/workspace_path.dart';
 import '../../core/logging/logger.dart';
 
@@ -33,6 +34,7 @@ final class ShellState {
     this.demoWorkspaceOpened = false,
     this.openTabs = const [],
     this.activeTab,
+    this.folder,
   });
 
   final String lastRoute;
@@ -50,6 +52,10 @@ final class ShellState {
   /// The active tab among [openTabs].
   final String? activeTab;
 
+  /// The open workspace when it is a folder from shared storage (Phase 3
+  /// W2); null for the built-in project. A cold start reopens it.
+  final FolderLocation? folder;
+
   /// Only these routes may be restored on cold start.
   static const Set<String> restorableRoutes = {'/', '/workspace', '/settings'};
 
@@ -63,6 +69,8 @@ final class ShellState {
     List<String>? openTabs,
     String? activeTab,
     bool clearActiveTab = false,
+    FolderLocation? folder,
+    bool clearFolder = false,
   }) {
     return ShellState(
       lastRoute: lastRoute ?? this.lastRoute,
@@ -73,6 +81,7 @@ final class ShellState {
       demoWorkspaceOpened: demoWorkspaceOpened ?? this.demoWorkspaceOpened,
       openTabs: openTabs ?? this.openTabs,
       activeTab: clearActiveTab ? null : activeTab ?? this.activeTab,
+      folder: clearFolder ? null : folder ?? this.folder,
     );
   }
 
@@ -85,6 +94,8 @@ final class ShellState {
     'demoWorkspaceOpened': demoWorkspaceOpened,
     'openTabs': openTabs,
     'activeTab': activeTab,
+    if (folder case final folder?)
+      'folder': {'uri': folder.treeUri, 'name': folder.name},
   };
 
   static ShellState fromJson(Map<String, Object?> json) {
@@ -128,8 +139,32 @@ final class ShellState {
       activeTab: activeTab is String && openTabs.contains(activeTab)
           ? activeTab
           : null,
+      folder: _folderFromJson(json['folder']),
     );
   }
+
+  /// A remembered folder: a `content://` tree URI and a name, or nothing.
+  static FolderLocation? _folderFromJson(Object? json) {
+    if (json is! Map<String, Object?>) {
+      return null;
+    }
+    final uri = json['uri'];
+    final name = json['name'];
+    if (uri is! String ||
+        !uri.startsWith('content://') ||
+        uri.length > maxFolderUriLength) {
+      return null;
+    }
+    return FolderLocation(
+      treeUri: uri,
+      name: name is String && name.isNotEmpty && name.length <= maxNameLength
+          ? name
+          : 'Folder',
+    );
+  }
+
+  /// The longest folder URI the envelope keeps.
+  static const int maxFolderUriLength = 4096;
 }
 
 String encodeShellState(ShellState state) {

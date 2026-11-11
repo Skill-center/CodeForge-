@@ -19,12 +19,14 @@ import '../../application/shell_controller.dart';
 import '../../application/workbench_intents.dart';
 import '../../application/workspace_controller.dart';
 import '../../core/errors/failure.dart';
+import '../../core/files/workspace_location.dart';
 import '../../core/platform/breakpoints.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';
 import '../../design_system/components/workbench_chrome.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../services/contracts.dart';
 import '../../services/shell/shell_state.dart';
 import '../palette/command_palette.dart';
 import 'editor_actions.dart';
@@ -101,16 +103,19 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     }
   }
 
-  /// Opens the workspace and reopens the last session's tabs, or main.js
-  /// the first time.
+  /// Opens the workspace and reopens the last session's tabs, or the demo
+  /// project's main.js the first time. A folder that is gone or no longer
+  /// granted shows why in the explorer.
   Future<void> _ensureWorkspace() async {
     final opened = await ref.read(workspaceControllerProvider.notifier).open();
-    if (!mounted || !opened.isOk) {
+    if (!mounted || opened is! Ok<WorkspaceRef>) {
       return;
     }
     await ref
         .read(documentControllerProvider.notifier)
-        .restoreTabs(fallback: 'main.js');
+        .restoreTabs(
+          fallback: opened.value.id == demoWorkspaceId ? 'main.js' : null,
+        );
     if (!mounted) {
       return;
     }

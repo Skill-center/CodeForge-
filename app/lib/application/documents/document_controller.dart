@@ -608,6 +608,38 @@ final class DocumentController extends Notifier<DocumentsState> {
     await _journal.idle;
   }
 
+  /// Before another workspace opens (Phase 3 W2): waits for the saves and
+  /// opens in progress, stores every document's unsaved text and the tabs
+  /// as a checkpoint does, then closes the documents in the editor without
+  /// discarding their journals. The tabs and the unsaved text come back
+  /// from the store when this workspace opens again.
+  Future<void> leaveWorkspace() async {
+    await Future.wait([..._saving.values, ..._opening.values]);
+    if (!ref.mounted) {
+      return;
+    }
+    await checkpoint();
+    if (!ref.mounted) {
+      return;
+    }
+    _tabSave?.cancel();
+    _tabSave = null;
+    final documents = state.documents.values.toList();
+    _journal.forgetAll();
+    state = DocumentsState(journalProblem: state.journalProblem);
+    _restored = false;
+    for (final doc in documents) {
+      unawaited(
+        _report('editor_close_failed', doc.path, _host.closeDocument(doc.docId)),
+      );
+    }
+    appLogger.info(
+      'documents',
+      'workspace_left',
+      fields: {'documents': documents.length},
+    );
+  }
+
   /// Settles [path]'s conflict for the restored changes: the document stays
   /// as restored, unsaved, and the next save writes it over the file.
   void keepRestoredEdits(String path) {
@@ -762,6 +794,10 @@ final class DocumentController extends Notifier<DocumentsState> {
   /// The tabs a Phase 2 W4 build kept in the shell envelope, moved to the
   /// session store once (docs/ARCHITECTURE.md §2.5, migration notes).
   List<SavedTab> _importShellTabs() {
+    if (_workspaceId != DemoWorkspace.id) {
+      // Phase 2's envelope only ever held the built-in project's tabs.
+      return const [];
+    }
     final shell = ref.read(shellControllerProvider);
     if (shell.openTabs.isEmpty) {
       return const [];

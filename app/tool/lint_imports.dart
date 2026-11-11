@@ -10,6 +10,9 @@
 ///    workbench is the composition root for panels) and the shared palette.
 ///  * features/ never read `fileServiceProvider`: files are reached through
 ///    the application controllers (WorkspaceController, DocumentController).
+///  * Generated Pigeon code (`services/*/native/*.g.dart`, Phase 3 W2) is
+///    imported only from its own native folder (docs/ARCHITECTURE.md §2,
+///    rule 3): everything else uses the service interfaces.
 ///  * No package: imports of our own package (prefer_relative_imports).
 ///
 /// Run: dart run tool/lint_imports.dart   (exit 1 on violation)
@@ -52,6 +55,17 @@ void main() {
       final resolved = _resolve(rel, target);
       if (resolved == null) {
         continue; // dart: or external package
+      }
+      if (resolved.contains('/native/') && resolved.endsWith('.g.dart')) {
+        final nativeFolder = resolved.substring(
+          0,
+          resolved.lastIndexOf('/') + 1,
+        );
+        if (!rel.startsWith(nativeFolder)) {
+          violations.add(
+            '$rel: generated Pigeon types stay in $nativeFolder → $target',
+          );
+        }
       }
 
       if (rel.startsWith('design_system/') &&

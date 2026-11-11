@@ -10,9 +10,9 @@ import java.io.File
  * It lives in the host's own preferences file ([BackupPolicy.PREFS]), not
  * in Flutter's: Android runs the backup agent in a restricted mode, without
  * the app's own startup. Dart reads and sets it over the
- * `dev.codeforge/backup` channel (MainActivity), which W2 folds into the
- * Pigeon API. Every write is a `commit()`: the agent's process may end as
- * soon as it returns.
+ * `dev.codeforge/backup` channel (MainActivity), a plain MethodChannel:
+ * Phase 3 W2 kept it out of the storage broker's Pigeon API. Every write is
+ * a `commit()`: the agent's process may end as soon as it returns.
  */
 class BackupSwitch(private val context: Context) {
     private val prefs = context.getSharedPreferences(BackupPolicy.PREFS, Context.MODE_PRIVATE)

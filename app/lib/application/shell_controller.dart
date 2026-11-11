@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/files/workspace_location.dart';
 import '../core/logging/logger.dart';
 import '../services/shell/shell_state.dart';
 import 'providers.dart';
@@ -90,6 +91,17 @@ final class ShellController extends Notifier<ShellState> {
       clearActiveTab: active == null,
     );
     _schedulePersist();
+  }
+
+  /// Remembers the open workspace: [folder], or the built-in project when
+  /// null. Stored at once, not after the usual delay: a process death right
+  /// after a switch must reopen the new workspace.
+  Future<void> setFolder(FolderLocation? folder) async {
+    if (folder == state.folder) {
+      return;
+    }
+    state = state.copyWith(folder: folder, clearFolder: folder == null);
+    await flush();
   }
 
   void markDemoWorkspaceOpened() {

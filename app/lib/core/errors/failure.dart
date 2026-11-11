@@ -63,6 +63,25 @@ enum FileProblem {
 
   /// The storage itself failed (permissions, disk full, I/O errors).
   io,
+
+  /// The workspace's folder is gone: deleted, moved or renamed, or its
+  /// storage removed (Phase 3: folders from shared storage).
+  folderMissing,
+
+  /// The app no longer has access to the workspace's folder: its grant was
+  /// released or revoked.
+  accessLost,
+
+  /// The storage did not answer in time.
+  timeout,
+
+  /// The storage can't do that: a folder granted read-only, or a provider
+  /// without the operation.
+  unsupported,
+
+  /// The storage gave a new or renamed item another name than the one
+  /// asked for; the change was undone.
+  nameChanged,
 }
 
 /// A file could not be read or written. [problem] tells the app how to

@@ -167,10 +167,12 @@ jobs:
       # test helpers (Phase 2 W5, ADR-0008), generated before fix + format.
       # make-migrations writes the steps file and the test helpers only once
       # a second schema version exists; `schema generate` writes the helpers
-      # for every dumped version, the first included. Every run regenerates
-      # all of it under "Generated code check" and fails if the committed
-      # copies are stale. Logged, and allowed to fail so the diagnostics
-      # commit still carries what went wrong.
+      # for every dumped version, the first included. Then Pigeon's Dart
+      # client and Kotlin interface for the storage broker (Phase 3 W2,
+      # pigeons/storage_api.dart). Every run regenerates all of it under
+      # "Generated code check" and fails if the committed copies are stale.
+      # Logged, and allowed to fail so the diagnostics commit still carries
+      # what went wrong.
       - name: Bootstrap — generate code
         if: contains(github.event.head_commit.message, '[bootstrap]')
         continue-on-error: true
@@ -180,7 +182,8 @@ jobs:
             dart run build_runner build \
               && dart run drift_dev make-migrations \
               && dart run drift_dev schema generate drift_schemas/app/ \
-                test/drift/app/generated/
+                test/drift/app/generated/ \
+              && dart run pigeon --input pigeons/storage_api.dart
           } > ci-results/codegen-bootstrap.txt 2>&1 || status=$?
           tail -40 ci-results/codegen-bootstrap.txt
           exit "$status"
@@ -248,26 +251,32 @@ jobs:
           flutter pub get
           git diff --exit-code -- pubspec.lock > ci-results/lockfile.txt 2>&1
 
-      # Regenerates the Drift output exactly as bootstrap does (generate,
-      # then the SDK formatter) and fails if the committed copies differ —
-      # including a schema changed without a new schema version, which
-      # make-migrations refuses.
+      # Regenerates the Drift and Pigeon output exactly as bootstrap does
+      # (generate, then the SDK formatter) and fails if a generator fails or
+      # the committed copies differ — including a schema changed without a
+      # new schema version, which make-migrations refuses.
       - name: Generated code check
         id: codegen
         continue-on-error: true
         run: |
+          status=0
           {
-            dart run build_runner build
-            dart run drift_dev make-migrations
-            dart run drift_dev schema generate drift_schemas/app/ \
-              test/drift/app/generated/
-            dart format $(find lib -name '*.g.dart' -o -name '*.steps.dart') \
-              test/drift/app/generated
+            dart run build_runner build \
+              && dart run drift_dev make-migrations \
+              && dart run drift_dev schema generate drift_schemas/app/ \
+                test/drift/app/generated/ \
+              && dart run pigeon --input pigeons/storage_api.dart \
+              && dart format $(find lib -name '*.g.dart' -o -name '*.steps.dart') \
+                test/drift/app/generated
+          } > ci-results/codegen.txt 2>&1 || status=$?
+          generated=(-- '*.g.dart' '*.g.kt' '*.steps.dart' drift_schemas test/drift)
+          {
+            echo "--- generators exited with status $status"
             echo "--- generated files that differ from the commit:"
-            git status --porcelain -- '*.g.dart' '*.steps.dart' drift_schemas test/drift
-          } > ci-results/codegen.txt 2>&1
+            git status --porcelain "${generated[@]}"
+          } >> ci-results/codegen.txt
           tail -20 ci-results/codegen.txt
-          test -z "$(git status --porcelain -- '*.g.dart' '*.steps.dart' drift_schemas test/drift)"
+          [ "$status" -eq 0 ] && test -z "$(git status --porcelain "${generated[@]}")"
 
       - name: Format check
         id: format

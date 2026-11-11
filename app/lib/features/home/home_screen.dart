@@ -1,5 +1,6 @@
 /// Home: the front door. Honest about what works today, one tap into the
-/// demo workspace (gate G2).
+/// demo workspace (gate G2), and since Phase 3 W2 a folder from the device
+/// through Android's folder picker.
 library;
 
 import 'package:flutter/material.dart';
@@ -8,8 +9,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../application/settings_controller.dart';
 import '../../application/shell_controller.dart';
-import '../../application/workspace_controller.dart';
+import '../../application/workspace_switcher.dart';
 import '../../core/errors/failure.dart';
+import '../../core/files/workspace_location.dart';
 import '../../core/logging/logger.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';
@@ -25,6 +27,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  /// A workspace is opening (the picker may be up): the buttons wait.
+  bool _busy = false;
+
   @override
   void initState() {
     super.initState();
@@ -47,8 +52,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _openDemo() async {
     // The first time, this writes the demo project to the device.
-    final result = await ref.read(workspaceControllerProvider.notifier).open();
-    if (!mounted) {
+    final result = await _whileBusy(
+      () => ref
+          .read(workspaceSwitcherProvider)
+          .open(const DemoProjectLocation()),
+    );
+    if (!mounted || result == null) {
       return;
     }
     switch (result) {
@@ -57,10 +66,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         appLogger.info('home', 'demo_workspace_opened');
         context.go('/workspace');
       case Err<WorkspaceRef>(:final failure):
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(failure.message)));
+        _tell(failure.message);
     }
+  }
+
+  /// Android's folder picker; the folder picked opens as the workspace.
+  Future<void> _openFolder() async {
+    final result = await _whileBusy(
+      () => ref.read(workspaceSwitcherProvider).pickFolder(),
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    switch (result) {
+      case Ok<WorkspaceRef?>(:final value):
+        if (value != null) {
+          appLogger.info('home', 'folder_opened');
+          context.go('/workspace');
+        }
+      case Err<WorkspaceRef?>(:final failure):
+        _tell(failure.message);
+    }
+  }
+
+  /// The folder opened last; when it is gone or no longer granted, says so.
+  Future<void> _continueInFolder(FolderLocation folder) async {
+    final result = await _whileBusy(
+      () => ref.read(workspaceSwitcherProvider).open(folder),
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    switch (result) {
+      case Ok<WorkspaceRef>():
+        context.go('/workspace');
+      case Err<WorkspaceRef>(:final failure):
+        _tell(failure.message);
+    }
+  }
+
+  /// Runs [opening] unless another one is running (then null).
+  Future<T?> _whileBusy<T>(Future<T> Function() opening) async {
+    if (_busy) {
+      return null;
+    }
+    setState(() => _busy = true);
+    try {
+      return await opening();
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  void _tell(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -142,22 +205,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         : 'Explore Demo Workspace',
                     icon: Icons.arrow_forward,
                     expanded: true,
-                    onPressed: _openDemo,
+                    onPressed: _busy ? null : _openDemo,
                   ),
+                  if (shell.folder case final folder?) ...[
+                    const SizedBox(height: CfSpacing.sm),
+                    CfButton(
+                      key: const ValueKey('continue_folder'),
+                      label: 'Continue in ${folder.name}',
+                      icon: Icons.folder_outlined,
+                      variant: CfButtonVariant.ghost,
+                      expanded: true,
+                      onPressed: _busy ? null : () => _continueInFolder(folder),
+                    ),
+                  ],
                   const SizedBox(height: CfSpacing.sm),
-                  const CfButton(
-                    key: ValueKey('open_folder_disabled'),
+                  CfButton(
+                    key: const ValueKey('open_folder'),
                     label: 'Open Folder…',
                     icon: Icons.folder_open_outlined,
                     variant: CfButtonVariant.ghost,
                     expanded: true,
-                    onPressed: null,
+                    onPressed: _busy ? null : _openFolder,
                   ),
                   const SizedBox(height: CfSpacing.xs),
                   Text(
-                    'Folder access (SAF) arrives in Phase 3.',
+                    'A folder on this device, picked in Android\'s folder '
+                    'picker: CodeForge can reach that folder and nothing '
+                    'else.',
                     style: textTheme.labelSmall?.copyWith(
-                      color: colors.textDisabled,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],

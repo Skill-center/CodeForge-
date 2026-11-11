@@ -77,9 +77,12 @@ Future<void> bootstrap() async {
       );
 
       // The log file (About → Recent logs → Copy): what was logged so far,
-      // then everything. Off the first frame's path; if the folder cannot
-      // be written, the in-memory records carry on alone.
-      unawaited(startFileLog(appLogger));
+      // then everything. Opened once the first frame is out, off its path;
+      // if the folder cannot be written, the in-memory records carry on
+      // alone.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(startFileLog(appLogger));
+      });
     },
     (error, stack) {
       appLogger.error('zone', 'uncaught', fields: {'error': '$error'});

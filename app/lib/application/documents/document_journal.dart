@@ -280,6 +280,15 @@ final class DocumentJournal {
     enqueue(() => _store.discardJournal(workspaceId, path));
   }
 
+  /// Stops tracking every document and keeps what is stored: another
+  /// workspace opens (Phase 3 W2), and this one's unsaved text waits in the
+  /// store for its next opening. Call after a checkpoint, so that every
+  /// journal's latest text is stored or queued.
+  void forgetAll() {
+    _journals.clear();
+    _stopTimer();
+  }
+
   void dispose() {
     _disposed = true;
     _stopTimer();

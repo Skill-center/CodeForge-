@@ -1,6 +1,10 @@
 /// The open workspace and its folder listings (docs/EDITOR_ARCHITECTURE.md,
 /// "Files"). The explorer reads listings from here instead of calling the
 /// file service itself (docs/ARCHITECTURE.md §2.4).
+///
+/// Since Phase 3 W2 the workspace can change (workspace_switcher.dart): a
+/// new file service is a new workspace, so the controller starts over, and
+/// work the previous one still had in flight lands nowhere.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,6 +39,8 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
   @override
   WorkspaceState build() {
     ref.keepAlive();
+    // Another workspace opened: everything here starts over.
+    ref.watch(fileServiceProvider);
     return const WorkspaceState();
   }
 
@@ -48,6 +54,10 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
     final result = await (_opening ??= ref
         .read(fileServiceProvider)
         .openWorkspace());
+    if (!ref.mounted) {
+      // Another workspace opened meanwhile.
+      return result;
+    }
     _opening = null;
     switch (result) {
       case Ok<WorkspaceRef>(:final value):
@@ -82,6 +92,9 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
         final result = await ref
             .read(fileServiceProvider)
             .listDirectory(folder);
+        if (!ref.mounted) {
+          return;
+        }
         state = WorkspaceState(
           workspace: state.workspace,
           failure: state.failure,

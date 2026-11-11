@@ -1,7 +1,10 @@
 package dev.codeforge.app
 
 import android.app.backup.BackupManager
+import android.content.Intent
 import android.content.res.Configuration
+import dev.codeforge.app.storage.StorageApi
+import dev.codeforge.app.storage.StorageBroker
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -15,11 +18,15 @@ import io.flutter.plugin.common.MethodChannel
  * since Phase 3 W1), whether a hardware keyboard is attached (W6,
  * lib/services/platform/hardware_keyboard.dart), and read and set the
  * backup switch (Phase 3 W1, ADR-0012, lib/services/platform/
- * backup_channel.dart). The Pigeon boundary arrives with the storage broker
- * (Phase 3 W2), which folds the backup channel in.
+ * backup_channel.dart). Those three are small plain MethodChannels and stay
+ * so. Folders from shared storage go through the storage broker (Phase 3
+ * W2, storage/StorageBroker.kt), behind the typed Pigeon API of
+ * pigeons/storage_api.dart; the folder picker answers here, in
+ * [onActivityResult].
  */
 class MainActivity : FlutterActivity() {
     private var keyboardChannel: MethodChannel? = null
+    private var storage: StorageBroker? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -63,12 +70,26 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        storage = StorageBroker(this).also { StorageApi.setUp(messenger, it) }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         keyboardChannel?.setMethodCallHandler(null)
         keyboardChannel = null
+        StorageApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
+        storage?.close()
+        storage = null
         super.cleanUpFlutterEngine(flutterEngine)
+    }
+
+    // The folder picker's answer (StorageBroker.pickTree). Activity's own
+    // callback: FlutterActivity is not an androidx ComponentActivity, so
+    // there is no activity-result API to register with.
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (storage?.onActivityResult(requestCode, resultCode, data) == true) {
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     // The manifest keeps keyboard changes from recreating the activity (and

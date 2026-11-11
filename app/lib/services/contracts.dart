@@ -9,7 +9,8 @@ import '../core/errors/failure.dart';
 import '../core/files/file_stamp.dart';
 import '../core/files/text_codec.dart';
 
-/// A workspace handle. Phase 2 has one app-private workspace.
+/// A workspace handle: the built-in project, or since Phase 3 W2 a folder
+/// from shared storage (core/files/workspace_location.dart).
 final class WorkspaceRef {
   const WorkspaceRef({required this.id, required this.displayName});
 
@@ -83,7 +84,9 @@ enum WriteMode {
 /// The files of the open workspace. Every path is workspace-relative
 /// (core/files/workspace_path.dart).
 abstract interface class FileService {
-  /// Opens the workspace, creating it with the demo project on first run.
+  /// Opens the workspace: the project, created with the demo files on
+  /// first run, or a folder, which must still be there
+  /// ([FileProblem.folderMissing]) and granted ([FileProblem.accessLost]).
   Future<Result<WorkspaceRef>> openWorkspace();
 
   /// The entries directly inside [path] ('' is the workspace root):
@@ -94,11 +97,16 @@ abstract interface class FileService {
   /// refused with [FileProblem.notText].
   Future<Result<TextFile>> readText(String path);
 
-  /// Writes [text] in [format], atomically: afterwards the file holds
-  /// either all of the new content or, if anything failed, its old content.
-  /// With [expected], a file whose stamp no longer matches (something else
+  /// Writes [text] in [format] and returns the file's new stamp. With
+  /// [expected], a file whose stamp no longer matches (something else
   /// changed it) is left alone and [FileProblem.changedOnDisk] returned.
-  /// Returns the file's new stamp.
+  ///
+  /// In a project the write is atomic: afterwards the file holds either all
+  /// of the new content or, if anything failed, its old content. In a
+  /// folder from shared storage it can't be (services/files/
+  /// saf_file_service.dart): a failed write may leave the file incomplete,
+  /// and its message says so. Either way a failure leaves the caller's text
+  /// unsaved, so nothing is marked saved that is not on disk.
   Future<Result<FileStamp>> writeText(
     String path,
     String text, {
