@@ -140,7 +140,8 @@ External keyboard tests: hardware keymap suite on tablet + phone (OTG/BT). IME m
 - **Since Phase 3 W3:**
   - The restore pair opens a folder through the `folders` group's picker driver, and its part B switches workspaces.
   - The gate hides Android's error dialogs after boot: Android's *Application Not Responding* dialog for System UI had taken the keys group's first tap (phase gate 43069846571). The keys group now records the focused window around each tap, and every ANR and crash since boot (`keys_events.txt`).
-  - A full run took 38 to 39 minutes (phase gates 43069846571 and 43076652650).
+  - A full run took 33 to 39 minutes (phase gates 43088413208, 43076652650 and 43069846571).
+  - Since 2026-11-11 both workflows install the Flutter that `.flutter-version` pins, and fail if another is installed. Before that they installed the latest stable release, which matched the pin until Flutter 3.50.0 ([BUILD_AND_RELEASE.md](BUILD_AND_RELEASE.md) §3). A failed debug build or Kotlin test run leaves its error in an annotation.
 - Evidence: test reports + perf numbers uploaded as workflow artifacts; phase exit reports cite run ids (t1 discipline). **A claim of "green" without a run id is a process violation.**
 
 ## 6. Manual test charters (per phase)
