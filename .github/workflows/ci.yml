@@ -347,6 +347,29 @@ jobs:
         continue-on-error: true
         run: flutter build apk --debug > ci-results/build.txt 2>&1
 
+      # The runner and, when the build failed, why: annotations are readable
+      # through the API where the log hosts are not. Builds of commits that
+      # changed only docs failed here twice on 2026-11-11 (CI 43082992891
+      # attempt 1, 43084317447) and passed on a rerun.
+      - name: Build digest
+        if: always()
+        run: |
+          image="${ImageOS:-unknown} ${ImageVersion:-}"
+          disk=$(df -h / | awk 'NR == 2 { print $4 " free of " $2 }')
+          memory=$(free -m | awk '/^Mem:/ { print $7 " MiB available of " $2 }')
+          echo "::notice title=Runner::image $image; disk $disk; memory $memory"
+          if [ "${{ steps.build.outcome }}" = "failure" ]; then
+            {
+              echo "image $image; disk $disk; memory $memory"
+              grep -n -A 12 -E 'What went wrong|No space left|Killed|OutOfMemory|FAILURE:' \
+                ci-results/build.txt | head -n 30
+              echo '--- the last 25 lines:'
+              tail -n 25 ci-results/build.txt
+            } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+              | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/build-digest.txt"
+            echo "::warning title=Debug build failed::$(cat "$RUNNER_TEMP/build-digest.txt")"
+          fi
+
       - name: APK checksum + size
         if: steps.build.outcome == 'success'
         run: |
@@ -390,6 +413,19 @@ jobs:
           echo "$summary" | tee -a ci-results/kotlin-tests.txt >> "$GITHUB_STEP_SUMMARY"
           [ "$status" -eq 0 ] && [ "$tests" -gt 0 ] \
             && [ "$failures" -eq 0 ] && [ "$errors" -eq 0 ]
+
+      - name: Kotlin digest
+        if: steps.kotlin_tests.outcome == 'failure'
+        run: |
+          {
+            df -h / | awk 'NR == 2 { print "disk " $4 " free of " $2 }'
+            grep -n -A 12 -E 'What went wrong|No space left|FAILED' \
+              ci-results/kotlin-tests.txt | head -n 30
+            echo '--- the last 15 lines:'
+            tail -n 15 ci-results/kotlin-tests.txt
+          } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+            | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/kotlin-digest.txt"
+          echo "::warning title=Kotlin unit tests failed::$(cat "$RUNNER_TEMP/kotlin-digest.txt")"
 
       - name: Coverage summary
         if: always()
