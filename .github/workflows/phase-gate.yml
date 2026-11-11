@@ -38,11 +38,30 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Flutter as .flutter-version pins it: read here and passed as the
+      # version, since flutter-action reads a version file only as a
+      # pubspec or an FVM file (ci.yml says more).
+      - name: Read the Flutter pin
+        id: flutter_pin
+        working-directory: .
+        run: echo "version=$(tr -d '[:space:]' < .flutter-version)" >> "$GITHUB_OUTPUT"
+
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: .flutter-version
+          flutter-version: ${{ steps.flutter_pin.outputs.version }}
           channel: stable
           cache: true
+
+      - name: Flutter version
+        run: |
+          flutter --version | tee "$RUNNER_TEMP/flutter-version.txt"
+          actual=$(awk '/^Flutter / { print $2; exit }' "$RUNNER_TEMP/flutter-version.txt")
+          want="${{ steps.flutter_pin.outputs.version }}"
+          echo "::notice title=Flutter::$actual (pinned: $want)"
+          if [ "$actual" != "$want" ]; then
+            echo "::error title=Flutter pin::Flutter $actual was installed; .flutter-version pins $want."
+            exit 1
+          fi
 
       # The editor page is built from editor/ and never committed. This
       # workflow cannot see the CI run's artifact, so it builds the page from

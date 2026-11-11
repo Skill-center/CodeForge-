@@ -127,14 +127,37 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Flutter as .flutter-version pins it. flutter-action reads a version
+      # file only as a pubspec (environment: flutter:) or an FVM file: given
+      # .flutter-version it found no version and installed the latest
+      # stable. That was the pinned 3.47.9 until Flutter 3.50.0 reached the
+      # stable channel, whose minimum Android Gradle Plugin is above ours:
+      # debug builds failed on the runners that got it (2026-11-11). The
+      # file is read here and passed as the version, and the next step
+      # fails if another Flutter was installed.
+      - name: Read the Flutter pin
+        id: flutter_pin
+        working-directory: .
+        run: echo "version=$(tr -d '[:space:]' < "$FLUTTER_VERSION_FILE")" >> "$GITHUB_OUTPUT"
+
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version-file: ${{ env.FLUTTER_VERSION_FILE }}
+          flutter-version: ${{ steps.flutter_pin.outputs.version }}
           channel: stable
           cache: true
 
       - name: Flutter version
-        run: flutter --version
+        run: |
+          flutter --version | tee "$RUNNER_TEMP/flutter-version.txt"
+          actual=$(awk '/^Flutter / { print $2; exit }' "$RUNNER_TEMP/flutter-version.txt")
+          want="${{ steps.flutter_pin.outputs.version }}"
+          mkdir -p ci-results
+          echo "flutter=$actual pinned=$want" | tee ci-results/flutter.txt
+          echo "::notice title=Flutter::$actual (pinned: $want)"
+          if [ "$actual" != "$want" ]; then
+            echo "::error title=Flutter pin::Flutter $actual was installed; .flutter-version pins $want."
+            exit 1
+          fi
 
       # The editor page is built from editor/ and never committed
       # (docs/REPOSITORY_STRUCTURE.md): the app bundles exactly what the
@@ -349,8 +372,9 @@ jobs:
 
       # The runner and, when the build failed, why: annotations are readable
       # through the API where the log hosts are not. Builds of commits that
-      # changed only docs failed here twice on 2026-11-11 (CI 43082992891
-      # attempt 1, 43084317447) and passed on a rerun.
+      # changed only docs failed here on 2026-11-11 without a word of why,
+      # until this digest showed Flutter 3.50.0 refusing our Android Gradle
+      # Plugin (see "Read the Flutter pin").
       - name: Build digest
         if: always()
         run: |
