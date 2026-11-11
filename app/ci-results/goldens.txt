@@ -18,26 +18,93 @@ Got dependencies!
 14 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart
-00:00 +0: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: home 360x800 dark
-00:00 +1: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: find and replace 412x915 dark
-00:01 +2: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: find and replace 412x915 dark
-00:01 +3: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: find and replace 412x915 dark
-00:01 +4: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: workspace 800x360 dark
-00:01 +5: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: large-file notice 412x915 dark
-00:01 +6: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: large-file notice 412x915 dark
-00:01 +7: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: large-file notice 412x915 dark
-00:02 +8: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: large-file notice 412x915 dark
-00:02 +9: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: workspace 915x412 dark
-00:02 +10: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: go to line beside the keyboard 800x360 dark
-00:02 +11: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: home 800x1280 dark
-00:02 +12: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: workspace 800x1280 dark
-00:02 +13: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: home 1280x800 dark
-00:02 +14: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: workspace 1280x800 dark
-00:03 +15: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: home 412x915 light
-00:03 +16: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: workspace 412x915 light
-00:03 +17: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart: gallery dark
-00:03 +18: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart: gallery dark
-00:03 +19: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart: gallery dark
-00:03 +20: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart: gallery dark
-00:04 +21: /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart: gallery light
-00:04 +22: All tests passed!
+lib/application/explorer_view_controller.dart:85:58: Error: The getter 'valueOrNull' isn't defined for the type 'Result<ExplorerView?>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+ - 'ExplorerView' is from 'package:codeforge/services/storage/session_store.dart' ('lib/services/storage/session_store.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull'.
+    final stored = (await _store.loadView(_workspaceId)).valueOrNull;
+                                                         ^^^^^^^^^^^
+00:00 +0 -1: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart [E]
+  Failed to load "/home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart":
+  Compilation failed for testPath=/home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: lib/application/explorer_view_controller.dart:85:58: Error: The getter 'valueOrNull' isn't defined for the type 'Result<ExplorerView?>'.
+   - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+   - 'ExplorerView' is from 'package:codeforge/services/storage/session_store.dart' ('lib/services/storage/session_store.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull'.
+      final stored = (await _store.loadView(_workspaceId)).valueOrNull;
+                                                           ^^^^^^^^^^^
+  .
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1024:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 816:35                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 810:35                      _CustomZone.run
+  dart:async/zone.dart 702:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 743:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+lib/application/explorer_view_controller.dart:85:58: Error: The getter 'valueOrNull' isn't defined for the type 'Result<ExplorerView?>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+ - 'ExplorerView' is from 'package:codeforge/services/storage/session_store.dart' ('lib/services/storage/session_store.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull'.
+    final stored = (await _store.loadView(_workspaceId)).valueOrNull;
+                                                         ^^^^^^^^^^^
+00:00 +0 -2: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart [E]
+  Failed to load "/home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart":
+  Compilation failed for testPath=/home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: lib/application/explorer_view_controller.dart:85:58: Error: The getter 'valueOrNull' isn't defined for the type 'Result<ExplorerView?>'.
+   - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+   - 'ExplorerView' is from 'package:codeforge/services/storage/session_store.dart' ('lib/services/storage/session_store.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull'.
+      final stored = (await _store.loadView(_workspaceId)).valueOrNull;
+                                                           ^^^^^^^^^^^
+  .
+00:00 +0 -2: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart [E]
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 1024:11   DefaultResidentCompiler._compile.<fn>
+  dart:async/zone_root.dart 48:47                  _rootRunUnary
+  dart:async/zone.dart 816:35                      _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone_root.dart 35:13                  _rootRun
+  dart:async/zone.dart 810:35                      _CustomZone.run
+  dart:async/zone.dart 702:7                       _CustomZone.runGuarded
+  dart:async/zone.dart 743:23                      _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 193:5      _RawReceivePort._handleMessage
+  
+lib/application/explorer_view_controller.dart:85:58: Error: The getter 'valueOrNull' isn't defined for the type 'Result<ExplorerView?>'.
+ - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+ - 'ExplorerView' is from 'package:codeforge/services/storage/session_store.dart' ('lib/services/storage/session_store.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull'.
+    final stored = (await _store.loadView(_workspaceId)).valueOrNull;
+                                                         ^^^^^^^^^^^
+00:00 +0 -3: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart [E]
+  Failed to load "/home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart":
+  Compilation failed for testPath=/home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart: lib/application/explorer_view_controller.dart:85:58: Error: The getter 'valueOrNull' isn't defined for the type 'Result<ExplorerView?>'.
+   - 'Result' is from 'package:codeforge/core/errors/failure.dart' ('lib/core/errors/failure.dart').
+   - 'ExplorerView' is from 'package:codeforge/services/storage/session_store.dart' ('lib/services/storage/session_store.dart').
+  Try correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull'.
+      final stored = (await _store.loadView(_workspaceId)).valueOrNull;
+                                                           ^^^^^^^^^^^
+  .
+00:00 +0 -3: Some tests failed.
+
+Failing tests:
+  /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/chrome_golden_test.dart
+  /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/gallery_golden_test.dart
+  /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart: loading /home/runner/work/CodeForge-/CodeForge-/app/test/goldens/screens_golden_test.dart
