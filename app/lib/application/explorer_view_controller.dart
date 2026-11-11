@@ -51,12 +51,25 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
   bool _touched = false;
   Timer? _save;
 
+  /// Counts the builds, so a stored view that arrives after another
+  /// workspace opened is dropped.
+  int _generation = 0;
+
   @override
   ExplorerViewState build() {
     ref.keepAlive();
     // The id alone: a renamed project keeps its view.
     _workspaceId = ref.watch(currentWorkspaceProvider.select((w) => w.id));
     _store = ref.read(sessionStoreProvider);
+    // Another workspace: start over. Riverpod keeps this object across
+    // rebuilds, and with it the last workspace's fields; what that one had
+    // was stored by onDispose below, which runs before this build.
+    _generation += 1;
+    _expanded = const {''};
+    _offset = 0;
+    _dirty = false;
+    _touched = false;
+    _save = null;
     final store = _store;
     final workspaceId = _workspaceId;
     // Another workspace opened: what this one had and did not store yet is
@@ -67,7 +80,7 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
         unawaited(store.saveView(workspaceId, _view()));
       }
     });
-    unawaited(_load());
+    unawaited(_load(_generation));
     return ExplorerViewState(workspaceId: workspaceId);
   }
 
@@ -82,13 +95,15 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
   /// The tree's live scroll offset.
   double get offset => _offset;
 
-  Future<void> _load() async {
+  Future<void> _load(int generation) async {
     final stored = (await _store.loadView(_workspaceId)).valueOrNull;
-    if (!ref.mounted || _touched) {
+    if (!ref.mounted || generation != _generation) {
+      // Another workspace opened meanwhile: this view is not its.
+      return;
+    }
+    if (_touched) {
       // The user changed the view first: theirs stands.
-      if (ref.mounted) {
-        state = _state(loaded: true);
-      }
+      state = _state(loaded: true);
       return;
     }
     _expanded = {

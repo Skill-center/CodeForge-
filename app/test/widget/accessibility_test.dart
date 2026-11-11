@@ -110,7 +110,22 @@ Future<void> _pumpHomeWithRecents(WidgetTester tester) async {
     ).app(),
   );
   await tester.pumpAndSettle();
-  expect(find.byKey(const ValueKey('recents')), findsOneWidget);
+  // Home is a lazy list: on short screens the recents are below what it
+  // builds until it scrolls there.
+  final recents = find.byKey(const ValueKey('recents'));
+  await tester.scrollUntilVisible(
+    recents,
+    120,
+    scrollable: find
+        .ancestor(
+          of: find.byKey(const ValueKey('new_project')),
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
+  await tester.pumpAndSettle();
+  expect(recents, findsOneWidget);
+  expect(find.byKey(const ValueKey('recent_project-a')), findsOneWidget);
 }
 
 /// Let the shell's debounced persistence timer fire before teardown.
