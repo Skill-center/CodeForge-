@@ -161,8 +161,7 @@ class EditorPane extends ConsumerWidget {
                       'would lose them. Save your files to keep them safe.',
                 ),
               ),
-            if (deletedNotice && activeDoc != null)
-              _DeletedNotice(path: activeDoc.path),
+            if (deletedNotice) _DeletedNotice(path: activeDoc.path),
             if (largeFileNotice && activeDoc != null)
               _LargeFileNotice(path: activeDoc.path),
             if (findOpen)

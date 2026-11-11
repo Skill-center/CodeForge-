@@ -217,7 +217,10 @@ void main() {
 
     await _openMenu(tester, 'utils.js');
     await _choose(tester, 'duplicate');
-    expect(harness.files.textOf('utils copy.js'), harness.files.textOf('utils.js'));
+    expect(
+      harness.files.textOf('utils copy.js'),
+      harness.files.textOf('utils.js'),
+    );
     expect(_row('utils copy.js'), findsOneWidget);
 
     await _openMenu(tester, 'utils.js');

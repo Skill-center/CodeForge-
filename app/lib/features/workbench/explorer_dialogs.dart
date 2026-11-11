@@ -96,7 +96,11 @@ class _MoveTargetDialogState extends ConsumerState<_MoveTargetDialog> {
       settingsControllerProvider.select((s) => s.showHiddenFiles),
     );
     final rows = <({String path, String name, int depth})>[
-      (path: '', name: workspace.workspace?.displayName ?? 'Workspace', depth: 0),
+      (
+        path: '',
+        name: workspace.workspace?.displayName ?? 'Workspace',
+        depth: 0,
+      ),
     ];
     void add(String folder, int depth) {
       final listing = workspace.listings[folder];
@@ -231,7 +235,11 @@ class _FolderRow extends StatelessWidget {
                 ),
                 const SizedBox(width: CfSpacing.sm),
                 Expanded(
-                  child: Text(name, overflow: TextOverflow.ellipsis, style: style),
+                  child: Text(
+                    name,
+                    overflow: TextOverflow.ellipsis,
+                    style: style,
+                  ),
                 ),
               ],
             ),

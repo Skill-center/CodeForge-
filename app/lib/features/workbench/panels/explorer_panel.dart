@@ -557,40 +557,40 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
       child: KeyedSubtree(
         key: _treeKey,
         child: ListView.builder(
-        key: const ValueKey('explorer_tree'),
-        controller: _scroll,
-        itemExtent: _rowExtent,
-        itemCount: rows.length,
-        itemBuilder: (context, index) {
-          final (:entry, :depth) = rows[index];
-          final selected = entry.path == view.selected;
-          return CfTreeRow(
-            key: ValueKey('tree_${entry.path}'),
-            node: CfFileNode(
-              name: entry.name,
-              path: entry.path,
-              isFile: !entry.isDirectory,
-              hidden: entry.hidden,
-            ),
-            depth: depth,
-            expanded: view.expanded.contains(entry.path),
-            selected: entry.path == highlighted,
-            onTap: () {
-              _treeFocus.requestFocus();
-              _onEntryTap(entry);
-            },
-            onLongPress: () => unawaited(_openMenu(entry, index)),
-            trailing: selected
-                ? CfIconButton(
-                    key: ValueKey('tree_menu_${entry.path}'),
-                    icon: Icons.more_horiz,
-                    tooltip: 'Actions for ${entry.name}',
-                    size: 16,
-                    onPressed: () => unawaited(_openMenu(entry, index)),
-                  )
-                : null,
-          );
-        },
+          key: const ValueKey('explorer_tree'),
+          controller: _scroll,
+          itemExtent: _rowExtent,
+          itemCount: rows.length,
+          itemBuilder: (context, index) {
+            final (:entry, :depth) = rows[index];
+            final selected = entry.path == view.selected;
+            return CfTreeRow(
+              key: ValueKey('tree_${entry.path}'),
+              node: CfFileNode(
+                name: entry.name,
+                path: entry.path,
+                isFile: !entry.isDirectory,
+                hidden: entry.hidden,
+              ),
+              depth: depth,
+              expanded: view.expanded.contains(entry.path),
+              selected: entry.path == highlighted,
+              onTap: () {
+                _treeFocus.requestFocus();
+                _onEntryTap(entry);
+              },
+              onLongPress: () => unawaited(_openMenu(entry, index)),
+              trailing: selected
+                  ? CfIconButton(
+                      key: ValueKey('tree_menu_${entry.path}'),
+                      icon: Icons.more_horiz,
+                      tooltip: 'Actions for ${entry.name}',
+                      size: 16,
+                      onPressed: () => unawaited(_openMenu(entry, index)),
+                    )
+                  : null,
+            );
+          },
         ),
       ),
     );

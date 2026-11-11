@@ -96,7 +96,11 @@ final List<WorkbenchDialog> workbenchDialogs = [
     'move to',
     (context) => askMoveTarget(
       context,
-      entry: const FileEntry(path: 'main.js', name: 'main.js', isDirectory: false),
+      entry: const FileEntry(
+        path: 'main.js',
+        name: 'main.js',
+        isDirectory: false,
+      ),
       submit: (_) async => null,
     ),
     confirm: 'move_confirm',
