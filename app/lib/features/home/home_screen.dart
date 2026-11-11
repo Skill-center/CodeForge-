@@ -187,9 +187,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _delete(ProjectLocation project) async {
-    final contents = await _whileBusy(
-      () => _switcher.projectContents(project),
-    );
+    final contents = await _whileBusy(() => _switcher.projectContents(project));
     if (!mounted || contents == null) {
       return;
     }
@@ -331,8 +329,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 key: const ValueKey('recent_reconnect'),
                 leading: const Icon(Icons.link),
                 title: const Text('Reconnect…'),
-                onTap: () =>
-                    Navigator.of(context).pop(_RecentAction.reconnect),
+                onTap: () => Navigator.of(context).pop(_RecentAction.reconnect),
               ),
               ListTile(
                 key: const ValueKey('recent_remove'),

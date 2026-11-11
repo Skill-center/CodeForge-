@@ -24,8 +24,9 @@ MemoryFileService _longProject() => MemoryFileService(
   },
 );
 
-ScrollController _treeScroll(WidgetTester tester) =>
-    tester.widget<ListView>(find.byKey(const ValueKey('explorer_tree'))).controller!;
+ScrollController _treeScroll(WidgetTester tester) => tester
+    .widget<ListView>(find.byKey(const ValueKey('explorer_tree')))
+    .controller!;
 
 /// Lets the restore's retries and the view's delayed save run.
 Future<void> _settle(WidgetTester tester) async {

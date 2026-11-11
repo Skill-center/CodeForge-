@@ -1,9 +1,31 @@
   compiling builders/aot
-  39s compiling builders/aot
-  0s drift_dev on 740 inputs; integration_test/backup_a_test.dart
-  10s drift_dev on 740 inputs: 1 output; spent 7s analyzing, 2s resolving, 1s sdk; integration_test/backup_b_test.dart
-  11s drift_dev on 740 inputs: 185 skipped, 353 output, 202 no-op; spent 8s analyzing, 2s resolving, 1s sdk
-  0s source_gen:combining_builder on 370 inputs; integration_test/backup_a_test.dart
-  0s source_gen:combining_builder on 370 inputs: 185 skipped, 1 output, 184 no-op
-  Built with build_runner/aot in 51s; wrote 354 outputs.
-Running build hooks...Running build hooks...Running build hooks...Running build hooks...Wrote 2 files into test/drift/app/generated
+  35s compiling builders/aot
+  0s drift_dev on 788 inputs; integration_test/backup_a_test.dart
+  10s drift_dev on 788 inputs: 1 output; spent 7s analyzing, 2s resolving, 1s sdk; integration_test/backup_b_test.dart
+  11s drift_dev on 788 inputs: 311 output, 15 no-op; spent 8s analyzing, 2s resolving, 1s sdk; test/application/large_test_files_test.dart
+  12s drift_dev on 788 inputs: 197 skipped, 377 output, 214 no-op; spent 8s analyzing, 2s resolving, 1s sdk
+  0s source_gen:combining_builder on 394 inputs; integration_test/backup_a_test.dart
+  0s source_gen:combining_builder on 394 inputs: 197 skipped, 1 output, 196 no-op
+  Built with build_runner/aot in 48s; wrote 378 outputs.
+Running build hooks...Running build hooks...INFO: app: Creating schema file for version 2
+INFO: app: Generated step by step migration helper in lib/services/storage/app_database.steps.dart
+Use this generated `stepByStep` to write your migrations.
+Example:
+
+import "app_database.steps.dart";
+
+class AppDatabase extends _$AppDatabase {
+
+  ...
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onUpgrade: stepByStep(
+        from1To2: (m, schema) async {
+          // Write your migrations here
+        }),
+    );
+  }
+
+Running build hooks...Running build hooks...Wrote 3 files into test/drift/app/generated

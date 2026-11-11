@@ -96,79 +96,82 @@ void main() {
     }
   });
 
-  test('a v1 file with data in every table opens in v2 with nothing lost', () async {
-    final schema = await verifier.schemaAt(1);
-    _writeV1Fixture(schema);
-    final db = AppDatabase(schema.newConnection());
-    addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 2);
-    final store = DriftSessionStore(db);
-    final folderId = folderWorkspaceId(_w2FolderUri);
+  test(
+    'a v1 file with data in every table opens in v2 with nothing lost',
+    () async {
+      final schema = await verifier.schemaAt(1);
+      _writeV1Fixture(schema);
+      final db = AppDatabase(schema.newConnection());
+      addTearDown(db.close);
+      await verifier.migrateAndValidate(db, 2);
+      final store = DriftSessionStore(db);
+      final folderId = folderWorkspaceId(_w2FolderUri);
 
-    // The recents: the demo row became a project in its own folder; W2's
-    // folder kept its id and name, and its place, which v1 never stored,
-    // is left for the app to find (its grant, or the shell).
-    final records = (await store.loadWorkspaces()).orThrow;
-    expect([for (final r in records) r.id], [folderId, 'demo']);
-    final folder = records.first;
-    expect(folder.kind, WorkspaceKind.folder);
-    expect(folder.name, 'cf-gate');
-    expect(folder.location, isEmpty);
-    expect(folder.displayPath, isEmpty);
-    expect(folder.lastOpenedAt.millisecondsSinceEpoch, 1794000005000);
-    final demo = records.last;
-    expect(demo.kind, WorkspaceKind.project);
-    expect(demo.name, 'Demo Workspace');
-    expect(demo.location, 'demo');
-    expect(
-      workspaceFromParts(
-        kind: demo.kind.name,
-        id: demo.id,
-        name: demo.name,
-        location: demo.location,
-      ),
-      const DemoProjectLocation(),
-    );
+      // The recents: the demo row became a project in its own folder; W2's
+      // folder kept its id and name, and its place, which v1 never stored,
+      // is left for the app to find (its grant, or the shell).
+      final records = (await store.loadWorkspaces()).orThrow;
+      expect([for (final r in records) r.id], [folderId, 'demo']);
+      final folder = records.first;
+      expect(folder.kind, WorkspaceKind.folder);
+      expect(folder.name, 'cf-gate');
+      expect(folder.location, isEmpty);
+      expect(folder.displayPath, isEmpty);
+      expect(folder.lastOpenedAt.millisecondsSinceEpoch, 1794000005000);
+      final demo = records.last;
+      expect(demo.kind, WorkspaceKind.project);
+      expect(demo.name, 'Demo Workspace');
+      expect(demo.location, 'demo');
+      expect(
+        workspaceFromParts(
+          kind: demo.kind.name,
+          id: demo.id,
+          name: demo.name,
+          location: demo.location,
+        ),
+        const DemoProjectLocation(),
+      );
 
-    // The tabs, unchanged.
-    final tabs = (await store.loadTabs('demo')).orThrow;
-    expect([for (final tab in tabs) tab.path], ['main.js', 'app.py']);
-    expect([for (final tab in tabs) tab.active], [false, true]);
-    expect([tabs[0].selectionAnchor, tabs[0].selectionHead], [3, 5]);
-    expect(tabs[0].scrollTop, 42.5);
-    expect(
-      (await store.loadTabs(folderId)).orThrow.single.path,
-      'src/app.js',
-    );
+      // The tabs, unchanged.
+      final tabs = (await store.loadTabs('demo')).orThrow;
+      expect([for (final tab in tabs) tab.path], ['main.js', 'app.py']);
+      expect([for (final tab in tabs) tab.active], [false, true]);
+      expect([tabs[0].selectionAnchor, tabs[0].selectionHead], [3, 5]);
+      expect(tabs[0].scrollTop, 42.5);
+      expect(
+        (await store.loadTabs(folderId)).orThrow.single.path,
+        'src/app.js',
+      );
 
-    // The unsaved changes, unchanged.
-    final entry = (await store.loadJournal(folderId)).orThrow.single;
-    expect(entry.path, 'src/app.js');
-    expect(entry.snapshot.text, 'print(1)');
-    expect(entry.snapshot.version, 4);
-    expect(entry.snapshot.baseDigest, 'abc123');
-    expect(entry.snapshot.format.bom, isTrue);
-    expect(entry.snapshot.format.lineEnding.name, 'crlf');
-    expect(entry.changes.single.changes, [
-      8,
-      [0, '', ''],
-    ]);
+      // The unsaved changes, unchanged.
+      final entry = (await store.loadJournal(folderId)).orThrow.single;
+      expect(entry.path, 'src/app.js');
+      expect(entry.snapshot.text, 'print(1)');
+      expect(entry.snapshot.version, 4);
+      expect(entry.snapshot.baseDigest, 'abc123');
+      expect(entry.snapshot.format.bom, isTrue);
+      expect(entry.snapshot.format.lineEnding.name, 'crlf');
+      expect(entry.changes.single.changes, [
+        8,
+        [0, '', ''],
+      ]);
 
-    // The new table: empty, and it takes a view.
-    expect((await store.loadView('demo')).orThrow, isNull);
-    await store.saveView('demo', const ExplorerView(expanded: {'src'}));
-    expect((await store.loadView('demo')).orThrow?.expanded, {'src'});
+      // The new table: empty, and it takes a view.
+      expect((await store.loadView('demo')).orThrow, isNull);
+      await store.saveView('demo', const ExplorerView(expanded: {'src'}));
+      expect((await store.loadView('demo')).orThrow?.expanded, {'src'});
 
-    // A place found later reaches the record, which keeps its id.
-    await store.moveWorkspace(
-      folderId,
-      name: 'cf-gate',
-      location: _w2FolderUri,
-      displayPath: folderDisplayPath(_w2FolderUri, 'cf-gate'),
-    );
-    final placed = (await store.loadWorkspaces()).orThrow.first;
-    expect(placed.id, folderId);
-    expect(placed.location, _w2FolderUri);
-    expect(placed.displayPath, 'Internal storage/Documents/cf-gate');
-  });
+      // A place found later reaches the record, which keeps its id.
+      await store.moveWorkspace(
+        folderId,
+        name: 'cf-gate',
+        location: _w2FolderUri,
+        displayPath: folderDisplayPath(_w2FolderUri, 'cf-gate'),
+      );
+      final placed = (await store.loadWorkspaces()).orThrow.first;
+      expect(placed.id, folderId);
+      expect(placed.location, _w2FolderUri);
+      expect(placed.displayPath, 'Internal storage/Documents/cf-gate');
+    },
+  );
 }

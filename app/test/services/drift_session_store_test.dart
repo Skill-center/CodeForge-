@@ -236,9 +236,10 @@ void main() {
         await store.saveView(id, const ExplorerView(expanded: {'src'}));
       }
       expect((await store.forgetWorkspace('gone')).isOk, isTrue);
-      expect([
-        for (final r in (await store.loadWorkspaces()).orThrow) r.id,
-      ], ['kept']);
+      expect(
+        [for (final r in (await store.loadWorkspaces()).orThrow) r.id],
+        ['kept'],
+      );
       expect((await store.loadTabs('gone')).orThrow, isEmpty);
       expect(await _journal(store, 'gone'), isEmpty);
       expect((await store.loadView('gone')).orThrow, isNull);
@@ -247,30 +248,33 @@ void main() {
       expect((await store.loadView('kept')).orThrow?.expanded, {'src'});
     });
 
-    test('the explorer view round trips; what does not read is dropped', () async {
-      final db = AppDatabase(NativeDatabase.memory());
-      addTearDown(db.close);
-      final store = DriftSessionStore(db);
-      expect((await store.loadView('demo')).orThrow, isNull);
-      await store.saveView(
-        'demo',
-        const ExplorerView(expanded: {'src', 'src/lib'}, scrollOffset: 120.5),
-      );
-      final view = (await store.loadView('demo')).orThrow!;
-      expect(view.expanded, {'src', 'src/lib'});
-      expect(view.scrollOffset, 120.5);
-      // Another version, or another hand, wrote paths that are not valid.
-      await db.customStatement(
-        "UPDATE workspace_views SET expanded = '[\"src\", \"../up\", 7, "
-        "\"/abs\"]' WHERE workspace_id = 'demo'",
-      );
-      expect((await store.loadView('demo')).orThrow!.expanded, {'src'});
-      await db.customStatement(
-        "UPDATE workspace_views SET expanded = 'not json' "
-        "WHERE workspace_id = 'demo'",
-      );
-      expect((await store.loadView('demo')).orThrow!.expanded, isEmpty);
-    });
+    test(
+      'the explorer view round trips; what does not read is dropped',
+      () async {
+        final db = AppDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final store = DriftSessionStore(db);
+        expect((await store.loadView('demo')).orThrow, isNull);
+        await store.saveView(
+          'demo',
+          const ExplorerView(expanded: {'src', 'src/lib'}, scrollOffset: 120.5),
+        );
+        final view = (await store.loadView('demo')).orThrow!;
+        expect(view.expanded, {'src', 'src/lib'});
+        expect(view.scrollOffset, 120.5);
+        // Another version, or another hand, wrote paths that are not valid.
+        await db.customStatement(
+          "UPDATE workspace_views SET expanded = '[\"src\", \"../up\", 7, "
+          "\"/abs\"]' WHERE workspace_id = 'demo'",
+        );
+        expect((await store.loadView('demo')).orThrow!.expanded, {'src'});
+        await db.customStatement(
+          "UPDATE workspace_views SET expanded = 'not json' "
+          "WHERE workspace_id = 'demo'",
+        );
+        expect((await store.loadView('demo')).orThrow!.expanded, isEmpty);
+      },
+    );
   });
 
   group('journal', () {

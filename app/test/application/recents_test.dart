@@ -59,50 +59,49 @@ Map<String, WorkspaceStatus> _statuses(RecentsState state) => {
 };
 
 void main() {
-  test('most recently opened first, each with its kind, place and status', () async {
-    final stores = _Stores();
-    stores.projects.add('alpha');
-    stores.broker
-      ..addTree(_here, 'here')
-      ..addTree(_gone, 'gone').missing = true
-      ..addTree(_lost, 'lost', grant: false);
-    await stores.touch(const DemoProjectLocation());
-    await stores.touch(
-      const ProjectLocation(id: 'project-a', name: 'alpha', folder: 'alpha'),
-    );
-    await stores.touch(
-      const ProjectLocation(id: 'project-b', name: 'beta', folder: 'beta'),
-    );
-    await stores.touch(const FolderLocation(treeUri: _here, name: 'here'));
-    await stores.touch(const FolderLocation(treeUri: _gone, name: 'gone'));
-    await stores.touch(const FolderLocation(treeUri: _lost, name: 'lost'));
+  test(
+    'most recently opened first, each with its kind, place and status',
+    () async {
+      final stores = _Stores();
+      stores.projects.add('alpha');
+      stores.broker
+        ..addTree(_here, 'here')
+        ..addTree(_gone, 'gone').missing = true
+        ..addTree(_lost, 'lost', grant: false);
+      await stores.touch(const DemoProjectLocation());
+      await stores.touch(
+        const ProjectLocation(id: 'project-a', name: 'alpha', folder: 'alpha'),
+      );
+      await stores.touch(
+        const ProjectLocation(id: 'project-b', name: 'beta', folder: 'beta'),
+      );
+      await stores.touch(const FolderLocation(treeUri: _here, name: 'here'));
+      await stores.touch(const FolderLocation(treeUri: _gone, name: 'gone'));
+      await stores.touch(const FolderLocation(treeUri: _lost, name: 'lost'));
 
-    final state = await _refresh(stores.container());
-    expect(state.loaded, isTrue);
-    expect([for (final e in state.entries) e.location.name], [
-      'lost',
-      'gone',
-      'here',
-      'beta',
-      'alpha',
-      demoProjectName,
-    ]);
-    expect(_statuses(state), {
-      'lost': WorkspaceStatus.accessLost,
-      'gone': WorkspaceStatus.missing,
-      'here': WorkspaceStatus.available,
-      // Its folder is not among the projects'.
-      'beta': WorkspaceStatus.missing,
-      'alpha': WorkspaceStatus.available,
-      // Written again whenever it opens.
-      demoProjectName: WorkspaceStatus.available,
-    });
-    final here = state.entries[2];
-    expect(here.location.kind, WorkspaceKind.folder);
-    expect(here.displayPath, 'Internal storage/here');
-    expect(state.entries[4].displayPath, 'CodeForge projects/alpha');
-    expect(state.projectFolders, unorderedEquals(['beta', 'alpha', 'demo']));
-  });
+      final state = await _refresh(stores.container());
+      expect(state.loaded, isTrue);
+      expect(
+        [for (final e in state.entries) e.location.name],
+        ['lost', 'gone', 'here', 'beta', 'alpha', demoProjectName],
+      );
+      expect(_statuses(state), {
+        'lost': WorkspaceStatus.accessLost,
+        'gone': WorkspaceStatus.missing,
+        'here': WorkspaceStatus.available,
+        // Its folder is not among the projects'.
+        'beta': WorkspaceStatus.missing,
+        'alpha': WorkspaceStatus.available,
+        // Written again whenever it opens.
+        demoProjectName: WorkspaceStatus.available,
+      });
+      final here = state.entries[2];
+      expect(here.location.kind, WorkspaceKind.folder);
+      expect(here.displayPath, 'Internal storage/here');
+      expect(state.entries[4].displayPath, 'CodeForge projects/alpha');
+      expect(state.projectFolders, unorderedEquals(['beta', 'alpha', 'demo']));
+    },
+  );
 
   test('project folders without a record are listed, after the rest', () async {
     final stores = _Stores();
@@ -118,16 +117,15 @@ void main() {
       ),
     );
     final state = await _refresh(stores.container());
-    expect([for (final e in state.entries) e.location.id], [
-      'project-r',
-      demoWorkspaceId,
-      adoptedProjectId('zeta'),
-    ]);
+    expect(
+      [for (final e in state.entries) e.location.id],
+      ['project-r', demoWorkspaceId, adoptedProjectId('zeta')],
+    );
     expect(state.entries[1].location, const DemoProjectLocation());
     expect(state.entries.last.status, WorkspaceStatus.available);
   });
 
-  test("folders recorded before the recents kept places find them in the "
+  test('folders recorded before the recents kept places find them in the '
       "app's grants and the shell, and keep them", () async {
     final stores = _Stores();
     stores.broker
@@ -145,7 +143,9 @@ void main() {
     );
     // The shell remembered the open folder (Phase 3 W2's envelope).
     await stores.shell.save(
-      const ShellState(workspace: FolderLocation(treeUri: _gone, name: 'gone')),
+      const ShellState(
+        workspace: FolderLocation(treeUri: _gone, name: 'gone'),
+      ),
     );
     stores.broker.granted.remove(_gone);
 

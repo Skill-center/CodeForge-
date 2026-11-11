@@ -38,8 +38,49 @@ class $WorkspacesTable extends Workspaces
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
   @override
-  List<GeneratedColumn> get $columns => [id, name, lastOpenedAt];
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('project'),
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _displayPathMeta = const VerificationMeta(
+    'displayPath',
+  );
+  @override
+  late final GeneratedColumn<String> displayPath = GeneratedColumn<String>(
+    'display_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    lastOpenedAt,
+    kind,
+    location,
+    displayPath,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -76,6 +117,27 @@ class $WorkspacesTable extends Workspaces
     } else if (isInserting) {
       context.missing(_lastOpenedAtMeta);
     }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('display_path')) {
+      context.handle(
+        _displayPathMeta,
+        displayPath.isAcceptableOrUnknown(
+          data['display_path']!,
+          _displayPathMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -97,6 +159,18 @@ class $WorkspacesTable extends Workspaces
         DriftSqlType.int,
         data['${effectivePrefix}last_opened_at'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      )!,
+      displayPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_path'],
+      )!,
     );
   }
 
@@ -107,7 +181,8 @@ class $WorkspacesTable extends Workspaces
 }
 
 class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
-  /// Stable id: `demo` for the built-in workspace.
+  /// Stable id: `demo` for the built-in project, `project-…` for the
+  /// others, `folder-…` for folders from shared storage. It never changes.
   final String id;
 
   /// What the user sees.
@@ -115,10 +190,23 @@ class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
 
   /// When it was last opened, milliseconds since the epoch (UTC).
   final int lastOpenedAt;
+
+  /// `project` or `folder` (schema v2).
+  final String kind;
+
+  /// A project's folder name, or a folder's tree URI; empty for a folder
+  /// whose place was never recorded (schema v2).
+  final String location;
+
+  /// The place as the recents show it (schema v2).
+  final String displayPath;
   const WorkspaceRow({
     required this.id,
     required this.name,
     required this.lastOpenedAt,
+    required this.kind,
+    required this.location,
+    required this.displayPath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -126,6 +214,9 @@ class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['last_opened_at'] = Variable<int>(lastOpenedAt);
+    map['kind'] = Variable<String>(kind);
+    map['location'] = Variable<String>(location);
+    map['display_path'] = Variable<String>(displayPath);
     return map;
   }
 
@@ -134,6 +225,9 @@ class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
       id: Value(id),
       name: Value(name),
       lastOpenedAt: Value(lastOpenedAt),
+      kind: Value(kind),
+      location: Value(location),
+      displayPath: Value(displayPath),
     );
   }
 
@@ -146,6 +240,9 @@ class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       lastOpenedAt: serializer.fromJson<int>(json['lastOpenedAt']),
+      kind: serializer.fromJson<String>(json['kind']),
+      location: serializer.fromJson<String>(json['location']),
+      displayPath: serializer.fromJson<String>(json['displayPath']),
     );
   }
   @override
@@ -155,15 +252,27 @@ class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'lastOpenedAt': serializer.toJson<int>(lastOpenedAt),
+      'kind': serializer.toJson<String>(kind),
+      'location': serializer.toJson<String>(location),
+      'displayPath': serializer.toJson<String>(displayPath),
     };
   }
 
-  WorkspaceRow copyWith({String? id, String? name, int? lastOpenedAt}) =>
-      WorkspaceRow(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
-      );
+  WorkspaceRow copyWith({
+    String? id,
+    String? name,
+    int? lastOpenedAt,
+    String? kind,
+    String? location,
+    String? displayPath,
+  }) => WorkspaceRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
+    kind: kind ?? this.kind,
+    location: location ?? this.location,
+    displayPath: displayPath ?? this.displayPath,
+  );
   WorkspaceRow copyWithCompanion(WorkspacesCompanion data) {
     return WorkspaceRow(
       id: data.id.present ? data.id.value : this.id,
@@ -171,6 +280,11 @@ class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
       lastOpenedAt: data.lastOpenedAt.present
           ? data.lastOpenedAt.value
           : this.lastOpenedAt,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      location: data.location.present ? data.location.value : this.location,
+      displayPath: data.displayPath.present
+          ? data.displayPath.value
+          : this.displayPath,
     );
   }
 
@@ -179,37 +293,53 @@ class WorkspaceRow extends DataClass implements Insertable<WorkspaceRow> {
     return (StringBuffer('WorkspaceRow(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('lastOpenedAt: $lastOpenedAt')
+          ..write('lastOpenedAt: $lastOpenedAt, ')
+          ..write('kind: $kind, ')
+          ..write('location: $location, ')
+          ..write('displayPath: $displayPath')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, lastOpenedAt);
+  int get hashCode =>
+      Object.hash(id, name, lastOpenedAt, kind, location, displayPath);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is WorkspaceRow &&
           other.id == this.id &&
           other.name == this.name &&
-          other.lastOpenedAt == this.lastOpenedAt);
+          other.lastOpenedAt == this.lastOpenedAt &&
+          other.kind == this.kind &&
+          other.location == this.location &&
+          other.displayPath == this.displayPath);
 }
 
 class WorkspacesCompanion extends UpdateCompanion<WorkspaceRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<int> lastOpenedAt;
+  final Value<String> kind;
+  final Value<String> location;
+  final Value<String> displayPath;
   final Value<int> rowid;
   const WorkspacesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.lastOpenedAt = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.location = const Value.absent(),
+    this.displayPath = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   WorkspacesCompanion.insert({
     required String id,
     required String name,
     required int lastOpenedAt,
+    this.kind = const Value.absent(),
+    this.location = const Value.absent(),
+    this.displayPath = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -218,12 +348,18 @@ class WorkspacesCompanion extends UpdateCompanion<WorkspaceRow> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<int>? lastOpenedAt,
+    Expression<String>? kind,
+    Expression<String>? location,
+    Expression<String>? displayPath,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (lastOpenedAt != null) 'last_opened_at': lastOpenedAt,
+      if (kind != null) 'kind': kind,
+      if (location != null) 'location': location,
+      if (displayPath != null) 'display_path': displayPath,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -232,12 +368,18 @@ class WorkspacesCompanion extends UpdateCompanion<WorkspaceRow> {
     Value<String>? id,
     Value<String>? name,
     Value<int>? lastOpenedAt,
+    Value<String>? kind,
+    Value<String>? location,
+    Value<String>? displayPath,
     Value<int>? rowid,
   }) {
     return WorkspacesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
+      kind: kind ?? this.kind,
+      location: location ?? this.location,
+      displayPath: displayPath ?? this.displayPath,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -254,6 +396,15 @@ class WorkspacesCompanion extends UpdateCompanion<WorkspaceRow> {
     if (lastOpenedAt.present) {
       map['last_opened_at'] = Variable<int>(lastOpenedAt.value);
     }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (displayPath.present) {
+      map['display_path'] = Variable<String>(displayPath.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -266,6 +417,9 @@ class WorkspacesCompanion extends UpdateCompanion<WorkspaceRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('lastOpenedAt: $lastOpenedAt, ')
+          ..write('kind: $kind, ')
+          ..write('location: $location, ')
+          ..write('displayPath: $displayPath, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1899,6 +2053,340 @@ class JournalChangesCompanion extends UpdateCompanion<JournalChangeRow> {
   }
 }
 
+class $WorkspaceViewsTable extends WorkspaceViews
+    with TableInfo<$WorkspaceViewsTable, WorkspaceViewRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkspaceViewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _workspaceIdMeta = const VerificationMeta(
+    'workspaceId',
+  );
+  @override
+  late final GeneratedColumn<String> workspaceId = GeneratedColumn<String>(
+    'workspace_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expandedMeta = const VerificationMeta(
+    'expanded',
+  );
+  @override
+  late final GeneratedColumn<String> expanded = GeneratedColumn<String>(
+    'expanded',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _scrollOffsetMeta = const VerificationMeta(
+    'scrollOffset',
+  );
+  @override
+  late final GeneratedColumn<double> scrollOffset = GeneratedColumn<double>(
+    'scroll_offset',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    workspaceId,
+    expanded,
+    scrollOffset,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'workspace_views';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WorkspaceViewRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('workspace_id')) {
+      context.handle(
+        _workspaceIdMeta,
+        workspaceId.isAcceptableOrUnknown(
+          data['workspace_id']!,
+          _workspaceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workspaceIdMeta);
+    }
+    if (data.containsKey('expanded')) {
+      context.handle(
+        _expandedMeta,
+        expanded.isAcceptableOrUnknown(data['expanded']!, _expandedMeta),
+      );
+    }
+    if (data.containsKey('scroll_offset')) {
+      context.handle(
+        _scrollOffsetMeta,
+        scrollOffset.isAcceptableOrUnknown(
+          data['scroll_offset']!,
+          _scrollOffsetMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {workspaceId};
+  @override
+  WorkspaceViewRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WorkspaceViewRow(
+      workspaceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workspace_id'],
+      )!,
+      expanded: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}expanded'],
+      )!,
+      scrollOffset: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}scroll_offset'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WorkspaceViewsTable createAlias(String alias) {
+    return $WorkspaceViewsTable(attachedDatabase, alias);
+  }
+}
+
+class WorkspaceViewRow extends DataClass
+    implements Insertable<WorkspaceViewRow> {
+  final String workspaceId;
+
+  /// The expanded folders' workspace paths, as a JSON list.
+  final String expanded;
+
+  /// The tree's scroll offset in logical pixels.
+  final double scrollOffset;
+
+  /// When the view was written, milliseconds since the epoch (UTC).
+  final int updatedAt;
+  const WorkspaceViewRow({
+    required this.workspaceId,
+    required this.expanded,
+    required this.scrollOffset,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['workspace_id'] = Variable<String>(workspaceId);
+    map['expanded'] = Variable<String>(expanded);
+    map['scroll_offset'] = Variable<double>(scrollOffset);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  WorkspaceViewsCompanion toCompanion(bool nullToAbsent) {
+    return WorkspaceViewsCompanion(
+      workspaceId: Value(workspaceId),
+      expanded: Value(expanded),
+      scrollOffset: Value(scrollOffset),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory WorkspaceViewRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WorkspaceViewRow(
+      workspaceId: serializer.fromJson<String>(json['workspaceId']),
+      expanded: serializer.fromJson<String>(json['expanded']),
+      scrollOffset: serializer.fromJson<double>(json['scrollOffset']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'workspaceId': serializer.toJson<String>(workspaceId),
+      'expanded': serializer.toJson<String>(expanded),
+      'scrollOffset': serializer.toJson<double>(scrollOffset),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  WorkspaceViewRow copyWith({
+    String? workspaceId,
+    String? expanded,
+    double? scrollOffset,
+    int? updatedAt,
+  }) => WorkspaceViewRow(
+    workspaceId: workspaceId ?? this.workspaceId,
+    expanded: expanded ?? this.expanded,
+    scrollOffset: scrollOffset ?? this.scrollOffset,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  WorkspaceViewRow copyWithCompanion(WorkspaceViewsCompanion data) {
+    return WorkspaceViewRow(
+      workspaceId: data.workspaceId.present
+          ? data.workspaceId.value
+          : this.workspaceId,
+      expanded: data.expanded.present ? data.expanded.value : this.expanded,
+      scrollOffset: data.scrollOffset.present
+          ? data.scrollOffset.value
+          : this.scrollOffset,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkspaceViewRow(')
+          ..write('workspaceId: $workspaceId, ')
+          ..write('expanded: $expanded, ')
+          ..write('scrollOffset: $scrollOffset, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(workspaceId, expanded, scrollOffset, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WorkspaceViewRow &&
+          other.workspaceId == this.workspaceId &&
+          other.expanded == this.expanded &&
+          other.scrollOffset == this.scrollOffset &&
+          other.updatedAt == this.updatedAt);
+}
+
+class WorkspaceViewsCompanion extends UpdateCompanion<WorkspaceViewRow> {
+  final Value<String> workspaceId;
+  final Value<String> expanded;
+  final Value<double> scrollOffset;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const WorkspaceViewsCompanion({
+    this.workspaceId = const Value.absent(),
+    this.expanded = const Value.absent(),
+    this.scrollOffset = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WorkspaceViewsCompanion.insert({
+    required String workspaceId,
+    this.expanded = const Value.absent(),
+    this.scrollOffset = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : workspaceId = Value(workspaceId),
+       updatedAt = Value(updatedAt);
+  static Insertable<WorkspaceViewRow> custom({
+    Expression<String>? workspaceId,
+    Expression<String>? expanded,
+    Expression<double>? scrollOffset,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (workspaceId != null) 'workspace_id': workspaceId,
+      if (expanded != null) 'expanded': expanded,
+      if (scrollOffset != null) 'scroll_offset': scrollOffset,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WorkspaceViewsCompanion copyWith({
+    Value<String>? workspaceId,
+    Value<String>? expanded,
+    Value<double>? scrollOffset,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return WorkspaceViewsCompanion(
+      workspaceId: workspaceId ?? this.workspaceId,
+      expanded: expanded ?? this.expanded,
+      scrollOffset: scrollOffset ?? this.scrollOffset,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (workspaceId.present) {
+      map['workspace_id'] = Variable<String>(workspaceId.value);
+    }
+    if (expanded.present) {
+      map['expanded'] = Variable<String>(expanded.value);
+    }
+    if (scrollOffset.present) {
+      map['scroll_offset'] = Variable<double>(scrollOffset.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkspaceViewsCompanion(')
+          ..write('workspaceId: $workspaceId, ')
+          ..write('expanded: $expanded, ')
+          ..write('scrollOffset: $scrollOffset, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1908,6 +2396,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $JournalChangesTable journalChanges = $JournalChangesTable(this);
+  late final $WorkspaceViewsTable workspaceViews = $WorkspaceViewsTable(this);
   late final Index journalChangesDocument = Index(
     'journal_changes_document',
     'CREATE INDEX journal_changes_document ON journal_changes (workspace_id, path, version)',
@@ -1921,6 +2410,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     openTabs,
     journalDocuments,
     journalChanges,
+    workspaceViews,
     journalChangesDocument,
   ];
 }
@@ -1930,6 +2420,9 @@ typedef $$WorkspacesTableCreateCompanionBuilder =
       required String id,
       required String name,
       required int lastOpenedAt,
+      Value<String> kind,
+      Value<String> location,
+      Value<String> displayPath,
       Value<int> rowid,
     });
 typedef $$WorkspacesTableUpdateCompanionBuilder =
@@ -1937,6 +2430,9 @@ typedef $$WorkspacesTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<int> lastOpenedAt,
+      Value<String> kind,
+      Value<String> location,
+      Value<String> displayPath,
       Value<int> rowid,
     });
 
@@ -1961,6 +2457,21 @@ class $$WorkspacesTableFilterComposer
 
   ColumnFilters<int> get lastOpenedAt => $composableBuilder(
     column: $table.lastOpenedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayPath => $composableBuilder(
+    column: $table.displayPath,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1988,6 +2499,21 @@ class $$WorkspacesTableOrderingComposer
     column: $table.lastOpenedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayPath => $composableBuilder(
+    column: $table.displayPath,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$WorkspacesTableAnnotationComposer
@@ -2007,6 +2533,17 @@ class $$WorkspacesTableAnnotationComposer
 
   GeneratedColumn<int> get lastOpenedAt => $composableBuilder(
     column: $table.lastOpenedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<String> get displayPath => $composableBuilder(
+    column: $table.displayPath,
     builder: (column) => column,
   );
 }
@@ -2045,11 +2582,17 @@ class $$WorkspacesTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> lastOpenedAt = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> location = const Value.absent(),
+                Value<String> displayPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => WorkspacesCompanion(
                 id: id,
                 name: name,
                 lastOpenedAt: lastOpenedAt,
+                kind: kind,
+                location: location,
+                displayPath: displayPath,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2057,11 +2600,17 @@ class $$WorkspacesTableTableManager
                 required String id,
                 required String name,
                 required int lastOpenedAt,
+                Value<String> kind = const Value.absent(),
+                Value<String> location = const Value.absent(),
+                Value<String> displayPath = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => WorkspacesCompanion.insert(
                 id: id,
                 name: name,
                 lastOpenedAt: lastOpenedAt,
+                kind: kind,
+                location: location,
+                displayPath: displayPath,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2929,6 +3478,206 @@ typedef $$JournalChangesTableProcessedTableManager =
       JournalChangeRow,
       PrefetchHooks Function()
     >;
+typedef $$WorkspaceViewsTableCreateCompanionBuilder =
+    WorkspaceViewsCompanion Function({
+      required String workspaceId,
+      Value<String> expanded,
+      Value<double> scrollOffset,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$WorkspaceViewsTableUpdateCompanionBuilder =
+    WorkspaceViewsCompanion Function({
+      Value<String> workspaceId,
+      Value<String> expanded,
+      Value<double> scrollOffset,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$WorkspaceViewsTableFilterComposer
+    extends Composer<_$AppDatabase, $WorkspaceViewsTable> {
+  $$WorkspaceViewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get expanded => $composableBuilder(
+    column: $table.expanded,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get scrollOffset => $composableBuilder(
+    column: $table.scrollOffset,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkspaceViewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WorkspaceViewsTable> {
+  $$WorkspaceViewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get expanded => $composableBuilder(
+    column: $table.expanded,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get scrollOffset => $composableBuilder(
+    column: $table.scrollOffset,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkspaceViewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WorkspaceViewsTable> {
+  $$WorkspaceViewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get workspaceId => $composableBuilder(
+    column: $table.workspaceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get expanded =>
+      $composableBuilder(column: $table.expanded, builder: (column) => column);
+
+  GeneratedColumn<double> get scrollOffset => $composableBuilder(
+    column: $table.scrollOffset,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$WorkspaceViewsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WorkspaceViewsTable,
+          WorkspaceViewRow,
+          $$WorkspaceViewsTableFilterComposer,
+          $$WorkspaceViewsTableOrderingComposer,
+          $$WorkspaceViewsTableAnnotationComposer,
+          $$WorkspaceViewsTableCreateCompanionBuilder,
+          $$WorkspaceViewsTableUpdateCompanionBuilder,
+          (
+            WorkspaceViewRow,
+            BaseReferences<
+              _$AppDatabase,
+              $WorkspaceViewsTable,
+              WorkspaceViewRow
+            >,
+          ),
+          WorkspaceViewRow,
+          PrefetchHooks Function()
+        > {
+  $$WorkspaceViewsTableTableManager(
+    _$AppDatabase db,
+    $WorkspaceViewsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkspaceViewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WorkspaceViewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WorkspaceViewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> workspaceId = const Value.absent(),
+                Value<String> expanded = const Value.absent(),
+                Value<double> scrollOffset = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WorkspaceViewsCompanion(
+                workspaceId: workspaceId,
+                expanded: expanded,
+                scrollOffset: scrollOffset,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String workspaceId,
+                Value<String> expanded = const Value.absent(),
+                Value<double> scrollOffset = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => WorkspaceViewsCompanion.insert(
+                workspaceId: workspaceId,
+                expanded: expanded,
+                scrollOffset: scrollOffset,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$WorkspaceViewsTable, WorkspaceViewRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $WorkspaceViewsTable,
+                    WorkspaceViewRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkspaceViewsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WorkspaceViewsTable,
+      WorkspaceViewRow,
+      $$WorkspaceViewsTableFilterComposer,
+      $$WorkspaceViewsTableOrderingComposer,
+      $$WorkspaceViewsTableAnnotationComposer,
+      $$WorkspaceViewsTableCreateCompanionBuilder,
+      $$WorkspaceViewsTableUpdateCompanionBuilder,
+      (
+        WorkspaceViewRow,
+        BaseReferences<_$AppDatabase, $WorkspaceViewsTable, WorkspaceViewRow>,
+      ),
+      WorkspaceViewRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2941,4 +3690,6 @@ class $AppDatabaseManager {
       $$JournalDocumentsTableTableManager(_db, _db.journalDocuments);
   $$JournalChangesTableTableManager get journalChanges =>
       $$JournalChangesTableTableManager(_db, _db.journalChanges);
+  $$WorkspaceViewsTableTableManager get workspaceViews =>
+      $$WorkspaceViewsTableTableManager(_db, _db.workspaceViews);
 }

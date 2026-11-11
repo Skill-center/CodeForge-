@@ -34,13 +34,12 @@ void main() {
     }
   });
 
-  List<String> entries() =>
-      Directory(root).existsSync()
-          ? [
-              for (final entity in Directory(root).listSync())
-                entity.path.substring(root.length + 1),
-            ]
-          : const [];
+  List<String> entries() => Directory(root).existsSync()
+      ? [
+          for (final entity in Directory(root).listSync())
+            entity.path.substring(root.length + 1),
+        ]
+      : const [];
 
   test('no projects before the first: the folder need not exist', () async {
     expect((await storage.folders()).orThrow, isEmpty);
@@ -58,28 +57,41 @@ void main() {
       File('$root/sample/src/greeting.dart').readAsStringSync(),
       DemoWorkspace.files['src/greeting.dart'],
     );
-    expect((await storage.folders()).orThrow, unorderedEquals(['empty', 'sample']));
+    expect(
+      (await storage.folders()).orThrow,
+      unorderedEquals(['empty', 'sample']),
+    );
     expect((await storage.exists('sample')).orThrow, isTrue);
     expect(
       (await storage.countFiles('sample')).orThrow,
       DemoWorkspace.files.length,
     );
     expect((await storage.countFiles('sample', limit: 3)).orThrow, 3);
-    expect(entries(), unorderedEquals(['empty', 'sample']), reason: 'no staging left');
+    expect(
+      entries(),
+      unorderedEquals(['empty', 'sample']),
+      reason: 'no staging left',
+    );
   });
 
-  test('a name is taken in any case; a bad name never reaches the disk', () async {
-    await storage.create('App');
-    expect((await storage.create('app')).failureOrNull, _fails(FileProblem.exists));
-    for (final bad in ['', '..', 'a/b', 'x.cf-tmp', 'q?']) {
+  test(
+    'a name is taken in any case; a bad name never reaches the disk',
+    () async {
+      await storage.create('App');
       expect(
-        (await storage.create(bad)).failureOrNull,
-        _fails(FileProblem.invalidPath),
-        reason: bad,
+        (await storage.create('app')).failureOrNull,
+        _fails(FileProblem.exists),
       );
-    }
-    expect(entries(), ['App']);
-  });
+      for (final bad in ['', '..', 'a/b', 'x.cf-tmp', 'q?']) {
+        expect(
+          (await storage.create(bad)).failureOrNull,
+          _fails(FileProblem.invalidPath),
+          reason: bad,
+        );
+      }
+      expect(entries(), ['App']);
+    },
+  );
 
   test('hidden and half-written folders are not projects', () async {
     await storage.create('real');
@@ -115,7 +127,10 @@ void main() {
     expect((await storage.delete('doomed')).isOk, isTrue);
     expect(entries(), isEmpty);
     expect((await storage.delete('doomed')).isOk, isTrue);
-    expect((await storage.delete('../x')).failureOrNull, _fails(FileProblem.invalidPath));
+    expect(
+      (await storage.delete('../x')).failureOrNull,
+      _fails(FileProblem.invalidPath),
+    );
   });
 
   test("a project's files: its folder, which is reported missing, never "

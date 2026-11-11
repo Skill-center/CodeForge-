@@ -57,9 +57,8 @@ final fileServiceProvider = Provider<FileService>((ref) {
     final ProjectLocation project when project.isDemo => ref.watch(
       projectFileServiceProvider,
     ),
-    final ProjectLocation project => ref
-        .watch(projectStorageProvider)
-        .files(project),
+    final ProjectLocation project =>
+      ref.watch(projectStorageProvider).files(project),
     final FolderLocation folder => SafFileService(
       broker: ref.watch(storageBrokerProvider),
       folder: folder,

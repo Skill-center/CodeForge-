@@ -113,12 +113,12 @@ class _ProjectNameDialog extends StatefulWidget {
 }
 
 class _ProjectNameDialogState extends State<_ProjectNameDialog> {
-  late final TextEditingController _name = TextEditingController(
-    text: widget.initialName,
-  )..selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: widget.initialName.length,
-    );
+  late final TextEditingController _name =
+      TextEditingController(text: widget.initialName)
+        ..selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: widget.initialName.length,
+        );
   String? _problem;
   bool _fromTemplate = false;
 

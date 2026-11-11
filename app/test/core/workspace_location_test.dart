@@ -129,12 +129,7 @@ void main() {
         ('volume', 'v-1', 'x'),
       ]) {
         expect(
-          workspaceFromParts(
-            kind: kind,
-            id: id,
-            name: 'n',
-            location: location,
-          ),
+          workspaceFromParts(kind: kind, id: id, name: 'n', location: location),
           isNull,
           reason: '$kind $id $location',
         );

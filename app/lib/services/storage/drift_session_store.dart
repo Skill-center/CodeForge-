@@ -112,8 +112,7 @@ final class DriftSessionStore implements SessionStore {
     required String displayPath,
   }) {
     return _guard('update the workspace', () async {
-      final update = _db.update(_db.workspaces)
-        ..where((t) => t.id.equals(id));
+      final update = _db.update(_db.workspaces)..where((t) => t.id.equals(id));
       await update.write(
         WorkspacesCompanion(
           name: Value(name),

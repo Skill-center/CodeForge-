@@ -117,10 +117,16 @@ void main() {
     ]) {
       expect(_entry(workspace), findsOneWidget, reason: workspace.name);
     }
-    expect(_inEntry(_alpha, 'Project · CodeForge projects/alpha'), findsOneWidget);
+    expect(
+      _inEntry(_alpha, 'Project · CodeForge projects/alpha'),
+      findsOneWidget,
+    );
     expect(_inEntry(_alpha, 'available'), findsOneWidget);
     expect(_inEntry(_gone, 'missing'), findsOneWidget);
-    expect(_inEntry(_hereFolder, 'Folder · Internal storage/here'), findsOneWidget);
+    expect(
+      _inEntry(_hereFolder, 'Folder · Internal storage/here'),
+      findsOneWidget,
+    );
     expect(_inEntry(_hereFolder, 'available'), findsOneWidget);
     expect(_inEntry(_lostFolder, 'access lost'), findsOneWidget);
     // Most recently opened first.

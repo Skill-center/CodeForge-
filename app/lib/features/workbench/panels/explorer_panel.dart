@@ -112,9 +112,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
     if (_scroll.hasClients) {
       final position = _scroll.position;
       if (position.maxScrollExtent >= target || _expandedListed() || out) {
-        _scroll.jumpTo(
-          target.clamp(0.0, position.maxScrollExtent).toDouble(),
-        );
+        _scroll.jumpTo(target.clamp(0.0, position.maxScrollExtent).toDouble());
         _restoreTarget = null;
         return;
       }

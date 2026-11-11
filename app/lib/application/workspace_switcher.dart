@@ -186,7 +186,11 @@ final class WorkspaceSwitcher {
     if (created case Err<void>(:final failure)) {
       return Err(failure);
     }
-    final project = ProjectLocation(id: newProjectId(), name: name, folder: name);
+    final project = ProjectLocation(
+      id: newProjectId(),
+      name: name,
+      folder: name,
+    );
     await _store.touchWorkspace(project, displayPath: displayPathOf(project));
     appLogger.info(
       'workspace',

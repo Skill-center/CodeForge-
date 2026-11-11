@@ -300,10 +300,9 @@ void main() {
         unorderedEquals(DemoWorkspace.files.keys),
       );
       final records = (await stores.sessions.loadWorkspaces()).orThrow;
-      expect(
-        [for (final r in records) r.id],
-        containsAll([created.id, sample.id]),
-      );
+      expect([
+        for (final r in records) r.id,
+      ], containsAll([created.id, sample.id]));
       final record = records.firstWhere((r) => r.id == created.id);
       expect(record.kind, WorkspaceKind.project);
       expect(record.location, 'my app');
@@ -348,8 +347,7 @@ void main() {
       app.page.typeText('// edit\n');
       await _drain();
 
-      final renamed = (await app.switcher.renameProject(alpha, 'beta'))
-          .orThrow;
+      final renamed = (await app.switcher.renameProject(alpha, 'beta')).orThrow;
       expect(renamed.id, alpha.id);
       expect(renamed.folder, 'beta');
       expect(stores.projects.projects.keys, contains('beta'));
@@ -546,24 +544,30 @@ void main() {
       expect(stores.broker.released, [_thirdUri]);
     });
 
-    test('a folder recorded without its place can only be reconnected', () async {
-      final stores = _Stores();
-      final app = _App(stores);
-      final unplaced = FolderLocation(
-        treeUri: '',
-        name: 'cf-gate',
-        id: folderWorkspaceId(_uri),
-      );
-      final opened = await app.switcher.open(unplaced);
-      expect(opened.failureOrNull, _fails(FileProblem.accessLost));
-      expect(app.container.read(currentWorkspaceProvider).id, demoWorkspaceId);
-      // Its own folder, picked to reconnect it, is recognised by its id.
-      const info = FolderInfo(
-        treeUri: _uri,
-        name: 'cf-gate',
-        status: FolderStatus.available,
-      );
-      expect(app.switcher.isSameFolder(unplaced, info), isTrue);
-    });
+    test(
+      'a folder recorded without its place can only be reconnected',
+      () async {
+        final stores = _Stores();
+        final app = _App(stores);
+        final unplaced = FolderLocation(
+          treeUri: '',
+          name: 'cf-gate',
+          id: folderWorkspaceId(_uri),
+        );
+        final opened = await app.switcher.open(unplaced);
+        expect(opened.failureOrNull, _fails(FileProblem.accessLost));
+        expect(
+          app.container.read(currentWorkspaceProvider).id,
+          demoWorkspaceId,
+        );
+        // Its own folder, picked to reconnect it, is recognised by its id.
+        const info = FolderInfo(
+          treeUri: _uri,
+          name: 'cf-gate',
+          status: FolderStatus.available,
+        );
+        expect(app.switcher.isSameFolder(unplaced, info), isTrue);
+      },
+    );
   });
 }

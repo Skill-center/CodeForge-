@@ -28,9 +28,7 @@ final class FlakySessionStore implements SessionStore {
   Future<Result<void>> touchWorkspace(
     WorkspaceLocation workspace, {
     required String displayPath,
-  }) => _write(
-    () => inner.touchWorkspace(workspace, displayPath: displayPath),
-  );
+  }) => _write(() => inner.touchWorkspace(workspace, displayPath: displayPath));
 
   @override
   Future<Result<List<WorkspaceRecord>>> loadWorkspaces() =>

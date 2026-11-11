@@ -98,8 +98,7 @@ final class RecentsController extends Notifier<RecentsState> {
     final generation = ++_generation;
     final store = ref.read(sessionStoreProvider);
     final stored =
-        (await store.loadWorkspaces()).valueOrNull ??
-        const <WorkspaceRecord>[];
+        (await store.loadWorkspaces()).valueOrNull ?? const <WorkspaceRecord>[];
     final folders =
         (await ref.read(projectStorageProvider).folders()).valueOrNull ??
         const <String>[];
@@ -276,7 +275,9 @@ final class RecentsController extends Notifier<RecentsState> {
         if (treeUri.isEmpty) {
           return WorkspaceStatus.accessLost;
         }
-        final found = await ref.read(storageBrokerProvider).checkFolder(treeUri);
+        final found = await ref
+            .read(storageBrokerProvider)
+            .checkFolder(treeUri);
         return switch (found) {
           Ok<FolderInfo>(:final value) => switch (value.status) {
             FolderStatus.available => WorkspaceStatus.available,

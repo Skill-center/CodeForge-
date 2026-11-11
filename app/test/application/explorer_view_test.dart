@@ -58,7 +58,9 @@ void main() {
     expect(sessions.views[demoWorkspaceId]?.scrollOffset, 240);
 
     // Another workspace: its own view, and the demo's left as it was.
-    await container.read(shellControllerProvider.notifier).setWorkspace(_folder);
+    await container
+        .read(shellControllerProvider.notifier)
+        .setWorkspace(_folder);
     container.read(explorerViewProvider);
     await _drain();
     expect(container.read(explorerViewProvider).workspaceId, _folder.id);
