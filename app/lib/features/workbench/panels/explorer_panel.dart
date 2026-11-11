@@ -168,7 +168,9 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
 
   /// Nothing opened, failed or listed yet.
   static bool _pristine(WorkspaceState state) =>
-      state.workspace == null && state.failure == null && state.listings.isEmpty;
+      state.workspace == null &&
+      state.failure == null &&
+      state.listings.isEmpty;
 
   Widget _buildTree(WorkspaceState workspace, TextTheme textTheme) {
     final failure = workspace.failure;

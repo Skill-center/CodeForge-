@@ -94,7 +94,8 @@ void main() {
     // pushed.
     await pumpUntil(
       tester,
-      () => find.byKey(const ValueKey('activity_explorer')).evaluate().isNotEmpty,
+      () =>
+          find.byKey(const ValueKey('activity_explorer')).evaluate().isNotEmpty,
       what: 'the workbench',
     );
     await tester.tap(find.byKey(const ValueKey('activity_explorer')));
@@ -112,7 +113,9 @@ void main() {
     }
 
     // The grant is kept, for reading and writing.
-    final grant = (await broker.grants()).orThrow.where((g) => g.treeUri == uri);
+    final grant = (await broker.grants()).orThrow.where(
+      (g) => g.treeUri == uri,
+    );
     expect(grant, hasLength(1));
     expect(grant.single.write, isTrue);
 
@@ -165,7 +168,11 @@ void main() {
           host.status.phase == EditorHostPhase.failed,
       what: 'the editor page to start',
     );
-    expect(host.status.phase, EditorHostPhase.ready, reason: host.status.message);
+    expect(
+      host.status.phase,
+      EditorHostPhase.ready,
+      reason: host.status.message,
+    );
     final documents = container.read(documentControllerProvider.notifier);
     expect((await documents.open('src/app.js')).isOk, isTrue);
     await tester.pumpAndSettle();
@@ -177,7 +184,10 @@ void main() {
     expect((await host.replaceText(docId, edited)).isOk, isTrue);
     await pumpUntil(
       tester,
-      () => container.read(documentControllerProvider).documents['src/app.js']!.dirty,
+      () => container
+          .read(documentControllerProvider)
+          .documents['src/app.js']!
+          .dirty,
       what: 'the edit to reach the document',
     );
     expect((await documents.save('src/app.js')).isOk, isTrue);
@@ -193,7 +203,10 @@ void main() {
       isTrue,
     );
     expect(await gate.disk('notes/empty.txt'), sha256Of(''));
-    expect((await broker.create(uri, '', 'made', directory: true)).isOk, isTrue);
+    expect(
+      (await broker.create(uri, '', 'made', directory: true)).isOk,
+      isTrue,
+    );
     expect(await gate.disk('made'), 'dir');
     expect(
       (await broker.create(

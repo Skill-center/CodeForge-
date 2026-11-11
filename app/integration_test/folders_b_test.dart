@@ -57,10 +57,9 @@ void main() {
     expect(workspace().workspace?.displayName, gateFolderName);
     final broker = container.read(storageBrokerProvider);
     final files = container.read(fileServiceProvider);
-    expect(
-      [for (final grant in (await broker.grants()).orThrow) grant.treeUri],
-      contains(folder.treeUri),
-    );
+    expect([
+      for (final grant in (await broker.grants()).orThrow) grant.treeUri,
+    ], contains(folder.treeUri));
     await tester.tap(find.byKey(const ValueKey('activity_explorer')));
     await pumpUntil(
       tester,
@@ -110,10 +109,9 @@ void main() {
       FolderStatus.available,
     );
     expect((await broker.releaseGrant(folder.treeUri)).isOk, isTrue);
-    expect(
-      [for (final grant in (await broker.grants()).orThrow) grant.treeUri],
-      isNot(contains(folder.treeUri)),
-    );
+    expect([
+      for (final grant in (await broker.grants()).orThrow) grant.treeUri,
+    ], isNot(contains(folder.treeUri)));
     await container.read(workspaceControllerProvider.notifier).refresh();
     await tester.pumpAndSettle();
     expect(
