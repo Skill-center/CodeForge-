@@ -8,6 +8,8 @@ import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Riverpod 3 exports Override from misc.dart, not the main library.
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,12 +31,17 @@ Future<void> pumpUntil(
   }
 }
 
-Future<void> pumpRealApp(WidgetTester tester, SharedPreferences prefs) async {
+Future<void> pumpRealApp(
+  WidgetTester tester,
+  SharedPreferences prefs, {
+  List<Override> overrides = const [],
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         settingsStoreProvider.overrideWithValue(PrefsSettingsStore(prefs)),
         shellStateStoreProvider.overrideWithValue(PrefsShellStateStore(prefs)),
+        ...overrides,
       ],
       child: const CodeForgeApp(),
     ),

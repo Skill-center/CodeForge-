@@ -12,6 +12,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/errors/failure.dart';
 import '../core/files/workspace_path.dart';
 import '../services/storage/session_store.dart';
 import 'providers.dart';
