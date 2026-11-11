@@ -24,7 +24,8 @@
 #                                  since Phase 3 W3 the injector also records
 #                                  which window had focus around each tap,
 #                                  and keys_first_tap_<run>.png the screen
-#                                  after each run's first tap
+#                                  after each run's first tap; keys_events.txt
+#                                  every ANR and crash since boot
 #   backup.txt / backup_*.txt      Phase 3 W1 G6: Android backup on → restore,
 #                                  off → a fresh app (local transport)
 #   folders.txt / folders_*.txt    Phase 3 W2 G1: a folder from shared storage
@@ -218,6 +219,16 @@ fi
 "$ADB" shell settings put global transition_animation_scale 0 || true
 "$ADB" shell settings put global animator_duration_scale 0 || true
 "$ADB" shell svc power stayon true || true
+# Android's error dialogs off (Phase 3 W3). In gate 43069846571 System UI
+# stopped responding, and its "Application Not Responding" dialog held the
+# window focus when the keys group tapped the editor: the tap and every key
+# after it went to the dialog, never to the app (keys_injector.txt). With
+# the dialogs hidden, Android ends a process that stops responding instead
+# of asking, as if Close had been chosen: System UI starts again, and an
+# ANR of the app itself ends the app, which its test then sees.
+"$ADB" shell settings put global hide_error_dialogs 1 || true
+echo "hide_error_dialogs=$("$ADB" shell settings get global hide_error_dialogs < /dev/null 2>/dev/null | tr -d '\r')" \
+  | tee -a "$RESULTS/readiness.txt"
 echo "::endgroup::"
 
 # Signatures of failures that happen *before any test code runs* — install /
@@ -355,7 +366,7 @@ window_focus() {
 }
 
 key_injector() {
-  local last="" line id kind status run
+  local last="" line id kind status run focus
   echo "injector: polling the log for requests ($(date +%T))"
   while :; do
     line=$("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null \
@@ -377,7 +388,19 @@ key_injector() {
         # first tap (the step that timed out). screencap draws nothing
         # into the app and turns on no accessibility service, which
         # uiautomator would (Flutter then builds its semantics tree).
-        echo "request $id: focus before the tap: $(window_focus)"
+        focus=$(window_focus)
+        echo "request $id: focus before the tap: $focus"
+        # An error dialog over the app takes the tap (gate 43069846571,
+        # before the gate hid them): ask Android to close it, and look again.
+        case "$focus" in
+          *"Application Not Responding"* | *"Application Error"*)
+            "$ADB" shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS \
+              < /dev/null > /dev/null 2>&1
+            sleep 1
+            echo "request $id: an error dialog had the focus; after closing" \
+              "system dialogs: $(window_focus)"
+            ;;
+        esac
         "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null
         status=$?
         sleep 0.5
@@ -484,6 +507,13 @@ run_itest keys integration_test/keys_test.dart || fail=1
 pkill -P "$injector" >/dev/null 2>&1 || true
 kill "$injector" "$getevent_reader" >/dev/null 2>&1 || true
 wait "$injector" "$getevent_reader" 2>/dev/null || true
+# Every process that stopped responding or crashed since boot, from
+# Android's event log, whatever the dialogs did: the keys flake's evidence.
+"$ADB" logcat -d -b events < /dev/null 2>/dev/null | tr -d '\r' \
+  | grep -E 'am_(anr|crash)' > "$RESULTS/keys_events.txt" || true
+echo "keys_events: $(grep -c 'am_anr' "$RESULTS/keys_events.txt") ANRs," \
+  "$(grep -c 'am_crash' "$RESULTS/keys_events.txt") crashes since boot" \
+  | tee -a "$RESULTS/attempts.txt"
 if [ -z "$ime_setting" ] || [ "$ime_setting" = "null" ]; then
   "$ADB" shell settings delete secure show_ime_with_hard_keyboard \
     >/dev/null 2>&1
