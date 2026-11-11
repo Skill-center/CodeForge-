@@ -1,23 +1,23 @@
 Editor benchmark (Phase 2 W3) — CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (profile mode is refused on emulators); accel=kvm
 
 codemirror 6.43.15  page 293.8 KiB gzipped  input editcontext  runs 3
-  ok  cold load → first editor frame         244.6 ms  (budget 800 ms)
-  OVER typing p95, engine path                133.3 ms  (budget 32 ms)
-  OVER input p95, DevTools key events          78.7 ms  (budget 32 ms)
-  OVER 1 MiB scroll, frames > 32 ms             96.2 %  (budget 5 %)
-  ok  IME composition failures                      0  (budget 0)
-  OVER memory, app + renderer PSS             533.9 MB  (budget 250 MB)
-  ok  shipped size, gzipped                  300898 B  (budget 1572864 B)
-      1 MiB open 179.5 ms, 1 MiB typing p95 153.8 ms, features ok, highlighting ok
-      1 MiB as plain text: open 232.3 ms, typing p95 126.6 ms, scroll frames > 32 ms 100 % (record-only)
-
-monaco 0.57.0  page 1029.4 KiB gzipped  input editcontext  runs 3
-  OVER cold load → first editor frame          1412 ms  (budget 800 ms)
-  OVER typing p95, engine path                142.8 ms  (budget 32 ms)
-  OVER input p95, DevTools key events          99.3 ms  (budget 32 ms)
+  ok  cold load → first editor frame         200.5 ms  (budget 800 ms)
+  OVER typing p95, engine path                109.3 ms  (budget 32 ms)
+  OVER input p95, DevTools key events          65.8 ms  (budget 32 ms)
   OVER 1 MiB scroll, frames > 32 ms              100 %  (budget 5 %)
   ok  IME composition failures                      0  (budget 0)
-  OVER memory, app + renderer PSS             596.1 MB  (budget 250 MB)
+  OVER memory, app + renderer PSS             515.8 MB  (budget 250 MB)
+  ok  shipped size, gzipped                  300898 B  (budget 1572864 B)
+      1 MiB open 151.4 ms, 1 MiB typing p95 123.7 ms, features ok, highlighting ok
+      1 MiB as plain text: open 186.7 ms, typing p95 131.1 ms, scroll frames > 32 ms 100 % (record-only)
+
+monaco 0.57.0  page 1029.4 KiB gzipped  input editcontext  runs 3
+  ok  cold load → first editor frame         511.4 ms  (budget 800 ms)
+  OVER typing p95, engine path                118.6 ms  (budget 32 ms)
+  OVER input p95, DevTools key events          77.1 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms             91.7 %  (budget 5 %)
+  ok  IME composition failures                      0  (budget 0)
+  OVER memory, app + renderer PSS             639.9 MB  (budget 250 MB)
   ok  shipped size, gzipped                 1054153 B  (budget 1572864 B)
-      1 MiB open 577.7 ms, 1 MiB typing p95 158.2 ms, features ok, highlighting ok
-      1 MiB as plain text: open 411.9 ms, typing p95 154.8 ms, scroll frames > 32 ms 100 % (record-only)
+      1 MiB open 389.4 ms, 1 MiB typing p95 147.9 ms, features ok, highlighting ok
+      1 MiB as plain text: open 279.9 ms, typing p95 120.2 ms, scroll frames > 32 ms 96 % (record-only)
