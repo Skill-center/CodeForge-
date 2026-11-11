@@ -390,7 +390,10 @@ void main() {
 
   group('renames and moves (Phase 3 W4)', () {
     test('tabs and journals move with a folder, and only from it', () async {
-      for (final store in <SessionStore>[_memoryStore(), MemorySessionStore()]) {
+      for (final store in <SessionStore>[
+        _memoryStore(),
+        MemorySessionStore(),
+      ]) {
         final kind = store.runtimeType.toString();
         await store.saveTabs('demo', const [
           SavedTab(
@@ -415,11 +418,11 @@ void main() {
         expect((await store.movePaths('demo', 'src', 'lib')).isOk, isTrue);
 
         final tabs = (await store.loadTabs('demo')).orThrow;
-        expect(
-          tabs.map((t) => t.path),
-          ['lib/a.js', 'src2/b.js', 'main.js'],
-          reason: kind,
-        );
+        expect(tabs.map((t) => t.path), [
+          'lib/a.js',
+          'src2/b.js',
+          'main.js',
+        ], reason: kind);
         expect(tabs.first.active, isTrue, reason: kind);
         expect(tabs.first.selectionAnchor, 3, reason: kind);
         expect(tabs.first.selectionHead, 4, reason: kind);
@@ -441,42 +444,45 @@ void main() {
       }
     });
 
-    test('a file renamed, the case alone too, and names beyond ASCII', () async {
-      for (final store in <SessionStore>[_memoryStore(), MemorySessionStore()]) {
-        final kind = store.runtimeType.toString();
-        await store.saveTabs('demo', const [
-          SavedTab(path: 'main.js'),
-          SavedTab(path: '\u{1F4C1}/a.js'),
-          SavedTab(path: 'ファイル/b.js'),
-        ]);
-        await store.writeSnapshot(_snapshot('main.js', 'm', 1));
-        await store.writeSnapshot(_snapshot('\u{1F4C1}/a.js', 'a', 1));
+    test(
+      'a file renamed, the case alone too, and names beyond ASCII',
+      () async {
+        for (final store in <SessionStore>[
+          _memoryStore(),
+          MemorySessionStore(),
+        ]) {
+          final kind = store.runtimeType.toString();
+          await store.saveTabs('demo', const [
+            SavedTab(path: 'main.js'),
+            SavedTab(path: '\u{1F4C1}/a.js'),
+            SavedTab(path: 'ファイル/b.js'),
+          ]);
+          await store.writeSnapshot(_snapshot('main.js', 'm', 1));
+          await store.writeSnapshot(_snapshot('\u{1F4C1}/a.js', 'a', 1));
 
-        expect(
-          (await store.movePaths('demo', 'main.js', 'Main.js')).isOk,
-          isTrue,
-        );
-        expect(
-          (await store.movePaths('demo', '\u{1F4C1}', 'f\u{1F4C2}')).isOk,
-          isTrue,
-        );
-        expect(
-          (await store.movePaths('demo', 'ファイル', 'файл')).isOk,
-          isTrue,
-        );
+          expect(
+            (await store.movePaths('demo', 'main.js', 'Main.js')).isOk,
+            isTrue,
+          );
+          expect(
+            (await store.movePaths('demo', '\u{1F4C1}', 'f\u{1F4C2}')).isOk,
+            isTrue,
+          );
+          expect((await store.movePaths('demo', 'ファイル', 'файл')).isOk, isTrue);
 
-        expect(
-          (await store.loadTabs('demo')).orThrow.map((t) => t.path),
-          ['Main.js', 'f\u{1F4C2}/a.js', 'файл/b.js'],
-          reason: kind,
-        );
-        expect(
-          [for (final e in (await store.loadJournal('demo')).orThrow) e.path],
-          unorderedEquals(['Main.js', 'f\u{1F4C2}/a.js']),
-          reason: kind,
-        );
-      }
-    });
+          expect((await store.loadTabs('demo')).orThrow.map((t) => t.path), [
+            'Main.js',
+            'f\u{1F4C2}/a.js',
+            'файл/b.js',
+          ], reason: kind);
+          expect(
+            [for (final e in (await store.loadJournal('demo')).orThrow) e.path],
+            unorderedEquals(['Main.js', 'f\u{1F4C2}/a.js']),
+            reason: kind,
+          );
+        }
+      },
+    );
   });
 
   group('the database file', () {

@@ -543,8 +543,7 @@ final class DocumentController extends Notifier<DocumentsState> {
     // reach the journal between the state and the store.
     _journal.moved(_workspaceId, from, to);
     final renamed = <String, String>{
-      for (final path in state.openPaths)
-        if (movedPath(path, from, to) case final moved?) path: moved,
+      for (final path in state.openPaths) path: ?movedPath(path, from, to),
     };
     if (renamed.isEmpty) {
       return;

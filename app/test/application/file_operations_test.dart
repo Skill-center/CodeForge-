@@ -337,7 +337,10 @@ void main() {
         (await w.operations.duplicate('src', isFolder: true)).orThrow,
         'src copy',
       );
-      expect(w.files.textOf('src copy/notes.txt'), 'Scratch notes live here.\n');
+      expect(
+        w.files.textOf('src copy/notes.txt'),
+        'Scratch notes live here.\n',
+      );
       expect(w.files.textOf('src/notes.txt'), 'Scratch notes live here.\n');
     });
 

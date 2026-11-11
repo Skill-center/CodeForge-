@@ -103,11 +103,11 @@ void main() {
         'app copy 2.js',
       );
       expect(
-        copyName(
+        copyName('app.js', {
           'app.js',
-          {'app.js', 'app copy.js', 'app copy 2.js'},
-          isFolder: false,
-        ),
+          'app copy.js',
+          'app copy 2.js',
+        }, isFolder: false),
         'app copy 3.js',
       );
       expect(copyName('src', {'src'}, isFolder: true), 'src copy');

@@ -402,23 +402,31 @@ void main() {
       expect(Directory('${_temp.path}/out').existsSync(), isFalse);
     });
 
-    test('rename: a file, a folder with its files, and the case alone', () async {
-      final files = await _opened();
-      expect((await files.rename('main.js', 'index.js')).orThrow, 'index.js');
-      expect(_file('main.js').existsSync(), isFalse);
-      expect(_file('index.js').readAsStringSync(), 'console.log(1);\n');
+    test(
+      'rename: a file, a folder with its files, and the case alone',
+      () async {
+        final files = await _opened();
+        expect((await files.rename('main.js', 'index.js')).orThrow, 'index.js');
+        expect(_file('main.js').existsSync(), isFalse);
+        expect(_file('index.js').readAsStringSync(), 'console.log(1);\n');
 
-      expect((await files.rename('src', 'lib')).orThrow, 'lib');
-      expect(_file('lib/app.py').readAsStringSync(), 'print(1)\n');
-      expect(Directory('$_root/src').existsSync(), isFalse);
+        expect((await files.rename('src', 'lib')).orThrow, 'lib');
+        expect(_file('lib/app.py').readAsStringSync(), 'print(1)\n');
+        expect(Directory('$_root/src').existsSync(), isFalse);
 
-      expect((await files.rename('index.js', 'Index.js')).orThrow, 'Index.js');
-      final names = (await files.listDirectory('')).orThrow.map((e) => e.name);
-      expect(names, contains('Index.js'));
-      expect(names, isNot(contains('index.js')));
+        expect(
+          (await files.rename('index.js', 'Index.js')).orThrow,
+          'Index.js',
+        );
+        final names = (await files.listDirectory(
+          '',
+        )).orThrow.map((e) => e.name);
+        expect(names, contains('Index.js'));
+        expect(names, isNot(contains('index.js')));
 
-      expect((await files.rename('lib', 'lib')).orThrow, 'lib');
-    });
+        expect((await files.rename('lib', 'lib')).orThrow, 'lib');
+      },
+    );
 
     test('rename never replaces, and refuses bad names', () async {
       final files = await _opened();
@@ -479,29 +487,35 @@ void main() {
       );
     });
 
-    test('copy: bytes and permission bits, folders whole, nothing replaced', () async {
-      final files = await _opened();
-      Process.runSync('chmod', ['755', _file('main.js').path]);
-      expect((await files.copy('main.js', 'copy.js')).isOk, isTrue);
-      expect(_file('copy.js').readAsBytesSync(), _file('main.js').readAsBytesSync());
-      expect(_file('copy.js').statSync().mode & fileModeBits, 0x1ED);
+    test(
+      'copy: bytes and permission bits, folders whole, nothing replaced',
+      () async {
+        final files = await _opened();
+        Process.runSync('chmod', ['755', _file('main.js').path]);
+        expect((await files.copy('main.js', 'copy.js')).isOk, isTrue);
+        expect(
+          _file('copy.js').readAsBytesSync(),
+          _file('main.js').readAsBytesSync(),
+        );
+        expect(_file('copy.js').statSync().mode & fileModeBits, 0x1ED);
 
-      Directory('$_root/src/empty').createSync();
-      expect((await files.copy('src', 'src copy')).isOk, isTrue);
-      expect(_file('src copy/app.py').readAsStringSync(), 'print(1)\n');
-      expect(Directory('$_root/src copy/empty').existsSync(), isTrue);
-      expect(_file('src/app.py').readAsStringSync(), 'print(1)\n');
+        Directory('$_root/src/empty').createSync();
+        expect((await files.copy('src', 'src copy')).isOk, isTrue);
+        expect(_file('src copy/app.py').readAsStringSync(), 'print(1)\n');
+        expect(Directory('$_root/src copy/empty').existsSync(), isTrue);
+        expect(_file('src/app.py').readAsStringSync(), 'print(1)\n');
 
-      expect(
-        (await files.copy('main.js', 'copy.js')).failureOrNull,
-        _fails(FileProblem.exists),
-      );
-      expect(
-        (await files.copy('src', 'src/inner')).failureOrNull,
-        _fails(FileProblem.invalidPath),
-      );
-      expect(Directory('$_root/src/inner').existsSync(), isFalse);
-    });
+        expect(
+          (await files.copy('main.js', 'copy.js')).failureOrNull,
+          _fails(FileProblem.exists),
+        );
+        expect(
+          (await files.copy('src', 'src/inner')).failureOrNull,
+          _fails(FileProblem.invalidPath),
+        );
+        expect(Directory('$_root/src/inner').existsSync(), isFalse);
+      },
+    );
 
     test('a copy leaves links behind and does not follow them out', () async {
       final files = await _opened();
@@ -509,8 +523,10 @@ void main() {
         ..writeAsStringSync('secret');
       Link('$_root/src/escape.txt').createSync(secret.path);
       expect((await files.copy('src', 'src2')).isOk, isTrue);
-      expect(FileSystemEntity.typeSync('$_root/src2/escape.txt', followLinks: false),
-          FileSystemEntityType.notFound);
+      expect(
+        FileSystemEntity.typeSync('$_root/src2/escape.txt', followLinks: false),
+        FileSystemEntityType.notFound,
+      );
       expect(_file('src2/app.py').existsSync(), isTrue);
     });
 
@@ -546,21 +562,26 @@ void main() {
       expect(FileSystemEntity.isLinkSync('$_root/alias'), isFalse);
     });
 
-    test('operations through a link out of the workspace are refused', () async {
-      final files = await _opened();
-      final outside = Directory('${_temp.path}/outside')..createSync();
-      File('${outside.path}/keep.txt').writeAsStringSync('keep');
-      Link('$_root/out').createSync(outside.path);
-      for (final result in [
-        await files.delete('out/keep.txt'),
-        await files.createFolder('out/new'),
-        await files.copy('main.js', 'out/main.js'),
-        await files.rename('out/keep.txt', 'gone.txt'),
-        await files.move('main.js', 'out'),
-      ]) {
-        expect(result.failureOrNull, _fails(FileProblem.outsideWorkspace));
-      }
-      expect(outside.listSync().map((e) => e.path.split('/').last), ['keep.txt']);
-    });
+    test(
+      'operations through a link out of the workspace are refused',
+      () async {
+        final files = await _opened();
+        final outside = Directory('${_temp.path}/outside')..createSync();
+        File('${outside.path}/keep.txt').writeAsStringSync('keep');
+        Link('$_root/out').createSync(outside.path);
+        for (final result in [
+          await files.delete('out/keep.txt'),
+          await files.createFolder('out/new'),
+          await files.copy('main.js', 'out/main.js'),
+          await files.rename('out/keep.txt', 'gone.txt'),
+          await files.move('main.js', 'out'),
+        ]) {
+          expect(result.failureOrNull, _fails(FileProblem.outsideWorkspace));
+        }
+        expect(outside.listSync().map((e) => e.path.split('/').last), [
+          'keep.txt',
+        ]);
+      },
+    );
   });
 }

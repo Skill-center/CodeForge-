@@ -327,7 +327,11 @@ final class SafFileService implements FileService {
       case Err<BrokerEntry>(:final failure):
         return Err(_explain(failure, path, _Doing.copy, target: newPath));
       case Ok<BrokerEntry>():
-        appLogger.info('files', 'copied', fields: {'from': path, 'to': newPath});
+        appLogger.info(
+          'files',
+          'copied',
+          fields: {'from': path, 'to': newPath},
+        );
         return const Ok(null);
     }
   }
@@ -393,8 +397,9 @@ final class SafFileService implements FileService {
         _Doing.list => '$label is not a folder.',
         _Doing.read => '$path is not a file.',
         _Doing.create => 'A file is in the way of $path.',
-        _Doing.move || _Doing.copy => 'The place for ${target ?? path} is not '
-            'a folder.',
+        _Doing.move || _Doing.copy =>
+          'The place for ${target ?? path} is not '
+              'a folder.',
         _ => '$path is a folder.',
       },
       FileProblem.changedOnDisk => '$path changed on disk after it was opened.',
@@ -411,8 +416,9 @@ final class SafFileService implements FileService {
         _Doing.rename => "The folder's storage can't rename $path.",
         _Doing.move => "The folder's storage can't move $path.",
         _Doing.delete => "The folder's storage can't delete $path.",
-        _Doing.create || _Doing.copy || _Doing.write =>
-          "The folder's storage does not allow changes here.",
+        _Doing.create ||
+        _Doing.copy ||
+        _Doing.write => "The folder's storage does not allow changes here.",
         _ => failure.message,
       },
       FileProblem.io when doing == _Doing.write =>

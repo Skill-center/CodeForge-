@@ -548,11 +548,7 @@ final class LocalFileService implements FileService {
         await File(real).delete();
       }
     } on FileSystemException catch (error) {
-      appLogger.warn(
-        'files',
-        'partial_copy_left',
-        fields: {'error': '$error'},
-      );
+      appLogger.warn('files', 'partial_copy_left', fields: {'error': '$error'});
     }
   }
 

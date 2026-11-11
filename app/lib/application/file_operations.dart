@@ -113,7 +113,10 @@ final class FileOperations {
 
   /// Copies [path] beside itself under a free name (`app copy.js`, then
   /// `app copy 2.js`); returns the copy's path.
-  Future<Result<String>> duplicate(String path, {required bool isFolder}) async {
+  Future<Result<String>> duplicate(
+    String path, {
+    required bool isFolder,
+  }) async {
     final folder = pathParent(path);
     final taken = <String>{};
     switch (await _files.listDirectory(folder)) {
