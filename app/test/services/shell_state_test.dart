@@ -85,7 +85,10 @@ void main() {
       );
       const state = ShellState(folder: folder);
       expect(decodeShellState(encodeShellState(state)).folder, folder);
-      expect(decodeShellState(encodeShellState(const ShellState())).folder, isNull);
+      expect(
+        decodeShellState(encodeShellState(const ShellState())).folder,
+        isNull,
+      );
       // Phase 3 W1 envelopes have no folder: the built-in project opens.
       const w1 = '{"schemaVersion":1,"data":{"lastRoute":"/workspace"}}';
       expect(decodeShellState(w1).folder, isNull);
@@ -100,10 +103,7 @@ void main() {
       const unnamed =
           '{"schemaVersion":1,"data":{"folder":{"uri":"content://a/tree/b"}}}';
       expect(decodeShellState(unnamed).folder?.name, 'Folder');
-      expect(
-        state.copyWith(clearFolder: true).folder,
-        isNull,
-      );
+      expect(state.copyWith(clearFolder: true).folder, isNull);
     });
 
     test('layout dimensions are clamped', () {

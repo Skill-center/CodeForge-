@@ -630,7 +630,11 @@ final class DocumentController extends Notifier<DocumentsState> {
     _restored = false;
     for (final doc in documents) {
       unawaited(
-        _report('editor_close_failed', doc.path, _host.closeDocument(doc.docId)),
+        _report(
+          'editor_close_failed',
+          doc.path,
+          _host.closeDocument(doc.docId),
+        ),
       );
     }
     appLogger.info(

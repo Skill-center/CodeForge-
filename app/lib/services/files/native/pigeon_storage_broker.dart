@@ -5,7 +5,6 @@
 library;
 
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -66,15 +65,14 @@ final class PigeonStorageBroker implements StorageBroker {
   Future<Result<List<BrokerEntry>>> list(String treeUri, String path) => _call(
     'list',
     _list,
-    () async => [for (final entry in await _api.list(treeUri, path)) _entry(entry)],
+    () async => [
+      for (final entry in await _api.list(treeUri, path)) _entry(entry),
+    ],
   );
 
   @override
-  Future<Result<BrokerEntry>> stat(String treeUri, String path) => _call(
-    'stat',
-    _quick,
-    () async => _entry(await _api.stat(treeUri, path)),
-  );
+  Future<Result<BrokerEntry>> stat(String treeUri, String path) =>
+      _call('stat', _quick, () async => _entry(await _api.stat(treeUri, path)));
 
   @override
   Future<Result<BrokerRead>> read(
@@ -120,8 +118,7 @@ final class PigeonStorageBroker implements StorageBroker {
   }) => _call(
     'create',
     _change,
-    () async =>
-        _entry(await _api.create(treeUri, parentPath, name, directory)),
+    () async => _entry(await _api.create(treeUri, parentPath, name, directory)),
   );
 
   @override
@@ -155,8 +152,7 @@ final class PigeonStorageBroker implements StorageBroker {
   ) => _call(
     'copy',
     _copy,
-    () async =>
-        _entry(await _api.copy(treeUri, path, newParentPath, newName)),
+    () async => _entry(await _api.copy(treeUri, path, newParentPath, newName)),
   );
 
   @override

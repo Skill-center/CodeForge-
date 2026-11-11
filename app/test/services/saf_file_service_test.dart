@@ -91,7 +91,12 @@ void main() {
     });
 
     test('reads text with its byte-order mark and line endings', () async {
-      folder.putBytes('crlf.txt', [0xEF, 0xBB, 0xBF, ...utf8.encode('a\r\nb\r\n')]);
+      folder.putBytes('crlf.txt', [
+        0xEF,
+        0xBB,
+        0xBF,
+        ...utf8.encode('a\r\nb\r\n'),
+      ]);
       final read = (await files.readText('crlf.txt')).orThrow;
       expect(read.text, 'a\nb\n');
       expect(read.format.bom, isTrue);
@@ -136,18 +141,21 @@ void main() {
   });
 
   group('saving', () {
-    test('writes in the file\'s own format and returns the new stamp', () async {
-      final read = (await files.readText('hello.txt')).orThrow;
-      final stamp = (await files.writeText(
-        'hello.txt',
-        'Hi\n',
-        format: const TextFormat(lineEnding: LineEnding.crlf),
-        expected: read.stamp,
-      )).orThrow;
-      expect(folder.text('hello.txt'), 'Hi\r\n');
-      expect(stamp, (await files.readText('hello.txt')).orThrow.stamp);
-      expect(stamp.digest, isNull);
-    });
+    test(
+      'writes in the file\'s own format and returns the new stamp',
+      () async {
+        final read = (await files.readText('hello.txt')).orThrow;
+        final stamp = (await files.writeText(
+          'hello.txt',
+          'Hi\n',
+          format: const TextFormat(lineEnding: LineEnding.crlf),
+          expected: read.stamp,
+        )).orThrow;
+        expect(folder.text('hello.txt'), 'Hi\r\n');
+        expect(stamp, (await files.readText('hello.txt')).orThrow.stamp);
+        expect(stamp.digest, isNull);
+      },
+    );
 
     test('a file changed by another app is not overwritten', () async {
       final read = (await files.readText('hello.txt')).orThrow;
@@ -268,7 +276,10 @@ void main() {
         ];
       });
       final listed = (await PigeonStorageBroker().list(_uri, 'src')).orThrow;
-      expect(listed.first.modified, DateTime.fromMillisecondsSinceEpoch(1700000000000));
+      expect(
+        listed.first.modified,
+        DateTime.fromMillisecondsSinceEpoch(1700000000000),
+      );
       expect(listed.first.canWrite && listed.first.canMove, isTrue);
       expect(listed.last.modified, isNull);
       expect(listed.last.canDelete, isFalse);

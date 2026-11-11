@@ -144,10 +144,13 @@ void main() {
     expect(app.text('hello.txt'), 'Hello from the gate\n// folder edit\n');
     // Nothing was saved anywhere: both edits wait in the journal.
     expect(stores.folder.text('hello.txt'), 'Hello from the gate\n');
-    final folderJournal = (await stores.sessions.loadJournal(_folder.id)).orThrow;
+    final folderJournal = (await stores.sessions.loadJournal(
+      _folder.id,
+    )).orThrow;
     expect([for (final e in folderJournal) e.path], ['hello.txt']);
-    final projectJournal =
-        (await stores.sessions.loadJournal(demoWorkspaceId)).orThrow;
+    final projectJournal = (await stores.sessions.loadJournal(
+      demoWorkspaceId,
+    )).orThrow;
     expect([for (final e in projectJournal) e.path], ['main.js']);
   });
 
@@ -204,12 +207,18 @@ void main() {
     await app.startEditor();
     stores.broker.pickAnswer = null;
     expect((await app.switcher.pickFolder()).orThrow, isNull);
-    expect(app.container.read(currentWorkspaceProvider), isA<DemoProjectLocation>());
+    expect(
+      app.container.read(currentWorkspaceProvider),
+      isA<DemoProjectLocation>(),
+    );
     stores.broker.pickAnswer = _uri;
     final opened = (await app.switcher.pickFolder()).orThrow;
     expect(opened?.displayName, 'cf-gate');
     expect(app.container.read(currentWorkspaceProvider), _folder);
-    expect(stores.broker.pickStarts, ['content://start-here', 'content://start-here']);
+    expect(stores.broker.pickStarts, [
+      'content://start-here',
+      'content://start-here',
+    ]);
   });
 
   test('a save in a folder is confirmed before the tab turns clean', () async {
@@ -239,7 +248,10 @@ void main() {
     expect(stores.folder.text('hello.txt'), 'changed by another app\n');
     expect(app.state.documents['hello.txt']!.dirty, isTrue);
 
-    expect((await app.documents.save('hello.txt', overwrite: true)).isOk, isTrue);
+    expect(
+      (await app.documents.save('hello.txt', overwrite: true)).isOk,
+      isTrue,
+    );
     expect(stores.folder.text('hello.txt'), 'Hello from the gate\nmore\n');
     expect(app.state.documents['hello.txt']!.dirty, isFalse);
   });

@@ -54,7 +54,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('tree_hello.txt')));
     await tester.pumpAndSettle();
-    expect(harness.editorSurface.documents.values.single.text, 'Hello from the gate\n');
+    expect(
+      harness.editorSurface.documents.values.single.text,
+      'Hello from the gate\n',
+    );
     await tester.pump(const Duration(milliseconds: 500));
   });
 
@@ -114,7 +117,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('terminal_toggle')), findsOneWidget);
-    expect(find.textContaining('no longer has access to "cf-gate"'), findsOneWidget);
+    expect(
+      find.textContaining('no longer has access to "cf-gate"'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('tree_hello.txt')), findsNothing);
     await tester.pump(const Duration(milliseconds: 500));
   });

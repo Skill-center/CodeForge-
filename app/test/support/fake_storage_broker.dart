@@ -280,7 +280,11 @@ final class FakeStorageBroker implements StorageBroker {
   ) async {
     calls.add('rename');
     final parent = _parentOf(path);
-    return _relocate(treeUri, path, parent.isEmpty ? newName : '$parent/$newName');
+    return _relocate(
+      treeUri,
+      path,
+      parent.isEmpty ? newName : '$parent/$newName',
+    );
   }
 
   @override
@@ -340,7 +344,9 @@ final class FakeStorageBroker implements StorageBroker {
     }
     final tree = folder.valueOrNull!;
     if (path.isEmpty || !tree.exists(path)) {
-      return _fail(path.isEmpty ? FileProblem.invalidPath : FileProblem.notFound);
+      return _fail(
+        path.isEmpty ? FileProblem.invalidPath : FileProblem.notFound,
+      );
     }
     tree.files.removeWhere((p, _) => p == path || p.startsWith('$path/'));
     tree.folders.removeWhere((p) => p == path || p.startsWith('$path/'));
@@ -412,9 +418,10 @@ final class FakeStorageBroker implements StorageBroker {
 
   static bool _clash(FakeFolder tree, String path) {
     final folded = path.toLowerCase();
-    return {...tree.files.keys, ...tree.folders}.any(
-      (p) => p.toLowerCase() == folded,
-    );
+    return {
+      ...tree.files.keys,
+      ...tree.folders,
+    }.any((p) => p.toLowerCase() == folded);
   }
 
   static Err<T> _fail<T>(FileProblem problem) =>

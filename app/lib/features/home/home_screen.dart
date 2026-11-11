@@ -53,9 +53,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _openDemo() async {
     // The first time, this writes the demo project to the device.
     final result = await _whileBusy(
-      () => ref
-          .read(workspaceSwitcherProvider)
-          .open(const DemoProjectLocation()),
+      () =>
+          ref.read(workspaceSwitcherProvider).open(const DemoProjectLocation()),
     );
     if (!mounted || result == null) {
       return;
