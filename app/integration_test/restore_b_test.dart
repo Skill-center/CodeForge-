@@ -133,19 +133,19 @@ void main() {
     var documents = container.read(documentControllerProvider);
     expect(documents.openPaths, ['src/app.js']);
     expect(documents.activePath, 'src/app.js');
-    expect(documents.active!.dirty, isTrue, reason: 'restored edits stay unsaved');
+    expect(
+      documents.active!.dirty,
+      isTrue,
+      reason: 'restored edits stay unsaved',
+    );
     expect(documents.active!.savedText, gateFixture['src/app.js']);
     expect(host.textOf(folderDoc), restoreFolderText);
 
     // Its expanded folders, in the explorer.
-    await pumpUntil(
-      tester,
-      () {
-        final view = container.read(explorerViewProvider);
-        return view.loaded && view.workspaceId == folder.id;
-      },
-      what: "the folder's explorer view",
-    );
+    await pumpUntil(tester, () {
+      final view = container.read(explorerViewProvider);
+      return view.loaded && view.workspaceId == folder.id;
+    }, what: "the folder's explorer view");
     expect(container.read(explorerViewProvider).expanded, {
       '',
       ...restoreFolderExpanded,
@@ -201,14 +201,10 @@ void main() {
     expect(host.textOf(demoDoc), restoreDemoText);
 
     // Its expanded folders and the explorer's scroll.
-    await pumpUntil(
-      tester,
-      () {
-        final view = container.read(explorerViewProvider);
-        return view.loaded && view.workspaceId == demoWorkspaceId;
-      },
-      what: "the project's explorer view",
-    );
+    await pumpUntil(tester, () {
+      final view = container.read(explorerViewProvider);
+      return view.loaded && view.workspaceId == demoWorkspaceId;
+    }, what: "the project's explorer view");
     final demoView = container.read(explorerViewProvider);
     expect(demoView.expanded, {'', ...restoreDemoExpanded});
     expect(demoView.restoreOffset, restoreDemoScroll);
@@ -237,10 +233,7 @@ void main() {
     await _openRecent(tester, folder.id);
     await waitForPage(tester, container, 'src/app.js', restoreFolderText);
     expect(container.read(documentControllerProvider).active!.dirty, isTrue);
-    expect(
-      await gate.disk('src/app.js'),
-      sha256Of(gateFixture['src/app.js']!),
-    );
+    expect(await gate.disk('src/app.js'), sha256Of(gateFixture['src/app.js']!));
     gate.done();
     debugPrint(
       'restore-gate: the folder, its unsaved text and expanded folders came '

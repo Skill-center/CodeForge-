@@ -55,7 +55,8 @@ const String restoreLogMarker = 'restore-gate: logged just before the kill';
 const String restoreDemoMarker = '# restore gate: unsaved in the project\n';
 
 /// app.py as part A leaves it.
-String get restoreDemoText => restoreDemoMarker + DemoWorkspace.files['app.py']!;
+String get restoreDemoText =>
+    restoreDemoMarker + DemoWorkspace.files['app.py']!;
 
 /// Typed into the gate folder's src/app.js, never saved.
 const String restoreFolderMarker = '// restore gate: unsaved in the folder\n';
@@ -345,10 +346,9 @@ void main() {
     final folderTabs =
         (await store.loadTabs(folder.id)).valueOrNull ?? const <SavedTab>[];
     expect([for (final tab in folderTabs) tab.path], ['src/app.js']);
-    expect(
-      (await store.loadJournal('demo')).valueOrNull?.map((e) => e.path),
-      ['app.py'],
-    );
+    expect((await store.loadJournal('demo')).valueOrNull?.map((e) => e.path), [
+      'app.py',
+    ]);
     expect(
       (await store.loadJournal(folder.id)).valueOrNull?.map((e) => e.path),
       ['src/app.js'],
