@@ -388,6 +388,97 @@ void main() {
     });
   });
 
+  group('renames and moves (Phase 3 W4)', () {
+    test('tabs and journals move with a folder, and only from it', () async {
+      for (final store in <SessionStore>[_memoryStore(), MemorySessionStore()]) {
+        final kind = store.runtimeType.toString();
+        await store.saveTabs('demo', const [
+          SavedTab(
+            path: 'src/a.js',
+            active: true,
+            selectionAnchor: 3,
+            selectionHead: 4,
+            scrollTop: 20,
+          ),
+          SavedTab(path: 'src2/b.js'),
+          SavedTab(path: 'main.js'),
+        ]);
+        await store.writeSnapshot(_snapshot('src/a.js', 'a', 1));
+        await store.appendChange('demo', 'src/a.js', _append('a', 1, 'b'));
+        await store.writeSnapshot(_snapshot('src2/b.js', 'b', 1));
+        // Left at the new place by nothing open: it goes.
+        await store.writeSnapshot(_snapshot('lib/old.js', 'old', 1));
+        await store.writeSnapshot(
+          _snapshot('src/a.js', 'theirs', 1, workspaceId: 'project-x'),
+        );
+
+        expect((await store.movePaths('demo', 'src', 'lib')).isOk, isTrue);
+
+        final tabs = (await store.loadTabs('demo')).orThrow;
+        expect(
+          tabs.map((t) => t.path),
+          ['lib/a.js', 'src2/b.js', 'main.js'],
+          reason: kind,
+        );
+        expect(tabs.first.active, isTrue, reason: kind);
+        expect(tabs.first.selectionAnchor, 3, reason: kind);
+        expect(tabs.first.selectionHead, 4, reason: kind);
+        expect(tabs.first.scrollTop, 20, reason: kind);
+        final journal = {
+          for (final entry in (await store.loadJournal('demo')).orThrow)
+            entry.path: entry,
+        };
+        expect(
+          journal.keys,
+          unorderedEquals(['lib/a.js', 'src2/b.js']),
+          reason: kind,
+        );
+        expect(journal['lib/a.js']!.snapshot.text, 'a', reason: kind);
+        expect(journal['lib/a.js']!.snapshot.path, 'lib/a.js', reason: kind);
+        expect(journal['lib/a.js']!.changes, hasLength(1), reason: kind);
+        final theirs = (await store.loadJournal('project-x')).orThrow;
+        expect(theirs.single.path, 'src/a.js', reason: kind);
+      }
+    });
+
+    test('a file renamed, the case alone too, and names beyond ASCII', () async {
+      for (final store in <SessionStore>[_memoryStore(), MemorySessionStore()]) {
+        final kind = store.runtimeType.toString();
+        await store.saveTabs('demo', const [
+          SavedTab(path: 'main.js'),
+          SavedTab(path: '\u{1F4C1}/a.js'),
+          SavedTab(path: 'ファイル/b.js'),
+        ]);
+        await store.writeSnapshot(_snapshot('main.js', 'm', 1));
+        await store.writeSnapshot(_snapshot('\u{1F4C1}/a.js', 'a', 1));
+
+        expect(
+          (await store.movePaths('demo', 'main.js', 'Main.js')).isOk,
+          isTrue,
+        );
+        expect(
+          (await store.movePaths('demo', '\u{1F4C1}', 'f\u{1F4C2}')).isOk,
+          isTrue,
+        );
+        expect(
+          (await store.movePaths('demo', 'ファイル', 'файл')).isOk,
+          isTrue,
+        );
+
+        expect(
+          (await store.loadTabs('demo')).orThrow.map((t) => t.path),
+          ['Main.js', 'f\u{1F4C2}/a.js', 'файл/b.js'],
+          reason: kind,
+        );
+        expect(
+          [for (final e in (await store.loadJournal('demo')).orThrow) e.path],
+          unorderedEquals(['Main.js', 'f\u{1F4C2}/a.js']),
+          reason: kind,
+        );
+      }
+    });
+  });
+
   group('the database file', () {
     late Directory folder;
 

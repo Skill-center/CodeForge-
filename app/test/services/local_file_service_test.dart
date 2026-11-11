@@ -371,4 +371,196 @@ void main() {
       expect(FileSystemEntity.isLinkSync('$_root/alias.js'), isTrue);
     });
   });
+
+  group('explorer operations (Phase 3 W4, G3)', () {
+    test('new folders, nested ones too, never over anything', () async {
+      final files = await _opened();
+      expect((await files.createFolder('docs')).isOk, isTrue);
+      expect(Directory('$_root/docs').existsSync(), isTrue);
+      expect((await files.createFolder('a/b/c')).isOk, isTrue);
+      expect(Directory('$_root/a/b/c').existsSync(), isTrue);
+      expect(
+        (await files.listDirectory('')).orThrow.map((e) => e.name),
+        containsAll(['a', 'docs']),
+      );
+      expect(
+        (await files.createFolder('docs')).failureOrNull,
+        _fails(FileProblem.exists),
+      );
+      expect(
+        (await files.createFolder('main.js')).failureOrNull,
+        _fails(FileProblem.exists),
+      );
+      expect(
+        (await files.createFolder('main.js/inner')).failureOrNull,
+        _fails(FileProblem.wrongType),
+      );
+      expect(
+        (await files.createFolder('../out')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(Directory('${_temp.path}/out').existsSync(), isFalse);
+    });
+
+    test('rename: a file, a folder with its files, and the case alone', () async {
+      final files = await _opened();
+      expect((await files.rename('main.js', 'index.js')).orThrow, 'index.js');
+      expect(_file('main.js').existsSync(), isFalse);
+      expect(_file('index.js').readAsStringSync(), 'console.log(1);\n');
+
+      expect((await files.rename('src', 'lib')).orThrow, 'lib');
+      expect(_file('lib/app.py').readAsStringSync(), 'print(1)\n');
+      expect(Directory('$_root/src').existsSync(), isFalse);
+
+      expect((await files.rename('index.js', 'Index.js')).orThrow, 'Index.js');
+      final names = (await files.listDirectory('')).orThrow.map((e) => e.name);
+      expect(names, contains('Index.js'));
+      expect(names, isNot(contains('index.js')));
+
+      expect((await files.rename('lib', 'lib')).orThrow, 'lib');
+    });
+
+    test('rename never replaces, and refuses bad names', () async {
+      final files = await _opened();
+      _file('other.js').writeAsStringSync('mine\n');
+      expect(
+        (await files.rename('main.js', 'other.js')).failureOrNull,
+        _fails(FileProblem.exists),
+      );
+      expect(_file('other.js').readAsStringSync(), 'mine\n');
+      expect(_file('main.js').readAsStringSync(), 'console.log(1);\n');
+      for (final name in ['', '..', 'a/b', 'x.cf-tmp', 'pipe|']) {
+        expect(
+          (await files.rename('main.js', name)).failureOrNull,
+          _fails(FileProblem.invalidPath),
+          reason: name,
+        );
+      }
+      expect(
+        (await files.rename('gone.js', 'here.js')).failureOrNull,
+        _fails(FileProblem.notFound),
+      );
+    });
+
+    test('move: into a folder, to the top, never into itself', () async {
+      final files = await _opened();
+      expect((await files.createFolder('lib')).isOk, isTrue);
+      expect((await files.move('main.js', 'lib')).orThrow, 'lib/main.js');
+      expect(_file('lib/main.js').existsSync(), isTrue);
+      expect(_file('main.js').existsSync(), isFalse);
+
+      expect((await files.move('src', 'lib')).orThrow, 'lib/src');
+      expect(_file('lib/src/app.py').readAsStringSync(), 'print(1)\n');
+
+      expect((await files.move('lib/src/app.py', '')).orThrow, 'app.py');
+      expect(_file('app.py').existsSync(), isTrue);
+
+      expect(
+        (await files.move('lib', 'lib/src')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(
+        (await files.move('lib', 'lib')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      _file('lib/app.py').writeAsStringSync('mine\n');
+      expect(
+        (await files.move('app.py', 'lib')).failureOrNull,
+        _fails(FileProblem.exists),
+      );
+      expect(_file('lib/app.py').readAsStringSync(), 'mine\n');
+      expect(
+        (await files.move('app.py', 'nowhere')).failureOrNull,
+        _fails(FileProblem.notFound),
+      );
+      expect(
+        (await files.move('app.py', 'lib/main.js')).failureOrNull,
+        _fails(FileProblem.wrongType),
+      );
+    });
+
+    test('copy: bytes and permission bits, folders whole, nothing replaced', () async {
+      final files = await _opened();
+      Process.runSync('chmod', ['755', _file('main.js').path]);
+      expect((await files.copy('main.js', 'copy.js')).isOk, isTrue);
+      expect(_file('copy.js').readAsBytesSync(), _file('main.js').readAsBytesSync());
+      expect(_file('copy.js').statSync().mode & fileModeBits, 0x1ED);
+
+      Directory('$_root/src/empty').createSync();
+      expect((await files.copy('src', 'src copy')).isOk, isTrue);
+      expect(_file('src copy/app.py').readAsStringSync(), 'print(1)\n');
+      expect(Directory('$_root/src copy/empty').existsSync(), isTrue);
+      expect(_file('src/app.py').readAsStringSync(), 'print(1)\n');
+
+      expect(
+        (await files.copy('main.js', 'copy.js')).failureOrNull,
+        _fails(FileProblem.exists),
+      );
+      expect(
+        (await files.copy('src', 'src/inner')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(Directory('$_root/src/inner').existsSync(), isFalse);
+    });
+
+    test('a copy leaves links behind and does not follow them out', () async {
+      final files = await _opened();
+      final secret = File('${_temp.path}/secret.txt')
+        ..writeAsStringSync('secret');
+      Link('$_root/src/escape.txt').createSync(secret.path);
+      expect((await files.copy('src', 'src2')).isOk, isTrue);
+      expect(FileSystemEntity.typeSync('$_root/src2/escape.txt', followLinks: false),
+          FileSystemEntityType.notFound);
+      expect(_file('src2/app.py').existsSync(), isTrue);
+    });
+
+    test('delete: a file, a folder with everything, never the top', () async {
+      final files = await _opened();
+      expect((await files.delete('main.js')).isOk, isTrue);
+      expect(_file('main.js').existsSync(), isFalse);
+      Directory('$_root/src/deep/er').createSync(recursive: true);
+      _file('src/deep/er/x.txt').writeAsStringSync('x');
+      expect((await files.delete('src')).isOk, isTrue);
+      expect(Directory('$_root/src').existsSync(), isFalse);
+      expect(
+        (await files.delete('src')).failureOrNull,
+        _fails(FileProblem.notFound),
+      );
+      expect(
+        (await files.delete('')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(Directory(_root).existsSync(), isTrue);
+    });
+
+    test('deleting a link deletes the link, never what it points to', () async {
+      final files = await _opened();
+      final outside = Directory('${_temp.path}/outside')..createSync();
+      File('${outside.path}/keep.txt').writeAsStringSync('keep');
+      Link('$_root/src/out').createSync(outside.path);
+      expect((await files.delete('src')).isOk, isTrue);
+      expect(File('${outside.path}/keep.txt').readAsStringSync(), 'keep');
+      Link('$_root/alias').createSync(outside.path);
+      expect((await files.delete('alias')).isOk, isTrue);
+      expect(File('${outside.path}/keep.txt').readAsStringSync(), 'keep');
+      expect(FileSystemEntity.isLinkSync('$_root/alias'), isFalse);
+    });
+
+    test('operations through a link out of the workspace are refused', () async {
+      final files = await _opened();
+      final outside = Directory('${_temp.path}/outside')..createSync();
+      File('${outside.path}/keep.txt').writeAsStringSync('keep');
+      Link('$_root/out').createSync(outside.path);
+      for (final result in [
+        await files.delete('out/keep.txt'),
+        await files.createFolder('out/new'),
+        await files.copy('main.js', 'out/main.js'),
+        await files.rename('out/keep.txt', 'gone.txt'),
+        await files.move('main.js', 'out'),
+      ]) {
+        expect(result.failureOrNull, _fails(FileProblem.outsideWorkspace));
+      }
+      expect(outside.listSync().map((e) => e.path.split('/').last), ['keep.txt']);
+    });
+  });
 }

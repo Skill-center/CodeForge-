@@ -91,5 +91,9 @@ final class FlakySessionStore implements SessionStore {
       _write(() => inner.discardJournal(workspaceId, path));
 
   @override
+  Future<Result<void>> movePaths(String workspaceId, String from, String to) =>
+      _write(() => inner.movePaths(workspaceId, from, to));
+
+  @override
   Future<void> close() async {}
 }

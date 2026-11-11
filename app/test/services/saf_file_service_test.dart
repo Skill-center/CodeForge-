@@ -239,6 +239,135 @@ void main() {
     });
   });
 
+  group('explorer operations (Phase 3 W4, G3)', () {
+    test('new folders, with the missing ones above them', () async {
+      expect((await files.createFolder('docs')).isOk, isTrue);
+      expect(folder.folders, contains('docs'));
+      expect((await files.createFolder('a/b/c')).isOk, isTrue);
+      expect(folder.folders, containsAll(['a', 'a/b', 'a/b/c']));
+      expect((await files.createFolder('src/lib')).isOk, isTrue);
+      expect(folder.folders, contains('src/lib'));
+      final taken = (await files.createFolder('DOCS')).failureOrNull;
+      expect(taken, _fails(FileProblem.exists));
+      expect(taken!.message, 'DOCS already exists.');
+      expect(
+        (await files.createFolder('hello.txt/inner')).failureOrNull,
+        _fails(FileProblem.wrongType),
+      );
+    });
+
+    test('rename, the case alone too; a taken name is refused', () async {
+      expect(
+        (await files.rename('hello.txt', 'greeting.txt')).orThrow,
+        'greeting.txt',
+      );
+      expect(folder.text('greeting.txt'), 'Hello from the gate\n');
+      expect(folder.exists('hello.txt'), isFalse);
+      expect(
+        (await files.rename('greeting.txt', 'Greeting.txt')).orThrow,
+        'Greeting.txt',
+      );
+      expect(folder.files.keys, contains('Greeting.txt'));
+      final taken = (await files.rename('Greeting.txt', 'SRC')).failureOrNull;
+      expect(taken, _fails(FileProblem.exists));
+      expect(taken!.message, 'SRC already exists.');
+      expect((await files.rename('src', 'lib')).orThrow, 'lib');
+      expect(folder.text('lib/main.js'), 'console.log(1);\n');
+      final before = broker.calls.length;
+      expect(
+        (await files.rename('lib', '../up')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(broker.calls.length, before, reason: 'refused before the broker');
+    });
+
+    test('move into a folder and to the top; never into itself', () async {
+      expect((await files.move('hello.txt', 'src')).orThrow, 'src/hello.txt');
+      expect(folder.text('src/hello.txt'), 'Hello from the gate\n');
+      expect((await files.move('src/main.js', '')).orThrow, 'main.js');
+      expect(folder.exists('main.js'), isTrue);
+      final before = broker.calls.length;
+      expect(
+        (await files.move('src', 'src')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(
+        (await files.move('src', 'src/inner')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(broker.calls.length, before, reason: 'refused before the broker');
+      folder.putText('.hidden/main.js', 'mine\n');
+      expect(
+        (await files.move('main.js', '.hidden')).failureOrNull,
+        _fails(FileProblem.exists),
+      );
+      expect(folder.text('.hidden/main.js'), 'mine\n');
+    });
+
+    test('copy and delete whole folders; nothing is replaced', () async {
+      expect((await files.copy('src', 'src copy')).isOk, isTrue);
+      expect(folder.text('src copy/main.js'), 'console.log(1);\n');
+      expect(folder.text('src/main.js'), 'console.log(1);\n');
+      expect(
+        (await files.copy('src', 'src/again')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+      expect(
+        (await files.copy('hello.txt', 'SRC COPY')).failureOrNull,
+        _fails(FileProblem.exists),
+      );
+      expect((await files.delete('src copy')).isOk, isTrue);
+      expect(folder.exists('src copy'), isFalse);
+      expect(folder.exists('src copy/main.js'), isFalse);
+      expect(
+        (await files.delete('src copy')).failureOrNull,
+        _fails(FileProblem.notFound),
+      );
+      expect(
+        (await files.delete('')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+    });
+
+    test('each item offers what its provider declares', () async {
+      // Write and delete, but neither rename nor move.
+      folder.flags['hello.txt'] = 1 | 2;
+      folder.flags['src'] = 0;
+      expect((await files.openWorkspace()).orThrow.capabilities.write, isTrue);
+      final entries = {
+        for (final entry in (await files.listDirectory('')).orThrow)
+          entry.name: entry.capabilities,
+      };
+      final hello = entries['hello.txt']!;
+      expect(hello.write, isTrue);
+      expect(hello.rename, isFalse);
+      expect(
+        hello.move,
+        isTrue,
+        reason: 'the broker copies and deletes where the provider cannot move',
+      );
+      expect(hello.delete, isTrue);
+      final src = entries['src']!;
+      expect(src.write || src.rename || src.move || src.delete, isFalse);
+      expect(entries['.hidden']!.rename, isTrue);
+    });
+
+    test('a folder granted for reading only offers no changes', () async {
+      folder.readOnly = true;
+      final opened = (await files.openWorkspace()).orThrow;
+      expect(opened.capabilities.write, isFalse);
+      for (final entry in (await files.listDirectory('')).orThrow) {
+        expect(entry.capabilities.rename, isFalse, reason: entry.name);
+        expect(entry.capabilities.delete, isFalse, reason: entry.name);
+        expect(entry.capabilities.write, isFalse, reason: entry.name);
+      }
+      final refused = (await files.delete('hello.txt')).failureOrNull;
+      expect(refused, _fails(FileProblem.unsupported));
+      expect(refused!.message, "The folder's storage can't delete hello.txt.");
+      expect(folder.exists('hello.txt'), isTrue);
+    });
+  });
+
   group('the Pigeon client', () {
     TestWidgetsFlutterBinding.ensureInitialized();
     const prefix = 'dev.flutter.pigeon.codeforge.StorageApi';

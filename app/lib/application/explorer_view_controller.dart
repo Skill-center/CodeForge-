@@ -135,6 +135,45 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
     _schedule();
   }
 
+  /// The file or folder [from] is now at [to] (Phase 3 W4): expanded
+  /// folders in it stay expanded at their new paths.
+  void pathMoved(String from, String to) {
+    _replaceExpanded({
+      for (final path in _expanded) movedPath(path, from, to) ?? path,
+    });
+  }
+
+  /// [path] is gone (Phase 3 W4): it, and the folders in it, are no longer
+  /// expanded.
+  void pathRemoved(String path) {
+    _replaceExpanded({
+      for (final expanded in _expanded)
+        if (expanded.isEmpty || !isWithin(expanded, path)) expanded,
+    });
+  }
+
+  /// Expands every folder above [path], so its row shows (a new file or
+  /// folder, Phase 3 W4).
+  void reveal(String path) {
+    final next = Set.of(_expanded);
+    for (var folder = pathParent(path); folder.isNotEmpty;) {
+      next.add(folder);
+      folder = pathParent(folder);
+    }
+    _replaceExpanded(next);
+  }
+
+  void _replaceExpanded(Set<String> next) {
+    next.add('');
+    if (next.length == _expanded.length && next.containsAll(_expanded)) {
+      return;
+    }
+    _touched = true;
+    _expanded = next;
+    state = _state(loaded: state.loaded);
+    _schedule();
+  }
+
   /// The tree scrolled to [offset].
   void setScroll(double offset) {
     if ((offset - _offset).abs() < 1) {

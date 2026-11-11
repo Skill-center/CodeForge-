@@ -26,6 +26,14 @@ final class FakeFolder {
   /// dated before 1971).
   bool timeless = false;
 
+  /// Granted for reading only: the folder says it is not writable, and
+  /// every change fails as unsupported (Phase 3 W4).
+  bool readOnly = false;
+
+  /// What the provider declares for an item, where a test says otherwise
+  /// than everything (15: write, delete, rename, move).
+  final Map<String, int> flags = {};
+
   final Map<String, Uint8List> files = {};
   final Set<String> folders = {};
   final Map<String, DateTime> modified = {};
@@ -63,7 +71,7 @@ final class FakeFolder {
       isDirectory: isDirectory,
       size: isDirectory ? null : files[path]!.length,
       modified: isDirectory || timeless ? null : modified[path],
-      flags: 15,
+      flags: flags[path] ?? 15,
     );
   }
 
@@ -231,6 +239,9 @@ final class FakeStorageBroker implements StorageBroker {
       return Err(folder.failure);
     }
     final tree = folder.valueOrNull!;
+    if (tree.readOnly) {
+      return _fail(FileProblem.unsupported);
+    }
     final injected = failNextWrite;
     if (injected != null) {
       failNextWrite = null;
@@ -273,6 +284,9 @@ final class FakeStorageBroker implements StorageBroker {
       return Err(folder.failure);
     }
     final tree = folder.valueOrNull!;
+    if (tree.readOnly) {
+      return _fail(FileProblem.unsupported);
+    }
     final path = parentPath.isEmpty ? name : '$parentPath/$name';
     if (_clash(tree, path)) {
       return _fail(FileProblem.exists);
@@ -328,6 +342,9 @@ final class FakeStorageBroker implements StorageBroker {
       return Err(folder.failure);
     }
     final tree = folder.valueOrNull!;
+    if (tree.readOnly) {
+      return _fail(FileProblem.unsupported);
+    }
     final target = newParentPath.isEmpty ? newName : '$newParentPath/$newName';
     if (!tree.exists(path)) {
       return _fail(FileProblem.notFound);
@@ -356,6 +373,9 @@ final class FakeStorageBroker implements StorageBroker {
       return Err(folder.failure);
     }
     final tree = folder.valueOrNull!;
+    if (tree.readOnly) {
+      return _fail(FileProblem.unsupported);
+    }
     if (path.isEmpty || !tree.exists(path)) {
       return _fail(
         path.isEmpty ? FileProblem.invalidPath : FileProblem.notFound,
@@ -376,6 +396,9 @@ final class FakeStorageBroker implements StorageBroker {
       return Err(folder.failure);
     }
     final tree = folder.valueOrNull!;
+    if (tree.readOnly) {
+      return _fail(FileProblem.unsupported);
+    }
     if (!tree.exists(from)) {
       return _fail(FileProblem.notFound);
     }
@@ -414,7 +437,7 @@ final class FakeStorageBroker implements StorageBroker {
       treeUri: uri,
       name: tree.name,
       status: FolderStatus.available,
-      writable: true,
+      writable: !tree.readOnly,
     );
   }
 

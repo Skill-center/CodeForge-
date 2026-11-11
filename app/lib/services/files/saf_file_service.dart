@@ -16,6 +16,14 @@
 /// **Stamps** are the modification time and the size. A provider that
 /// reports no time gets a SHA-256 of the content instead, so a save still
 /// notices that the file changed.
+///
+/// **The explorer's operations** (Phase 3 W4) go to the broker, which
+/// checks a new name against its folder without case, renames through a
+/// temporary name when only the case changes, moves by copying and
+/// deleting where the provider cannot move, and undoes a change the
+/// provider named otherwise. Each item offers what its provider declares
+/// for it, and nothing that changes it when the folder was granted for
+/// reading only. A delete is permanent: shared storage keeps no bin.
 library;
 
 import 'dart:typed_data';
@@ -43,6 +51,10 @@ final class SafFileService implements FileService {
 
   String get _uri => folder.treeUri;
 
+  /// Whether the grant and the provider allow changes, as the last check
+  /// of the folder found.
+  bool _writable = true;
+
   @override
   Future<Result<WorkspaceRef>> openWorkspace() async {
     switch (await _broker.checkFolder(_uri)) {
@@ -51,10 +63,14 @@ final class SafFileService implements FileService {
       case Ok<FolderInfo>(:final value):
         switch (value.status) {
           case FolderStatus.available:
+            _writable = value.writable;
             return Ok(
               WorkspaceRef(
                 id: folder.id,
                 displayName: value.name.isEmpty ? folder.name : value.name,
+                capabilities: value.writable
+                    ? FileCapabilities.all
+                    : FileCapabilities.none,
               ),
             );
           case FolderStatus.missing:
@@ -83,6 +99,7 @@ final class SafFileService implements FileService {
               isDirectory: entry.isDirectory,
               hidden: entry.name.startsWith('.'),
               sizeBytes: entry.isDirectory ? null : entry.size,
+              capabilities: _capabilitiesOf(entry),
             ),
         ]..sort(compareFileEntries);
         return Ok(entries);
@@ -159,6 +176,177 @@ final class SafFileService implements FileService {
     }
   }
 
+  /// What the explorer may do to [entry]: what its provider declares, and
+  /// nothing that changes it under a grant for reading only.
+  FileCapabilities _capabilitiesOf(BrokerEntry entry) {
+    if (!_writable) {
+      return FileCapabilities.none;
+    }
+    return FileCapabilities(
+      write: entry.canWrite,
+      rename: entry.canRename,
+      // Where the provider cannot move it, the broker copies it and
+      // deletes the original.
+      move: entry.canMove || entry.canDelete,
+      delete: entry.canDelete,
+    );
+  }
+
+  @override
+  Future<Result<void>> createFolder(String path) async {
+    final invalid = workspacePathProblem(path);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    // The folders on the way are created when missing; the last one must
+    // be new.
+    final names = path.split('/');
+    var parent = '';
+    for (var index = 0; index < names.length; index++) {
+      final current = pathJoin(parent, names[index]);
+      var create = true;
+      if (index < names.length - 1) {
+        switch (await _folderExists(current)) {
+          case Ok<bool>(:final value):
+            create = !value;
+          case Err<bool>(:final failure):
+            return Err(failure);
+        }
+      }
+      if (create) {
+        final created = await _broker.create(
+          _uri,
+          parent,
+          names[index],
+          directory: true,
+        );
+        if (created case Err<BrokerEntry>(:final failure)) {
+          return Err(_explain(failure, current, _Doing.create));
+        }
+      }
+      parent = current;
+    }
+    appLogger.info('files', 'folder_created', fields: {'path': path});
+    return const Ok(null);
+  }
+
+  /// Whether [path] is a folder (true) or is missing (false); a file there
+  /// fails.
+  Future<Result<bool>> _folderExists(String path) async {
+    switch (await _broker.stat(_uri, path)) {
+      case Ok<BrokerEntry>(:final value):
+        return value.isDirectory
+            ? const Ok(true)
+            : Err(
+                FileFailure(
+                  '$path is a file, not a folder.',
+                  problem: FileProblem.wrongType,
+                ),
+              );
+      case Err<BrokerEntry>(:final failure):
+        if (failure is FileFailure && failure.problem == FileProblem.notFound) {
+          return const Ok(false);
+        }
+        return Err(_explain(failure, path, _Doing.create));
+    }
+  }
+
+  @override
+  Future<Result<String>> rename(String path, String newName) async {
+    final invalid = workspacePathProblem(path) ?? nameProblem(newName);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    final newPath = pathJoin(pathParent(path), newName);
+    if (newPath == path) {
+      return Ok(path);
+    }
+    switch (await _broker.rename(_uri, path, newName)) {
+      case Err<BrokerEntry>(:final failure):
+        return Err(_explain(failure, path, _Doing.rename, target: newPath));
+      case Ok<BrokerEntry>():
+        appLogger.info(
+          'files',
+          'renamed',
+          fields: {'from': path, 'to': newPath},
+        );
+        return Ok(newPath);
+    }
+  }
+
+  @override
+  Future<Result<String>> move(String path, String folder) async {
+    final invalid =
+        workspacePathProblem(path) ??
+        workspacePathProblem(folder, allowRoot: true);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    if (folder == path || folder.startsWith('$path/')) {
+      return Err(
+        FileFailure(
+          '$path cannot be moved into itself.',
+          problem: FileProblem.invalidPath,
+        ),
+      );
+    }
+    final newPath = pathJoin(folder, pathBaseName(path));
+    if (newPath == path) {
+      return Ok(path);
+    }
+    switch (await _broker.move(_uri, path, folder)) {
+      case Err<BrokerEntry>(:final failure):
+        return Err(_explain(failure, path, _Doing.move, target: newPath));
+      case Ok<BrokerEntry>():
+        appLogger.info('files', 'moved', fields: {'from': path, 'to': newPath});
+        return Ok(newPath);
+    }
+  }
+
+  @override
+  Future<Result<void>> copy(String path, String newPath) async {
+    final invalid = workspacePathProblem(path) ?? workspacePathProblem(newPath);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    if (newPath == path || newPath.startsWith('$path/')) {
+      return Err(
+        FileFailure(
+          '$path cannot be copied into itself.',
+          problem: FileProblem.invalidPath,
+        ),
+      );
+    }
+    final copied = await _broker.copy(
+      _uri,
+      path,
+      pathParent(newPath),
+      pathBaseName(newPath),
+    );
+    switch (copied) {
+      case Err<BrokerEntry>(:final failure):
+        return Err(_explain(failure, path, _Doing.copy, target: newPath));
+      case Ok<BrokerEntry>():
+        appLogger.info('files', 'copied', fields: {'from': path, 'to': newPath});
+        return const Ok(null);
+    }
+  }
+
+  @override
+  Future<Result<void>> delete(String path) async {
+    final invalid = workspacePathProblem(path);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    switch (await _broker.delete(_uri, path)) {
+      case Err<void>(:final failure):
+        return Err(_explain(failure, path, _Doing.delete));
+      case Ok<void>():
+        appLogger.info('files', 'deleted', fields: {'path': path});
+        return const Ok(null);
+    }
+  }
+
   /// The stamp of a file the broker reported as [entry] holding [bytes].
   static FileStamp stampOf(BrokerEntry entry, Uint8List bytes) {
     final modified = entry.modified;
@@ -184,8 +372,14 @@ final class SafFileService implements FileService {
     problem: FileProblem.accessLost,
   );
 
-  /// [failure] from the broker, worded for the user with [path].
-  FileFailure _explain(Failure failure, String path, _Doing doing) {
+  /// [failure] from the broker, worded for the user with [path] (and
+  /// [target], the new path of a rename, move or copy).
+  FileFailure _explain(
+    Failure failure,
+    String path,
+    _Doing doing, {
+    String? target,
+  }) {
     if (failure is! FileFailure) {
       return FileFailure(failure.message, problem: FileProblem.io);
     }
@@ -194,10 +388,13 @@ final class SafFileService implements FileService {
       FileProblem.folderMissing => _missing().message,
       FileProblem.accessLost => _accessLost().message,
       FileProblem.notFound => '$label does not exist.',
-      FileProblem.exists => '$path already exists.',
+      FileProblem.exists => '${target ?? path} already exists.',
       FileProblem.wrongType => switch (doing) {
         _Doing.list => '$label is not a folder.',
         _Doing.read => '$path is not a file.',
+        _Doing.create => 'A file is in the way of $path.',
+        _Doing.move || _Doing.copy => 'The place for ${target ?? path} is not '
+            'a folder.',
         _ => '$path is a folder.',
       },
       FileProblem.changedOnDisk => '$path changed on disk after it was opened.',
@@ -208,14 +405,27 @@ final class SafFileService implements FileService {
       FileProblem.timeout =>
         "The folder's storage did not answer in time. Try again.",
       FileProblem.nameChanged =>
-        "The folder's storage would have named $path differently, so it "
-            'was left as it was.',
+        "The folder's storage would have named ${target ?? path} "
+            'differently, so nothing was changed.',
+      FileProblem.unsupported => switch (doing) {
+        _Doing.rename => "The folder's storage can't rename $path.",
+        _Doing.move => "The folder's storage can't move $path.",
+        _Doing.delete => "The folder's storage can't delete $path.",
+        _Doing.create || _Doing.copy || _Doing.write =>
+          "The folder's storage does not allow changes here.",
+        _ => failure.message,
+      },
       FileProblem.io when doing == _Doing.write =>
         '$path could not be saved, and the file on disk may be incomplete. '
             'Your text is still here, unsaved.',
       FileProblem.io => switch (doing) {
         _Doing.list => '$label could not be listed.',
         _Doing.read => '$path could not be read.',
+        _Doing.create => '$path could not be created.',
+        _Doing.rename => '$path could not be renamed.',
+        _Doing.move => '$path could not be moved.',
+        _Doing.copy => '$path could not be copied.',
+        _Doing.delete => '$path could not be deleted completely.',
         _ => "The folder's storage failed.",
       },
       _ => failure.message,
@@ -224,4 +434,4 @@ final class SafFileService implements FileService {
   }
 }
 
-enum _Doing { open, list, read, write }
+enum _Doing { open, list, read, write, create, rename, move, copy, delete }

@@ -209,4 +209,36 @@ final class _ProjectFiles implements FileService {
         return Err(failure);
     }
   }
+
+  /// [body] over the project's folder, or why it is missing.
+  Future<Result<T>> _within<T>(
+    Future<Result<T>> Function(MemoryFileService files) body,
+  ) async {
+    switch (_folder()) {
+      case Ok<MemoryFileService>(:final value):
+        return body(value);
+      case Err<MemoryFileService>(:final failure):
+        return Err(failure);
+    }
+  }
+
+  @override
+  Future<Result<void>> createFolder(String path) =>
+      _within((files) => files.createFolder(path));
+
+  @override
+  Future<Result<String>> rename(String path, String newName) =>
+      _within((files) => files.rename(path, newName));
+
+  @override
+  Future<Result<String>> move(String path, String folder) =>
+      _within((files) => files.move(path, folder));
+
+  @override
+  Future<Result<void>> copy(String path, String newPath) =>
+      _within((files) => files.copy(path, newPath));
+
+  @override
+  Future<Result<void>> delete(String path) =>
+      _within((files) => files.delete(path));
 }

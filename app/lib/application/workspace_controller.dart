@@ -10,6 +10,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/errors/failure.dart';
+import '../core/files/workspace_path.dart';
 import '../core/logging/logger.dart';
 import '../services/contracts.dart';
 import 'providers.dart';
@@ -111,6 +112,23 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
     await Future.wait([
       for (final folder in state.listings.keys.toList()) load(folder),
     ]);
+  }
+
+  /// The explorer changed the workspace (Phase 3 W4). The listings of
+  /// [removed] and of everything in it go (it was moved, renamed or
+  /// deleted), and every folder still listed is listed again.
+  Future<void> changed({String? removed}) async {
+    if (removed != null && removed.isNotEmpty) {
+      state = WorkspaceState(
+        workspace: state.workspace,
+        failure: state.failure,
+        listings: {
+          for (final entry in state.listings.entries)
+            if (!isWithin(entry.key, removed)) entry.key: entry.value,
+        },
+      );
+    }
+    await refresh();
   }
 }
 

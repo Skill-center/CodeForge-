@@ -102,3 +102,40 @@ String pathParent(String path) {
 /// [name] inside [folder] ('' is the workspace root).
 String pathJoin(String folder, String name) =>
     folder.isEmpty ? name : '$folder/$name';
+
+/// Whether [path] is [folder] or inside it ('' holds everything).
+bool isWithin(String path, String folder) =>
+    folder.isEmpty || path == folder || path.startsWith('$folder/');
+
+/// [path] with [from] at its start replaced by [to] (Phase 3 W4: what a
+/// rename or a move of [from] makes of [path]); null when [path] is
+/// neither [from] nor inside it.
+String? movedPath(String path, String from, String to) {
+  if (path == from) {
+    return to;
+  }
+  return path.startsWith('$from/') ? '$to${path.substring(from.length)}' : null;
+}
+
+/// A free name for a copy of [name] in a folder that holds [taken]
+/// (Phase 3 W4, Duplicate): `app copy.js`, then `app copy 2.js`, and so on.
+/// Names are compared without case, since a folder from shared storage may
+/// ignore it. A folder's name keeps its dots (`v1.2 copy`), and so does a
+/// dotfile's (`.env copy`).
+String copyName(String name, Set<String> taken, {required bool isFolder}) {
+  final lowered = {for (final item in taken) item.toLowerCase()};
+  final dot = isFolder ? -1 : name.lastIndexOf('.');
+  var stem = dot > 0 ? name.substring(0, dot) : name;
+  final extension = dot > 0 ? name.substring(dot) : '';
+  for (var number = 1; ; number++) {
+    final suffix = number == 1 ? ' copy' : ' copy $number';
+    final room = maxNameLength - suffix.length - extension.length;
+    if (stem.length > room) {
+      stem = stem.substring(0, room < 1 ? 1 : room);
+    }
+    final candidate = '$stem$suffix$extension';
+    if (!lowered.contains(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+}

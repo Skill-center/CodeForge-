@@ -496,6 +496,161 @@ final class DocumentController extends Notifier<DocumentsState> {
     return const Ok(null);
   }
 
+  /// Waits for the saves and opens in progress of [path] and everything in
+  /// it (Phase 3 W4): a rename, move or delete must not race a save that
+  /// would write the old path again.
+  Future<void> settle(String path) async {
+    final pending = <Future<Result<void>>>[
+      for (final entry in _saving.entries)
+        if (isWithin(entry.key, path)) entry.value,
+      for (final entry in _opening.entries)
+        if (isWithin(entry.key, path)) entry.value,
+    ];
+    await Future.wait(pending);
+  }
+
+  /// Why nothing may become [path], or anything in it, when [from] moves
+  /// there (Phase 3 W4): a tab kept at that place for a file deleted with
+  /// unsaved changes. (A document there with its file means the name is
+  /// taken on disk, which the file service refuses.) Null when nothing is
+  /// in the way.
+  FileFailure? occupant(String path, {required String from}) {
+    for (final open in state.openPaths) {
+      final doc = state.documents[open];
+      if (doc != null &&
+          doc.deletedOnDisk &&
+          isWithin(open, path) &&
+          !isWithin(open, from)) {
+        return FileFailure(
+          '$open is open in a tab, with no file behind it. Save or close it '
+          'first.',
+          problem: FileProblem.inUse,
+        );
+      }
+    }
+    return null;
+  }
+
+  /// The file or folder at [from] is now at [to]: the explorer renamed or
+  /// moved it (Phase 3 W4). Its tab, and the tab of everything open in it,
+  /// follow with their unsaved text, cursor and place in the tab strip.
+  /// They keep their editor documents, whose ids say nothing of paths, so
+  /// the page keeps each one's undo history. The journal's rows move in
+  /// one transaction. A file whose name changed is highlighted for the new
+  /// name.
+  void pathMoved(String from, String to) {
+    // First, with the paths of the journals in memory, so that no edit can
+    // reach the journal between the state and the store.
+    _journal.moved(_workspaceId, from, to);
+    final renamed = <String, String>{
+      for (final path in state.openPaths)
+        if (movedPath(path, from, to) case final moved?) path: moved,
+    };
+    if (renamed.isEmpty) {
+      return;
+    }
+    final languageChanged = <OpenDocument>[];
+    final documents = <String, OpenDocument>{};
+    for (final MapEntry(:key, :value) in state.documents.entries) {
+      final newPath = renamed[key];
+      if (newPath == null) {
+        documents[key] = value;
+        continue;
+      }
+      var moved = value.copyWith(path: newPath);
+      if (pathBaseName(newPath) != value.name) {
+        moved = _relabel(moved);
+        if (moved.language != value.language) {
+          languageChanged.add(moved);
+        }
+      }
+      documents[newPath] = moved;
+    }
+    String follow(String path) => renamed[path] ?? path;
+    final active = state.activePath;
+    state = state.copyWith(
+      openPaths: [for (final path in state.openPaths) follow(path)],
+      documents: documents,
+      activePath: active == null ? null : follow(active),
+      recent: [for (final path in state.recent) follow(path)],
+    );
+    _saveTabs();
+    for (final doc in languageChanged) {
+      _journal.refresh(doc.docId);
+      unawaited(
+        _report(
+          'editor_language_failed',
+          doc.path,
+          _host.setLanguage(doc.docId, doc.language),
+        ),
+      );
+    }
+    appLogger.info(
+      'documents',
+      'paths_moved',
+      fields: {'from': from, 'to': to, 'tabs': renamed.length},
+    );
+  }
+
+  /// [doc] under its new name: highlighted for it, as Save As does. A
+  /// highlighted document stays highlighted; plain text meets the
+  /// large-file policy again.
+  OpenDocument _relabel(OpenDocument doc) {
+    final text = _host.textOf(doc.docId) ?? doc.savedText;
+    final highlighted = !doc.largeFile && doc.language != plainTextLanguage;
+    final natural = languageForPath(doc.path, firstLine: firstLineOf(text));
+    final (:language, :large) = highlighted
+        ? (language: natural, large: false)
+        : _languageFor(doc.path, text, natural: natural);
+    return doc.copyWith(
+      language: language,
+      largeFile: large,
+      largeFileNotice: large && (!doc.largeFile || doc.largeFileNotice),
+    );
+  }
+
+  /// The file or folder at [path] was deleted from the explorer (Phase 3
+  /// W4). The tabs of clean documents in it close. A document with unsaved
+  /// changes stays open with them, marked deleted on disk
+  /// ([OpenDocument.deletedOnDisk]): there is no file to compare with any
+  /// more, and Save or Save As writes it again.
+  void pathDeleted(String path) {
+    var kept = 0;
+    var closed = 0;
+    for (final open in [...state.openPaths]) {
+      final doc = state.documents[open];
+      if (doc == null || !isWithin(open, path)) {
+        continue;
+      }
+      if (!doc.dirty) {
+        close(open);
+        closed += 1;
+        continue;
+      }
+      final orphan = OpenDocument(
+        path: doc.path,
+        docId: doc.docId,
+        language: doc.language,
+        format: doc.format,
+        savedText: '',
+        stamp: null,
+        dirty: _differs(doc.docId, ''),
+        mixedLineEndings: doc.mixedLineEndings,
+        largeFile: doc.largeFile,
+        largeFileNotice: doc.largeFileNotice,
+      );
+      _replace(orphan);
+      // No file means no base: the journal starts over against nothing.
+      _journal.rebase(doc.docId, dirty: orphan.dirty);
+      kept += 1;
+    }
+    appLogger.info(
+      'documents',
+      'path_deleted',
+      fields: {'path': path, 'closed': closed, 'kept': kept},
+    );
+  }
+
   /// Creates an empty file at [path] and opens it. Refuses a path where
   /// something exists ([FileProblem.exists]).
   Future<Result<void>> createFile(String path) async {

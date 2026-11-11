@@ -378,5 +378,33 @@ final class DriftSessionStore implements SessionStore {
   }
 
   @override
+  Future<Result<void>> movePaths(String workspaceId, String from, String to) {
+    return _guard('move the tabs and unsaved changes', () async {
+      // SQLite's substr() and length() count characters, as runes do.
+      final fromLength = from.runes.length;
+      final toLength = to.runes.length;
+      await _db.transaction(() async {
+        for (final table in const [
+          'open_tabs',
+          'journal_documents',
+          'journal_changes',
+        ]) {
+          // Rows left at the new place belong to no open document.
+          await _db.customStatement(
+            'DELETE FROM $table WHERE workspace_id = ? AND '
+            '(path = ? OR substr(path, 1, ?) = ?)',
+            [workspaceId, to, toLength + 1, '$to/'],
+          );
+          await _db.customStatement(
+            'UPDATE $table SET path = ? || substr(path, ?) WHERE '
+            'workspace_id = ? AND (path = ? OR substr(path, 1, ?) = ?)',
+            [to, fromLength + 1, workspaceId, from, fromLength + 1, '$from/'],
+          );
+        }
+      });
+    });
+  }
+
+  @override
   Future<void> close() => _db.close();
 }

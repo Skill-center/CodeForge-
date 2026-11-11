@@ -68,6 +68,11 @@ final class OpenDocument {
   /// The tab label.
   String get name => pathBaseName(path);
 
+  /// There is no file behind it: it was deleted while the document had
+  /// unsaved changes (from the explorer, Phase 3 W4, or before a restart).
+  /// Save or Save As writes it again.
+  bool get deletedOnDisk => stamp == null;
+
   OpenDocument copyWith({
     String? path,
     String? language,

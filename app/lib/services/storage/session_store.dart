@@ -14,6 +14,7 @@ import '../../core/editor/journal.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/text_codec.dart';
 import '../../core/files/workspace_location.dart';
+import '../../core/files/workspace_path.dart';
 
 /// A workspace as the recents remember it (Phase 3 W3).
 final class WorkspaceRecord {
@@ -183,6 +184,14 @@ abstract interface class SessionStore {
 
   /// Forgets [path]'s journal: its edits were saved, discarded or closed.
   Future<Result<void>> discardJournal(String workspaceId, String path);
+
+  /// The file or folder [from] is now [to] in [workspaceId]: the explorer
+  /// renamed or moved it (Phase 3 W4). Its tab and journal rows, and those
+  /// of everything in it, take the new paths in one transaction, so a
+  /// process death never finds unsaved text under neither path. Rows
+  /// already at [to] or in it belong to no open document (the caller
+  /// makes sure) and go first.
+  Future<Result<void>> movePaths(String workspaceId, String from, String to);
 
   Future<void> close();
 }
@@ -359,6 +368,66 @@ final class MemorySessionStore implements SessionStore {
     final key = _key(workspaceId, path);
     _snapshots.remove(key);
     _changes.remove(key);
+    writes += 1;
+    return const Ok(null);
+  }
+
+  @override
+  Future<Result<void>> movePaths(
+    String workspaceId,
+    String from,
+    String to,
+  ) async {
+    final tabs = _tabs[workspaceId];
+    if (tabs != null) {
+      _tabs[workspaceId] = [
+        for (final tab in tabs)
+          if (movedPath(tab.path, from, to) case final path?)
+            SavedTab(
+              path: path,
+              active: tab.active,
+              selectionAnchor: tab.selectionAnchor,
+              selectionHead: tab.selectionHead,
+              scrollTop: tab.scrollTop,
+            )
+          else if (!isWithin(tab.path, to))
+            tab,
+      ];
+    }
+    final prefix = '$workspaceId\n';
+    String? pathOf(String key) =>
+        key.startsWith(prefix) ? key.substring(prefix.length) : null;
+    for (final key in [..._snapshots.keys, ..._changes.keys]) {
+      final path = pathOf(key);
+      if (path != null && isWithin(path, to)) {
+        _snapshots.remove(key);
+        _changes.remove(key);
+      }
+    }
+    for (final key in [..._snapshots.keys]) {
+      final path = pathOf(key);
+      final moved = path == null ? null : movedPath(path, from, to);
+      if (moved == null) {
+        continue;
+      }
+      final snapshot = _snapshots.remove(key)!;
+      _snapshots[_key(workspaceId, moved)] = JournalSnapshot(
+        workspaceId: workspaceId,
+        path: moved,
+        text: snapshot.text,
+        version: snapshot.version,
+        baseDigest: snapshot.baseDigest,
+        format: snapshot.format,
+        language: snapshot.language,
+      );
+    }
+    for (final key in [..._changes.keys]) {
+      final path = pathOf(key);
+      final moved = path == null ? null : movedPath(path, from, to);
+      if (moved != null) {
+        _changes[_key(workspaceId, moved)] = _changes.remove(key)!;
+      }
+    }
     writes += 1;
     return const Ok(null);
   }

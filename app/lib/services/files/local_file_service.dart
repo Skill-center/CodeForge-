@@ -7,6 +7,14 @@
 /// temporary file beside the target, are flushed to the device, and one
 /// rename replaces the target, so an interrupted save leaves the old file
 /// as it was.
+///
+/// The explorer's operations (Phase 3 W4) never replace anything: a taken
+/// name is refused just before the change. Between that check and the
+/// change another writer could take the name, but a project lives in the
+/// app's private storage, which nothing else writes until the runtime
+/// arrives (Phase 4). A copy keeps each file's permission bits, stops at
+/// [LocalFileService.maxCopyItems] items or [LocalFileService.maxCopyDepth]
+/// levels, as the storage broker's do, and leaves no partial copy behind.
 library;
 
 import 'dart:io';
@@ -27,6 +35,11 @@ import 'file_mode.dart';
 typedef BeforeCommit = Future<void> Function(String path);
 
 final class LocalFileService implements FileService {
+  /// The most items a copy takes, and the deepest it goes: the storage
+  /// broker's limits for folders from shared storage (StorageBroker.kt).
+  static const int maxCopyItems = 10000;
+  static const int maxCopyDepth = 64;
+
   LocalFileService({
     required Future<String> Function() rootPath,
     Map<String, String> seed = DemoWorkspace.files,
@@ -274,6 +287,372 @@ final class LocalFileService implements FileService {
     }
   }
 
+  @override
+  Future<Result<void>> createFolder(String path) async {
+    final String real;
+    switch (await _resolveEntry(path)) {
+      case Ok<String>(:final value):
+        real = value;
+      case Err<String>(:final failure):
+        return Err(failure);
+    }
+    if (_typeOf(real) != FileSystemEntityType.notFound) {
+      return Err(
+        FileFailure('$path already exists.', problem: FileProblem.exists),
+      );
+    }
+    final blocked = await _fileInTheWay(pathParent(path));
+    if (blocked != null) {
+      return Err(blocked);
+    }
+    try {
+      await Directory(real).create(recursive: true);
+      appLogger.info('files', 'folder_created', fields: {'path': path});
+      return const Ok(null);
+    } on FileSystemException catch (error) {
+      return Err(
+        FileFailure(
+          '$path could not be created.',
+          problem: FileProblem.io,
+          cause: error,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<String>> rename(String path, String newName) async {
+    final invalid = workspacePathProblem(path) ?? nameProblem(newName);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    final newPath = pathJoin(pathParent(path), newName);
+    if (newPath == path) {
+      return Ok(path);
+    }
+    return _relocate(path, newPath, 'renamed');
+  }
+
+  @override
+  Future<Result<String>> move(String path, String folder) async {
+    final invalid =
+        workspacePathProblem(path) ??
+        workspacePathProblem(folder, allowRoot: true);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    if (folder == path || folder.startsWith('$path/')) {
+      return Err(
+        FileFailure(
+          '$path cannot be moved into itself.',
+          problem: FileProblem.invalidPath,
+        ),
+      );
+    }
+    final newPath = pathJoin(folder, pathBaseName(path));
+    if (newPath == path) {
+      return Ok(path);
+    }
+    return _relocate(path, newPath, 'moved');
+  }
+
+  /// Renames [path] to [newPath]: one rename(2), so the file or folder is
+  /// at one place or the other, never both or neither.
+  Future<Result<String>> _relocate(
+    String path,
+    String newPath,
+    String done,
+  ) async {
+    final String from;
+    final String to;
+    switch ((await _resolveEntry(path), await _resolveEntry(newPath))) {
+      case (Ok<String>(value: final a), Ok<String>(value: final b)):
+        from = a;
+        to = b;
+      case (Err<String>(:final failure), _):
+      case (_, Err<String>(:final failure)):
+        return Err(failure);
+    }
+    final type = _typeOf(from);
+    if (type == FileSystemEntityType.notFound) {
+      return Err(
+        FileFailure('$path does not exist.', problem: FileProblem.notFound),
+      );
+    }
+    if (_typeOf(to) != FileSystemEntityType.notFound && !_same(from, to)) {
+      return Err(
+        FileFailure('$newPath already exists.', problem: FileProblem.exists),
+      );
+    }
+    final missing = await _missingFolder(pathParent(newPath));
+    if (missing != null) {
+      return Err(missing);
+    }
+    try {
+      if (type == FileSystemEntityType.directory) {
+        await Directory(from).rename(to);
+      } else if (type == FileSystemEntityType.link) {
+        await Link(from).rename(to);
+      } else {
+        await File(from).rename(to);
+      }
+    } on FileSystemException catch (error) {
+      return Err(
+        FileFailure(
+          '$path could not be $done.',
+          problem: FileProblem.io,
+          cause: error,
+        ),
+      );
+    }
+    appLogger.info('files', done, fields: {'from': path, 'to': newPath});
+    return Ok(newPath);
+  }
+
+  @override
+  Future<Result<void>> copy(String path, String newPath) async {
+    final invalid = workspacePathProblem(path) ?? workspacePathProblem(newPath);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    if (newPath == path || newPath.startsWith('$path/')) {
+      return Err(
+        FileFailure(
+          '$path cannot be copied into itself.',
+          problem: FileProblem.invalidPath,
+        ),
+      );
+    }
+    final String from;
+    final String to;
+    switch ((await _resolveEntry(path), await _resolveEntry(newPath))) {
+      case (Ok<String>(value: final a), Ok<String>(value: final b)):
+        from = a;
+        to = b;
+      case (Err<String>(:final failure), _):
+      case (_, Err<String>(:final failure)):
+        return Err(failure);
+    }
+    final type = _typeOf(from);
+    if (type == FileSystemEntityType.notFound) {
+      return Err(
+        FileFailure('$path does not exist.', problem: FileProblem.notFound),
+      );
+    }
+    if (type == FileSystemEntityType.link) {
+      return Err(
+        FileFailure(
+          '$path is a symbolic link, which the explorer does not copy.',
+          problem: FileProblem.unsupported,
+        ),
+      );
+    }
+    if (_typeOf(to) != FileSystemEntityType.notFound) {
+      return Err(
+        FileFailure('$newPath already exists.', problem: FileProblem.exists),
+      );
+    }
+    final missing = await _missingFolder(pathParent(newPath));
+    if (missing != null) {
+      return Err(missing);
+    }
+    final List<(String, bool)> items;
+    if (type == FileSystemEntityType.directory) {
+      final planned = await _copyPlan(from);
+      if (planned == null) {
+        return Err(
+          FileFailure(
+            '$path holds more than $maxCopyItems items, or folders more '
+            'than $maxCopyDepth deep: too many to copy at once.',
+            problem: FileProblem.tooLarge,
+          ),
+        );
+      }
+      items = planned;
+    } else {
+      items = const [('', false)];
+    }
+    try {
+      for (final (relative, isDirectory) in items) {
+        final source = relative.isEmpty ? from : '$from/$relative';
+        final target = relative.isEmpty ? to : '$to/$relative';
+        if (isDirectory) {
+          await Directory(target).create();
+        } else {
+          final mode = File(source).statSync().mode;
+          await File(source).copy(target);
+          _keepMode(target, mode, newPath);
+        }
+      }
+    } on Object catch (error) {
+      await _removePartial(to);
+      appLogger.error(
+        'files',
+        'copy_failed',
+        fields: {'path': path, 'error': '$error'},
+      );
+      return Err(
+        FileFailure(
+          '$path could not be copied, and no partial copy was left.',
+          problem: FileProblem.io,
+          cause: error,
+        ),
+      );
+    }
+    appLogger.info(
+      'files',
+      'copied',
+      fields: {'from': path, 'to': newPath, 'items': items.length},
+    );
+    return const Ok(null);
+  }
+
+  /// What copying the folder [root] creates, parents first: '' (the folder
+  /// itself) and each item's path below it, and whether it is a folder.
+  /// Symbolic links stay behind, as listings hide them, and so do a save's
+  /// temporary files. Null past [maxCopyItems] or [maxCopyDepth].
+  Future<List<(String, bool)>?> _copyPlan(String root) async {
+    final items = <(String, bool)>[('', true)];
+    final pending = <(String, int)>[('', 0)];
+    while (pending.isNotEmpty) {
+      final (folder, depth) = pending.removeLast();
+      final real = folder.isEmpty ? root : '$root/$folder';
+      await for (final entity in Directory(real).list(followLinks: false)) {
+        final name = pathBaseName(entity.path);
+        if (entity is Link || name.endsWith(reservedTempSuffix)) {
+          continue;
+        }
+        final relative = folder.isEmpty ? name : '$folder/$name';
+        final isDirectory = entity is Directory;
+        items.add((relative, isDirectory));
+        if (items.length > maxCopyItems + 1) {
+          return null;
+        }
+        if (isDirectory) {
+          if (depth + 1 >= maxCopyDepth) {
+            return null;
+          }
+          pending.add((relative, depth + 1));
+        }
+      }
+    }
+    return items;
+  }
+
+  Future<void> _removePartial(String real) async {
+    try {
+      final type = _typeOf(real);
+      if (type == FileSystemEntityType.directory) {
+        await Directory(real).delete(recursive: true);
+      } else if (type != FileSystemEntityType.notFound) {
+        await File(real).delete();
+      }
+    } on FileSystemException catch (error) {
+      appLogger.warn(
+        'files',
+        'partial_copy_left',
+        fields: {'error': '$error'},
+      );
+    }
+  }
+
+  @override
+  Future<Result<void>> delete(String path) async {
+    final String real;
+    switch (await _resolveEntry(path)) {
+      case Ok<String>(:final value):
+        real = value;
+      case Err<String>(:final failure):
+        return Err(failure);
+    }
+    final type = _typeOf(real);
+    try {
+      switch (type) {
+        case FileSystemEntityType.notFound:
+          return Err(
+            FileFailure('$path does not exist.', problem: FileProblem.notFound),
+          );
+        case FileSystemEntityType.directory:
+          // Links inside are deleted, never followed.
+          await Directory(real).delete(recursive: true);
+        case FileSystemEntityType.link:
+          await Link(real).delete();
+        default:
+          await File(real).delete();
+      }
+    } on FileSystemException catch (error) {
+      return Err(
+        FileFailure(
+          '$path could not be deleted completely.',
+          problem: FileProblem.io,
+          cause: error,
+        ),
+      );
+    }
+    appLogger.info('files', 'deleted', fields: {'path': path});
+    return const Ok(null);
+  }
+
+  /// What is at the real path [real], not following a link there.
+  static FileSystemEntityType _typeOf(String real) =>
+      FileSystemEntity.typeSync(real, followLinks: false);
+
+  /// Whether [a] and [b] are one file: a rename that only changes the case
+  /// on storage that ignores case.
+  static bool _same(String a, String b) {
+    try {
+      return a.toLowerCase() == b.toLowerCase() &&
+          FileSystemEntity.identicalSync(a, b);
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  /// Why [folder] cannot take an item: it is missing or not a folder.
+  Future<FileFailure?> _missingFolder(String folder) async {
+    switch (await _resolve(folder, allowRoot: true)) {
+      case Err<String>(:final failure):
+        return failure is FileFailure
+            ? failure
+            : FileFailure(failure.message, problem: FileProblem.io);
+      case Ok<String>(:final value):
+        return switch (FileSystemEntity.typeSync(value)) {
+          FileSystemEntityType.directory => null,
+          FileSystemEntityType.notFound => FileFailure(
+            '${_label(folder)} does not exist.',
+            problem: FileProblem.notFound,
+          ),
+          _ => FileFailure(
+            '${_label(folder)} is not a folder.',
+            problem: FileProblem.wrongType,
+          ),
+        };
+    }
+  }
+
+  /// A file where [folder] or a folder above it should be, if there is
+  /// one: a new folder cannot go there.
+  Future<FileFailure?> _fileInTheWay(String folder) async {
+    for (var path = folder; path.isNotEmpty; path = pathParent(path)) {
+      final resolved = await _resolve(path);
+      final real = resolved.valueOrNull;
+      if (real == null) {
+        return null;
+      }
+      final type = FileSystemEntity.typeSync(real);
+      if (type == FileSystemEntityType.directory) {
+        return null;
+      }
+      if (type != FileSystemEntityType.notFound) {
+        return FileFailure(
+          '$path is a file, not a folder.',
+          problem: FileProblem.wrongType,
+        );
+      }
+    }
+    return null;
+  }
+
   /// The canonical (symlink-free) root, creating and seeding the workspace
   /// on first use. Concurrent callers share one attempt; after a failure
   /// the next call tries again.
@@ -390,6 +769,23 @@ final class LocalFileService implements FileService {
       );
     }
     return Ok(real + absolute.substring(existing.length));
+  }
+
+  /// The real location of the file or folder [path] itself (Phase 3 W4):
+  /// its folder resolved through symbolic links, which must stay inside
+  /// the workspace, and its own name not followed, so that renaming,
+  /// moving or deleting a link changes the link and never its target.
+  Future<Result<String>> _resolveEntry(String path) async {
+    final invalid = workspacePathProblem(path);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    switch (await _resolve(pathParent(path), allowRoot: true)) {
+      case Ok<String>(:final value):
+        return Ok('$value/${pathBaseName(path)}');
+      case Err<String>(:final failure):
+        return Err(failure);
+    }
   }
 
   /// The new file takes the old one's permission bits before it replaces

@@ -24,6 +24,7 @@ import 'dart:math';
 import '../../core/editor/journal.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/text_codec.dart';
+import '../../core/files/workspace_path.dart';
 import '../../services/storage/session_store.dart';
 
 /// What the journal needs to know about one open document, right now.
@@ -62,7 +63,9 @@ final class _Journal {
   _Journal({required this.workspaceId, required this.path});
 
   final String workspaceId;
-  final String path;
+
+  /// Changes when the explorer renames or moves the document (Phase 3 W4).
+  String path;
 
   /// The version of the last snapshot or change queued.
   int version = 0;
@@ -272,6 +275,38 @@ final class DocumentJournal {
     enqueue(() => _store.discardJournal(journal.workspaceId, journal.path));
     if (_journals.values.every((j) => j.pending == 0)) {
       _stopTimer();
+    }
+  }
+
+  /// The documents at [from], and in it, are now at [to]: the explorer
+  /// renamed or moved them (Phase 3 W4). Their stored rows take the new
+  /// paths in one transaction, after every write queued before it, and
+  /// their journals continue there: no snapshot is dropped and rewritten,
+  /// so a process death in between finds the text under one path or the
+  /// other.
+  void moved(String workspaceId, String from, String to) {
+    for (final journal in _journals.values) {
+      if (journal.workspaceId != workspaceId) {
+        continue;
+      }
+      final path = movedPath(journal.path, from, to);
+      if (path != null) {
+        journal.path = path;
+      }
+    }
+    enqueue(() => _store.movePaths(workspaceId, from, to));
+  }
+
+  /// Writes a fresh snapshot of [docId]'s journal, if it has one, keeping
+  /// a base held for an unanswered conflict: its language changed with
+  /// its name (Phase 3 W4), and a restore should open it in the new one.
+  void refresh(String docId) {
+    if (!_journals.containsKey(docId)) {
+      return;
+    }
+    final subject = _describe(docId);
+    if (subject != null) {
+      _snapshot(docId, subject);
     }
   }
 

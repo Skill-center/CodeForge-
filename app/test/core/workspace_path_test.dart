@@ -81,4 +81,44 @@ void main() {
     // Every segment of a path follows it.
     expect(workspacePathProblem('src/pipe|'), nameProblem('pipe|'));
   });
+
+  group('the explorer (Phase 3 W4)', () {
+    test('a path inside a folder, and where a move takes it', () {
+      expect(isWithin('src/app.js', 'src'), isTrue);
+      expect(isWithin('src', 'src'), isTrue);
+      expect(isWithin('src2/app.js', 'src'), isFalse);
+      expect(isWithin('sr', 'src'), isFalse);
+      expect(isWithin('anything', ''), isTrue);
+
+      expect(movedPath('src', 'src', 'lib'), 'lib');
+      expect(movedPath('src/a/b.js', 'src', 'lib/src'), 'lib/src/a/b.js');
+      expect(movedPath('src2/a.js', 'src', 'lib'), isNull);
+      expect(movedPath('main.js', 'src', 'lib'), isNull);
+    });
+
+    test('a copy gets a free name, compared without case', () {
+      expect(copyName('app.js', {'app.js'}, isFolder: false), 'app copy.js');
+      expect(
+        copyName('app.js', {'app.js', 'APP COPY.js'}, isFolder: false),
+        'app copy 2.js',
+      );
+      expect(
+        copyName(
+          'app.js',
+          {'app.js', 'app copy.js', 'app copy 2.js'},
+          isFolder: false,
+        ),
+        'app copy 3.js',
+      );
+      expect(copyName('src', {'src'}, isFolder: true), 'src copy');
+      expect(copyName('v1.2', {'v1.2'}, isFolder: true), 'v1.2 copy');
+      expect(copyName('.env', {'.env'}, isFolder: false), '.env copy');
+      expect(copyName('Makefile', {}, isFolder: false), 'Makefile copy');
+      final long = '${'x' * 252}.js';
+      final copy = copyName(long, {long}, isFolder: false);
+      expect(copy.length, maxNameLength);
+      expect(copy, endsWith(' copy.js'));
+      expect(nameProblem(copy), isNull);
+    });
+  });
 }

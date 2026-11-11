@@ -9,13 +9,54 @@ import '../core/errors/failure.dart';
 import '../core/files/file_stamp.dart';
 import '../core/files/text_codec.dart';
 
+/// What can be done to a file or folder (Phase 3 W4). A project's items
+/// allow everything. In a folder from shared storage each item allows what
+/// its provider declares for it (DocumentsContract's flags), and nothing
+/// that changes it when the folder was granted for reading only. The
+/// explorer offers only what is allowed: a provider that cannot rename
+/// hides Rename.
+final class FileCapabilities {
+  const FileCapabilities({
+    this.write = true,
+    this.rename = true,
+    this.move = true,
+    this.delete = true,
+  });
+
+  /// Everything: a project's items.
+  static const FileCapabilities all = FileCapabilities();
+
+  /// Nothing that changes it: a folder granted for reading only.
+  static const FileCapabilities none = FileCapabilities(
+    write: false,
+    rename: false,
+    move: false,
+    delete: false,
+  );
+
+  /// A file can be written; a folder can take new items (created, moved,
+  /// copied or duplicated into it).
+  final bool write;
+  final bool rename;
+  final bool move;
+  final bool delete;
+}
+
 /// A workspace handle: the built-in project, or since Phase 3 W2 a folder
 /// from shared storage (core/files/workspace_location.dart).
 final class WorkspaceRef {
-  const WorkspaceRef({required this.id, required this.displayName});
+  const WorkspaceRef({
+    required this.id,
+    required this.displayName,
+    this.capabilities = FileCapabilities.all,
+  });
 
   final String id;
   final String displayName;
+
+  /// What its top folder allows (Phase 3 W4): [FileCapabilities.none] for
+  /// a folder granted for reading only.
+  final FileCapabilities capabilities;
 }
 
 /// File metadata, independent of any storage backend.
@@ -26,6 +67,7 @@ final class FileEntry {
     required this.isDirectory,
     this.hidden = false,
     this.sizeBytes,
+    this.capabilities = FileCapabilities.all,
   });
 
   /// Workspace-relative path.
@@ -34,6 +76,9 @@ final class FileEntry {
   final bool isDirectory;
   final bool hidden;
   final int? sizeBytes;
+
+  /// What can be done to it (Phase 3 W4).
+  final FileCapabilities capabilities;
 }
 
 /// Explorer order: folders before files, then by name ignoring case (ties
@@ -114,6 +159,33 @@ abstract interface class FileService {
     WriteMode mode = WriteMode.replace,
     FileStamp? expected,
   });
+
+  // The explorer's operations (Phase 3 W4). None of them ever replaces
+  // anything: a name that is taken is refused with [FileProblem.exists],
+  // and the explorer asks for another.
+
+  /// Creates the folder [path], and any missing folders above it. Refuses
+  /// a path where something exists ([FileProblem.exists]).
+  Future<Result<void>> createFolder(String path);
+
+  /// Gives the file or folder at [path] the name [newName] in the same
+  /// folder, and returns its new path. A rename that only changes the case
+  /// works too.
+  Future<Result<String>> rename(String path, String newName);
+
+  /// Moves the file or folder at [path] into the folder [folder] ('' is the
+  /// workspace root), keeping its name, and returns its new path. A folder
+  /// cannot go into itself ([FileProblem.invalidPath]).
+  Future<Result<String>> move(String path, String folder);
+
+  /// Copies the file at [path], or the folder with everything in it, to
+  /// [newPath], which must not exist yet.
+  Future<Result<void>> copy(String path, String newPath);
+
+  /// Deletes the file at [path], or the folder with everything in it. In a
+  /// folder from shared storage this is permanent: Android keeps no bin
+  /// there.
+  Future<Result<void>> delete(String path);
 }
 
 /// Terminal session state. Phases 4–5 provide the real runtime-backed impl.
