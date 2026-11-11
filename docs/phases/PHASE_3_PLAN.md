@@ -233,6 +233,7 @@
   - `WorkspaceController` starts over when the file service changes, and work the previous one still had in flight lands nowhere (`ref.mounted`). The explorer opens and lists the workspace again when that happens under it.
   - The workbench reopens `main.js` as the first-time fallback in the demo project only. Phase 2's envelope tabs are imported for the demo project only.
 - **Home:** *Open Folder…* (the picker); *Continue in <folder>* for the folder opened last. A folder that is missing, or whose grant is gone, says so in a snack bar, and the demo project still opens.
+- **Limit:** if Android stops the app's process while the picker is open (it can, when memory is short), the folder picked is not kept and the user picks it again: the Dart side that asked is gone, so the broker drops the answer rather than take a grant nothing will use.
 - **W1 carry-over:** bootstrap opened the log file right after `runApp`, although its comment and *As built (W1)* said "after the first frame". It now opens it in a post-frame callback.
 - **Tests:**
   - **JVM** (37 new): `StoragePathsTest`, `DocumentOpsTest` and `CappedReadTest`, against `FakeProvider`, an in-memory provider with the quirks of Android's own (path-based ids, FAT-safe and unique names compared without case, a move refused onto a taken name, recursive delete, no copy flag, no time before 1971).
