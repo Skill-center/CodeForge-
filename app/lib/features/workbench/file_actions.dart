@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/documents/document_controller.dart';
 import '../../application/documents/document_state.dart';
+import '../../application/explorer_view_controller.dart';
+import '../../application/file_operations.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/workspace_path.dart';
 import 'file_dialogs.dart';
@@ -92,27 +94,30 @@ Future<bool> saveFileAs(
 }
 
 /// Asks for a path (in [folder] to start with), creates the empty file and
-/// opens it; true when it opened.
+/// opens it; true when it opened. Since Phase 3 W4 the dialog stays open
+/// while the file cannot be created, saying why: a name that is taken asks
+/// for another.
 Future<bool> createNewFile(
   BuildContext context,
   WidgetRef ref, {
   String folder = '',
 }) async {
-  final documents = ref.read(documentControllerProvider.notifier);
+  final operations = ref.read(fileOperationsProvider);
   final path = await askFilePath(
     context,
     title: 'New file',
     confirmLabel: 'Create',
     initialPath: folder.isEmpty ? '' : '$folder/',
+    submit: (path) async => switch (await operations.createFile(path)) {
+      Ok<void>() => null,
+      Err<void>(:final failure) => failure.message,
+    },
   );
   if (path == null || !context.mounted) {
     return false;
   }
-  final result = await documents.createFile(path);
-  if (!context.mounted) {
-    return result.isOk;
-  }
-  return _announce(context, result);
+  ref.read(explorerViewProvider.notifier).select(path);
+  return true;
 }
 
 /// Closes [path]'s tab, first asking what to do with unsaved changes; true

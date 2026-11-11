@@ -55,7 +55,9 @@ void main() {
     await tester.pumpAndSettle();
     await _settle(tester);
 
-    expect(find.byKey(const ValueKey('tree_docs/note_00.md')), findsOneWidget);
+    // The tree builds the rows on screen only (Phase 3 W4): at 600 the
+    // twentieth note shows; src stays collapsed.
+    expect(find.byKey(const ValueKey('tree_docs/note_20.md')), findsOneWidget);
     expect(find.byKey(const ValueKey('tree_src/main.js')), findsNothing);
     expect(_treeScroll(tester).offset, 600);
   });

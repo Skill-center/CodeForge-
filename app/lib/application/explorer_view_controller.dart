@@ -23,6 +23,7 @@ final class ExplorerViewState {
     this.expanded = const {''},
     this.restoreOffset = 0,
     this.loaded = false,
+    this.selected,
   });
 
   /// The workspace this view belongs to.
@@ -37,6 +38,12 @@ final class ExplorerViewState {
 
   /// The stored view arrived (or there was none).
   final bool loaded;
+
+  /// The row the user selected (Phase 3 W4): its ⋯ button shows, the
+  /// arrow keys move from it, and new items go into its folder. Not kept
+  /// between runs; while there is none, the active document's row is
+  /// highlighted.
+  final String? selected;
 }
 
 final class ExplorerViewController extends Notifier<ExplorerViewState> {
@@ -46,6 +53,7 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
   late SessionStore _store;
   late String _workspaceId;
   Set<String> _expanded = const {''};
+  String? _selected;
   double _offset = 0;
   bool _dirty = false;
   bool _touched = false;
@@ -66,6 +74,7 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
     // was stored by onDispose below, which runs before this build.
     _generation += 1;
     _expanded = const {''};
+    _selected = null;
     _offset = 0;
     _dirty = false;
     _touched = false;
@@ -120,7 +129,17 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
     expanded: Set.unmodifiable(_expanded),
     restoreOffset: _offset,
     loaded: loaded,
+    selected: _selected,
   );
+
+  /// Selects [path]'s row, or none (Phase 3 W4).
+  void select(String? path) {
+    if (_selected == path) {
+      return;
+    }
+    _selected = path;
+    state = _state(loaded: state.loaded);
+  }
 
   /// Expands [path] when collapsed, collapses it when expanded.
   void toggle(String path) {
@@ -138,18 +157,28 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
   /// The file or folder [from] is now at [to] (Phase 3 W4): expanded
   /// folders in it stay expanded at their new paths.
   void pathMoved(String from, String to) {
+    final selected = _selected;
+    if (selected != null) {
+      _selected = movedPath(selected, from, to) ?? selected;
+    }
     _replaceExpanded({
       for (final path in _expanded) movedPath(path, from, to) ?? path,
-    });
+    }, selectionChanged: _selected != selected);
   }
 
   /// [path] is gone (Phase 3 W4): it, and the folders in it, are no longer
   /// expanded.
   void pathRemoved(String path) {
+    final selected = _selected;
+    if (selected != null && isWithin(selected, path)) {
+      // The folder that held it, if that is a row.
+      final parent = pathParent(path);
+      _selected = parent.isEmpty ? null : parent;
+    }
     _replaceExpanded({
       for (final expanded in _expanded)
         if (expanded.isEmpty || !isWithin(expanded, path)) expanded,
-    });
+    }, selectionChanged: _selected != selected);
   }
 
   /// Expands every folder above [path], so its row shows (a new file or
@@ -163,9 +192,12 @@ final class ExplorerViewController extends Notifier<ExplorerViewState> {
     _replaceExpanded(next);
   }
 
-  void _replaceExpanded(Set<String> next) {
+  void _replaceExpanded(Set<String> next, {bool selectionChanged = false}) {
     next.add('');
     if (next.length == _expanded.length && next.containsAll(_expanded)) {
+      if (selectionChanged) {
+        state = _state(loaded: state.loaded);
+      }
       return;
     }
     _touched = true;

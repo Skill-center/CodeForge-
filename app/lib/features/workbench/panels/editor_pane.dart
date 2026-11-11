@@ -99,9 +99,18 @@ class EditorPane extends ConsumerWidget {
             (showToolbar ? CfSymbolToolbar.extent : 0) +
             largeFileBannerExtent +
             2 * editorRow;
+        // A document whose file was deleted (Phase 3 W4) says so first: its
+        // text exists nowhere else. A conflict about it is asked instead.
+        final deletedNotice =
+            activeDoc != null &&
+            activeDoc.deletedOnDisk &&
+            activeDoc.conflict == null &&
+            !journalBanner &&
+            height >= largeFileRoom;
         final largeFileNotice =
             (activeDoc?.largeFileNotice ?? false) &&
             !journalBanner &&
+            !deletedNotice &&
             height >= largeFileRoom;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,6 +123,8 @@ class EditorPane extends ConsumerWidget {
                       id: path,
                       label: pathBaseName(path),
                       dirty: documents.documents[path]?.dirty ?? false,
+                      deleted:
+                          documents.documents[path]?.deletedOnDisk ?? false,
                     ),
                 ],
                 activeId: activePath,
@@ -150,6 +161,8 @@ class EditorPane extends ConsumerWidget {
                       'would lose them. Save your files to keep them safe.',
                 ),
               ),
+            if (deletedNotice && activeDoc != null)
+              _DeletedNotice(path: activeDoc.path),
             if (largeFileNotice && activeDoc != null)
               _LargeFileNotice(path: activeDoc.path),
             if (findOpen)
@@ -235,6 +248,38 @@ class _LargeFileNotice extends ConsumerWidget {
           actionLabel: 'Highlight anyway',
           onAction: () => documents().highlightAnyway(path),
           onDismiss: () => documents().dismissLargeFileNotice(path),
+        ),
+      ),
+    );
+  }
+}
+
+/// The document at [path] has no file behind it any more (Phase 3 W4): it
+/// was deleted while it had unsaved changes. At most
+/// [EditorPane.largeFileBannerExtent] tall, like the large-file banner.
+class _DeletedNotice extends ConsumerWidget {
+  const _DeletedNotice({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxHeight: EditorPane.largeFileBannerExtent,
+      ),
+      child: SingleChildScrollView(
+        primary: false,
+        padding: const EdgeInsets.all(CfSpacing.sm),
+        child: CfBanner(
+          key: const ValueKey('deleted_notice'),
+          kind: CfBannerKind.warning,
+          message:
+              '${pathBaseName(path)} was deleted. Your text is still here: '
+              'save it to write the file again, or close the tab to discard '
+              'it.',
+          actionLabel: 'Save',
+          onAction: () => saveFile(context, ref, path),
         ),
       ),
     );

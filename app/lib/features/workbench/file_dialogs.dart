@@ -121,90 +121,183 @@ Future<bool> askToConfirm(
 }
 
 /// Asks for a workspace-relative file path, checked as it is typed; null
-/// when cancelled.
+/// when cancelled. With [submit] (Phase 3 W4) the dialog stays open until
+/// [submit] accepts the path (returns null) or the user cancels, showing
+/// what [submit] returned otherwise: a name that is taken asks for
+/// another, and nothing is replaced. [folder] asks for a folder's path: a
+/// slash at its end is dropped.
 Future<String?> askFilePath(
   BuildContext context, {
   required String title,
   required String confirmLabel,
   String initialPath = '',
+  String hint = 'src/app.js',
+  bool folder = false,
+  Future<String?> Function(String path)? submit,
 }) {
   return showDialog<String>(
     context: context,
-    builder: (context) => _FilePathDialog(
+    builder: (context) => _TextEntryDialog(
+      keyPrefix: 'file_path',
       title: title,
       confirmLabel: confirmLabel,
-      initialPath: initialPath,
+      initial: initialPath,
+      label: 'Path in the workspace',
+      hint: hint,
+      check: workspacePathProblem,
+      normalize: folder ? _dropTrailingSlashes : _same,
+      submit: submit,
     ),
   );
 }
 
-class _FilePathDialog extends StatefulWidget {
-  const _FilePathDialog({
-    required this.title,
-    required this.confirmLabel,
-    required this.initialPath,
-  });
-
-  final String title;
-  final String confirmLabel;
-  final String initialPath;
-
-  @override
-  State<_FilePathDialog> createState() => _FilePathDialogState();
+/// Asks for a new name for [name] (Phase 3 W4: Rename), checked as it is
+/// typed, with the part before a file's extension selected. The dialog
+/// stays open until [submit] accepts the name (returns null) or the user
+/// cancels. Null when cancelled.
+Future<String?> askName(
+  BuildContext context, {
+  required String title,
+  required String confirmLabel,
+  required String name,
+  required bool isFolder,
+  required Future<String?> Function(String name) submit,
+}) {
+  return showDialog<String>(
+    context: context,
+    builder: (context) => _TextEntryDialog(
+      keyPrefix: 'name',
+      title: title,
+      confirmLabel: confirmLabel,
+      initial: name,
+      label: 'Name',
+      hint: name,
+      check: nameProblem,
+      normalize: _same,
+      submit: submit,
+      wholeName: isFolder,
+    ),
+  );
 }
 
-class _FilePathDialogState extends State<_FilePathDialog> {
-  late final TextEditingController _path = TextEditingController(
-    text: widget.initialPath,
+String _same(String value) => value;
+
+String _dropTrailingSlashes(String value) {
+  var path = value;
+  while (path.endsWith('/')) {
+    path = path.substring(0, path.length - 1);
+  }
+  return path;
+}
+
+class _TextEntryDialog extends StatefulWidget {
+  const _TextEntryDialog({
+    required this.keyPrefix,
+    required this.title,
+    required this.confirmLabel,
+    required this.initial,
+    required this.label,
+    required this.hint,
+    required this.check,
+    required this.normalize,
+    this.submit,
+    this.wholeName = false,
+  });
+
+  /// The keys' prefix: `<prefix>_dialog`, `_field`, `_cancel`, `_confirm`.
+  final String keyPrefix;
+  final String title;
+  final String confirmLabel;
+  final String initial;
+  final String label;
+  final String hint;
+
+  /// Why the text is not acceptable, or null.
+  final String? Function(String value) check;
+  final String Function(String value) normalize;
+  final Future<String?> Function(String value)? submit;
+
+  /// Select the whole last name, not the part before its extension.
+  final bool wholeName;
+
+  @override
+  State<_TextEntryDialog> createState() => _TextEntryDialogState();
+}
+
+class _TextEntryDialogState extends State<_TextEntryDialog> {
+  late final TextEditingController _text = TextEditingController(
+    text: widget.initial,
   );
   String? _problem;
+  bool _busy = false;
 
   @override
   void initState() {
     super.initState();
     // Select the name without its extension, as desktop editors do, so
     // typing replaces just that.
-    final path = widget.initialPath;
-    final name = pathBaseName(path);
-    final start = path.length - name.length;
-    final dot = name.lastIndexOf('.');
-    _path.selection = TextSelection(
+    final value = widget.initial;
+    final name = pathBaseName(value);
+    final start = value.length - name.length;
+    final dot = widget.wholeName ? -1 : name.lastIndexOf('.');
+    _text.selection = TextSelection(
       baseOffset: start,
-      extentOffset: dot > 0 ? start + dot : path.length,
+      extentOffset: dot > 0 ? start + dot : value.length,
     );
   }
 
   @override
   void dispose() {
-    _path.dispose();
+    _text.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    final path = _path.text.trim();
-    final problem = workspacePathProblem(path);
+  Future<void> _submit() async {
+    if (_busy) {
+      return;
+    }
+    final value = widget.normalize(_text.text.trim());
+    final problem = widget.check(value);
     if (problem != null) {
       setState(() => _problem = problem);
       return;
     }
-    Navigator.of(context).pop(path);
+    final submit = widget.submit;
+    if (submit == null) {
+      Navigator.of(context).pop(value);
+      return;
+    }
+    setState(() => _busy = true);
+    final refused = await submit(value);
+    if (!mounted) {
+      return;
+    }
+    if (refused != null) {
+      setState(() {
+        _busy = false;
+        _problem = refused;
+      });
+      return;
+    }
+    Navigator.of(context).pop(value);
   }
 
   @override
   Widget build(BuildContext context) {
+    final prefix = widget.keyPrefix;
     return CfAlertDialog(
-      key: const ValueKey('file_path_dialog'),
+      key: ValueKey('${prefix}_dialog'),
       title: Text(widget.title),
       content: TextField(
-        key: const ValueKey('file_path_field'),
-        controller: _path,
+        key: ValueKey('${prefix}_field'),
+        controller: _text,
         autofocus: true,
         autocorrect: false,
         enableSuggestions: false,
         textInputAction: TextInputAction.done,
         decoration: InputDecoration(
-          labelText: 'Path in the workspace',
-          hintText: 'src/app.js',
+          labelText: widget.label,
+          hintText: widget.hint,
           errorText: _problem,
           errorMaxLines: 3,
         ),
@@ -217,13 +310,13 @@ class _FilePathDialogState extends State<_FilePathDialog> {
       ),
       actions: [
         TextButton(
-          key: const ValueKey('file_path_cancel'),
-          onPressed: () => Navigator.of(context).pop(),
+          key: ValueKey('${prefix}_cancel'),
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
-          key: const ValueKey('file_path_confirm'),
-          onPressed: _submit,
+          key: ValueKey('${prefix}_confirm'),
+          onPressed: _busy ? null : _submit,
           child: Text(widget.confirmLabel),
         ),
       ],

@@ -14,12 +14,17 @@ final class CfTab {
     required this.id,
     required this.label,
     this.dirty = false,
+    this.deleted = false,
     this.icon,
   });
 
   final String id;
   final String label;
   final bool dirty;
+
+  /// Its file is gone (Phase 3 W4): the label is struck through, and a
+  /// screen reader says so.
+  final bool deleted;
   final IconData? icon;
 }
 
@@ -158,12 +163,19 @@ class _CfTabStripState extends State<CfTabStrip> {
                 Flexible(
                   child: Text(
                     tab.label,
-                    semanticsLabel: tab.dirty
-                        ? '${tab.label}, unsaved changes'
-                        : null,
+                    semanticsLabel: switch ((tab.deleted, tab.dirty)) {
+                      (true, true) =>
+                        '${tab.label}, deleted on disk, unsaved changes',
+                      (true, false) => '${tab.label}, deleted on disk',
+                      (false, true) => '${tab.label}, unsaved changes',
+                      (false, false) => null,
+                    },
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: active ? colors.textPrimary : colors.textSecondary,
+                      decoration: tab.deleted
+                          ? TextDecoration.lineThrough
+                          : null,
                     ),
                   ),
                 ),

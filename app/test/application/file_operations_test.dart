@@ -184,6 +184,7 @@ void main() {
       await w.documents.open('src/greeting.dart');
       await w.documents.open('src/notes.txt');
       await _drain();
+      final language = w.doc('src/greeting.dart').language;
       w.page.typeText('more\n', docId: w.doc('src/notes.txt').docId);
       await _drain();
 
@@ -195,7 +196,11 @@ void main() {
       expect(w.state.activePath, 'lib/src/notes.txt');
       expect(w.doc('lib/src/notes.txt').dirty, isTrue);
       expect(w.doc('lib/src/greeting.dart').dirty, isFalse);
-      expect(w.doc('lib/src/greeting.dart').language, 'dart');
+      expect(
+        w.doc('lib/src/greeting.dart').language,
+        language,
+        reason: 'names did not change, so neither did languages',
+      );
       expect((await w.journal()).single.path, 'lib/src/notes.txt');
       expect(await w.savedTabs(), [
         'lib/src/greeting.dart',

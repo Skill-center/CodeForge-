@@ -24,7 +24,9 @@ final class CfFileNode {
   final bool hidden;
 }
 
-/// Indented tree row: chevron, icon, name. Real expand/collapse.
+/// Indented tree row: chevron, icon, name. Real expand/collapse. Since
+/// Phase 3 W4 a long-press opens the row's menu, and [trailing] (the
+/// selected row's ⋯ button) sits at its end.
 class CfTreeRow extends StatelessWidget {
   const CfTreeRow({
     super.key,
@@ -32,14 +34,18 @@ class CfTreeRow extends StatelessWidget {
     required this.depth,
     required this.expanded,
     required this.onTap,
+    this.onLongPress,
     this.selected = false,
+    this.trailing,
   });
 
   final CfFileNode node;
   final int depth;
   final bool expanded;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final bool selected;
+  final Widget? trailing;
 
   IconData get _icon {
     if (!node.isFile) {
@@ -64,6 +70,7 @@ class CfTreeRow extends StatelessWidget {
       color: selected ? colors.accentEmberSoft : Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Container(
           height: CfSpacing.minTouchTarget,
           padding: EdgeInsets.only(left: CfSpacing.sm + depth * 16.0),
@@ -90,6 +97,7 @@ class CfTreeRow extends StatelessWidget {
                   ).textTheme.bodyMedium?.copyWith(color: fg, fontSize: 13),
                 ),
               ),
+              ?trailing,
             ],
           ),
         ),
