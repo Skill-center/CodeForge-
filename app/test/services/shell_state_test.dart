@@ -77,33 +77,84 @@ void main() {
       expect(decodeShellState(ok).lastRoute, '/settings');
     });
 
-    test('the open folder round trips; a bad one is dropped', () {
+    test('the open workspace round trips, project or folder', () {
       const folder = FolderLocation(
         treeUri:
             'content://com.android.externalstorage.documents/tree/primary%3Acf',
         name: 'cf',
       );
-      const state = ShellState(folder: folder);
-      expect(decodeShellState(encodeShellState(state)).folder, folder);
+      const project = ProjectLocation(
+        id: 'project-0123456789abcdef',
+        name: 'my app',
+        folder: 'my app',
+      );
+      const moved = FolderLocation(
+        treeUri: 'content://com.android.externalstorage.documents/tree/x',
+        name: 'x',
+        id: 'folder-00000000000000000000000000000000',
+      );
+      for (final workspace in <WorkspaceLocation>[
+        folder,
+        project,
+        moved,
+        const DemoProjectLocation(),
+      ]) {
+        final state = ShellState(workspace: workspace);
+        expect(
+          decodeShellState(encodeShellState(state)).workspace,
+          workspace,
+          reason: '$workspace',
+        );
+      }
       expect(
-        decodeShellState(encodeShellState(const ShellState())).folder,
+        decodeShellState(encodeShellState(const ShellState())).workspace,
         isNull,
       );
-      // Phase 3 W1 envelopes have no folder: the built-in project opens.
+      // Phase 3 W1 envelopes name no workspace: the demo project opens.
       const w1 = '{"schemaVersion":1,"data":{"lastRoute":"/workspace"}}';
-      expect(decodeShellState(w1).folder, isNull);
+      expect(decodeShellState(w1).workspace, isNull);
+    });
+
+    test('a folder Phase 3 W2 remembered opens as the same workspace', () {
+      const uri =
+          'content://com.android.externalstorage.documents/tree/primary%3Acf';
+      const raw =
+          '{"schemaVersion":1,"data":{"folder":{"uri":"$uri","name":"cf"}}}';
+      final workspace = decodeShellState(raw).workspace;
+      expect(workspace, const FolderLocation(treeUri: uri, name: 'cf'));
+      expect(workspace?.id, folderWorkspaceId(uri));
       for (final bad in [
         '"content://x"',
         '{"uri":"file:///sdcard/x","name":"x"}',
         '{"uri":42,"name":"x"}',
       ]) {
         final raw = '{"schemaVersion":1,"data":{"folder":$bad}}';
-        expect(decodeShellState(raw).folder, isNull, reason: bad);
+        expect(decodeShellState(raw).workspace, isNull, reason: bad);
       }
       const unnamed =
           '{"schemaVersion":1,"data":{"folder":{"uri":"content://a/tree/b"}}}';
-      expect(decodeShellState(unnamed).folder?.name, 'Folder');
-      expect(state.copyWith(clearFolder: true).folder, isNull);
+      expect(decodeShellState(unnamed).workspace?.name, 'Folder');
+    });
+
+    test('a workspace that does not read is dropped', () {
+      for (final bad in [
+        '"demo"',
+        '{"kind":"project","id":"../x","name":"x","location":"x"}',
+        '{"kind":"project","id":"project-1","name":"x","location":"a/b"}',
+        '{"kind":"folder","id":"folder-1","name":"x","location":"file:///x"}',
+        // An open folder needs its place.
+        '{"kind":"folder","id":"folder-1","name":"x","location":""}',
+        '{"kind":"repository","id":"r","name":"x","location":"x"}',
+        '{"kind":"project","id":"project-1","name":"x"}',
+      ]) {
+        final raw = '{"schemaVersion":1,"data":{"workspace":$bad}}';
+        expect(decodeShellState(raw).workspace, isNull, reason: bad);
+      }
+      // The demo project, whatever its record says.
+      const demo =
+          '{"schemaVersion":1,"data":{"workspace":{"kind":"project",'
+          '"id":"demo","name":"Renamed","location":"elsewhere"}}}';
+      expect(decodeShellState(demo).workspace, const DemoProjectLocation());
     });
 
     test('layout dimensions are clamped', () {

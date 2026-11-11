@@ -35,16 +35,22 @@ final class LocalFileService implements FileService {
       displayName: DemoWorkspace.displayName,
     ),
     BeforeCommit? beforeCommit,
+    bool createIfMissing = true,
   }) : _rootPath = rootPath,
        _seed = seed,
        _workspace = workspace,
-       _beforeCommit = beforeCommit;
+       _beforeCommit = beforeCommit,
+       _createIfMissing = createIfMissing;
 
   /// Where the workspace folder is (or will be created).
   final Future<String> Function() _rootPath;
   final Map<String, String> _seed;
   final WorkspaceRef _workspace;
   final BeforeCommit? _beforeCommit;
+
+  /// Whether a missing workspace folder is created with [_seed] (the demo
+  /// project) or reported missing (every other project, Phase 3 W3).
+  final bool _createIfMissing;
 
   String? _root;
   Future<Result<String>>? _opening;
@@ -288,6 +294,15 @@ final class LocalFileService implements FileService {
     try {
       final root = Directory(await _rootPath());
       if (!root.existsSync()) {
+        if (!_createIfMissing) {
+          return Err(
+            FileFailure(
+              'The project "${_workspace.displayName}" is missing: its '
+              'folder is gone.',
+              problem: FileProblem.folderMissing,
+            ),
+          );
+        }
         await _createSeeded(root);
       }
       return Ok(await root.resolveSymbolicLinks());

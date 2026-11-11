@@ -48,18 +48,38 @@ String? workspacePathProblem(String path, {bool allowRoot = false}) {
     if (segment == '.' || segment == '..') {
       return 'The path cannot contain "." or ".." folders.';
     }
-    if (segment.length > maxNameLength) {
-      return 'A name can be at most $maxNameLength characters.';
+    final problem = nameProblem(segment);
+    if (problem != null) {
+      return problem;
     }
-    if (_controlCharacters.hasMatch(segment)) {
-      return 'A name cannot contain control characters.';
-    }
-    if (_forbiddenCharacters.hasMatch(segment)) {
-      return r'A name cannot contain \ : * ? " < > |';
-    }
-    if (segment.endsWith(reservedTempSuffix)) {
-      return 'Names ending in $reservedTempSuffix are reserved for saving.';
-    }
+  }
+  return null;
+}
+
+/// Why [name] can't name a file, a folder or a project, in words fit for
+/// the user; null when it can. One rule for all three (Phase 3 W3), which
+/// every segment of a workspace path also follows.
+String? nameProblem(String name) {
+  if (name.isEmpty) {
+    return 'Enter a name.';
+  }
+  if (name == '.' || name == '..') {
+    return 'A name cannot be "." or "..".';
+  }
+  if (name.contains('/')) {
+    return 'A name cannot contain "/".';
+  }
+  if (name.length > maxNameLength) {
+    return 'A name can be at most $maxNameLength characters.';
+  }
+  if (_controlCharacters.hasMatch(name)) {
+    return 'A name cannot contain control characters.';
+  }
+  if (_forbiddenCharacters.hasMatch(name)) {
+    return r'A name cannot contain \ : * ? " < > |';
+  }
+  if (name.endsWith(reservedTempSuffix)) {
+    return 'Names ending in $reservedTempSuffix are reserved for saving.';
   }
   return null;
 }

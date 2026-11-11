@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'application/documents/document_controller.dart';
+import 'application/explorer_view_controller.dart';
 import 'application/router.dart';
 import 'application/settings_controller.dart';
 import 'application/shell_controller.dart';
@@ -44,6 +45,10 @@ class _CodeForgeAppState extends ConsumerState<CodeForgeApp>
       // documents exist — reading the controller would create the editor.
       if (ref.exists(documentControllerProvider)) {
         unawaited(ref.read(documentControllerProvider.notifier).checkpoint());
+      }
+      // The explorer's expanded folders and scroll (Phase 3 W3).
+      if (ref.exists(explorerViewProvider)) {
+        unawaited(ref.read(explorerViewProvider.notifier).flush());
       }
     }
   }

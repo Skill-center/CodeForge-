@@ -16,11 +16,23 @@ import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
 
 final class MemoryFileService implements FileService {
-  MemoryFileService({Map<String, String> seed = DemoWorkspace.files}) {
+  MemoryFileService({
+    Map<String, String> seed = DemoWorkspace.files,
+    this.workspace = const WorkspaceRef(
+      id: DemoWorkspace.id,
+      displayName: DemoWorkspace.displayName,
+    ),
+  }) {
     for (final MapEntry(:key, :value) in seed.entries) {
       putText(key, value);
     }
   }
+
+  /// What [openWorkspace] answers: the demo project unless a test says.
+  final WorkspaceRef workspace;
+
+  /// [openWorkspace] fails with this, as a project whose folder is gone.
+  Failure? failOpen;
 
   final Map<String, Uint8List> _files = {};
   final Map<String, FileStamp> _stamps = {};
@@ -33,9 +45,10 @@ final class MemoryFileService implements FileService {
   Failure? failNextWrite;
 
   @override
-  Future<Result<WorkspaceRef>> openWorkspace() async => const Ok(
-    WorkspaceRef(id: DemoWorkspace.id, displayName: DemoWorkspace.displayName),
-  );
+  Future<Result<WorkspaceRef>> openWorkspace() async {
+    final failure = failOpen;
+    return failure == null ? Ok(workspace) : Err(failure);
+  }
 
   @override
   Future<Result<List<FileEntry>>> listDirectory(String path) async {
@@ -146,6 +159,9 @@ final class MemoryFileService implements FileService {
   }
 
   bool exists(String path) => _files.containsKey(path);
+
+  /// Every file's path.
+  Iterable<String> get paths => _files.keys;
 
   /// Writes [text] the way another program would: a new stamp, no checks.
   void putText(

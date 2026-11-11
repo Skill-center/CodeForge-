@@ -37,7 +37,8 @@ void main() {
     // Part A's preferences, as it left them: never cleared here.
     final prefs = await SharedPreferences.getInstance();
     final remembered = PrefsShellStateStore(prefs).load();
-    expect(remembered.folder?.name, gateFolderName);
+    expect(remembered.workspace, isA<FolderLocation>());
+    expect(remembered.workspace?.name, gateFolderName);
     expect(remembered.lastRoute, '/workspace');
     await pumpRealApp(tester, prefs);
 

@@ -30,6 +30,9 @@ Future<String> noBackupFilesPath() async {
   return path;
 }
 
-/// The Phase 2 workspace folder: `<files>/workspaces/demo`.
-Future<String> demoWorkspacePath() async =>
-    '${await applicationFilesPath()}/workspaces/demo';
+/// Where projects live (Phase 3 W3): `<files>/workspaces`, one folder each.
+Future<String> projectsRootPath() async =>
+    '${await applicationFilesPath()}/workspaces';
+
+/// The demo project's folder (Phase 2's workspace): `<files>/workspaces/demo`.
+Future<String> demoWorkspacePath() async => '${await projectsRootPath()}/demo';

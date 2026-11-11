@@ -4,6 +4,7 @@ library;
 
 import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/core/errors/failure.dart';
+import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/services/storage/session_store.dart';
 
 /// A session store whose writes fail while [failing] (or throw, while
@@ -25,9 +26,42 @@ final class FlakySessionStore implements SessionStore {
 
   @override
   Future<Result<void>> touchWorkspace(
-    String workspaceId, {
+    WorkspaceLocation workspace, {
+    required String displayPath,
+  }) => _write(
+    () => inner.touchWorkspace(workspace, displayPath: displayPath),
+  );
+
+  @override
+  Future<Result<List<WorkspaceRecord>>> loadWorkspaces() =>
+      inner.loadWorkspaces();
+
+  @override
+  Future<Result<void>> moveWorkspace(
+    String id, {
     required String name,
-  }) => _write(() => inner.touchWorkspace(workspaceId, name: name));
+    required String location,
+    required String displayPath,
+  }) => _write(
+    () => inner.moveWorkspace(
+      id,
+      name: name,
+      location: location,
+      displayPath: displayPath,
+    ),
+  );
+
+  @override
+  Future<Result<void>> forgetWorkspace(String id) =>
+      _write(() => inner.forgetWorkspace(id));
+
+  @override
+  Future<Result<ExplorerView?>> loadView(String workspaceId) =>
+      inner.loadView(workspaceId);
+
+  @override
+  Future<Result<void>> saveView(String workspaceId, ExplorerView view) =>
+      _write(() => inner.saveView(workspaceId, view));
 
   @override
   Future<Result<List<SavedTab>>> loadTabs(String workspaceId) =>

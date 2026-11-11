@@ -179,8 +179,8 @@ final class SafFileService implements FileService {
   );
 
   FileFailure _accessLost() => FileFailure(
-    'CodeForge no longer has access to "${folder.name}". Open the folder '
-    'again from Home to give it access.',
+    'CodeForge no longer has access to "${folder.name}". Reconnect it '
+    'from Home to give it access again.',
     problem: FileProblem.accessLost,
   );
 

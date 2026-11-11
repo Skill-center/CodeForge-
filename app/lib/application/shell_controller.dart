@@ -93,14 +93,14 @@ final class ShellController extends Notifier<ShellState> {
     _schedulePersist();
   }
 
-  /// Remembers the open workspace: [folder], or the built-in project when
-  /// null. Stored at once, not after the usual delay: a process death right
-  /// after a switch must reopen the new workspace.
-  Future<void> setFolder(FolderLocation? folder) async {
-    if (folder == state.folder) {
+  /// Remembers the open workspace. Stored at once, not after the usual
+  /// delay: a process death right after a switch must reopen the new
+  /// workspace.
+  Future<void> setWorkspace(WorkspaceLocation workspace) async {
+    if (workspace == state.workspace) {
       return;
     }
-    state = state.copyWith(folder: folder, clearFolder: folder == null);
+    state = state.copyWith(workspace: workspace);
     await flush();
   }
 
@@ -109,6 +109,15 @@ final class ShellController extends Notifier<ShellState> {
       return;
     }
     state = state.copyWith(demoWorkspaceOpened: true);
+    _schedulePersist();
+  }
+
+  /// The demo project was deleted: Home offers to explore it again.
+  void markDemoWorkspaceDeleted() {
+    if (!state.demoWorkspaceOpened) {
+      return;
+    }
+    state = state.copyWith(demoWorkspaceOpened: false);
     _schedulePersist();
   }
 }

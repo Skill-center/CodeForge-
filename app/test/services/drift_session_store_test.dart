@@ -12,6 +12,7 @@ import 'package:codeforge/core/editor/change_set.dart';
 import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/text_codec.dart';
+import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/services/storage/app_database.dart';
 import 'package:codeforge/services/storage/drift_session_store.dart';
 import 'package:codeforge/services/storage/session_store.dart';
@@ -138,14 +139,137 @@ void main() {
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
       final store = DriftSessionStore(db);
-      expect((await store.touchWorkspace('demo', name: 'Demo')).isOk, isTrue);
+      const first = ProjectLocation(
+        id: 'project-1',
+        name: 'Demo',
+        folder: 'Demo',
+      );
       expect(
-        (await store.touchWorkspace('demo', name: 'Demo Workspace')).isOk,
+        (await store.touchWorkspace(first, displayPath: 'p/Demo')).isOk,
+        isTrue,
+      );
+      expect(
+        (await store.touchWorkspace(
+          const DemoProjectLocation(),
+          displayPath: 'CodeForge projects/demo',
+        )).isOk,
+        isTrue,
+      );
+      expect(
+        (await store.touchWorkspace(
+          const ProjectLocation(
+            id: 'project-1',
+            name: 'Renamed',
+            folder: 'Renamed',
+          ),
+          displayPath: 'p/Renamed',
+        )).isOk,
         isTrue,
       );
       final rows = await db.select(db.workspaces).get();
-      expect([for (final row in rows) row.id], ['demo']);
-      expect(rows.single.name, 'Demo Workspace');
+      expect([for (final row in rows) row.id]..sort(), ['demo', 'project-1']);
+      final renamed = rows.singleWhere((row) => row.id == 'project-1');
+      expect(renamed.name, 'Renamed');
+      expect(renamed.kind, 'project');
+      expect(renamed.location, 'Renamed');
+      expect(renamed.displayPath, 'p/Renamed');
+    });
+  });
+
+  group('recents (schema v2)', () {
+    const uri =
+        'content://com.android.externalstorage.documents/tree/primary%3Acf';
+    const folder = FolderLocation(treeUri: uri, name: 'cf');
+
+    test('most recently opened first, with kind and place', () async {
+      final store = _memoryStore();
+      await store.touchWorkspace(folder, displayPath: 'Internal storage/cf');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      await store.touchWorkspace(
+        const DemoProjectLocation(),
+        displayPath: 'CodeForge projects/demo',
+      );
+      final records = (await store.loadWorkspaces()).orThrow;
+      expect([for (final r in records) r.id], ['demo', folder.id]);
+      final cf = records.last;
+      expect(cf.kind, WorkspaceKind.folder);
+      expect(cf.name, 'cf');
+      expect(cf.location, uri);
+      expect(cf.displayPath, 'Internal storage/cf');
+      expect(records.first.kind, WorkspaceKind.project);
+      expect(records.first.location, 'demo');
+    });
+
+    test('a moved workspace keeps its id, time and kind', () async {
+      final store = _memoryStore();
+      await store.touchWorkspace(folder, displayPath: 'Internal storage/cf');
+      final before = (await store.loadWorkspaces()).orThrow.single;
+      await store.moveWorkspace(
+        folder.id,
+        name: 'cf2',
+        location: '${uri}2',
+        displayPath: 'Internal storage/cf2',
+      );
+      final after = (await store.loadWorkspaces()).orThrow.single;
+      expect(after.id, folder.id);
+      expect(after.kind, WorkspaceKind.folder);
+      expect(after.name, 'cf2');
+      expect(after.location, '${uri}2');
+      expect(after.displayPath, 'Internal storage/cf2');
+      expect(after.lastOpenedAt, before.lastOpenedAt);
+    });
+
+    test('forgetting a workspace removes everything kept for it, in every '
+        'table, and nothing of the others', () async {
+      final store = _memoryStore();
+      for (final id in ['gone', 'kept']) {
+        await store.touchWorkspace(
+          ProjectLocation(id: id, name: id, folder: id),
+          displayPath: id,
+        );
+        await store.saveTabs(id, const [SavedTab(path: 'a.js', active: true)]);
+        await store.writeSnapshot(
+          _snapshot('a.js', 'ab', 2, workspaceId: id),
+          restart: true,
+        );
+        await store.appendChange(id, 'a.js', _append('ab', 2, 'c'));
+        await store.saveView(id, const ExplorerView(expanded: {'src'}));
+      }
+      expect((await store.forgetWorkspace('gone')).isOk, isTrue);
+      expect([
+        for (final r in (await store.loadWorkspaces()).orThrow) r.id,
+      ], ['kept']);
+      expect((await store.loadTabs('gone')).orThrow, isEmpty);
+      expect(await _journal(store, 'gone'), isEmpty);
+      expect((await store.loadView('gone')).orThrow, isNull);
+      expect((await store.loadTabs('kept')).orThrow, hasLength(1));
+      expect(_replay((await _journal(store, 'kept')).single), 'abc');
+      expect((await store.loadView('kept')).orThrow?.expanded, {'src'});
+    });
+
+    test('the explorer view round trips; what does not read is dropped', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final store = DriftSessionStore(db);
+      expect((await store.loadView('demo')).orThrow, isNull);
+      await store.saveView(
+        'demo',
+        const ExplorerView(expanded: {'src', 'src/lib'}, scrollOffset: 120.5),
+      );
+      final view = (await store.loadView('demo')).orThrow!;
+      expect(view.expanded, {'src', 'src/lib'});
+      expect(view.scrollOffset, 120.5);
+      // Another version, or another hand, wrote paths that are not valid.
+      await db.customStatement(
+        "UPDATE workspace_views SET expanded = '[\"src\", \"../up\", 7, "
+        "\"/abs\"]' WHERE workspace_id = 'demo'",
+      );
+      expect((await store.loadView('demo')).orThrow!.expanded, {'src'});
+      await db.customStatement(
+        "UPDATE workspace_views SET expanded = 'not json' "
+        "WHERE workspace_id = 'demo'",
+      );
+      expect((await store.loadView('demo')).orThrow!.expanded, isEmpty);
     });
   });
 

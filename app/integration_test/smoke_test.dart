@@ -61,6 +61,9 @@ void main() {
     // run that writes the demo project as real files), so the route
     // changes only when the device's file work is done: wait for it rather
     // than for frames.
+    // Home's list may need to scroll to it (Phase 3 W3).
+    await tester.ensureVisible(find.byKey(const ValueKey('explore_demo')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('explore_demo')));
     await tester.pumpAndSettle();
     await pumpUntil(

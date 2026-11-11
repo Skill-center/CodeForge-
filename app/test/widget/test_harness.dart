@@ -4,7 +4,9 @@
 /// cannot run under `flutter test`. Files live in an in-memory workspace
 /// (test/support/memory_file_service.dart): real I/O never completes in
 /// testWidgets' fake async zone. Folders from shared storage come from a
-/// fake storage broker (test/support/fake_storage_broker.dart).
+/// fake storage broker (test/support/fake_storage_broker.dart), and
+/// projects from in-memory project folders
+/// (test/support/memory_project_storage.dart).
 library;
 
 import 'package:codeforge/app.dart';
@@ -29,6 +31,7 @@ import '../support/fake_editor_surface.dart';
 import '../support/fake_hardware_keyboard.dart';
 import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';
+import '../support/memory_project_storage.dart';
 
 final class TestHarness {
   TestHarness({
@@ -41,6 +44,7 @@ final class TestHarness {
     FakeHardwareKeyboard? hardwareKeyboard,
     FakeBackupService? backup,
     this.broker,
+    MemoryProjectStorage? projects,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -48,7 +52,8 @@ final class TestHarness {
        files = files ?? MemoryFileService(),
        sessionStore = sessionStore ?? MemorySessionStore(),
        hardwareKeyboard = hardwareKeyboard ?? FakeHardwareKeyboard(),
-       backup = backup ?? FakeBackupService();
+       backup = backup ?? FakeBackupService(),
+       projects = projects ?? MemoryProjectStorage();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -73,6 +78,10 @@ final class TestHarness {
   /// on a device; without, [files] is every workspace's.
   final FakeStorageBroker? broker;
 
+  /// The projects' folders besides the demo project's ([files]), shared
+  /// like [files] by every app this harness pumps.
+  final MemoryProjectStorage projects;
+
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
 
@@ -96,6 +105,7 @@ final class TestHarness {
       fileServiceProvider.overrideWithValue(files),
       storageBrokerProvider.overrideWithValue(FakeStorageBroker()),
     ],
+    projectStorageProvider.overrideWithValue(projects),
     sessionStoreProvider.overrideWithValue(sessionStore),
     hardwareKeyboardSourceProvider.overrideWithValue(hardwareKeyboard),
     backupServiceProvider.overrideWithValue(backup),
@@ -131,8 +141,13 @@ void setSurface(WidgetTester tester, double width, double height) {
   addTearDown(tester.view.resetPhysicalSize);
 }
 
-/// Navigates: home → demo workspace, settling all frames.
+/// Navigates: home → demo workspace, settling all frames. Home's list
+/// scrolls to the demo project's button first: on short surfaces it sits
+/// below New Project and Open Folder (Phase 3 W3).
 Future<void> openDemoWorkspace(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('explore_demo')));
+  final button = find.byKey(const ValueKey('explore_demo'));
+  await tester.ensureVisible(button);
+  await tester.pumpAndSettle();
+  await tester.tap(button);
   await tester.pumpAndSettle();
 }

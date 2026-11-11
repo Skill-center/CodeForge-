@@ -55,4 +55,30 @@ void main() {
     expect(pathJoin('', 'main.js'), 'main.js');
     expect(pathJoin('src', 'app.js'), 'src/app.js');
   });
+
+  test('one name rule for files, folders and projects (Phase 3 W3)', () {
+    for (final name in ['main.js', '.gitignore', 'a b', 'ファイル', 'x' * 255]) {
+      expect(nameProblem(name), isNull, reason: name);
+    }
+    for (final name in [
+      '',
+      '.',
+      '..',
+      'a/b',
+      'x' * 256,
+      'tab\there',
+      r'back\slash',
+      'colon:',
+      'star*',
+      'q?',
+      '"quoted"',
+      '<a>',
+      'pipe|',
+      'save.cf-tmp',
+    ]) {
+      expect(nameProblem(name), isNotNull, reason: name);
+    }
+    // Every segment of a path follows it.
+    expect(workspacePathProblem('src/pipe|'), nameProblem('pipe|'));
+  });
 }

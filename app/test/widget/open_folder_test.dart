@@ -1,8 +1,8 @@
 /// Home's Open Folder (Phase 3 W2, gate G1): Android's picker opens a
 /// folder from the device as the workspace; backing out stays home; a
-/// folder that is gone or no longer granted says so, on Home and in the
-/// explorer, without a crash. The picker and the folder are a fake storage
-/// broker's.
+/// folder that is gone or no longer granted says so on Home, in its entry
+/// of the recents (Phase 3 W3), without a crash, and a cold start into it
+/// lands on Home. The picker and the folder are a fake storage broker's.
 library;
 
 import 'package:codeforge/core/files/workspace_location.dart';
@@ -50,7 +50,7 @@ void main() {
     expect(find.byKey(const ValueKey('tree_hello.txt')), findsOneWidget);
     expect(find.byKey(const ValueKey('tree_src')), findsOneWidget);
     expect(find.byKey(const ValueKey('tree_main.js')), findsNothing);
-    expect(harness.shellStore.load().folder, _folder);
+    expect(harness.shellStore.load().workspace, _folder);
 
     await tester.tap(find.byKey(const ValueKey('tree_hello.txt')));
     await tester.pumpAndSettle();
@@ -71,8 +71,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('open_folder')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('explore_demo')), findsOneWidget);
-    expect(harness.shellStore.load().folder, isNull);
-    expect(find.byKey(const ValueKey('continue_folder')), findsNothing);
+    expect(harness.shellStore.load().workspace, isNull);
+    expect(find.byKey(ValueKey('recent_${_folder.id}')), findsNothing);
   });
 
   testWidgets('a folder that is gone says so on Home, without a crash', (
@@ -83,45 +83,68 @@ void main() {
     broker.trees[_uri]!.missing = true;
     final harness = TestHarness(
       broker: broker,
-      shell: const ShellState(folder: _folder),
+      shell: const ShellState(workspace: _folder),
     );
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
 
-    expect(find.text('Continue in cf-gate'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('continue_folder')));
+    final entry = find.byKey(ValueKey('recent_${_folder.id}'));
+    await tester.scrollUntilVisible(entry, 200);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: entry, matching: find.text('folder missing')),
+      findsOneWidget,
+    );
+    await tester.tap(entry);
     await tester.pumpAndSettle();
     expect(find.textContaining('"cf-gate" is missing'), findsOneWidget);
+    expect(find.text('Reconnect'), findsOneWidget);
     expect(find.byKey(const ValueKey('explore_demo')), findsOneWidget);
+    // Still the folder: nothing was left for a workspace that is gone.
+    expect(harness.shellStore.load().workspace, _folder);
 
     // The built-in project still opens.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('explore_demo')),
+      -200,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('explore_demo')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('terminal_toggle')), findsOneWidget);
-    expect(harness.shellStore.load().folder, isNull);
+    expect(harness.shellStore.load().workspace, const DemoProjectLocation());
     // Past the snack bar's time on screen, so no timer outlives the test.
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
   });
 
-  testWidgets('after a restart, a lost grant shows in the explorer', (
+  testWidgets('after a restart, a lost grant lands on Home, saying so', (
     tester,
   ) async {
     setSurface(tester, 1280, 800);
     final broker = _broker(pickable: false);
     final harness = TestHarness(
       broker: broker,
-      shell: const ShellState(lastRoute: '/workspace', folder: _folder),
+      shell: const ShellState(lastRoute: '/workspace', workspace: _folder),
     );
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('terminal_toggle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('new_project')), findsOneWidget);
+    expect(find.byKey(const ValueKey('terminal_toggle')), findsNothing);
     expect(
       find.textContaining('no longer has access to "cf-gate"'),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('tree_hello.txt')), findsNothing);
-    await tester.pump(const Duration(milliseconds: 500));
+    final entry = find.byKey(ValueKey('recent_${_folder.id}'));
+    await tester.scrollUntilVisible(entry, 200);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: entry, matching: find.text('access lost')),
+      findsOneWidget,
+    );
+    // Past the snack bar's time on screen, so no timer outlives the test.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
   });
 }

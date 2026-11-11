@@ -104,11 +104,26 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
   }
 
   /// Opens the workspace and reopens the last session's tabs, or the demo
-  /// project's main.js the first time. A folder that is gone or no longer
-  /// granted shows why in the explorer.
+  /// project's main.js the first time. A workspace that went missing or
+  /// lost its access (a cold start that restored the workbench) lands on
+  /// Home, where its entry in the recents says so (Phase 3 W3); other
+  /// failures show in the explorer.
   Future<void> _ensureWorkspace() async {
     final opened = await ref.read(workspaceControllerProvider.notifier).open();
-    if (!mounted || opened is! Ok<WorkspaceRef>) {
+    if (!mounted) {
+      return;
+    }
+    if (opened case Err<WorkspaceRef>(:final failure)) {
+      if (failure is FileFailure &&
+          (failure.problem == FileProblem.folderMissing ||
+              failure.problem == FileProblem.accessLost)) {
+        final messenger = ScaffoldMessenger.of(context);
+        context.go('/');
+        messenger.showSnackBar(SnackBar(content: Text(failure.message)));
+      }
+      return;
+    }
+    if (opened is! Ok<WorkspaceRef>) {
       return;
     }
     await ref

@@ -7,6 +7,7 @@
 /// it.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -15,6 +16,8 @@ import 'package:drift/native.dart';
 import '../../core/editor/journal.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/text_codec.dart';
+import '../../core/files/workspace_location.dart';
+import '../../core/files/workspace_path.dart';
 import '../../core/logging/logger.dart';
 import 'app_database.dart';
 import 'session_store.dart';
@@ -57,20 +60,139 @@ final class DriftSessionStore implements SessionStore {
 
   @override
   Future<Result<void>> touchWorkspace(
-    String workspaceId, {
-    required String name,
+    WorkspaceLocation workspace, {
+    required String displayPath,
   }) {
     return _guard('record the workspace', () async {
       await _db
           .into(_db.workspaces)
           .insertOnConflictUpdate(
             WorkspacesCompanion.insert(
-              id: workspaceId,
-              name: name,
+              id: workspace.id,
+              name: workspace.name,
               lastOpenedAt: _now(),
+              kind: Value(workspace.kind.name),
+              location: Value(workspace.location),
+              displayPath: Value(displayPath),
             ),
           );
     });
+  }
+
+  @override
+  Future<Result<List<WorkspaceRecord>>> loadWorkspaces() {
+    return _guard('read the recent workspaces', () async {
+      final query = _db.select(_db.workspaces)
+        ..orderBy([(t) => OrderingTerm.desc(t.lastOpenedAt)]);
+      final rows = await query.get();
+      final kinds = WorkspaceKind.values.asNameMap();
+      return [
+        for (final row in rows)
+          if (kinds[row.kind] case final kind?)
+            WorkspaceRecord(
+              id: row.id,
+              kind: kind,
+              name: row.name,
+              location: row.location,
+              displayPath: row.displayPath,
+              lastOpenedAt: DateTime.fromMillisecondsSinceEpoch(
+                row.lastOpenedAt,
+                isUtc: true,
+              ),
+            ),
+      ];
+    });
+  }
+
+  @override
+  Future<Result<void>> moveWorkspace(
+    String id, {
+    required String name,
+    required String location,
+    required String displayPath,
+  }) {
+    return _guard('update the workspace', () async {
+      final update = _db.update(_db.workspaces)
+        ..where((t) => t.id.equals(id));
+      await update.write(
+        WorkspacesCompanion(
+          name: Value(name),
+          location: Value(location),
+          displayPath: Value(displayPath),
+        ),
+      );
+    });
+  }
+
+  @override
+  Future<Result<void>> forgetWorkspace(String id) {
+    return _guard('forget the workspace', () async {
+      await _db.transaction(() async {
+        await (_db.delete(_db.workspaces)..where((t) => t.id.equals(id))).go();
+        await (_db.delete(
+          _db.openTabs,
+        )..where((t) => t.workspaceId.equals(id))).go();
+        await (_db.delete(
+          _db.journalDocuments,
+        )..where((t) => t.workspaceId.equals(id))).go();
+        await (_db.delete(
+          _db.journalChanges,
+        )..where((t) => t.workspaceId.equals(id))).go();
+        await (_db.delete(
+          _db.workspaceViews,
+        )..where((t) => t.workspaceId.equals(id))).go();
+      });
+    });
+  }
+
+  @override
+  Future<Result<ExplorerView?>> loadView(String workspaceId) {
+    return _guard('read the explorer view', () async {
+      final query = _db.select(_db.workspaceViews)
+        ..where((t) => t.workspaceId.equals(workspaceId));
+      final row = await query.getSingleOrNull();
+      if (row == null) {
+        return null;
+      }
+      return ExplorerView(
+        expanded: _decodeExpanded(row.expanded),
+        scrollOffset: row.scrollOffset,
+      );
+    });
+  }
+
+  @override
+  Future<Result<void>> saveView(String workspaceId, ExplorerView view) {
+    return _guard('save the explorer view', () async {
+      final expanded = view.expanded.take(maxExpandedFolders).toList()..sort();
+      await _db
+          .into(_db.workspaceViews)
+          .insertOnConflictUpdate(
+            WorkspaceViewsCompanion.insert(
+              workspaceId: workspaceId,
+              expanded: Value(jsonEncode(expanded)),
+              scrollOffset: Value(view.scrollOffset),
+              updatedAt: _now(),
+            ),
+          );
+    });
+  }
+
+  /// The expanded folders written as [json]: valid workspace paths only, at
+  /// most [maxExpandedFolders]; nothing when it does not read.
+  static Set<String> _decodeExpanded(String json) {
+    try {
+      final decoded = jsonDecode(json);
+      if (decoded is! List<Object?>) {
+        return const {};
+      }
+      return {
+        for (final path in decoded.take(maxExpandedFolders))
+          if (path is String && isWorkspacePath(path)) path,
+      };
+    } on FormatException {
+      return const {};
+    }
   }
 
   @override

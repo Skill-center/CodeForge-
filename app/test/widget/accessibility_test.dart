@@ -11,6 +11,7 @@ import 'dart:async';
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/editor/find_controller.dart';
 import 'package:codeforge/core/editor/large_files.dart';
+import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/design_system/components/dialogs.dart';
 import 'package:codeforge/design_system/components/file_tree.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
@@ -20,11 +21,14 @@ import 'package:codeforge/features/settings/appearance_screen.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
+import 'package:codeforge/services/storage/session_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';
+import '../support/memory_project_storage.dart';
 import 'test_harness.dart';
 import 'workbench_dialogs.dart';
 
@@ -65,6 +69,48 @@ Future<void> _pump(WidgetTester tester, _Scenario scenario) async {
     TestHarness(settings: scenario.settings, shell: scenario.shell).app(),
   );
   await tester.pumpAndSettle();
+}
+
+const _lostUri =
+    'content://com.android.externalstorage.documents/tree/primary%3Alost';
+
+/// Home with recents in every status (Phase 3 W3): a project, one whose
+/// folder is gone, a folder and a folder no longer granted, each with a
+/// long name.
+Future<void> _pumpHomeWithRecents(WidgetTester tester) async {
+  const project = ProjectLocation(
+    id: 'project-a',
+    name: 'a-project-with-a-rather-long-name',
+    folder: 'a-project-with-a-rather-long-name',
+  );
+  const gone = ProjectLocation(id: 'project-g', name: 'gone', folder: 'gone');
+  const folder = FolderLocation(
+    treeUri:
+        'content://com.android.externalstorage.documents/tree/'
+        'primary%3ADocuments%2Fa-folder-with-a-rather-long-name',
+    name: 'a-folder-with-a-rather-long-name',
+  );
+  const lost = FolderLocation(treeUri: _lostUri, name: 'lost');
+  final sessions = MemorySessionStore();
+  for (final workspace in <WorkspaceLocation>[project, gone, folder, lost]) {
+    await sessions.touchWorkspace(
+      workspace,
+      displayPath: displayPathOf(workspace),
+    );
+  }
+  final broker = FakeStorageBroker()
+    ..addTree(folder.treeUri, folder.name)
+    ..addTree(_lostUri, 'lost', grant: false);
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pumpWidget(
+    TestHarness(
+      sessionStore: sessions,
+      broker: broker,
+      projects: MemoryProjectStorage()..add(project.folder),
+    ).app(),
+  );
+  await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('recents')), findsOneWidget);
 }
 
 /// Let the shell's debounced persistence timer fire before teardown.
@@ -202,6 +248,23 @@ void main() {
       });
     }
 
+    testWidgets('home with recents: no overflow at any gate size', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      for (final (width, height) in _gateSizes) {
+        setSurface(tester, width, height);
+        await _pumpHomeWithRecents(tester);
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'home with recents at ${width.toInt()}x${height.toInt()}',
+        );
+      }
+      await _flush(tester);
+    });
+
     testWidgets('settings sub-pages and palette: no overflow at any size', (
       tester,
     ) async {
@@ -239,6 +302,19 @@ void main() {
           semantics.dispose();
         });
       }
+    }
+
+    for (final (width, height) in _gateSizes) {
+      testWidgets('home with recents at ${width.toInt()}x${height.toInt()}', (
+        tester,
+      ) async {
+        final semantics = tester.ensureSemantics();
+        setSurface(tester, width, height);
+        await _pumpHomeWithRecents(tester);
+        await _expectAccessibleTargets(tester);
+        await _flush(tester);
+        semantics.dispose();
+      });
     }
 
     testWidgets('workbench chrome is actually covered by the sweep', (

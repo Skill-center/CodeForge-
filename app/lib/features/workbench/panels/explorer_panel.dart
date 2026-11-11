@@ -1,5 +1,7 @@
 /// Explorer: an expand/collapse tree over the workspace's real files. The
-/// listings come from the workspace controller.
+/// listings come from the workspace controller; the expanded folders and
+/// the scroll offset from the explorer's view, kept per workspace (Phase 3
+/// W3), so a switch and a cold start bring both back.
 library;
 
 import 'dart:async';
@@ -8,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../application/documents/document_controller.dart';
+import '../../../application/explorer_view_controller.dart';
 import '../../../application/settings_controller.dart';
 import '../../../application/workspace_controller.dart';
 import '../../../core/errors/failure.dart';
@@ -17,27 +20,6 @@ import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
 import '../../../services/contracts.dart';
 import '../file_actions.dart';
-
-final _expandedDirsProvider =
-    NotifierProvider<_ExpandedDirsNotifier, Set<String>>(
-      _ExpandedDirsNotifier.new,
-    );
-
-final class _ExpandedDirsNotifier extends Notifier<Set<String>> {
-  @override
-  Set<String> build() {
-    ref.keepAlive();
-    return const {''};
-  }
-
-  void toggle(String path) {
-    final next = Set.of(state);
-    if (!next.remove(path)) {
-      next.add(path);
-    }
-    state = next;
-  }
-}
 
 class ExplorerPanel extends ConsumerStatefulWidget {
   const ExplorerPanel({super.key, this.onFileOpened});
@@ -50,15 +32,117 @@ class ExplorerPanel extends ConsumerStatefulWidget {
 }
 
 class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
+  /// How often a restored scroll offset is tried, 100 ms apart, before the
+  /// tree scrolls as far as it goes: it waits at most 5 seconds for the
+  /// folders it needs. Counted rather than timed, so it behaves the same
+  /// under a test's fake clock.
+  static const int _restoreTries = 50;
+
+  final ScrollController _scroll = ScrollController();
+
+  /// Where the tree should scroll once it is long enough; null when there
+  /// is nothing to restore.
+  double? _restoreTarget;
+  int _restoreTriesLeft = 0;
+  Timer? _restoreRetry;
+
   @override
   void initState() {
     super.initState();
+    _scroll.addListener(_onScroll);
+    final view = ref.read(explorerViewProvider);
+    if (view.loaded) {
+      _restoreTo(ref.read(explorerViewProvider.notifier).offset);
+    }
     // Idempotent: the workbench has usually opened it already.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         unawaited(ref.read(workspaceControllerProvider.notifier).open());
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _restoreRetry?.cancel();
+    _scroll
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Jumps toward a restored offset are not the user's scrolling.
+    if (_restoreTarget == null) {
+      ref.read(explorerViewProvider.notifier).setScroll(_scroll.offset);
+    }
+  }
+
+  void _restoreTo(double offset) {
+    _restoreRetry?.cancel();
+    if (offset <= 0) {
+      _restoreTarget = null;
+      return;
+    }
+    _restoreTarget = offset;
+    _restoreTriesLeft = _restoreTries;
+    _afterFrame();
+  }
+
+  /// Tries the restore after the next frame: only then does the tree's
+  /// length include every listing that has arrived. A listing that arrives
+  /// between frames is in the workspace's state before its rows are laid
+  /// out, so a check between frames could stop short.
+  void _afterFrame() {
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) => _tryRestore())
+      ..scheduleFrame();
+  }
+
+  /// Scrolls to the restored offset once the tree is long enough for it,
+  /// or as far as it goes once every expanded folder is listed (or after
+  /// [_restoreTries]).
+  void _tryRestore() {
+    final target = _restoreTarget;
+    if (!mounted || target == null) {
+      return;
+    }
+    _restoreTriesLeft -= 1;
+    final out = _restoreTriesLeft <= 0;
+    if (_scroll.hasClients) {
+      final position = _scroll.position;
+      if (position.maxScrollExtent >= target || _expandedListed() || out) {
+        _scroll.jumpTo(
+          target.clamp(0.0, position.maxScrollExtent).toDouble(),
+        );
+        _restoreTarget = null;
+        return;
+      }
+    } else if (out) {
+      _restoreTarget = null;
+      return;
+    }
+    _restoreRetry = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _afterFrame();
+      }
+    });
+  }
+
+  /// Every expanded folder the tree shows is listed.
+  bool _expandedListed() {
+    final expanded = ref.read(explorerViewProvider).expanded;
+    final listings = ref.read(workspaceControllerProvider).listings;
+    bool shown(String path) {
+      final slash = path.lastIndexOf('/');
+      if (slash < 0) {
+        return true;
+      }
+      final parent = path.substring(0, slash);
+      return expanded.contains(parent) && shown(parent);
+    }
+
+    return expanded.every((path) => !shown(path) || listings.containsKey(path));
   }
 
   Future<void> _openFile(String path) async {
@@ -85,7 +169,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
 
   void _onEntryTap(FileEntry entry) {
     if (entry.isDirectory) {
-      ref.read(_expandedDirsProvider.notifier).toggle(entry.path);
+      ref.read(explorerViewProvider.notifier).toggle(entry.path);
     } else {
       unawaited(_openFile(entry.path));
     }
@@ -107,6 +191,16 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
             unawaited(ref.read(workspaceControllerProvider.notifier).open());
           }
         });
+      }
+    });
+    // The workspace's stored view arrived (a cold start, a switch): scroll
+    // to where it was.
+    ref.listen(explorerViewProvider, (previous, next) {
+      if (next.loaded &&
+          (previous == null ||
+              !previous.loaded ||
+              previous.workspaceId != next.workspaceId)) {
+        _restoreTo(next.restoreOffset);
       }
     });
     return Column(
@@ -186,6 +280,8 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
         ),
       ),
       Ok<List<FileEntry>>(:final value) => ListView(
+        key: const ValueKey('explorer_tree'),
+        controller: _scroll,
         children: [_EntryRows(entries: value, depth: 0, onTap: _onEntryTap)],
       ),
       Err<List<FileEntry>>(:final failure) => _Message(failure.message),
@@ -231,7 +327,9 @@ class _EntryRows extends ConsumerWidget {
     final showHidden = ref.watch(
       settingsControllerProvider.select((s) => s.showHiddenFiles),
     );
-    final expanded = ref.watch(_expandedDirsProvider);
+    final expanded = ref.watch(
+      explorerViewProvider.select((view) => view.expanded),
+    );
     final activePath = ref.watch(
       documentControllerProvider.select((s) => s.activePath),
     );

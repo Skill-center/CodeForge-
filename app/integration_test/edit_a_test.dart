@@ -43,6 +43,9 @@ void main() {
     await pumpRealApp(tester, prefs);
     await tester.tap(find.byKey(const ValueKey('welcome_dismiss')));
     await tester.pumpAndSettle();
+    // Home's list may need to scroll to it (Phase 3 W3).
+    await tester.ensureVisible(find.byKey(const ValueKey('explore_demo')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('explore_demo')));
     await tester.pumpAndSettle();
 

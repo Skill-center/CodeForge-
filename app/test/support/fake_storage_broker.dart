@@ -91,8 +91,15 @@ final class FakeStorageBroker implements StorageBroker {
   /// Every call, by name, in order.
   final List<String> calls = [];
 
+  /// The tree URIs whose grants were given back, in order.
+  final List<String> released = [];
+
   /// Fails the next write with this, as a provider error would.
   FileFailure? failNextWrite;
+
+  /// Fails the next folder check with this, as a storage that does not
+  /// answer would.
+  FileFailure? failNextCheck;
 
   FakeFolder addTree(
     String treeUri,
@@ -126,6 +133,11 @@ final class FakeStorageBroker implements StorageBroker {
   @override
   Future<Result<FolderInfo>> checkFolder(String treeUri) async {
     calls.add('checkFolder');
+    final failure = failNextCheck;
+    if (failure != null) {
+      failNextCheck = null;
+      return Err(failure);
+    }
     return Ok(_info(treeUri));
   }
 
@@ -146,6 +158,7 @@ final class FakeStorageBroker implements StorageBroker {
   @override
   Future<Result<void>> releaseGrant(String treeUri) async {
     calls.add('releaseGrant');
+    released.add(treeUri);
     granted.remove(treeUri);
     return const Ok(null);
   }

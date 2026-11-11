@@ -1,11 +1,13 @@
 /// The app database (ADR-0008): one SQLite file, `codeforge.sqlite` in the
 /// app's private files directory.
 ///
-/// Schema version 1 (Phase 2 W5). Every schema change raises
-/// [AppDatabase.schemaVersion], adds a migration step, and ships with the
-/// schema dump CI generates (drift_schemas/app/) and a migration test
-/// (test/drift/app/): AGENTS.md, ADR-0008. CI fails a schema change that
-/// keeps the old version number ("Generated code check").
+/// Schema version 2 (Phase 3 W3): version 1 (Phase 2 W5) and the
+/// workspaces' kind, place and display path, and each workspace's explorer
+/// view. Every schema change raises [AppDatabase.schemaVersion], adds a
+/// migration step, and ships with the schema dump CI generates
+/// (drift_schemas/app/) and a migration test (test/drift/app/): AGENTS.md,
+/// ADR-0008. CI fails a schema change that keeps the old version number
+/// ("Generated code check").
 ///
 /// The generated half, app_database.g.dart, is written by CI's build_runner
 /// run and committed back: the authoring sandbox has no Dart SDK.
@@ -15,10 +17,11 @@ import 'package:drift/drift.dart';
 
 part 'app_database.g.dart';
 
-/// Workspaces the app has opened.
+/// Workspaces the app has opened: Home's recents.
 @DataClassName('WorkspaceRow')
 class Workspaces extends Table {
-  /// Stable id: `demo` for the built-in workspace.
+  /// Stable id: `demo` for the built-in project, `project-…` for the
+  /// others, `folder-…` for folders from shared storage. It never changes.
   TextColumn get id => text()();
 
   /// What the user sees.
@@ -27,8 +30,37 @@ class Workspaces extends Table {
   /// When it was last opened, milliseconds since the epoch (UTC).
   IntColumn get lastOpenedAt => integer()();
 
+  /// `project` or `folder` (schema v2).
+  TextColumn get kind => text().withDefault(const Constant('project'))();
+
+  /// A project's folder name, or a folder's tree URI; empty for a folder
+  /// whose place was never recorded (schema v2).
+  TextColumn get location => text().withDefault(const Constant(''))();
+
+  /// The place as the recents show it (schema v2).
+  TextColumn get displayPath => text().withDefault(const Constant(''))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+/// What each workspace's explorer showed (schema v2): the expanded folders
+/// and how far the tree was scrolled.
+@DataClassName('WorkspaceViewRow')
+class WorkspaceViews extends Table {
+  TextColumn get workspaceId => text()();
+
+  /// The expanded folders' workspace paths, as a JSON list.
+  TextColumn get expanded => text().withDefault(const Constant('[]'))();
+
+  /// The tree's scroll offset in logical pixels.
+  RealColumn get scrollOffset => real().withDefault(const Constant(0.0))();
+
+  /// When the view was written, milliseconds since the epoch (UTC).
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {workspaceId};
 }
 
 /// Each workspace's tabs, in order, with the cursor and scroll position
@@ -120,18 +152,44 @@ class JournalChanges extends Table {
   TextColumn get changes => text()();
 }
 
-@DriftDatabase(tables: [Workspaces, OpenTabs, JournalDocuments, JournalChanges])
+@DriftDatabase(
+  tables: [
+    Workspaces,
+    OpenTabs,
+    JournalDocuments,
+    JournalChanges,
+    WorkspaceViews,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   /// Over [executor]: the app's file (drift_session_store.dart) or, in
   /// tests, an in-memory database.
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) => migrator.createAll(),
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        // Version 1 knew the demo project and, from Phase 3 W2, folders by
+        // a hash of their URI ("folder-…"), but not where a folder is: the
+        // open one's place reaches its row when it opens again, and the
+        // others can be reconnected from Home.
+        await migrator.addColumn(workspaces, workspaces.kind);
+        await migrator.addColumn(workspaces, workspaces.location);
+        await migrator.addColumn(workspaces, workspaces.displayPath);
+        await migrator.createTable(workspaceViews);
+        await customStatement(
+          "UPDATE workspaces SET kind = 'folder' WHERE id LIKE 'folder-%'",
+        );
+        await customStatement(
+          "UPDATE workspaces SET location = id WHERE kind = 'project'",
+        );
+      }
+    },
     beforeOpen: (details) async {
       // Write-ahead logging: appending a change is one short write, and a
       // killed process loses nothing that was committed. NORMAL sync is

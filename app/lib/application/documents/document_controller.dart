@@ -30,6 +30,7 @@ import '../../core/editor/shadow_document.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/file_stamp.dart';
 import '../../core/files/text_codec.dart';
+import '../../core/files/workspace_location.dart';
 import '../../core/files/workspace_path.dart';
 import '../../core/logging/logger.dart';
 import '../../services/contracts.dart';
@@ -524,10 +525,14 @@ final class DocumentController extends Notifier<DocumentsState> {
     _restored = true;
     final store = _store;
     final workspaceId = _workspaceId;
-    final workspace = ref.read(workspaceControllerProvider).workspace;
-    if (workspace != null) {
+    if (ref.read(workspaceControllerProvider).workspace != null) {
+      // The recents learn that the workspace opened (a cold start too).
+      final location = ref.read(currentWorkspaceProvider);
       _journal.enqueue(
-        () => store.touchWorkspace(workspace.id, name: workspace.displayName),
+        () => store.touchWorkspace(
+          location,
+          displayPath: displayPathOf(location),
+        ),
       );
     }
     var tabs = switch (await store.loadTabs(workspaceId)) {

@@ -34,7 +34,7 @@ final class ShellState {
     this.demoWorkspaceOpened = false,
     this.openTabs = const [],
     this.activeTab,
-    this.folder,
+    this.workspace,
   });
 
   final String lastRoute;
@@ -52,9 +52,10 @@ final class ShellState {
   /// The active tab among [openTabs].
   final String? activeTab;
 
-  /// The open workspace when it is a folder from shared storage (Phase 3
-  /// W2); null for the built-in project. A cold start reopens it.
-  final FolderLocation? folder;
+  /// The open workspace (Phase 3 W3): a project or a folder from shared
+  /// storage. Null before any opened, which means the demo project. A cold
+  /// start reopens it. Phase 3 W2 remembered folders only, as "folder".
+  final WorkspaceLocation? workspace;
 
   /// Only these routes may be restored on cold start.
   static const Set<String> restorableRoutes = {'/', '/workspace', '/settings'};
@@ -69,8 +70,7 @@ final class ShellState {
     List<String>? openTabs,
     String? activeTab,
     bool clearActiveTab = false,
-    FolderLocation? folder,
-    bool clearFolder = false,
+    WorkspaceLocation? workspace,
   }) {
     return ShellState(
       lastRoute: lastRoute ?? this.lastRoute,
@@ -81,7 +81,7 @@ final class ShellState {
       demoWorkspaceOpened: demoWorkspaceOpened ?? this.demoWorkspaceOpened,
       openTabs: openTabs ?? this.openTabs,
       activeTab: clearActiveTab ? null : activeTab ?? this.activeTab,
-      folder: clearFolder ? null : folder ?? this.folder,
+      workspace: workspace ?? this.workspace,
     );
   }
 
@@ -94,8 +94,13 @@ final class ShellState {
     'demoWorkspaceOpened': demoWorkspaceOpened,
     'openTabs': openTabs,
     'activeTab': activeTab,
-    if (folder case final folder?)
-      'folder': {'uri': folder.treeUri, 'name': folder.name},
+    if (workspace case final workspace?)
+      'workspace': {
+        'kind': workspace.kind.name,
+        'id': workspace.id,
+        'name': workspace.name,
+        'location': workspace.location,
+      },
   };
 
   static ShellState fromJson(Map<String, Object?> json) {
@@ -139,11 +144,39 @@ final class ShellState {
       activeTab: activeTab is String && openTabs.contains(activeTab)
           ? activeTab
           : null,
-      folder: _folderFromJson(json['folder']),
+      workspace:
+          _workspaceFromJson(json['workspace']) ??
+          _folderFromJson(json['folder']),
     );
   }
 
-  /// A remembered folder: a `content://` tree URI and a name, or nothing.
+  /// The remembered workspace: its kind, id, name and place, or nothing.
+  /// An open folder needs its place.
+  static WorkspaceLocation? _workspaceFromJson(Object? json) {
+    if (json is! Map<String, Object?>) {
+      return null;
+    }
+    final kind = json['kind'];
+    final id = json['id'];
+    final name = json['name'];
+    final location = json['location'];
+    if (kind is! String || id is! String || location is! String) {
+      return null;
+    }
+    final workspace = workspaceFromParts(
+      kind: kind,
+      id: id,
+      name: name is String ? name : '',
+      location: location,
+    );
+    if (workspace is FolderLocation && workspace.treeUri.isEmpty) {
+      return null;
+    }
+    return workspace;
+  }
+
+  /// A folder Phase 3 W2 remembered: a `content://` tree URI and a name, or
+  /// nothing.
   static FolderLocation? _folderFromJson(Object? json) {
     if (json is! Map<String, Object?>) {
       return null;
@@ -162,9 +195,6 @@ final class ShellState {
           : 'Folder',
     );
   }
-
-  /// The longest folder URI the envelope keeps.
-  static const int maxFolderUriLength = 4096;
 }
 
 String encodeShellState(ShellState state) {
