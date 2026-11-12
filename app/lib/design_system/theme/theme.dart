@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';
+import '../tokens/icons.dart';
 import '../tokens/typography.dart';
 
 abstract final class CfTheme {
@@ -39,6 +40,12 @@ abstract final class CfTheme {
       textTheme: textTheme,
       extensions: [colors],
       splashFactory: InkRipple.splashFactory,
+      // App bars' automatic back and close buttons draw the app's icons
+      // (docs/UI_DESIGN_SYSTEM.md §6), not Material Icons.
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (context) => const Icon(CfIcons.arrowBack),
+        closeButtonIconBuilder: (context) => const Icon(CfIcons.close),
+      ),
       appBarTheme: AppBarThemeData(
         backgroundColor: colors.surfacePanel,
         foregroundColor: colors.textPrimary,

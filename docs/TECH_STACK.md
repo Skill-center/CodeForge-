@@ -31,6 +31,8 @@
 | Local DB | **Drift** (SQLite) | **2.35.3** — as built (Phase 2 W5) | Typed queries, migrations, reactive streams. Schema v1 holds workspaces, open tabs and the hot-exit journal (ADR-0008). SQLite comes from the `sqlite3` package's build hook (3.9.0, a prebuilt, hash-checked library per ABI), so there is no `sqlite3_flutter_libs` and no NDK build. Codegen: drift_dev 2.35.2 and build_runner 2.17.1, dev dependencies that CI runs (BUILD_AND_RELEASE §2.1) |
 | Preferences | shared_preferences | 2.5.6 | Settings only; structured state goes to Drift |
 | Lints | flutter_lints | 6.0.0 | Baseline + custom import-boundary rules |
+| Icons | **Material Symbols Rounded** (google/material-design-icons, Apache-2.0) | **2.978**, commit `10ecc14` (2026-10-23) — as built (Phase 3 W4) | UI_DESIGN_SYSTEM §6. `app/assets/fonts/MaterialSymbolsRounded.ttf` is a static instance (unfilled, grade 0, optical size 20, weight 400) holding only the 63 icons the app names in `lib/design_system/tokens/icons.dart`: 14.1 KB, against 15.2 MB for the variable source. `app/tool/fonts/subset_symbols.py` (fontTools 4.68.0) rebuilds it from the checksummed source, byte for byte; the font's description and About → Bundled font licenses say it is modified. Flutter's own widgets still use Material Icons (`uses-material-design`) |
+| File-type glyphs | CodeForge's own (`CfFileGlyphs`) | 1.000 — as built (Phase 3 W4) | 20 glyphs and a generic page, drawn as SVG paths on a 16 dp grid with a 1.5 px stroke in `app/tool/fonts/build_file_glyphs.py`, outlined by skia-pathops 0.8.0.post2 into a 5.6 KB font; letters are drawn, not typeset. `icons_test.dart` checks both fonts against the code that names their codepoints |
 
 ## 2. Editor & terminal frontend
 

@@ -16,6 +16,7 @@ import '../../core/files/workspace_path.dart';
 import '../../design_system/components/dialogs.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 import '../../services/contracts.dart';
 
 /// Asks where to move [entry]: the workspace's folders as a tree, listed as
@@ -221,7 +222,7 @@ class _FolderRow extends StatelessWidget {
                       ? IconButton(
                           tooltip: expanded ? 'Collapse $name' : 'Expand $name',
                           icon: Icon(
-                            expanded ? Icons.expand_more : Icons.chevron_right,
+                            expanded ? CfIcons.expandMore : CfIcons.chevronRight,
                             size: 18,
                           ),
                           onPressed: onToggle,
@@ -229,7 +230,7 @@ class _FolderRow extends StatelessWidget {
                       : null,
                 ),
                 Icon(
-                  expanded ? Icons.folder_open_outlined : Icons.folder_outlined,
+                  expanded ? CfIcons.folderOpen : CfIcons.folder,
                   size: 16,
                   color: colors.textSecondary,
                 ),

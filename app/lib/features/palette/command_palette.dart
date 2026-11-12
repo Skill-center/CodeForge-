@@ -9,6 +9,7 @@ import '../../application/commands.dart';
 import '../../core/commands/command_registry.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 
 /// Opens the palette as a dialog. Returns after a command runs or dismiss.
 Future<void> showCommandPalette(BuildContext context) {
@@ -115,7 +116,7 @@ class _CommandPaletteDialogState extends ConsumerState<_CommandPaletteDialog> {
                   onChanged: _onQueryChanged,
                   decoration: const InputDecoration(
                     hintText: 'Type a command…',
-                    prefixIcon: Icon(Icons.chevron_right, size: 18),
+                    prefixIcon: Icon(CfIcons.chevronRight, size: 18),
                   ),
                 ),
               ),

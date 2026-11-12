@@ -22,6 +22,7 @@ import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 import '../../services/contracts.dart';
 import '../../services/files/storage_broker.dart';
 import 'home_dialogs.dart';
@@ -306,34 +307,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             ListTile(
               key: const ValueKey('recent_open'),
-              leading: const Icon(Icons.arrow_forward),
+              leading: const Icon(CfIcons.arrowForward),
               title: Text('Open ${location.name}'),
               onTap: () => Navigator.of(context).pop(_RecentAction.open),
             ),
             if (location is ProjectLocation && !location.isDemo)
               ListTile(
                 key: const ValueKey('recent_rename'),
-                leading: const Icon(Icons.drive_file_rename_outline),
+                leading: const Icon(CfIcons.driveFileRenameOutline),
                 title: const Text('Rename…'),
                 onTap: () => Navigator.of(context).pop(_RecentAction.rename),
               ),
             if (location is ProjectLocation)
               ListTile(
                 key: const ValueKey('recent_delete'),
-                leading: const Icon(Icons.delete_outline),
+                leading: const Icon(CfIcons.delete),
                 title: const Text('Delete…'),
                 onTap: () => Navigator.of(context).pop(_RecentAction.delete),
               ),
             if (location is FolderLocation) ...[
               ListTile(
                 key: const ValueKey('recent_reconnect'),
-                leading: const Icon(Icons.link),
+                leading: const Icon(CfIcons.link),
                 title: const Text('Reconnect…'),
                 onTap: () => Navigator.of(context).pop(_RecentAction.reconnect),
               ),
               ListTile(
                 key: const ValueKey('recent_remove'),
-                leading: const Icon(Icons.playlist_remove),
+                leading: const Icon(CfIcons.playlistRemove),
                 title: const Text('Remove from recents…'),
                 onTap: () => Navigator.of(context).pop(_RecentAction.remove),
               ),
@@ -392,7 +393,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            Icon(Icons.hardware, size: 20, color: colors.accentEmber),
+            Icon(CfIcons.hardware, size: 20, color: colors.accentEmber),
             const SizedBox(width: CfSpacing.sm),
             const Text('CodeForge'),
           ],
@@ -400,7 +401,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           CfIconButton(
             key: const ValueKey('home_settings'),
-            icon: Icons.settings_outlined,
+            icon: CfIcons.settings,
             tooltip: 'Settings',
             onPressed: () => context.go('/settings'),
           ),
@@ -426,7 +427,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 CfButton(
                   key: const ValueKey('new_project'),
                   label: 'New Project',
-                  icon: Icons.add,
+                  icon: CfIcons.add,
                   expanded: true,
                   onPressed: _busy ? null : _newProject,
                 ),
@@ -434,7 +435,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 CfButton(
                   key: const ValueKey('open_folder'),
                   label: 'Open Folder…',
-                  icon: Icons.folder_open_outlined,
+                  icon: CfIcons.folderOpen,
                   variant: CfButtonVariant.ghost,
                   expanded: true,
                   onPressed: _busy ? null : _openFolder,
@@ -456,7 +457,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Row(
                   children: [
                     Icon(
-                      Icons.auto_awesome_outlined,
+                      CfIcons.autoAwesome,
                       size: 18,
                       color: colors.accentEmber,
                     ),
@@ -481,7 +482,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   label: shell.demoWorkspaceOpened
                       ? 'Continue in Demo Workspace'
                       : 'Explore Demo Workspace',
-                  icon: Icons.arrow_forward,
+                  icon: CfIcons.arrowForward,
                   variant: CfButtonVariant.tonal,
                   expanded: true,
                   onPressed: _busy ? null : _openDemo,
@@ -610,7 +611,7 @@ class _RecentRow extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                isProject ? Icons.inventory_2_outlined : Icons.folder_outlined,
+                isProject ? CfIcons.inventory2 : CfIcons.folder,
                 size: 20,
                 color: colors.accentEmber,
               ),
@@ -645,7 +646,7 @@ class _RecentRow extends StatelessWidget {
                 ),
               CfIconButton(
                 key: ValueKey('recent_menu_${location.id}'),
-                icon: Icons.more_vert,
+                icon: CfIcons.moreVert,
                 tooltip: 'Actions for ${location.name}',
                 onPressed: enabled ? onActions : null,
               ),
@@ -675,7 +676,7 @@ class _WelcomeSheet extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.hardware, size: 24, color: colors.accentEmber),
+                Icon(CfIcons.hardware, size: 24, color: colors.accentEmber),
                 const SizedBox(width: CfSpacing.sm),
                 Text('Welcome to CodeForge', style: textTheme.titleLarge),
               ],

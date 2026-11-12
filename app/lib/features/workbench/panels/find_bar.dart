@@ -13,6 +13,7 @@ import '../../../application/editor/find_controller.dart';
 import '../../../design_system/components/buttons.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
+import '../../../design_system/tokens/icons.dart';
 import '../../../design_system/tokens/typography.dart';
 
 /// Narrower than this, the option toggles get a row of their own.
@@ -125,8 +126,8 @@ class _FindBarState extends ConsumerState<FindBar> {
                 CfIconButton(
                   key: const ValueKey('find_toggle_replace'),
                   icon: find.replaceOpen
-                      ? Icons.expand_more
-                      : Icons.chevron_right,
+                      ? CfIcons.expandMore
+                      : CfIcons.chevronRight,
                   tooltip: find.replaceOpen ? 'Hide replace' : 'Replace',
                   onPressed: controller.toggleReplace,
                 ),
@@ -147,19 +148,19 @@ class _FindBarState extends ConsumerState<FindBar> {
                 if (wide) options,
                 CfIconButton(
                   key: const ValueKey('find_previous'),
-                  icon: Icons.keyboard_arrow_up,
+                  icon: CfIcons.keyboardArrowUp,
                   tooltip: 'Previous match',
                   onPressed: canStep ? controller.previous : null,
                 ),
                 CfIconButton(
                   key: const ValueKey('find_next'),
-                  icon: Icons.keyboard_arrow_down,
+                  icon: CfIcons.keyboardArrowDown,
                   tooltip: 'Next match',
                   onPressed: canStep ? controller.next : null,
                 ),
                 CfIconButton(
                   key: const ValueKey('find_close'),
-                  icon: Icons.close,
+                  icon: CfIcons.close,
                   tooltip: 'Close',
                   onPressed: _close,
                 ),
@@ -182,13 +183,13 @@ class _FindBarState extends ConsumerState<FindBar> {
                   ),
                   CfIconButton(
                     key: const ValueKey('find_replace'),
-                    icon: Icons.find_replace,
+                    icon: CfIcons.findReplace,
                     tooltip: 'Replace',
                     onPressed: canStep ? controller.replaceOne : null,
                   ),
                   CfIconButton(
                     key: const ValueKey('find_replace_all'),
-                    icon: Icons.done_all,
+                    icon: CfIcons.doneAll,
                     tooltip: 'Replace all',
                     onPressed: canStep ? controller.replaceAll : null,
                   ),

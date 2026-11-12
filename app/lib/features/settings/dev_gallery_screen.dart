@@ -10,7 +10,9 @@ import '../../design_system/components/file_tree.dart';
 import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/components/workbench_chrome.dart';
 import '../../design_system/tokens/colors.dart';
+import '../../design_system/tokens/file_glyphs.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 
 class DevGalleryScreen extends StatelessWidget {
   const DevGalleryScreen({super.key});
@@ -43,7 +45,7 @@ class GalleryBody extends StatelessWidget {
             spacing: CfSpacing.sm,
             runSpacing: CfSpacing.sm,
             children: [
-              CfButton(label: 'Primary', icon: Icons.bolt, onPressed: () {}),
+              CfButton(label: 'Primary', icon: CfIcons.bolt, onPressed: () {}),
               CfButton(
                 label: 'Tonal',
                 variant: CfButtonVariant.tonal,
@@ -63,18 +65,18 @@ class GalleryBody extends StatelessWidget {
           Row(
             children: [
               CfIconButton(
-                icon: Icons.search,
+                icon: CfIcons.search,
                 tooltip: 'Search',
                 onPressed: () {},
               ),
               CfIconButton(
-                icon: Icons.folder_outlined,
+                icon: CfIcons.folder,
                 tooltip: 'Selected',
                 selected: true,
                 onPressed: () {},
               ),
               const CfIconButton(
-                icon: Icons.play_arrow,
+                icon: CfIcons.playArrow,
                 tooltip: 'Disabled',
                 onPressed: null,
               ),
@@ -102,14 +104,14 @@ class GalleryBody extends StatelessWidget {
           Wrap(
             spacing: CfSpacing.sm,
             children: [
-              const CfStatusChip(icon: Icons.fork_right, label: 'main'),
+              const CfStatusChip(icon: CfIcons.forkRight, label: 'main'),
               CfStatusChip(
-                icon: Icons.circle,
+                icon: CfIcons.circle,
                 label: 'ready',
                 color: colors.success,
               ),
               CfStatusChip(
-                icon: Icons.circle,
+                icon: CfIcons.circle,
                 label: 'unhealthy',
                 color: colors.danger,
               ),
@@ -160,16 +162,41 @@ class GalleryBody extends StatelessWidget {
             onTap: () {},
           ),
           const SizedBox(height: CfSpacing.lg),
+          Text('File glyphs', style: textTheme.titleMedium),
+          const SizedBox(height: CfSpacing.sm),
+          Wrap(
+            spacing: CfSpacing.xs,
+            runSpacing: CfSpacing.sm,
+            children: [
+              for (final MapEntry(key: name, value: glyph)
+                  in CfFileGlyphs.all.entries)
+                SizedBox(
+                  width: 72,
+                  child: Column(
+                    children: [
+                      Icon(glyph, size: 16, color: colors.textSecondary),
+                      const SizedBox(height: CfSpacing.xs),
+                      Text(
+                        name,
+                        style: textTheme.labelSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: CfSpacing.lg),
           Text('Settings tiles', style: textTheme.titleMedium),
           const SizedBox(height: CfSpacing.sm),
           const CfSettingsTile(
-            leading: Icon(Icons.palette_outlined),
+            leading: Icon(CfIcons.palette),
             title: 'Appearance',
             subtitle: 'Theme, editor font, motion',
-            trailing: Icon(Icons.chevron_right, size: 18),
+            trailing: Icon(CfIcons.chevronRight, size: 18),
           ),
           CfSettingsTile(
-            leading: const Icon(Icons.motion_photos_off_outlined),
+            leading: const Icon(CfIcons.motionPhotosOff),
             title: 'Reduced motion',
             trailing: Switch(value: true, onChanged: (_) {}),
           ),
@@ -188,14 +215,14 @@ class GalleryBody extends StatelessWidget {
               const CfToolbarKey(
                 id: 'undo',
                 semanticLabel: 'Undo',
-                icon: Icons.undo,
+                icon: CfIcons.undo,
               ),
             ],
             trailing: [
               CfToolbarKey(
                 id: 'hide_keyboard',
                 semanticLabel: 'Hide keyboard',
-                icon: Icons.keyboard_hide_outlined,
+                icon: CfIcons.keyboardHide,
                 onPressed: () {},
               ),
             ],
@@ -206,7 +233,7 @@ class GalleryBody extends StatelessWidget {
           const SizedBox(
             height: 320,
             child: CfEmptyState(
-              icon: Icons.terminal,
+              icon: CfIcons.terminal,
               title: 'Terminal',
               message: 'The sealed Linux runtime powers this pane.',
               phaseNote: 'Arrives in Phases 4–5',

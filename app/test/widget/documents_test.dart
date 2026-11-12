@@ -12,6 +12,7 @@ import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/core/files/text_codec.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
+import 'package:codeforge/design_system/tokens/icons.dart';
 import 'package:codeforge/features/workbench/workbench_screen.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +30,7 @@ Finder _tabText(String label) =>
 /// The close cross of [path]'s tab; a dirty tab shows a dot instead.
 Finder _closeCross(String path) => find.descendant(
   of: find.byKey(ValueKey('tab_close_$path')),
-  matching: find.byIcon(Icons.close),
+  matching: find.byIcon(CfIcons.close),
 );
 
 ProviderContainer _container(WidgetTester tester) => ProviderScope.containerOf(
@@ -476,7 +477,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('tree_big.py')));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.descendant(of: banner, matching: find.byIcon(Icons.close)),
+      find.descendant(of: banner, matching: find.byIcon(CfIcons.close)),
     );
     await tester.pumpAndSettle();
     expect(banner, findsNothing);

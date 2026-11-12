@@ -17,6 +17,7 @@ import '../../../application/keyboard_state.dart';
 import '../../../application/settings_controller.dart';
 import '../../../core/editor/toolbar_keys.dart';
 import '../../../design_system/components/workbench_chrome.dart';
+import '../../../design_system/tokens/icons.dart';
 import '../../../services/settings/settings_model.dart';
 
 class EditorSymbolToolbar extends ConsumerWidget {
@@ -85,12 +86,12 @@ class EditorSymbolToolbar extends ConsumerWidget {
 
 IconData? _iconFor(ToolbarKeyKind kind) => switch (kind) {
   ToolbarKeyKind.symbol || ToolbarKeyKind.indent => null,
-  ToolbarKeyKind.outdent => Icons.format_indent_decrease,
-  ToolbarKeyKind.undo => Icons.undo,
-  ToolbarKeyKind.redo => Icons.redo,
-  ToolbarKeyKind.left => Icons.keyboard_arrow_left,
-  ToolbarKeyKind.up => Icons.keyboard_arrow_up,
-  ToolbarKeyKind.down => Icons.keyboard_arrow_down,
-  ToolbarKeyKind.right => Icons.keyboard_arrow_right,
-  ToolbarKeyKind.hideKeyboard => Icons.keyboard_hide_outlined,
+  ToolbarKeyKind.outdent => CfIcons.formatIndentDecrease,
+  ToolbarKeyKind.undo => CfIcons.undo,
+  ToolbarKeyKind.redo => CfIcons.redo,
+  ToolbarKeyKind.left => CfIcons.keyboardArrowLeft,
+  ToolbarKeyKind.up => CfIcons.keyboardArrowUp,
+  ToolbarKeyKind.down => CfIcons.keyboardArrowDown,
+  ToolbarKeyKind.right => CfIcons.keyboardArrowRight,
+  ToolbarKeyKind.hideKeyboard => CfIcons.keyboardHide,
 };

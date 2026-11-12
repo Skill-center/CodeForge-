@@ -76,6 +76,10 @@ Every component: default/hover(hardware)/pressed/focused/disabled/loading/error 
 
 Material Symbols Rounded subset (bundled font, tree-shaken to used glyphs) + custom file-type glyphs (16 dp grid, 1.5 px stroke) for top 20 extensions; generic fallback. No emoji in UI chrome.
 
+**As built (Phase 3 W4):**
+- **Icons:** `CfIcons` (`lib/design_system/tokens/icons.dart`) names each icon the app uses, as a Material Symbols Rounded codepoint. The bundled font holds only those (63), instanced unfilled at optical size 20 and weight 400, since most icons here are drawn at 16 to 20 dp. Directional icons mirror in right-to-left text, as Flutter's did. App bars' automatic back and close buttons use them through the theme; Flutter's other built-in widgets (the licence page, a dropdown's arrow) keep Material Icons. Adding an icon means a constant plus a re-run of `tool/fonts/subset_symbols.py`; `icons_test.dart` fails until the font matches.
+- **File glyphs:** `CfFileGlyphs.forName` picks one of 20 glyphs from a few whole names (`.gitignore`, `.bashrc`, `LICENSE`, `.env*`), then from the extension: Dart (a dart), JavaScript and TypeScript (“JS”, “TS”, with JSX and TSX), Python, Kotlin, Go and Rust (“PY”, “KT”, “GO”, “RS”), C and C++ (“C”), Java (a cup), JSON (braces), YAML (an indented list), Markdown (“M↓”), HTML and XML (`</>`), CSS and its dialects (`#`), shell scripts (a prompt), TOML, INI, properties and `.env` (sliders), text and logs (a page with lines), images (a picture), lock files (a padlock) and Git's files (a branch). Everything else is a plain page. The explorer draws them at 16 dp in `textSecondary`, beside the name, so the glyph is never the only signal. The component gallery shows all 21, so its goldens cover each one.
+
 ## 7. Voice & empty states
 
 Copy: concise, technical, never cute. Errors say what happened + what to do ("Runtime not installed — Set up"). Placeholders are honest: Phase 1 editor placeholder reads "Editor arrives in Phase 2" in dev builds, removed as features land — no fake functionality (spec rule 8).

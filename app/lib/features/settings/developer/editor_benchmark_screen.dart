@@ -17,6 +17,7 @@ import '../../../design_system/components/buttons.dart';
 import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
+import '../../../design_system/tokens/icons.dart';
 import '../../../design_system/tokens/typography.dart';
 
 class EditorBenchmarkScreen extends ConsumerStatefulWidget {
@@ -69,7 +70,7 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
         return Scaffold(
           appBar: AppBar(
             leading: CfIconButton(
-              icon: Icons.arrow_back,
+              icon: CfIcons.arrowBack,
               tooltip: 'Back',
               onPressed: () =>
                   context.canPop() ? context.pop() : context.go('/settings'),
@@ -78,7 +79,7 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
             actions: [
               CfIconButton(
                 key: const ValueKey('bench_copy'),
-                icon: Icons.copy_all_outlined,
+                icon: CfIcons.copyAll,
                 tooltip: 'Copy results',
                 onPressed: busy ? null : _copy,
               ),
@@ -127,7 +128,7 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
         CfButton(
           key: const ValueKey('bench_run'),
           label: 'Run benchmark',
-          icon: Icons.speed,
+          icon: CfIcons.speed,
           onPressed: idle ? () => unawaited(runner.runAll()) : null,
         ),
         if (engines.isNotEmpty)
@@ -145,7 +146,7 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
         CfButton(
           key: const ValueKey('bench_typing'),
           label: 'Typing check',
-          icon: Icons.keyboard_outlined,
+          icon: CfIcons.keyboard,
           variant: CfButtonVariant.tonal,
           onPressed: idle && typingEngine != null
               ? () => unawaited(runner.openTyping(typingEngine))
@@ -197,12 +198,12 @@ class _EditorBenchmarkScreenState extends ConsumerState<EditorBenchmarkScreen> {
             CfButton(
               key: const ValueKey('bench_check'),
               label: 'Check',
-              icon: Icons.check,
+              icon: CfIcons.check,
               onPressed: () => unawaited(runner.checkTyping(_phrase)),
             ),
             CfButton(
               label: 'Clear',
-              icon: Icons.backspace_outlined,
+              icon: CfIcons.backspace,
               variant: CfButtonVariant.ghost,
               onPressed: () => unawaited(runner.clearTyping()),
             ),

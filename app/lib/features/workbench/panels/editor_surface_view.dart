@@ -20,6 +20,7 @@ import '../../../application/editor/editor_status.dart';
 import '../../../application/settings_controller.dart';
 import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/colors.dart';
+import '../../../design_system/tokens/icons.dart';
 import 'editor_appearance.dart';
 
 /// Keys the editor page handles itself while it has the focus.
@@ -137,7 +138,7 @@ class _EditorSurfaceViewState extends ConsumerState<EditorSurfaceView> {
               color: colors.surfaceSunken,
               child: status.phase == EditorHostPhase.failed
                   ? CfEmptyState(
-                      icon: Icons.error_outline,
+                      icon: CfIcons.error,
                       title: 'The editor could not start',
                       message: status.message ?? 'Unknown error.',
                       actionLabel: 'Try again',

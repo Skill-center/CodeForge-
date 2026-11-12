@@ -10,6 +10,7 @@ import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
+import 'package:codeforge/design_system/tokens/icons.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -62,7 +63,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('tab_close_main.js')),
-        matching: find.byIcon(Icons.close),
+        matching: find.byIcon(CfIcons.close),
       ),
       findsNothing,
     );

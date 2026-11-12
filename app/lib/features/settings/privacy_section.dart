@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/backup_controller.dart';
 import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 
 /// What the switch's row says under its title.
 String backupStatusLine(BackupState state) {
@@ -114,7 +115,7 @@ class _PrivacySectionState extends ConsumerState<PrivacySection> {
         const CfSectionHeader('Privacy'),
         CfSettingsTile(
           key: const ValueKey('settings_backup'),
-          leading: const Icon(Icons.cloud_upload_outlined),
+          leading: const Icon(CfIcons.cloudUpload),
           title: 'Back up with Android',
           subtitle: backupStatusLine(backup),
           trailing: Switch(

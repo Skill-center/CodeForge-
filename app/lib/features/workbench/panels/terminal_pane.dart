@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../application/providers.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
+import '../../../design_system/tokens/icons.dart';
 import '../../../design_system/tokens/typography.dart';
 
 class TerminalPane extends ConsumerWidget {
@@ -34,7 +35,7 @@ class TerminalPane extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.terminal, size: 14, color: colors.textSecondary),
+                Icon(CfIcons.terminal, size: 14, color: colors.textSecondary),
                 const SizedBox(width: CfSpacing.sm),
                 Text(
                   'TERMINAL',
@@ -54,7 +55,7 @@ class TerminalPane extends ConsumerWidget {
                         width: CfSpacing.minTouchTarget,
                         height: CfSpacing.minTouchTarget,
                         child: Icon(
-                          Icons.keyboard_arrow_down,
+                          CfIcons.keyboardArrowDown,
                           size: 18,
                           color: colors.textSecondary,
                         ),

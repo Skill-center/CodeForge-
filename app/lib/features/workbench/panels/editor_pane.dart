@@ -17,6 +17,7 @@ import '../../../design_system/components/feedback.dart';
 import '../../../design_system/components/workbench_chrome.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
+import '../../../design_system/tokens/icons.dart';
 import '../../../services/settings/settings_model.dart';
 import '../file_actions.dart';
 import 'editor_surface_view.dart';
@@ -137,7 +138,7 @@ class EditorPane extends ConsumerWidget {
                   children: [
                     CfIconButton(
                       key: const ValueKey('editor_save'),
-                      icon: Icons.save_outlined,
+                      icon: CfIcons.save,
                       tooltip: 'Save file',
                       onPressed: activePath != null && canSave
                           ? () => saveFile(context, ref, activePath)
@@ -200,7 +201,7 @@ class EditorPane extends ConsumerWidget {
                     ColoredBox(
                       color: colors.surfaceBase,
                       child: CfEmptyState(
-                        icon: Icons.code,
+                        icon: CfIcons.code,
                         title: 'No file open',
                         message:
                             'Pick a file from the explorer, or create a new '
@@ -301,7 +302,7 @@ class _FileMenu extends ConsumerWidget {
     return PopupMenuButton<_FileAction>(
       key: const ValueKey('editor_menu'),
       tooltip: 'File actions',
-      icon: const Icon(Icons.more_vert, size: 20),
+      icon: const Icon(CfIcons.moreVert, size: 20),
       onSelected: (action) {
         switch (action) {
           case _FileAction.newFile:

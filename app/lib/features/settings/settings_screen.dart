@@ -16,6 +16,7 @@ import '../../core/errors/failure.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 import 'privacy_section.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -62,7 +63,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: CfIconButton(
-            icon: Icons.arrow_back,
+            icon: CfIcons.arrowBack,
             tooltip: 'Back',
             onPressed: () => context.canPop() ? context.pop() : context.go('/'),
           ),
@@ -73,15 +74,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             children: [
               const CfSectionHeader('Workspace'),
               CfSettingsTile(
-                leading: const Icon(Icons.palette_outlined),
+                leading: const Icon(CfIcons.palette),
                 title: 'Appearance',
                 subtitle: 'Theme, editor font, motion, toolbar',
-                trailing: const Icon(Icons.chevron_right, size: 18),
+                trailing: const Icon(CfIcons.chevronRight, size: 18),
                 onTap: () => context.go('/settings/appearance'),
               ),
               CfSettingsTile(
                 key: const ValueKey('settings_reduced_motion'),
-                leading: const Icon(Icons.motion_photos_off_outlined),
+                leading: const Icon(CfIcons.motionPhotosOff),
                 title: 'Reduced motion',
                 subtitle: 'Minimize non-essential animation',
                 trailing: Switch(
@@ -97,38 +98,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const PrivacySection(),
               const CfSectionHeader('Coming in later phases'),
               const CfSettingsTile(
-                leading: Icon(Icons.folder_outlined),
+                leading: Icon(CfIcons.folder),
                 title: 'Storage & folders',
                 subtitle: 'Phase 3 — SAF workspace access',
                 onTap: null,
               ),
               const CfSettingsTile(
-                leading: Icon(Icons.memory),
+                leading: Icon(CfIcons.memory),
                 title: 'Linux runtime',
                 subtitle: 'Phase 4 — install and health',
                 onTap: null,
               ),
               const CfSettingsTile(
-                leading: Icon(Icons.extension_outlined),
+                leading: Icon(CfIcons.extension),
                 title: 'Extensions',
                 subtitle: 'Phase 7 — curated catalog',
                 onTap: null,
               ),
               const CfSectionHeader('About'),
               CfSettingsTile(
-                leading: const Icon(Icons.info_outline),
+                leading: const Icon(CfIcons.info),
                 title: 'About CodeForge',
                 subtitle: 'Version, licenses, diagnostics',
-                trailing: const Icon(Icons.chevron_right, size: 18),
+                trailing: const Icon(CfIcons.chevronRight, size: 18),
                 onTap: () => context.go('/settings/about'),
               ),
               if (kDebugMode)
                 CfSettingsTile(
                   key: const ValueKey('settings_gallery'),
-                  leading: const Icon(Icons.design_services_outlined),
+                  leading: const Icon(CfIcons.designServices),
                   title: 'Component gallery',
                   subtitle: 'Debug only — Forge design system',
-                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  trailing: const Icon(CfIcons.chevronRight, size: 18),
                   onTap: () => context.go('/settings/gallery'),
                 ),
               // Developer tools ship in debug and profile builds only (the
@@ -137,23 +138,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const CfSectionHeader('Developer'),
                 CfSettingsTile(
                   key: const ValueKey('settings_editor_benchmark'),
-                  leading: const Icon(Icons.speed),
+                  leading: const Icon(CfIcons.speed),
                   title: 'Editor benchmark',
                   subtitle: 'CodeMirror 6 vs Monaco on this device',
-                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  trailing: const Icon(CfIcons.chevronRight, size: 18),
                   onTap: () => context.go('/settings/editor-benchmark'),
                 ),
                 CfSettingsTile(
                   key: const ValueKey('settings_frame_timing'),
-                  leading: const Icon(Icons.timer_outlined),
+                  leading: const Icon(CfIcons.timer),
                   title: 'Frame timing',
                   subtitle: 'Navigation frames against the 32 ms budget',
-                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  trailing: const Icon(CfIcons.chevronRight, size: 18),
                   onTap: () => context.go('/settings/frame-timing'),
                 ),
                 CfSettingsTile(
                   key: const ValueKey('settings_large_files'),
-                  leading: const Icon(Icons.note_add_outlined),
+                  leading: const Icon(CfIcons.noteAdd),
                   title: 'Create large test files',
                   subtitle: largeTestFilesLine(largeFiles),
                   onTap: largeFiles.running ? null : _createLargeFiles,

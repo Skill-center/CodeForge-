@@ -29,6 +29,7 @@ import '../../../design_system/components/buttons.dart';
 import '../../../design_system/components/file_tree.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
+import '../../../design_system/tokens/icons.dart';
 import '../../../services/contracts.dart';
 import '../explorer_actions.dart';
 import '../file_actions.dart';
@@ -464,7 +465,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
               ),
               CfIconButton(
                 key: const ValueKey('explorer_new_file'),
-                icon: Icons.note_add_outlined,
+                icon: CfIcons.noteAdd,
                 tooltip: 'New file',
                 size: 16,
                 onPressed: canCreate ? _newFile : null,
@@ -472,8 +473,8 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
               CfIconButton(
                 key: const ValueKey('explorer_toggle_hidden'),
                 icon: settings.showHiddenFiles
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
+                    ? CfIcons.visibility
+                    : CfIcons.visibilityOff,
                 tooltip: settings.showHiddenFiles
                     ? 'Hide dotfiles'
                     : 'Show dotfiles',
@@ -583,7 +584,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
               trailing: selected
                   ? CfIconButton(
                       key: ValueKey('tree_menu_${entry.path}'),
-                      icon: Icons.more_horiz,
+                      icon: CfIcons.moreHoriz,
                       tooltip: 'Actions for ${entry.name}',
                       size: 16,
                       onPressed: () => unawaited(_openMenu(entry, index)),

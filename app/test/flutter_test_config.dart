@@ -1,6 +1,7 @@
-/// Loads the bundled Inter / JetBrains Mono fonts for ALL widget tests so
-/// layout and golden results reflect real glyph metrics, not Ahem boxes,
-/// and bounds every widget test so a hang fails fast and by name.
+/// Loads the bundled Inter / JetBrains Mono fonts and the two icon fonts for
+/// ALL widget tests so layout and golden results reflect real glyph
+/// metrics, not Ahem boxes, and bounds every widget test so a hang fails
+/// fast and by name.
 library;
 
 import 'dart:async';
@@ -39,6 +40,16 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
     jbm.addFont(rootBundle.load('assets/fonts/$file'));
   }
   await jbm.load();
+
+  // The icon fonts (Phase 3 W4), so goldens draw the real symbols.
+  for (final (family, file) in [
+    ('MaterialSymbolsRounded', 'MaterialSymbolsRounded.ttf'),
+    ('CfFileGlyphs', 'CfFileGlyphs.ttf'),
+  ]) {
+    final loader = FontLoader(family)
+      ..addFont(rootBundle.load('assets/fonts/$file'));
+    await loader.load();
+  }
 
   await testMain();
 }

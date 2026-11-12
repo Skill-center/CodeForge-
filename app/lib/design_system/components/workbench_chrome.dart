@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';
+import '../tokens/icons.dart';
 import '../tokens/typography.dart';
 
 /// One tab in the editor tab strip.
@@ -199,7 +200,7 @@ class _CfTabStripState extends State<CfTabStrip> {
                                 ),
                               )
                             : Icon(
-                                Icons.close,
+                                CfIcons.close,
                                 size: 14,
                                 color: colors.textSecondary,
                               ),

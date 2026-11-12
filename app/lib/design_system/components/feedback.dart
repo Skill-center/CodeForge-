@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';
+import '../tokens/icons.dart';
 import 'buttons.dart';
 
 enum CfBannerKind { info, warning, danger }
@@ -32,9 +33,9 @@ class CfBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
     final (fg, icon) = switch (kind) {
-      CfBannerKind.info => (colors.info, Icons.info_outline),
-      CfBannerKind.warning => (colors.warning, Icons.warning_amber_outlined),
-      CfBannerKind.danger => (colors.danger, Icons.error_outline),
+      CfBannerKind.info => (colors.info, CfIcons.info),
+      CfBannerKind.warning => (colors.warning, CfIcons.warning),
+      CfBannerKind.danger => (colors.danger, CfIcons.error),
     };
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -80,7 +81,7 @@ class CfBanner extends StatelessWidget {
           ),
           if (onDismiss != null)
             CfIconButton(
-              icon: Icons.close,
+              icon: CfIcons.close,
               tooltip: 'Dismiss',
               size: 16,
               onPressed: onDismiss,

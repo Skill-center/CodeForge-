@@ -16,6 +16,7 @@ import '../../../design_system/components/buttons.dart';
 import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
+import '../../../design_system/tokens/icons.dart';
 import '../../../design_system/tokens/typography.dart';
 import '../../../services/perf/frame_stats.dart';
 
@@ -88,7 +89,7 @@ class _FrameTimingScreenState extends State<FrameTimingScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: CfIconButton(
-          icon: Icons.arrow_back,
+          icon: CfIcons.arrowBack,
           tooltip: 'Back',
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/settings'),
@@ -139,14 +140,14 @@ class _FrameTimingScreenState extends State<FrameTimingScreen> {
                 CfButton(
                   key: const ValueKey('frames_reset'),
                   label: 'Reset',
-                  icon: Icons.restart_alt,
+                  icon: CfIcons.restartAlt,
                   variant: CfButtonVariant.tonal,
                   onPressed: () => setState(_recorder.reset),
                 ),
                 CfButton(
                   key: const ValueKey('frames_copy'),
                   label: 'Copy',
-                  icon: Icons.copy_all_outlined,
+                  icon: CfIcons.copyAll,
                   onPressed: () => unawaited(_copy(summary)),
                 ),
               ],

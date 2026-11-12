@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../../design_system/components/feedback.dart';
+import '../../../design_system/tokens/icons.dart';
 
 class SearchPanel extends StatelessWidget {
   const SearchPanel({super.key});
@@ -12,7 +13,7 @@ class SearchPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const CfEmptyState(
-      icon: Icons.search,
+      icon: CfIcons.search,
       title: 'Workspace search',
       message:
           'Full-text and filename search across your project, with results '
@@ -28,7 +29,7 @@ class GitPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const CfEmptyState(
-      icon: Icons.commit,
+      icon: CfIcons.commit,
       title: 'Source control',
       message:
           'Stage, commit, branch and review diffs — powered by the bundled '
@@ -44,7 +45,7 @@ class ExtensionsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const CfEmptyState(
-      icon: Icons.extension_outlined,
+      icon: CfIcons.extension,
       title: 'Extensions',
       message:
           'Language packs and tools from a curated, Play-compliant catalog. '
@@ -60,7 +61,7 @@ class RunPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const CfEmptyState(
-      icon: Icons.play_arrow_outlined,
+      icon: CfIcons.playArrow,
       title: 'Run & debug',
       message:
           'Run Python, Node.js and shell tasks in the sealed runtime with '

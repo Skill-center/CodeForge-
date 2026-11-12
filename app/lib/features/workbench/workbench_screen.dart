@@ -26,6 +26,7 @@ import '../../design_system/components/feedback.dart';
 import '../../design_system/components/workbench_chrome.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 import '../../services/contracts.dart';
 import '../../services/shell/shell_state.dart';
 import '../palette/command_palette.dart';
@@ -37,16 +38,16 @@ import 'panels/placeholder_panels.dart';
 import 'panels/terminal_pane.dart';
 
 const List<CfActivity> _activities = [
-  CfActivity(id: 'explorer', icon: Icons.folder_outlined, label: 'Files'),
-  CfActivity(id: 'search', icon: Icons.search, label: 'Search'),
-  CfActivity(id: 'run', icon: Icons.play_arrow_outlined, label: 'Run'),
-  CfActivity(id: 'git', icon: Icons.commit, label: 'Git'),
-  CfActivity(id: 'extensions', icon: Icons.extension_outlined, label: 'Ext'),
+  CfActivity(id: 'explorer', icon: CfIcons.folder, label: 'Files'),
+  CfActivity(id: 'search', icon: CfIcons.search, label: 'Search'),
+  CfActivity(id: 'run', icon: CfIcons.playArrow, label: 'Run'),
+  CfActivity(id: 'git', icon: CfIcons.commit, label: 'Git'),
+  CfActivity(id: 'extensions', icon: CfIcons.extension, label: 'Ext'),
 ];
 
 const CfActivity _settingsActivity = CfActivity(
   id: 'settings',
-  icon: Icons.settings_outlined,
+  icon: CfIcons.settings,
   label: 'Settings',
 );
 
@@ -525,7 +526,7 @@ class _WorkbenchTopBar extends ConsumerWidget {
         children: [
           CfIconButton(
             key: const ValueKey('workbench_home'),
-            icon: Icons.hardware,
+            icon: CfIcons.hardware,
             tooltip: 'CodeForge home',
             size: 18,
             onPressed: () => context.go('/'),
@@ -544,14 +545,14 @@ class _WorkbenchTopBar extends ConsumerWidget {
           ),
           CfIconButton(
             key: const ValueKey('palette_button'),
-            icon: Icons.chevron_right,
+            icon: CfIcons.chevronRight,
             tooltip: 'Command palette (Ctrl+Shift+P)',
             size: 18,
             onPressed: () => showCommandPalette(context),
           ),
           CfIconButton(
             key: const ValueKey('terminal_toggle'),
-            icon: Icons.terminal,
+            icon: CfIcons.terminal,
             tooltip: 'Toggle terminal',
             size: 18,
             onPressed: onToggleTerminal,
@@ -575,7 +576,7 @@ class _StatusStripRow extends ConsumerWidget {
       children: [
         const CfStatusChip(
           key: ValueKey('status_branch'),
-          icon: Icons.fork_right,
+          icon: CfIcons.forkRight,
           label: 'main',
           tooltip: 'Git arrives in Phase 6',
         ),
@@ -624,7 +625,7 @@ class _StatusStripRow extends ConsumerWidget {
           ),
         ),
         CfStatusChip(
-          icon: Icons.circle,
+          icon: CfIcons.circle,
           label: 'no runtime',
           color: colors.textDisabled,
           tooltip: 'Runtime installs in Phase 4',

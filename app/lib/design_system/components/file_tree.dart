@@ -5,7 +5,9 @@ library;
 import 'package:flutter/material.dart';
 
 import '../tokens/colors.dart';
+import '../tokens/file_glyphs.dart';
 import '../tokens/geometry.dart';
+import '../tokens/icons.dart';
 
 /// One file or folder shown by a [CfTreeRow].
 final class CfFileNode {
@@ -47,19 +49,12 @@ class CfTreeRow extends StatelessWidget {
   final bool selected;
   final Widget? trailing;
 
+  /// Folders draw Material Symbols; files draw their type's glyph.
   IconData get _icon {
     if (!node.isFile) {
-      return expanded ? Icons.folder_open_outlined : Icons.folder_outlined;
+      return expanded ? CfIcons.folderOpen : CfIcons.folder;
     }
-    final name = node.name.toLowerCase();
-    if (name.endsWith('.dart')) return Icons.flutter_dash;
-    if (name.endsWith('.js') || name.endsWith('.ts')) return Icons.javascript;
-    if (name.endsWith('.py')) return Icons.code;
-    if (name.endsWith('.md')) return Icons.article_outlined;
-    if (name.endsWith('.json') || name.endsWith('.yaml')) {
-      return Icons.data_object;
-    }
-    return Icons.insert_drive_file_outlined;
+    return CfFileGlyphs.forName(node.name);
   }
 
   @override
@@ -81,7 +76,7 @@ class CfTreeRow extends StatelessWidget {
                 child: node.isFile
                     ? null
                     : Icon(
-                        expanded ? Icons.expand_more : Icons.chevron_right,
+                        expanded ? CfIcons.expandMore : CfIcons.chevronRight,
                         size: 16,
                         color: colors.textSecondary,
                       ),

@@ -13,6 +13,7 @@ import '../../design_system/components/buttons.dart';
 import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 import '../../design_system/tokens/typography.dart';
 
 class AboutScreen extends ConsumerWidget {
@@ -24,7 +25,7 @@ class AboutScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: CfIconButton(
-          icon: Icons.arrow_back,
+          icon: CfIcons.arrowBack,
           tooltip: 'Back',
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/settings'),
@@ -45,7 +46,7 @@ class AboutScreen extends ConsumerWidget {
                   border: Border.all(color: colors.borderSubtle),
                 ),
                 child: Icon(
-                  Icons.hardware,
+                  CfIcons.hardware,
                   size: 32,
                   color: colors.accentEmber,
                 ),
@@ -66,10 +67,12 @@ class AboutScreen extends ConsumerWidget {
             ),
             const CfSectionHeader('Legal'),
             CfSettingsTile(
-              leading: const Icon(Icons.font_download_outlined),
+              leading: const Icon(CfIcons.fontDownload),
               title: 'Bundled font licenses',
-              subtitle: 'Inter & JetBrains Mono — SIL OFL 1.1',
-              trailing: const Icon(Icons.chevron_right, size: 18),
+              subtitle:
+                  'Inter & JetBrains Mono (SIL OFL 1.1), '
+                  'Material Symbols (Apache 2.0)',
+              trailing: const Icon(CfIcons.chevronRight, size: 18),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (context) => const _FontLicensesScreen(),
@@ -77,10 +80,10 @@ class AboutScreen extends ConsumerWidget {
               ),
             ),
             CfSettingsTile(
-              leading: const Icon(Icons.description_outlined),
+              leading: const Icon(CfIcons.description),
               title: 'Open-source licenses',
               subtitle: 'Flutter and Dart packages',
-              trailing: const Icon(Icons.chevron_right, size: 18),
+              trailing: const Icon(CfIcons.chevronRight, size: 18),
               onTap: () => showLicensePage(
                 context: context,
                 applicationName: 'CodeForge',
@@ -89,11 +92,11 @@ class AboutScreen extends ConsumerWidget {
             ),
             const CfSectionHeader('Diagnostics'),
             CfSettingsTile(
-              leading: const Icon(Icons.receipt_long_outlined),
+              leading: const Icon(CfIcons.receiptLong),
               title: 'Recent logs',
               subtitle:
                   'Kept on this device, never backed up; secrets redacted',
-              trailing: const Icon(Icons.chevron_right, size: 18),
+              trailing: const Icon(CfIcons.chevronRight, size: 18),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (context) => const _LogsScreen(),
@@ -116,7 +119,15 @@ class _FontLicensesScreen extends StatelessWidget {
     final jbm = await rootBundle.loadString(
       'assets/fonts/JetBrainsMono-OFL.txt',
     );
-    return 'INTER\n\n$inter\n\nJETBRAINS MONO\n\n$jbm';
+    final symbols = await rootBundle.loadString(
+      'assets/fonts/MaterialSymbols-LICENSE.txt',
+    );
+    return 'INTER\n\n$inter\n\nJETBRAINS MONO\n\n$jbm\n\n'
+        'MATERIAL SYMBOLS ROUNDED\n\n'
+        'The app’s icons are a subset of Material Symbols Rounded '
+        '(google/material-design-icons, version 2.978), modified by '
+        'CodeForge: a static instance holding only the icons the app uses.'
+        '\n\n$symbols';
   }
 
   @override
@@ -155,7 +166,7 @@ class _LogsScreen extends StatelessWidget {
         title: const Text('Recent logs'),
         actions: [
           CfIconButton(
-            icon: Icons.copy_outlined,
+            icon: CfIcons.contentCopy,
             tooltip: 'Copy logs',
             onPressed: () async {
               // The log files' newest 256 KiB, earlier sessions too; this

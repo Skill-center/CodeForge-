@@ -11,6 +11,7 @@ import '../../design_system/components/dialogs.dart';
 import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
+import '../../design_system/tokens/icons.dart';
 import '../../design_system/tokens/typography.dart';
 import '../../services/settings/settings_model.dart';
 
@@ -25,7 +26,7 @@ class AppearanceScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: CfIconButton(
-          icon: Icons.arrow_back,
+          icon: CfIcons.arrowBack,
           tooltip: 'Back',
           onPressed: () =>
               context.canPop() ? context.pop() : context.go('/settings'),
@@ -44,17 +45,17 @@ class AppearanceScreen extends ConsumerWidget {
                   ButtonSegment(
                     value: ThemeMode.dark,
                     label: Text('Dark'),
-                    icon: Icon(Icons.dark_mode_outlined, size: 16),
+                    icon: Icon(CfIcons.darkMode, size: 16),
                   ),
                   ButtonSegment(
                     value: ThemeMode.light,
                     label: Text('Light'),
-                    icon: Icon(Icons.light_mode_outlined, size: 16),
+                    icon: Icon(CfIcons.lightMode, size: 16),
                   ),
                   ButtonSegment(
                     value: ThemeMode.system,
                     label: Text('System'),
-                    icon: Icon(Icons.brightness_auto_outlined, size: 16),
+                    icon: Icon(CfIcons.brightnessAuto, size: 16),
                   ),
                 ],
                 selected: {settings.themeMode},
@@ -132,7 +133,7 @@ class AppearanceScreen extends ConsumerWidget {
             ),
             CfSettingsTile(
               key: const ValueKey('toolbar_keys_tile'),
-              leading: const Icon(Icons.keyboard_outlined),
+              leading: const Icon(CfIcons.keyboard),
               title: 'Your keys',
               subtitle: settings.toolbarKeys.isEmpty
                   ? "Presets follow each file's language"

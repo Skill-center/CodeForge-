@@ -60,6 +60,7 @@ flutter:
   assets:
     - assets/fonts/Inter-OFL.txt
     - assets/fonts/JetBrainsMono-OFL.txt
+    - assets/fonts/MaterialSymbols-LICENSE.txt
     # The editor page, built from editor/ (never committed): CI builds it in
     # the editor job; locally run `npm ci && npm run build` in editor/.
     - assets/editor/editor.html
@@ -91,3 +92,13 @@ flutter:
           weight: 500
         - asset: assets/fonts/JetBrainsMono_700Bold.ttf
           weight: 700
+    # The app's icons: a subset of Material Symbols Rounded (Apache-2.0),
+    # made by tool/fonts/subset_symbols.py (lib/design_system/tokens/icons.dart).
+    - family: MaterialSymbolsRounded
+      fonts:
+        - asset: assets/fonts/MaterialSymbolsRounded.ttf
+    # The explorer's file-type glyphs, drawn for CodeForge by
+    # tool/fonts/build_file_glyphs.py (lib/design_system/tokens/file_glyphs.dart).
+    - family: CfFileGlyphs
+      fonts:
+        - asset: assets/fonts/CfFileGlyphs.ttf
