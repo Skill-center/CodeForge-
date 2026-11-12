@@ -38,14 +38,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Phase 1: render with Skia, not Impeller. Impeller's OpenGLES
-             backend fails to size its surface on software-GL CI emulators
-             (zero-width FlutterRenderer, ColorBuffer errors). Skia is the
-             mature, broadly compatible renderer; Impeller re-enablement is
-             tracked for a later phase after device validation. -->
-        <meta-data
-            android:name="io.flutter.embedding.android.EnableImpeller"
-            android:value="false" />
+        <!-- Renderer: Flutter's default, Impeller, since Phase 3 W6. Phases 1
+             and 2 opted out (EnableImpeller=false) because Impeller's
+             OpenGLES backend did not size its surface on the software-GL CI
+             emulator; Flutter 3.47 deprecates that opt-out, and W6's gate run
+             decides (docs/phases/PHASE_3_PLAN.md, W6). -->
     </application>
     <queries>
         <intent>
