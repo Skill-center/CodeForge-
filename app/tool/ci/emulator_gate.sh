@@ -701,6 +701,29 @@ folder_pick() {
   echo "failed:no-allow"
   return 1
 }
+# Android's create-document picker (Phase 3 W4: the broker's saveDocument,
+# which About -> Recent logs -> Save uses), opened inside the gate folder:
+# "Save", once the folder shows. The last screen stays in FOLDER_UI.
+folder_save() {
+  local xy="" _
+  for _ in $(seq 1 40); do
+    folder_screen
+    if python3 tool/ci/ui_node.py "$FOLDER_UI" "$GATE_FOLDER|notes|greeting\\.txt|readme\\.md" any \
+        > /dev/null \
+        && xy=$(python3 tool/ci/ui_node.py "$FOLDER_UI" 'save'); then
+      break
+    fi
+    xy=""
+    sleep 1.5
+  done
+  if [ -z "$xy" ]; then
+    echo "failed:no-save"
+    return 1
+  fi
+  # shellcheck disable=SC2086 # "x y", two words by design.
+  "$ADB" shell input tap $xy < /dev/null
+  echo saved
+}
 folder_driver() {
   local last="" line id kind arg answer
   echo "driver: polling the log for requests ($(date +%T))"
@@ -719,6 +742,7 @@ folder_driver() {
     last="$id"
     case "$kind" in
       pick) answer=$(folder_pick) ;;
+      save) answer=$(folder_save) ;;
       disk)
         if folder_safe_path "$arg"; then answer=$(folder_disk "$arg"); else answer=bad-path; fi
         ;;
@@ -1140,6 +1164,56 @@ cat "$RESULTS/folders.txt" >> "$RESULTS/attempts.txt"
 "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
 "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
 [ "$folders_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Integration — explorer (Phase 3 W4, G3: every operation on a project and on a folder, checked on disk; open tabs and the journal follow; a file through the create-document picker)"
+# One part (integration_test/explorer_test.dart): the demo project, checked
+# with dart:io from the app, then the gate folder through Android's real
+# picker and provider, checked here through the same requests as the
+# folders group (FOLDERGATE pick | disk | list), and last a file saved
+# through Android's create-document picker (FOLDERGATE save: this script
+# taps "Save" in DocumentsUI). The part runs once per attempt, from a fresh
+# fixture and no app; an infrastructure failure runs it again.
+explorer_run() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  folder_fixture_push explorer_fixture.txt || return 1
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=14m ITEST_ATTEMPTS=1 run_itest explorer integration_test/explorer_test.dart \
+    || return 1
+  # What the part left in the gate folder.
+  "$ADB" shell ls -laR "$FOLDER_ROOT/$GATE_FOLDER" < /dev/null \
+    > "$RESULTS/explorer_after.txt" 2>&1
+}
+FOLDER_UI="$RESULTS/explorer_ui.xml" folder_driver \
+  > "$RESULTS/explorer_driver.txt" 2>&1 &
+explorer_driver_pid=$!
+explorer_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if explorer_run; then
+    explorer_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "explorer attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$explorer_driver_pid" 2>/dev/null || true
+wait "$explorer_driver_pid" 2>/dev/null || true
+{
+  echo "explorer_group=$([ "$explorer_ok" = "1" ] && echo pass || echo fail)"
+  echo "explorer_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/explorer_driver.txt")" \
+    "explorer_saved=$(grep -c ' save .*-> saved' "$RESULTS/explorer_driver.txt")"
+  echo "explorer_disk_checks=$(grep -c ': disk ' "$RESULTS/explorer_driver.txt")" \
+    "explorer_listings=$(grep -c ': list ' "$RESULTS/explorer_driver.txt")"
+} | tee "$RESULTS/explorer.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/explorer.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no gate folders, and no app.
+"$ADB" logcat -c < /dev/null
+"$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$explorer_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

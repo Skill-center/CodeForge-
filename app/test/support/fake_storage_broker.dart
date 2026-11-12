@@ -402,6 +402,7 @@ final class FakeStorageBroker implements StorageBroker {
     required String suggestedName,
     required String mimeType,
     required Uint8List bytes,
+    String? initialUri,
   }) async {
     calls.add('saveDocument');
     final name = saveAnswer;

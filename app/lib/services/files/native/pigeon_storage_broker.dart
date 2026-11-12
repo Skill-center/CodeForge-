@@ -164,13 +164,14 @@ final class PigeonStorageBroker implements StorageBroker {
     required String suggestedName,
     required String mimeType,
     required Uint8List bytes,
+    String? initialUri,
   }) {
     // No limit: the user takes the time they need in the picker. Kotlin
     // limits the write itself.
     return _call(
       'saveDocument',
       null,
-      () => _api.saveDocument(suggestedName, mimeType, bytes),
+      () => _api.saveDocument(suggestedName, mimeType, bytes, initialUri),
     );
   }
 

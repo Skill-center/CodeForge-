@@ -100,6 +100,7 @@ class StorageBroker(private val activity: Activity) : StorageApi {
         suggestedName: String,
         mimeType: String,
         bytes: ByteArray,
+        initialUri: String?,
         callback: (Result<String?>) -> Unit,
     ) {
         if (pendingPick != null || pendingSave != null) {
@@ -110,6 +111,10 @@ class StorageBroker(private val activity: Activity) : StorageApi {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = mimeType
             putExtra(Intent.EXTRA_TITLE, suggestedName)
+            val start = initialUri?.let(Uri::parse)
+            if (start?.scheme == ContentResolver.SCHEME_CONTENT) {
+                putExtra(DocumentsContract.EXTRA_INITIAL_URI, start)
+            }
         }
         pendingSave = PendingSave(bytes, callback)
         try {
