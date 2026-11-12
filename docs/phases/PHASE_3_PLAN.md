@@ -1,6 +1,6 @@
 # Phase 3 Implementation Plan — Workspace & Files
 
-**Status:** **In progress** (2026-11-11): W1 done (CI 42862715832, phase gate 42862715744), W2 done (CI 43007795037, phase gate 43007795087) and W3 done (CI 43069846481, phase gate 43076652650), see *As built (W1)*, *(W2)* and *(W3)*; the owner's "next" starts W4; the owner decided the open items from Phases 0–2 on 2026-11-11 (§0) · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **In progress** (2026-11-12): W1 done (CI 42862715832, phase gate 42862715744), W2 done (CI 43007795037, phase gate 43007795087), W3 done (CI 43069846481, phase gate 43076652650) and W4 done (CI 43166674651, phase gate 43183687317), see *As built (W1)* to *(W4)*; the owner's "next" starts W5; the owner decided the open items from Phases 0–2 on 2026-11-11 (§0) · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 3 (Workspace & File Management), §7 (security claims), §12.19 (stored data survives upgrades) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §2.5, §3 and §4, [ADR-0001](../adr/0001-flutter-kotlin-hybrid.md) (SAF belongs to the Kotlin host), [ADR-0008](../adr/0008-persistence.md) (Drift), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) §4 (storage model) · **Security:** [SECURITY.md](../SECURITY.md) §1 and §4 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -412,6 +412,51 @@
 - `.git` and `node_modules` are skipped by default, and the index stops at 50,000 entries and says so.
 
 This is the plan's one addition to ROADMAP's list: with real projects, finding a file by name is basic navigation. The owner can drop it.
+
+**As built (W4):**
+- **The contract** (`services/contracts.dart`): `FileService` gains `createFolder`, `rename`, `move`, `copy` and `delete`, and each entry it lists carries its `FileCapabilities`: write (for a folder, taking new items), rename, move and delete.
+  - A project's items allow everything. In a folder from shared storage each item allows what its provider declares in DocumentsContract's flags; Move is offered where the provider can move or delete the item, since the broker copies and deletes where it cannot move. A folder granted for reading only allows nothing that changes it.
+  - Nothing is ever replaced: an operation onto a taken name fails with `exists`, on both services. A rename that changes only the case works on both.
+  - `LocalFileService` (a project): one `rename(2)` per rename or move, never following a link for the item itself. Copies keep permission bits, skip links, stop at 10,000 items or 64 levels like the broker's, and leave no partial copy behind.
+  - `SafFileService` (a folder) runs on the broker's operations, which W2 built and covered with Kotlin tests, and creates the missing folders above a new one.
+- **The explorer** (`features/workbench/panels/explorer_panel.dart`, `explorer_actions.dart`, `explorer_dialogs.dart`):
+  - Each row's menu: New File… and New Folder… (in the row's folder), Rename…, Move to…, Duplicate, Copy Path and Delete…, leaving out what the item does not allow. It opens with a long-press, the selected row's ⋯ button, the context-menu key or Shift+F10.
+  - Keys: the arrows, Home and End move through the tree; → expands a folder or steps into it, ← collapses it or steps out to its parent; Enter or Space opens; F2 renames and Delete deletes. The selected file follows the active document.
+  - A taken name keeps its dialog open: '“<name>” is taken in this folder. Choose another name.' Move to… shows the workspace's folders as a tree. Delete names the item, counts a folder's files, says that tabs with unsaved text stay open, and says that it can't be undone; on shared storage, that Android keeps no bin there.
+  - Duplicate names the copy `x copy.ext`, then `x copy 2.ext`.
+- **Open documents follow** (`application/file_operations.dart`, `application/documents/`):
+  - A rename or a move (`pathMoved`): the tabs of the item and of everything in it follow, with their unsaved text, cursor and place in the tab strip. They keep their editor documents, whose ids say nothing of paths, so the undo history survives, and a file whose name changed is highlighted for its new name.
+  - `SessionStore.movePaths` gives their tab and journal rows the new paths in one transaction, after every write queued before it, and the journals continue there instead of being written again: a process death finds the unsaved text under the old path or the new one.
+  - A delete (`pathDeleted`): clean tabs close. Tabs with unsaved text stay, marked deleted on disk, with a banner ('<name> was deleted. Your text is still here: save it to write the file again, or close the tab to discard it.'), the tab's name struck through, and TalkBack's "deleted on disk". Save writes the file again.
+  - Before an operation `settle()` waits for saves in progress, and `occupant()` refuses a place held by a tab kept for a deleted file.
+- **The tree** is one flat list of visible rows (`visibleRows`) under `ListView.builder` with a fixed 48 dp row, so only the rows on screen are built: a widget test over 10,000 entries finds fewer than 60 built. Folders are listed when expanded, and hidden entries follow the existing setting.
+- **Icons and glyphs** (owner decision; TECH_STACK §1, UI_DESIGN_SYSTEM §6):
+  - The app's icons are Material Symbols Rounded 2.978 from Google's repository (Apache 2.0): a static instance (FILL 0, GRAD 0, optical size 20, weight 400) cut to the 63 icons the app uses, 14,064 bytes (`tool/fonts/subset_symbols.py`). `CfIcons` names them, and `icons_test` fails when the font and `CfIcons` disagree. Directional icons mirror in right-to-left text, and About lists the font and its licence.
+  - `CfFileGlyphs.ttf` is drawn for the app on a 16-unit grid with a 1.5-unit stroke (`tool/fonts/build_file_glyphs.py`): 20 kinds and a generic page, 5,560 bytes. `CfFileGlyphs.forName` tries whole names first (`.gitignore`, shell rc files, `LICENSE`, `README`, …), then `.env` files, then the last extension in any case.
+  - All 22 goldens changed once, in 01e6129's bootstrap, and the gallery's two grew a *File glyphs* section.
+- **Save logs** (owner decision): About → Recent logs → *Save* writes all the log text, redacted as the screen shows it (4 MiB at most), to a file picked in Android's create-document picker, suggested as `codeforge-logs-YYYYMMDD-HHMM.txt`. The broker's new `saveDocument` keeps no grant (SECURITY §4.1). Backing out says nothing, and each failure says what to do next. `saveDocument` has no Kotlin unit test, since it starts an activity: the gate drives it (below).
+- **Go to File** (Ctrl+P, and `file.goTo` in the palette; the editor page passes Ctrl+P to the app):
+  - The index (`application/file_index.dart`) is built the first time Go to File opens in a workspace, top folders first, without blocking the UI. It skips `.git` and `node_modules`, stops at 50,000 files and says so, and goes 64 folders deep. The explorer's operations, New File and Save As keep it current, and switching workspaces drops it. W5 makes it follow outside changes.
+  - The matching (`core/files/fuzzy_match.dart`) is fzf's first method: the query's characters in order, ignoring case, in the shortest window of the path. Matches at word starts, in runs and in the file name score higher; ties go to the shorter name, then the shorter path.
+  - Each result shows its name over its folder, and TalkBack reads '<name>, in <folder>'. The status line gives the number of files, the progress of the index, the 50,000-file limit, or why the files could not be listed.
+  - The owner did not drop it.
+- **Found by CI and the gate, fixed before the gate counted:**
+  - **11645fc** (CI 43101965611, `+715 -1`): a new test expected `greeting.dart` to open as Dart, but the test harness opens it as plain text. 72c8b95 fixed the test.
+  - **Phase gate 43166674715** (a722f1a): every group passed on its first try, the new `explorer` group included, except W3's `restore_b`. To check the project's restored scroll, it expected `docs/note_39.md` to be built: W3's tree built every row, W4's builds only those on screen. c9ae96f checks instead that `docs/note_09.md`, the eleventh row, is at the top of the tree.
+  - **Phase gate 43171738801** (c9ae96f): the same result. `restore_b` found that row 480 dp below the top of the tree, where it sits at offset 0. The explorer jumps to the stored offset in a frame callback, and the test measured before the next frame laid the rows out; a0fd31e waits one frame first.
+  - In gate 43166674715 the `explorer` group's test log was overwritten by its verdict, both named `explorer.txt`. Since c9ae96f the log is `explorer_itest.txt`.
+- **Emulator: the `explorer` group** (TESTING §1.3), one integration test on both kinds of workspace: the demo project, then the gate folder picked in Android's real picker.
+  - Each operation runs through `FileOperations`, as the menu runs it, and is checked on disk: new folder and new file, rename, a case-only rename, move, duplicate (of a folder, so copying too) and delete.
+  - A taken name is refused, with both files as they were. An open document with unsaved text follows its renamed folder and its move, its journal row included. Deleting a clean open file closes its tab, and deleting the folder of a file with unsaved text keeps the tab, which Save writes again.
+  - Then one rename through the explorer's real menu and dialog, and a file saved through the create-document picker, driven by the host (`FOLDERGATE save`).
+- **Evidence:**
+  - **CI 43166674651** (commit a722f1a): `02:03 +773: All tests passed!` (687 at W3), and the analyzer found no issues. Goldens: `+22: All tests passed!`. Kotlin: `kotlin_tests=44 failures=0 errors=0`. Coverage of hand-written code: 7615/8484 lines (89.8 %; 89.1 % at W3).
+  - CI 43171738808 (c9ae96f) and 43183687656 (a0fd31e) passed every quality gate. Those commits change only an integration test, the gate script and docs; without `[bootstrap]` in their messages, CI committed no results for them.
+  - **Phase gate 43183687317** (commit a0fd31e, job 131065555316, 36 of 75 minutes): every group passed on its first try (`gate_result=pass`).
+    - **`explorer`:** `00:29 +1: All tests passed!` after the build. The driver answered one pick (`picked`) and one save (`saved`), made 19 disk checks and 3 listings, and the test logged `project done`, `folder done` and `saved through the picker`.
+    - **The restore pair**, with W4's tree: part A in 18 s and part B in 7 s, one pick. Part B found the project's explorer scrolled back to 480 with `docs/note_09.md` at the top, and the host found `src/app.js` with the fixture's SHA-256 (`3c58a542…`). The log file held part A's last record ahead of part B's session marker.
+    - `keys_events.txt`: no ANR and no crash since boot, and all 5 taps found the app's window focused, before and after.
+    - `folders` passed with 23 disk checks and 3 listings, the backup group gave the same three results as since W1, and the edit pair passed. Cold start was 755 ms (median of 10; budget 1500 ms; W3's gates: 1005 to 1372 ms), and the release build's memory with the 1 MiB file open was 225.0 MB.
 
 ### W5 — Outside changes (1–2 sessions) → G4
 
