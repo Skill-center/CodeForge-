@@ -781,14 +781,16 @@ class StorageApi {
   }
 
   /// Shows Android's create-document picker (Phase 3 W4: About → Recent
-  /// logs → Save), suggesting [suggestedName] as a file of [mimeType], and
-  /// writes [bytes] to the new file the user picks. The app keeps no grant
-  /// to it. Answers the file's name as its storage gave it ('' when the
-  /// storage does not say), or null when the user backs out.
+  /// logs → Save), suggesting [suggestedName] as a file of [mimeType] and
+  /// starting at [initialUri] (a document URI) when given, and writes
+  /// [bytes] to the new file the user picks. The app keeps no grant to it.
+  /// Answers the file's name as its storage gave it ('' when the storage
+  /// does not say), or null when the user backs out.
   Future<String?> saveDocument(
     String suggestedName,
     String mimeType,
     Uint8List bytes,
+    String? initialUri,
   ) async {
     final pigeonVar_channelName =
         'dev.flutter.pigeon.codeforge.StorageApi.saveDocument$pigeonVar_messageChannelSuffix';
@@ -798,7 +800,7 @@ class StorageApi {
       binaryMessenger: pigeonVar_binaryMessenger,
     );
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
-      <Object?>[suggestedName, mimeType, bytes],
+      <Object?>[suggestedName, mimeType, bytes, initialUri],
     );
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(

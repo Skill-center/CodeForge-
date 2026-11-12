@@ -155,7 +155,13 @@ void main() {
         'src/greeting.dart',
         edited,
       );
-      await waitForJournal(tester, container, 'demo', 'src/greeting.dart', edited);
+      await waitForJournal(
+        tester,
+        container,
+        'demo',
+        'src/greeting.dart',
+        edited,
+      );
 
       // Rename its folder: the document follows, unsaved, journal and all.
       expect((await operations.rename('src', 'source')).orThrow, 'source');
@@ -191,10 +197,7 @@ void main() {
         'gate/made copy',
       );
       expect(_onDisk(root, 'gate/made copy/new.js'), sha256Of(''));
-      expect(
-        _onDisk(root, 'gate/made copy/greeting.dart'),
-        sha256Of(greeting),
-      );
+      expect(_onDisk(root, 'gate/made copy/greeting.dart'), sha256Of(greeting));
 
       // Taken names: nothing is overwritten.
       final mainJs = sha256Of(DemoWorkspace.files['main.js']!);
@@ -204,8 +207,10 @@ void main() {
         failsWith(FileProblem.exists),
       );
       expect(
-        (await operations.move('gate/made copy/new.js', 'gate/made'))
-            .failureOrNull,
+        (await operations.move(
+          'gate/made copy/new.js',
+          'gate/made',
+        )).failureOrNull,
         failsWith(FileProblem.exists),
       );
       expect(_onDisk(root, 'main.js'), mainJs);
@@ -275,10 +280,7 @@ void main() {
         failsWith(FileProblem.exists),
       );
       expect(await gate.names(''), 'Readme.md,hello.txt,made,notes,src');
-      expect(
-        await gate.disk('hello.txt'),
-        sha256Of(gateFixture['hello.txt']!),
-      );
+      expect(await gate.disk('hello.txt'), sha256Of(gateFixture['hello.txt']!));
 
       expect((await documents.open('src/app.js')).isOk, isTrue);
       await tester.pumpAndSettle();
@@ -290,7 +292,13 @@ void main() {
         'src/app.js',
         appEdited,
       );
-      await waitForJournal(tester, container, folder.id, 'src/app.js', appEdited);
+      await waitForJournal(
+        tester,
+        container,
+        folder.id,
+        'src/app.js',
+        appEdited,
+      );
 
       expect((await operations.rename('src', 'source')).orThrow, 'source');
       expect(await gate.disk('src'), 'absent');
@@ -344,10 +352,7 @@ void main() {
         (await operations.move('made-copy/new.js', 'made')).failureOrNull,
         failsWith(FileProblem.exists),
       );
-      expect(
-        await gate.disk('hello.txt'),
-        sha256Of(gateFixture['hello.txt']!),
-      );
+      expect(await gate.disk('hello.txt'), sha256Of(gateFixture['hello.txt']!));
       expect(await gate.disk('made-copy/new.js'), sha256Of(''));
 
       expect((await documents.open('notes/todo.md')).isOk, isTrue);
@@ -369,7 +374,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('activity_explorer')));
       await pumpUntil(
         tester,
-        () => find.byKey(const ValueKey('tree_hello.txt')).evaluate().isNotEmpty,
+        () =>
+            find.byKey(const ValueKey('tree_hello.txt')).evaluate().isNotEmpty,
         what: 'hello.txt in the explorer',
       );
       await tester.pumpAndSettle();
@@ -385,8 +391,10 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('name_confirm')));
       await pumpUntil(
         tester,
-        () =>
-            find.byKey(const ValueKey('tree_greeting.txt')).evaluate().isNotEmpty,
+        () => find
+            .byKey(const ValueKey('tree_greeting.txt'))
+            .evaluate()
+            .isNotEmpty,
         what: 'the renamed row',
       );
       expect(await gate.disk('hello.txt'), 'absent');
@@ -434,12 +442,7 @@ final class DocumentsStateView {
 
   /// The document now at [path] is the one that was [docId], with its
   /// unsaved [text] still in the editor page.
-  void expectFollowed(
-    String path,
-    String docId,
-    EditorHost host,
-    String text,
-  ) {
+  void expectFollowed(String path, String docId, EditorHost host, String text) {
     final doc = state.documents[path];
     expect(doc, isNotNull, reason: '$path is not open');
     expect(doc!.docId, docId, reason: '$path: another editor document');

@@ -589,12 +589,13 @@ interface StorageApi {
   fun delete(treeUri: String, path: String, callback: (Result<Unit>) -> Unit)
   /**
    * Shows Android's create-document picker (Phase 3 W4: About → Recent
-   * logs → Save), suggesting [suggestedName] as a file of [mimeType], and
-   * writes [bytes] to the new file the user picks. The app keeps no grant
-   * to it. Answers the file's name as its storage gave it ('' when the
-   * storage does not say), or null when the user backs out.
+   * logs → Save), suggesting [suggestedName] as a file of [mimeType] and
+   * starting at [initialUri] (a document URI) when given, and writes
+   * [bytes] to the new file the user picks. The app keeps no grant to it.
+   * Answers the file's name as its storage gave it ('' when the storage
+   * does not say), or null when the user backs out.
    */
-  fun saveDocument(suggestedName: String, mimeType: String, bytes: ByteArray, callback: (Result<String?>) -> Unit)
+  fun saveDocument(suggestedName: String, mimeType: String, bytes: ByteArray, initialUri: String?, callback: (Result<String?>) -> Unit)
 
   companion object {
     /** The codec used by StorageApi. */
@@ -884,7 +885,8 @@ interface StorageApi {
             val suggestedNameArg = args[0] as String
             val mimeTypeArg = args[1] as String
             val bytesArg = args[2] as ByteArray
-            api.saveDocument(suggestedNameArg, mimeTypeArg, bytesArg) { result: Result<String?> ->
+            val initialUriArg = args[3] as String?
+            api.saveDocument(suggestedNameArg, mimeTypeArg, bytesArg, initialUriArg) { result: Result<String?> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(StorageApiPigeonUtils.wrapError(error))
