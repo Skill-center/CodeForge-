@@ -225,7 +225,18 @@ void main() {
       () => treeOffset() == restoreDemoScroll,
       what: 'the explorer to scroll back to $restoreDemoScroll',
     );
-    expect(find.byKey(const ValueKey('tree_docs/note_39.md')), findsOneWidget);
+    // Rows are 48 dp, and only those on screen are built (Phase 3 W4): at
+    // 480 the eleventh row, docs/note_09.md (the first is docs itself),
+    // is at the top of the tree.
+    final topNote = find.byKey(const ValueKey('tree_docs/note_09.md'));
+    expect(topNote, findsOneWidget);
+    expect(
+      tester.getTopLeft(topNote).dy,
+      moreOrLessEquals(
+        tester.getTopLeft(find.byKey(const ValueKey('explorer_tree'))).dy,
+        epsilon: 0.5,
+      ),
+    );
     await _hideExplorer(tester);
 
     // Back to the folder: its unsaved text is still there, and only there:

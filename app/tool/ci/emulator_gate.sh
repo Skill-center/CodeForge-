@@ -1178,8 +1178,9 @@ explorer_run() {
   "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
   folder_fixture_push explorer_fixture.txt || return 1
   "$ADB" logcat -c < /dev/null
-  ITEST_LIMIT=14m ITEST_ATTEMPTS=1 run_itest explorer integration_test/explorer_test.dart \
-    || return 1
+  # Named apart from explorer.txt, the group's verdict below.
+  ITEST_LIMIT=14m ITEST_ATTEMPTS=1 run_itest explorer_itest \
+    integration_test/explorer_test.dart || return 1
   # What the part left in the gate folder.
   "$ADB" shell ls -laR "$FOLDER_ROOT/$GATE_FOLDER" < /dev/null \
     > "$RESULTS/explorer_after.txt" 2>&1
