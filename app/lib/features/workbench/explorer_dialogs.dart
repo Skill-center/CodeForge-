@@ -222,7 +222,9 @@ class _FolderRow extends StatelessWidget {
                       ? IconButton(
                           tooltip: expanded ? 'Collapse $name' : 'Expand $name',
                           icon: Icon(
-                            expanded ? CfIcons.expandMore : CfIcons.chevronRight,
+                            expanded
+                                ? CfIcons.expandMore
+                                : CfIcons.chevronRight,
                             size: 18,
                           ),
                           onPressed: onToggle,

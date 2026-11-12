@@ -97,7 +97,8 @@ void main() {
         expect(
           declared.difference(mapped).map((c) => c.toRadixString(16)),
           isEmpty,
-          reason: '$source declares codepoints $font lacks: re-run the '
+          reason:
+              '$source declares codepoints $font lacks: re-run the '
               'script in tool/fonts/',
         );
         expect(
