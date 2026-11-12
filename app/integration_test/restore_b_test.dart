@@ -225,6 +225,9 @@ void main() {
       () => treeOffset() == restoreDemoScroll,
       what: 'the explorer to scroll back to $restoreDemoScroll',
     );
+    // The explorer jumps in a frame's callback, so the offset is there at
+    // once but the rows move at the next frame's layout.
+    await tester.pump();
     // Rows are 48 dp, and only those on screen are built (Phase 3 W4): at
     // 480 the eleventh row, docs/note_09.md (the first is docs itself),
     // is at the top of the tree.
