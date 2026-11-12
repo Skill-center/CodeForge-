@@ -597,7 +597,7 @@ class _StatusStripRow extends ConsumerWidget {
           key: ValueKey('status_branch'),
           icon: CfIcons.forkRight,
           label: 'main',
-          tooltip: 'Git arrives in Phase 6',
+          tooltip: 'Git arrives in Phase 7',
         ),
         // The document's chips scroll rather than overflow on a narrow
         // phone at a large text scale.

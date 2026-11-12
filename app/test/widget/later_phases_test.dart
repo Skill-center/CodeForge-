@@ -3,6 +3,7 @@
 /// phases, and nothing Phase 3 built is listed as coming.
 library;
 
+import 'package:codeforge/design_system/components/feedback.dart';
 import 'package:codeforge/features/workbench/panels/placeholder_panels.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,20 @@ void main() {
       expect(find.text(note), findsOneWidget);
     });
   }
+
+  testWidgets("the status strip's branch chip says when Git arrives", (
+    tester,
+  ) async {
+    setSurface(tester, 1280, 800);
+    await tester.pumpWidget(TestHarness().app());
+    await tester.pumpAndSettle();
+    await openDemoWorkspace(tester);
+
+    final chip = tester.widget<CfStatusChip>(
+      find.byKey(const ValueKey('status_branch')),
+    );
+    expect(chip.tooltip, 'Git arrives in Phase 7');
+  });
 
   testWidgets('the search panel points to Go to File', (tester) async {
     await tester.pumpWidget(
