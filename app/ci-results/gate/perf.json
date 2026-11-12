@@ -6,20 +6,20 @@
   "cold_start": {
     "apk": "release-x64",
     "method": "am start -W (TotalTime) after am force-stop, 10 runs",
-    "samples_ms": [1617,1223,1403,1455,1463,1403,1305,1369,1462,1354],
-    "median_ms": 1403,
+    "samples_ms": [1432,1414,1438,1564,1524,1569,1532,1531,1542,1359],
+    "median_ms": 1527,
     "budget_ms": 1500,
-    "within_budget": true
+    "within_budget": false
   },
   "cold_start_skia": {
     "apk": "the same release build with EnableImpeller=false (comparison, not shipped)",
-    "samples_ms": [1163,966,1018,1141,932,1026,926,876,956,927],
-    "median_ms": 961
+    "samples_ms": [1070,1179,990,1087,1301,1040,1036,989,1109,1053],
+    "median_ms": 1061
   },
   "cold_start_again": {
     "apk": "release-x64, once more after the Skia block",
-    "samples_ms": [1331,1423,1405,1414,1434,1345,1439,1290,1325,1404],
-    "median_ms": 1404
+    "samples_ms": [1452,1545,1528,1490,1467,1576,1848,1486,1505,1566],
+    "median_ms": 1516
   },
   "renderer": "impeller (Flutter's default since Phase 3 W6)",
   "apk_bytes": {
