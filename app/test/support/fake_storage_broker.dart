@@ -109,6 +109,17 @@ final class FakeStorageBroker implements StorageBroker {
   /// answer would.
   FileFailure? failNextCheck;
 
+  /// What the create-document picker answers next: the new file's name,
+  /// or null when the user backs out.
+  String? saveAnswer;
+
+  /// Fails the next save with this, after the user picked a file.
+  FileFailure? failNextSave;
+
+  /// Every file saved through the create-document picker, in order.
+  final List<({String suggestedName, String mimeType, Uint8List bytes})>
+  saved = [];
+
   FakeFolder addTree(
     String treeUri,
     String name, {
@@ -384,6 +395,26 @@ final class FakeStorageBroker implements StorageBroker {
     tree.files.removeWhere((p, _) => p == path || p.startsWith('$path/'));
     tree.folders.removeWhere((p) => p == path || p.startsWith('$path/'));
     return const Ok(null);
+  }
+
+  @override
+  Future<Result<String?>> saveDocument({
+    required String suggestedName,
+    required String mimeType,
+    required Uint8List bytes,
+  }) async {
+    calls.add('saveDocument');
+    final name = saveAnswer;
+    if (name == null) {
+      return const Ok(null);
+    }
+    final failure = failNextSave;
+    if (failure != null) {
+      failNextSave = null;
+      return Err(failure);
+    }
+    saved.add((suggestedName: suggestedName, mimeType: mimeType, bytes: bytes));
+    return Ok(name);
   }
 
   Future<Result<BrokerEntry>> _relocate(

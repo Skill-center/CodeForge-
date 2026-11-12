@@ -159,6 +159,21 @@ final class PigeonStorageBroker implements StorageBroker {
   Future<Result<void>> delete(String treeUri, String path) =>
       _call('delete', _change, () => _api.delete(treeUri, path));
 
+  @override
+  Future<Result<String?>> saveDocument({
+    required String suggestedName,
+    required String mimeType,
+    required Uint8List bytes,
+  }) {
+    // No limit: the user takes the time they need in the picker. Kotlin
+    // limits the write itself.
+    return _call(
+      'saveDocument',
+      null,
+      () => _api.saveDocument(suggestedName, mimeType, bytes),
+    );
+  }
+
   static FolderInfo _folder(TreeMessage tree) => FolderInfo(
     treeUri: tree.treeUri,
     name: tree.name,

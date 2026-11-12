@@ -192,4 +192,12 @@ abstract class StorageApi {
   /// Deletes a file, or a folder with everything in it.
   @asyncCallback
   void delete(String treeUri, String path);
+
+  /// Shows Android's create-document picker (Phase 3 W4: About → Recent
+  /// logs → Save), suggesting [suggestedName] as a file of [mimeType], and
+  /// writes [bytes] to the new file the user picks. The app keeps no grant
+  /// to it. Answers the file's name as its storage gave it ('' when the
+  /// storage does not say), or null when the user backs out.
+  @asyncCallback
+  String? saveDocument(String suggestedName, String mimeType, Uint8List bytes);
 }

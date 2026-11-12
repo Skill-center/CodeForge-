@@ -82,6 +82,7 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
   // they fire intents it carries out.
   for (final (id, title, category, intent) in const [
     ('file.new', 'New File…', 'File', WorkbenchIntent.newFile),
+    ('file.goTo', 'Go to File…', 'File', WorkbenchIntent.goToFile),
     ('editor.save', 'Save File', 'File', WorkbenchIntent.save),
     ('file.saveAs', 'Save As…', 'File', WorkbenchIntent.saveAs),
     ('editor.close', 'Close Editor', 'View', WorkbenchIntent.closeEditor),

@@ -130,6 +130,7 @@ App shortcuts work wherever the keyboard focus is. While Flutter has focus, the 
 | Ctrl+Shift+P (F1 in the page) | Command palette |
 | Ctrl+F / Ctrl+H | Find / replace (§8) |
 | Ctrl+G | Go to line (§8) |
+| Ctrl+P | Go to File (Phase 3 W4) |
 
 ## 7. Zero-loss editing: the hot-exit journal (as built in W5)
 

@@ -183,6 +183,8 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         if (active != null) {
           unawaited(goToLine(context, ref));
         }
+      case WorkbenchIntent.goToFile:
+        unawaited(goToFile(context, ref));
       case WorkbenchIntent.undo:
       case WorkbenchIntent.redo:
         if (active != null) {
@@ -316,6 +318,8 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
               _onIntent(WorkbenchIntent.replace),
           const SingleActivator(LogicalKeyboardKey.keyG, control: true): () =>
               _onIntent(WorkbenchIntent.gotoLine),
+          const SingleActivator(LogicalKeyboardKey.keyP, control: true): () =>
+              _onIntent(WorkbenchIntent.goToFile),
         },
         child: Focus(
           autofocus: true,

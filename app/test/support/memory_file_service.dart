@@ -46,6 +46,10 @@ final class MemoryFileService implements FileService {
   /// [openWorkspace] fails with this, as a project whose folder is gone.
   Failure? failOpen;
 
+  /// Listing these folders fails with their failure, as a folder the app
+  /// may not read would.
+  final Map<String, Failure> failListings = {};
+
   final Map<String, Uint8List> _files = {};
   final Map<String, FileStamp> _stamps = {};
   int _clock = 0;
@@ -64,6 +68,9 @@ final class MemoryFileService implements FileService {
 
   @override
   Future<Result<List<FileEntry>>> listDirectory(String path) async {
+    if (failListings[path] case final failure?) {
+      return Err(failure);
+    }
     final invalid = workspacePathProblem(path, allowRoot: true);
     if (invalid != null) {
       return Err(FileFailure(invalid, problem: FileProblem.invalidPath));

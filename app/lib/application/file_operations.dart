@@ -4,7 +4,7 @@
 /// explorer's view and its listings up to date.
 ///
 /// Open documents follow every change (DocumentController.pathMoved and
-/// pathDeleted). A rename or a move keeps their tabs, unsaved text and
+/// pathDeleted), and so does Go to File's index (FileIndexController). A rename or a move keeps their tabs, unsaved text and
 /// undo history, and moves their journal rows in one transaction. A delete
 /// closes the tabs of clean documents and keeps those with unsaved
 /// changes, marked deleted on disk. Nothing is ever replaced: a taken name
@@ -20,6 +20,7 @@ import '../core/files/workspace_path.dart';
 import '../services/contracts.dart';
 import 'documents/document_controller.dart';
 import 'explorer_view_controller.dart';
+import 'file_index.dart';
 import 'providers.dart';
 import 'workspace_controller.dart';
 
@@ -55,6 +56,8 @@ final class FileOperations {
       _ref.read(workspaceControllerProvider.notifier);
 
   ExplorerViewController get _view => _ref.read(explorerViewProvider.notifier);
+
+  FileIndexController get _index => _ref.read(fileIndexProvider.notifier);
 
   /// Creates an empty file at [path], opens it and shows its row.
   Future<Result<void>> createFile(String path) async {
@@ -106,6 +109,7 @@ final class FileOperations {
     if (result case Ok<String>(:final value) when value != path) {
       _documents.pathMoved(path, value);
       _view.pathMoved(path, value);
+      _index.moved(path, value);
       await _workspace.changed(removed: path);
     }
     return result;
@@ -130,6 +134,11 @@ final class FileOperations {
       final newPath = pathJoin(folder, name);
       switch (await _files.copy(path, newPath)) {
         case Ok<void>():
+          if (isFolder) {
+            _index.addedTree(newPath);
+          } else {
+            _index.added(newPath);
+          }
           await _workspace.changed();
           return Ok(newPath);
         case Err<void>(failure: FileFailure(problem: FileProblem.exists)):
@@ -154,6 +163,7 @@ final class FileOperations {
     if (result.isOk) {
       _documents.pathDeleted(path);
       _view.pathRemoved(path);
+      _index.removed(path);
       await _workspace.changed(removed: path);
     }
     return result;

@@ -77,6 +77,7 @@ const List<String> appShortcuts = [
   'find',
   'replace',
   'gotoLine',
+  'goToFile',
 ];
 
 /// Levels of `editor.log` messages.

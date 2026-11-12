@@ -208,6 +208,13 @@ describe('search session', () => {
     expect(ctl.view.dom.querySelector('.cm-panels')).toBeNull();
   });
 
+  it('forwards Go to File to the app', () => {
+    const { ctl, of } = setupController();
+    ctl.open({ docId: 'd1', text: '', language: 'plaintext', version: 0 });
+    expect(pressKey(ctl.view, 'p', { ctrl: true })).toBe(true);
+    expect(of('app.shortcut').map((s) => s.shortcut)).toEqual(['goToFile']);
+  });
+
   it('opens the session with the current query on openSearch', () => {
     const { ctl, scheduler, of } = setupController();
     ctl.open({ docId: 'd1', text: 'q q', language: 'plaintext', version: 0 });

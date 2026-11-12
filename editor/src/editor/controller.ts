@@ -613,6 +613,8 @@ export class EditorController {
       { key: 'Mod-f', run: fire('find'), preventDefault: true },
       { key: 'Mod-h', run: fire('replace'), preventDefault: true },
       { key: 'Mod-g', run: fire('gotoLine'), preventDefault: true },
+      // The app's Go to File (Phase 3 W4).
+      { key: 'Mod-p', run: fire('goToFile'), preventDefault: true },
     ];
   }
 

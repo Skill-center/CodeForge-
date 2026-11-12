@@ -175,6 +175,17 @@ abstract interface class StorageBroker {
   /// Deletes a file, or a folder with everything in it. Permanent: shared
   /// storage has no bin.
   Future<Result<void>> delete(String treeUri, String path);
+
+  /// Shows Android's create-document picker, suggesting [suggestedName] as
+  /// a file of [mimeType], and writes [bytes] to the file the user makes
+  /// (Phase 3 W4, About → Recent logs → Save). The app keeps no grant to
+  /// it. The file's name as its storage gave it ('' when it does not say),
+  /// or null when the user backs out.
+  Future<Result<String?>> saveDocument({
+    required String suggestedName,
+    required String mimeType,
+    required Uint8List bytes,
+  });
 }
 
 /// The general wording of each broker failure, before the file service

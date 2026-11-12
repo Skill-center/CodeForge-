@@ -79,6 +79,7 @@ export const APP_SHORTCUTS = [
   'find',
   'replace',
   'gotoLine',
+  'goToFile',
 ] as const;
 export type AppShortcut = (typeof APP_SHORTCUTS)[number];
 

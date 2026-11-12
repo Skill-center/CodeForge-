@@ -38,6 +38,7 @@ import '../../services/files/demo_workspace.dart';
 import '../../services/storage/session_store.dart';
 import '../editor/editor_host.dart';
 import '../editor/editor_providers.dart';
+import '../file_index.dart';
 import '../providers.dart';
 import '../shell_controller.dart';
 import '../workspace_controller.dart';
@@ -443,6 +444,7 @@ final class DocumentController extends Notifier<DocumentsState> {
       fields: {'from': path, 'to': newPath},
     );
     unawaited(ref.read(workspaceControllerProvider.notifier).refresh());
+    ref.read(fileIndexProvider.notifier).added(newPath);
     final current = state.documents[path];
     if (current == null ||
         current.docId != doc.docId ||
@@ -663,6 +665,7 @@ final class DocumentController extends Notifier<DocumentsState> {
     }
     appLogger.info('documents', 'created', fields: {'path': path});
     unawaited(ref.read(workspaceControllerProvider.notifier).refresh());
+    ref.read(fileIndexProvider.notifier).added(path);
     return open(path);
   }
 

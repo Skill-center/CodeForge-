@@ -463,6 +463,27 @@ void main() {
       semantics.dispose();
     });
 
+    testWidgets('go to file', (tester) async {
+      final semantics = tester.ensureSemantics();
+      setSurface(tester, 412, 915);
+      await _openPalette(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('palette_input')),
+        'go to file',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('palette_file.goTo')));
+      await tester.pumpAndSettle();
+      // Every match is one node: its name and its folder, and the tap.
+      expect(
+        find.bySemanticsLabel('greeting.dart, in src'),
+        findsOneWidget,
+      );
+      await _expectAccessibleTargets(tester);
+      await _flush(tester);
+      semantics.dispose();
+    });
+
     testWidgets('settings switch row is one labelled node', (tester) async {
       final semantics = tester.ensureSemantics();
       setSurface(tester, 412, 915);

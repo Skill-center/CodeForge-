@@ -10,9 +10,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/documents/document_controller.dart';
 import '../../application/documents/document_state.dart';
 import '../../application/explorer_view_controller.dart';
+import '../../application/file_index.dart';
 import '../../application/file_operations.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/workspace_path.dart';
+import '../palette/go_to_file.dart';
 import 'file_dialogs.dart';
 
 /// Shows [message] in a snack bar, replacing the one showing.
@@ -224,4 +226,23 @@ bool _announce(BuildContext context, Result<void> result) {
     return false;
   }
   return true;
+}
+
+/// Go to File (Phase 3 W4, Ctrl+P): picks a file by name and opens it. A
+/// file that is gone since the index found it leaves the index.
+Future<void> goToFile(BuildContext context, WidgetRef ref) async {
+  final path = await showGoToFile(context);
+  if (path == null || !context.mounted) {
+    return;
+  }
+  final opened = await ref.read(documentControllerProvider.notifier).open(path);
+  if (!context.mounted) {
+    return;
+  }
+  if (opened case Err<void>(:final failure)) {
+    if (failure case FileFailure(problem: FileProblem.notFound)) {
+      ref.read(fileIndexProvider.notifier).removed(path);
+    }
+    showFileMessage(context, failure.message);
+  }
 }

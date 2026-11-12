@@ -11,7 +11,10 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.util.Log
+import java.io.FileNotFoundException
+import java.io.OutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.RejectedExecutionException
@@ -41,6 +44,11 @@ import java.util.concurrent.atomic.AtomicInteger
  * its thread until it returns, and the pool has others. A full queue
  * answers `busy`.
  *
+ * **Saving a copy.** `saveDocument` (Phase 3 W4) shows the create-document
+ * picker (`ACTION_CREATE_DOCUMENT`) and writes the bytes Dart sent to the
+ * file the user makes there. The app keeps no grant to it: that file is the
+ * user's, written once.
+ *
  * Logs name the call, its outcome and its duration: never a URI, a path
  * or a file name.
  */
@@ -60,9 +68,10 @@ class StorageBroker(private val activity: Activity) : StorageApi {
     }
     private val caches = ConcurrentHashMap<String, DocumentIdCache>()
     private var pendingPick: ((Result<TreeMessage?>) -> Unit)? = null
+    private var pendingSave: PendingSave? = null
 
     override fun pickTree(initialUri: String?, callback: (Result<TreeMessage?>) -> Unit) {
-        if (pendingPick != null) {
+        if (pendingPick != null || pendingSave != null) {
             callback(Result.failure(FlutterError(StorageProblem.BUSY.code, "The folder picker is already open.", null)))
             return
         }
@@ -87,8 +96,36 @@ class StorageBroker(private val activity: Activity) : StorageApi {
         }
     }
 
-    /** The picker's answer, from MainActivity; false when the request was not the broker's. */
+    override fun saveDocument(
+        suggestedName: String,
+        mimeType: String,
+        bytes: ByteArray,
+        callback: (Result<String?>) -> Unit,
+    ) {
+        if (pendingPick != null || pendingSave != null) {
+            callback(Result.failure(FlutterError(StorageProblem.BUSY.code, "A picker is already open.", null)))
+            return
+        }
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = mimeType
+            putExtra(Intent.EXTRA_TITLE, suggestedName)
+        }
+        pendingSave = PendingSave(bytes, callback)
+        try {
+            activity.startActivityForResult(intent, REQUEST_SAVE_DOCUMENT)
+        } catch (error: ActivityNotFoundException) {
+            pendingSave = null
+            callback(Result.failure(FlutterError(StorageProblem.UNSUPPORTED.code, "No file picker on this device.", null)))
+        }
+    }
+
+    /** A picker's answer, from MainActivity; false when the request was not the broker's. */
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        if (requestCode == REQUEST_SAVE_DOCUMENT) {
+            onSaveResult(resultCode, data)
+            return true
+        }
         if (requestCode != REQUEST_PICK_TREE) {
             return false
         }
@@ -107,6 +144,45 @@ class StorageBroker(private val activity: Activity) : StorageApi {
         }
         return true
     }
+
+    private fun onSaveResult(resultCode: Int, data: Intent?) {
+        // Null after a process death: the Dart side that asked is gone too.
+        val pending = pendingSave ?: return
+        pendingSave = null
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            pending.callback(Result.success(null))
+            return
+        }
+        submit("saveDocument", TRANSFER_MS, pending.callback) { call ->
+            call.check()
+            openForWrite(uri).use { it.write(pending.bytes) }
+            call.check()
+            displayName(uri, call)
+        }
+    }
+
+    /**
+     * Opens [uri] to write it from the start. "wt" also truncates, in case
+     * the picker handed back a file that was already there; a provider that
+     * refuses that mode gets "w".
+     */
+    private fun openForWrite(uri: Uri): OutputStream {
+        val stream = try {
+            resolver.openOutputStream(uri, "wt")
+        } catch (error: IllegalArgumentException) {
+            resolver.openOutputStream(uri, "w")
+        } catch (error: FileNotFoundException) {
+            resolver.openOutputStream(uri, "w")
+        }
+        return stream ?: throw StorageException(StorageProblem.IO, "The storage gave nothing to write to.")
+    }
+
+    /** The document's name as its provider shows it; '' when it does not say. */
+    private fun displayName(uri: Uri, call: Call): String =
+        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null, call.signal)?.use { cursor ->
+            if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0) else null
+        } ?: ""
 
     override fun checkTree(treeUri: String, callback: (Result<TreeMessage>) -> Unit) =
         submit("checkTree", QUICK_MS, callback) { call -> treeMessage(parseTree(treeUri), call) }
@@ -194,6 +270,7 @@ class StorageBroker(private val activity: Activity) : StorageApi {
     /** Stops the threads; the engine and its Dart side are going away. */
     fun close() {
         pendingPick = null
+        pendingSave = null
         pool.shutdownNow()
         timer.shutdownNow()
     }
@@ -311,6 +388,9 @@ class StorageBroker(private val activity: Activity) : StorageApi {
         }
     }
 
+    /** A save waiting for the create-document picker: what to write, and who asked. */
+    private class PendingSave(val bytes: ByteArray, val callback: (Result<String?>) -> Unit)
+
     /** One call: its cancellation, and whether it has answered. */
     private class Call : Cancellation {
         val signal = CancellationSignal()
@@ -328,6 +408,7 @@ class StorageBroker(private val activity: Activity) : StorageApi {
     private companion object {
         const val TAG = "CodeForgeStorage"
         const val REQUEST_PICK_TREE = 0x5AF0
+        const val REQUEST_SAVE_DOCUMENT = 0x5AF1
         const val THREADS = 4
         const val QUEUE = 64
 

@@ -23,6 +23,7 @@ enum WorkbenchIntent {
   find,
   replace,
   gotoLine,
+  goToFile,
   undo,
   redo,
 }
@@ -39,6 +40,7 @@ const Map<String, WorkbenchIntent> intentForShortcut = {
   'find': WorkbenchIntent.find,
   'replace': WorkbenchIntent.replace,
   'gotoLine': WorkbenchIntent.gotoLine,
+  'goToFile': WorkbenchIntent.goToFile,
 };
 
 /// A broadcast of intents. Nobody listening (the workbench is not on

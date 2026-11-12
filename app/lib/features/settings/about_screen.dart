@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../application/logs.dart';
+import '../../application/providers.dart';
+import '../../core/errors/failure.dart';
 import '../../core/logging/logger.dart';
 import '../../core/version.dart';
 import '../../design_system/components/buttons.dart';
@@ -154,11 +156,31 @@ class _FontLicensesScreen extends StatelessWidget {
   }
 }
 
-class _LogsScreen extends StatelessWidget {
+class _LogsScreen extends ConsumerWidget {
   const _LogsScreen();
 
+  /// Save (Phase 3 W4): the log files to a file the user makes in
+  /// Android's create-document picker. Backing out says nothing.
+  Future<void> _save(BuildContext context, WidgetRef ref) async {
+    final saved = await saveLogs(ref.read(storageBrokerProvider));
+    if (!context.mounted) {
+      return;
+    }
+    final message = switch (saved) {
+      Ok(value: null) => null,
+      Ok(value: '') => 'Logs saved',
+      Ok(value: final String name) => 'Logs saved to $name',
+      Err(:final failure) => saveLogsFailureMessage(failure),
+    };
+    if (message != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = CfColors.of(context);
     final records = appLogger.records.reversed.toList();
     return Scaffold(
@@ -166,6 +188,13 @@ class _LogsScreen extends StatelessWidget {
         title: const Text('Recent logs'),
         actions: [
           CfIconButton(
+            key: const ValueKey('logs_save'),
+            icon: CfIcons.save,
+            tooltip: 'Save logs to a file',
+            onPressed: () => _save(context, ref),
+          ),
+          CfIconButton(
+            key: const ValueKey('logs_copy'),
             icon: CfIcons.contentCopy,
             tooltip: 'Copy logs',
             onPressed: () async {
