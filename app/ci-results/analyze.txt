@@ -19,4 +19,11 @@ Got dependencies!
 15 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Analyzing app...                                                
-No issues found! (ran in 15.1s)
+
+   info • Method invocation or property access on a 'dynamic' target. Try giving the target a type • integration_test/watch_test.dart:65:5 • avoid_dynamic_calls
+  error • The element type 'dynamic' can't be assigned to the list type 'String' • integration_test/watch_test.dart:65:5 • list_element_type_not_assignable
+   info • Missing an 'await' for the 'Future' computed by this expression. Try adding an 'await' or wrapping the expression with 'unawaited' • lib/application/documents/document_controller.dart:724:17 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression. Try adding an 'await' or wrapping the expression with 'unawaited' • lib/application/workspace_controller.dart:126:15 • unawaited_futures
+   info • Unclosed instance of 'Sink'. Try invoking 'close' in the function in which the 'Sink' was created • lib/services/files/native/pigeon_storage_broker.dart:290:11 • close_sinks
+
+5 issues found. (ran in 12.6s)
