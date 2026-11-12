@@ -2,13 +2,15 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 2, the workbench and code editor, was accepted on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)). Phase 3, workspace and files, is in progress ([plan](docs/phases/PHASE_3_PLAN.md)): W1 made Android backup the user's choice, off by default; W2 opens folders on the device through Android's own picker, with no storage permission; and W3 adds projects and Home's recents, with each workspace's tabs, unsaved text and explorer view kept across switches and restarts.** CodeForge edits real files:
-> - CodeMirror 6 runs in a hardened Android System WebView.
-> - Many tabs can be open, each with its own cursor, scroll and undo.
-> - Find and replace, go to line, a symbol toolbar on the soft keyboard, and hardware shortcuts.
-> - Unsaved text survives the app being killed.
+> **Status: Phase 3, workspace and files, is built and awaits the owner's acceptance ([report](docs/phases/PHASE_3_REPORT.md)). Phase 2, the workbench and code editor, was accepted on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
+> - Projects live in the app's own storage, and folders open through Android's own picker, with no storage permission.
+> - Home lists the recent projects and folders with their status, and each keeps its tabs, unsaved text and explorer view.
+> - The explorer creates, renames, moves, copies and deletes, and Go to File finds a file by name.
+> - Files changed by other apps show as it happens, and unsaved text is never overwritten.
+> - CodeMirror 6 runs in a hardened Android System WebView, with many tabs, find and replace, a symbol toolbar and hardware shortcuts. Unsaved text survives the app being killed.
+> - Android backup is the user's choice, off by default.
 >
-> Explorer operations and file watching arrive later in Phase 3, the runtime and the terminal in Phases 4–5, and the screens say so honestly. Every claim is backed by a CI run: see the **[Phase 2 Report](docs/phases/PHASE_2_REPORT.md)** and the Phase 3 plan's *As built* sections.
+> The runtime and the terminal arrive in Phases 4–5, and the screens say so honestly. Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
 
 ---
 
@@ -16,7 +18,9 @@
 
 | Document | What it answers |
 |---|---|
-| **[Phase 2 Report](docs/phases/PHASE_2_REPORT.md)** | What Phase 2 built (the editor), gate-by-gate evidence (CI run ids, hashes, measurements), parked phone checks, limitations, what's next |
+| **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)** | What Phase 3 built (projects, folders, the explorer, outside changes), gate-by-gate evidence, the measurements, what is not met, and the owner's decisions |
+| [Phase 3 phone checklist](docs/phases/PHASE_3_PHONE_CHECKLIST.md) | The exit session: every check parked since Phase 1, on one phone, in about 75 minutes |
+| [Phase 2 Report](docs/phases/PHASE_2_REPORT.md) | What Phase 2 built (the editor), gate-by-gate evidence (CI run ids, hashes, measurements), parked phone checks, limitations, what's next |
 | [Phase 1 Report](docs/phases/PHASE_1_REPORT.md) | What Phase 1 built (the shell and the design system), with its evidence |
 | [Editor Architecture](docs/EDITOR_ARCHITECTURE.md) · [ADR-0004](docs/adr/0004-editor-engine.md) | How the editor works as built; why CodeMirror 6, measured against Monaco |
 | [Phase 0 Report](docs/PHASE_0_REPORT.md) | What we found, what we decided, what's risky, what's next |

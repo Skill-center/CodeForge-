@@ -67,8 +67,8 @@ Flutter (Dart)                      WebView (bundled assets only)
 └──────────┬───────────┘             │  indent/fold/brackets,      │
            │ Dart calls              │  search panel, completions  │
 ┌──────────▼───────────┐             └─────────────────────────────┘
-│ FileService (dart:io)│  one app-private workspace (W4);
-│  SAF broker: Phase 3 │  canonical root, atomic writes
+│ FileService          │  projects: dart:io, atomic writes (W4);
+│  dart:io | SAF broker│  folders: the Kotlin broker (Phase 3)
 └──────────────────────┘
 ```
 
@@ -94,11 +94,12 @@ As built in W1–W2: one self-contained page, loaded with `loadHtmlString` under
 
 If WebView editing proves unreliable on target devices after the gate, the documented fallback is a **native Flutter editor surface** (custom render of a rope/text-buffer with CM6-like keymaps) — a major investment, deliberately out of scope unless the gate forces it. We do not silently degrade to a plain TextField and call it an IDE.
 
-## 6. Files, documents and tabs (as built in W4)
+## 6. Files, documents and tabs (as built in Phase 2 W4 and Phase 3)
 
 ### Files
 
-- **One app-private workspace in Phase 2.** `LocalFileService` (`app/lib/services/files/local_file_service.dart`) works in `<filesDir>/workspaces/demo`. MainActivity answers a single method, `filesDir`, on the `dev.codeforge/paths` channel; path_provider is not used (TECH_STACK.md §4). The first open writes the demo project into `<root>.seeding` and renames it into place, so a half-written demo never looks like a workspace. Picking a folder through the system (SAF) is Phase 3.
+- **One app-private workspace in Phase 2.** `LocalFileService` (`app/lib/services/files/local_file_service.dart`) works in `<filesDir>/workspaces/demo`. MainActivity answers a single method, `filesDir`, on the `dev.codeforge/paths` channel; path_provider is not used (TECH_STACK.md §4). The first open writes the demo project into `<root>.seeding` and renames it into place, so a half-written demo never looks like a workspace.
+- **Projects and folders since Phase 3** (ARCHITECTURE.md §2.8). Every project is a folder of its own in `<filesDir>/workspaces/<name>`, on `LocalFileService` as above. A folder from shared storage, picked in Android's folder picker, goes through `SafFileService` and the Kotlin storage broker (SECURITY.md §4.1), with the same codec, failures and size limit. Its paths are checked a second time in Kotlin, segment by segment, against the granted tree. **Its saves are not atomic:** a provider can't rename over a file, so the broker writes in place (mode `"wt"`) and reads the new stamp back. The document stays unsaved, with its text in the journal, until that has worked; a failed save says the file may be incomplete.
 - **Paths are checked twice.** They are workspace-relative and `/`-separated. First as text (`app/lib/core/files/workspace_path.dart`): absolute paths, `.` and `..`, empty segments, control characters, the characters `\ : * ? " < > |` (other systems' separators, and what FAT-formatted storage cannot hold), over-long names and paths, and the save temp suffix are refused with a sentence the UI shows. Then on disk: the deepest existing ancestor, with symbolic links resolved, must lie inside the canonical (symlink-free) root. A link that stays inside works; a link that points out is refused (`outsideWorkspace`). Listings skip links and save temp files.
 - **Reading.** Files up to 10 MiB; larger ones are refused (`tooLarge`) before anything is read, with both sizes in the message (§10). The file is stat'ed before and after reading, and read again if it changed meanwhile, so the stamp always matches the bytes. The codec (`app/lib/core/files/text_codec.dart`) decodes strict UTF-8. A byte-order mark is removed and remembered. Line breaks become `\n` for the editor and the file's style is remembered: CRLF when CRLF and lone CR breaks are the majority. Files that mix styles are flagged, and their line-ending chip turns amber; saving writes one style throughout. UTF-16/32 byte-order marks, NUL bytes and malformed UTF-8 are refused as `notText` with a reason; nothing is converted.
 - **Writing is atomic.** The text is encoded in the remembered format and written to `.<name>.cf-tmp` beside the target, then flushed, closed and renamed over the target. A failure at any step deletes the temp file and leaves the target as it was; `test/services/local_file_service_test.dart` interrupts a save just before the rename to prove it. The data reaches the device before the rename, and the rename replaces the file in one step, so after a crash the file is the old version or the new one, never a mix of the two.

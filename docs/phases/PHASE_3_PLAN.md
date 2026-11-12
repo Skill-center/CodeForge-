@@ -1,6 +1,6 @@
 # Phase 3 Implementation Plan — Workspace & Files
 
-**Status:** **In progress** (2026-11-12): W1 done (CI 42862715832, phase gate 42862715744), W2 done (CI 43007795037, phase gate 43007795087), W3 done (CI 43069846481, phase gate 43076652650), W4 done (CI 43166674651, phase gate 43183687317), W5 done (CI 43228855253, phase gate 43228855243) and W6 done (CI 43247964184, 43256861484 and 43270593998, phase gates 43238952262, 43247963954, 43256861510 and 43270594252; the release cold start missed G7's 1500 ms in the last of them, see *As built (W6)*), see *As built (W1)* to *(W6)*; the owner's "next" starts W7; the owner decided the open items from Phases 0–2 on 2026-11-11 (§0) · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
+**Status:** **Built; awaiting the owner's acceptance** (2026-11-12; [report](PHASE_3_REPORT.md)): W1 done (CI 42862715832, phase gate 42862715744), W2 done (CI 43007795037, phase gate 43007795087), W3 done (CI 43069846481, phase gate 43076652650), W4 done (CI 43166674651, phase gate 43183687317), W5 done (CI 43228855253, phase gate 43228855243) and W6 done (CI 43247964184, 43256861484 and 43270593998, phase gates 43238952262, 43247963954, 43256861510 and 43270594252; the release cold start missed G7's 1500 ms in the last of them, see *As built (W6)*) and W7 done (CI 43284276980, phase gate 43284276984, whose cold start was 1302 ms); see *As built (W1)* to *(W7)*. After W6 the owner let W7 start without a "next" ("you are free"); the owner decided the open items from Phases 0–2 on 2026-11-11 (§0) · Prerequisite: Phase 2 accepted on 2026-11-10 ([report](PHASE_2_REPORT.md)), with the phone checks parked · Blocks: nothing external (no runtime, licence decision or phone is needed to start)
 **Spec reference:** §8 Phase 3 (Workspace & File Management), §7 (security claims), §12.19 (stored data survives upgrades) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §2.5, §3 and §4, [ADR-0001](../adr/0001-flutter-kotlin-hybrid.md) (SAF belongs to the Kotlin host), [ADR-0008](../adr/0008-persistence.md) (Drift), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) §4 (storage model) · **Security:** [SECURITY.md](../SECURITY.md) §1 and §4 · **CI:** [BUILD_AND_RELEASE.md](../BUILD_AND_RELEASE.md)
 
 ---
@@ -599,6 +599,28 @@ This is the plan's one addition to ROADMAP's list: with real projects, finding a
 PHASE_3_REPORT.md with run ids, and the documents in §7.
 
 **The phone session** (owner decision 2026-11-11): W7 writes one checklist with every parked check from Phases 1–3 (ROADMAP's table, including the folder picker and a folder workspace, backup with a Google account, and Impeller if W6 switched to it), and builds fresh debug and profile APKs. The owner runs it in one session, and the results go into PHASE_3_REPORT. Memory and FULL against NORMAL need a computer with adb.
+
+**As built (W7):**
+- **What the app says is still to come** (3b8aa50, a78cbee). A sweep of every phase the app names found five out of date:
+  - Settings' *Coming in later phases* listed *Storage & folders — Phase 3*, though folders open from Home, and gave extensions Phase 7, which is Git in ROADMAP.
+  - The workbench's placeholder panels said search arrives in Phase 3 (moved to Phase 4 by the owner's decision of 2026-11-11), source control in Phase 6 and extensions in Phase 7. Run & debug said Phases 4–5, where running is Phase 5 and debugging Phase 9.
+  - The status strip's branch chip said "Git arrives in Phase 6", and TalkBack read it.
+  - All now name ROADMAP's phases, and the search panel points to Go to File (Ctrl+P). `test/widget/later_phases_test.dart` pins them. The Settings and Privacy goldens changed (18d7363).
+- **The docs** in §7, synced with Phase 3 as built:
+  - ARCHITECTURE §2.8 (new) and §3–§4; EDITOR_ARCHITECTURE §6; SECURITY §1 and §4, with §4.1's review marked done; RUNTIME_INTEGRATION §4; TECH_STACK; PERFORMANCE §4; UI_DESIGN_SYSTEM §5, §7 and §8; TESTING; BUILD_AND_RELEASE; CHANGELOG, ROADMAP and README.
+  - ADR-0008 (schema v2) and ADR-0012 (backup) were already as built.
+- **The exit session's checklist:** [PHASE_3_PHONE_CHECKLIST.md](PHASE_3_PHONE_CHECKLIST.md), with every check parked since Phase 1 on the exit gate's profile APK. FULL against NORMAL needs Flutter on a computer, so the report proposes Phase 4's Firebase Test Lab for it.
+- **[PHASE_3_REPORT.md](PHASE_3_REPORT.md)**, with four decisions for the owner: acceptance, how G7's cold start is judged, FULL against NORMAL, and Flutter 3.50.0.
+- **Evidence:**
+  - **CI 43281243227** (3b8aa50): `02:15 +845: All tests passed!` (839 at W6), and the analyzer found no issues. Goldens: `+26: All tests passed!`, with two baselines regenerated. Kotlin: 44 of 44. Manifest: `manifest_check=pass findings=0`. The editor page: 208 vitest tests.
+  - Phase gate 43281243239 on 3b8aa50 was cancelled: a78cbee superseded it.
+  - **CI 43284276980** (a78cbee, the final app): `01:38 +846: All tests passed!`, and the analyzer found no issues. Goldens `+26: All tests passed!`, Kotlin 44 of 44, `manifest_check=pass findings=0`, 208 vitest tests. Coverage of hand-written code: 8212/9081 lines (90.4 %). The debug APK: 177,806,969 bytes, SHA-256 `2fdf948b…`.
+  - **Phase gate 43284276984** (a78cbee, job 131413392327, 38 of 75 minutes), the exit gate: every group on its first try (`gate_result=pass`).
+    - **Cold start:** 1302 ms (1232 to 1406), within the budget; the same build on Skia 992 ms, and the shipped APK again 1338 ms. With Impeller the budget was missed in two of Phase 3's five gates (PHASE_3_REPORT §7.2).
+    - **The driver** drove both engines, forwarding only to the two apps' sockets. CodeMirror: input p95 49.6 ms, composition 9 of 9, memory 527.5 MB. Monaco: 68.4 ms, 9 of 9, 597.5 MB.
+    - Release memory with the 1 MiB file open: 231.0 MB. `watch`: reloads 470 ms in the project and 888 ms in the folder. The measurements came out within the earlier gates' range or below it.
+    - The keys group found 3 ANRs since boot, all Google Play services', and no crash. All 5 taps found the app's window focused.
+    - The phone profile APK: artifact 13975424637, kept until 2026-12-12 (PHASE_3_PHONE_CHECKLIST.md).
 
 ## 4. Deliverables
 

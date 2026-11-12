@@ -80,7 +80,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   12. `watch` (W5, G4): files changed behind the app's back on both kinds of workspace, with the app sent to the background and back.
   13. `measure` (W6, G7): a 10,000-file project opened and indexed, 1 and 10 MiB through `dart:io` and through the broker, a 1,000-entry folder listed, and frames while 10 MiB is digested on and off the UI isolate; recorded, never judged (`measure.txt`, `measure.json`).
 
-  Since W3 the restore pair opens a folder through the same picker driver, and its part B switches workspaces. Since W3 the gate also hides Android's error dialogs after boot (`hide_error_dialogs`): in gate 43069846571, Android's *Application Not Responding* dialog for System UI took the keys group's tap. A full run took 33 minutes at W1 (42862715744), 37 at W2 (43007795087, attempt 1), 33 to 39 at W3 (43088413208, 43076652650, 43069846571), 36 at W4 (43183687317), 40 at W5 (43228855243) and 46 at W6 (43247963954; 40 in 43270594252, and 71 in 43256861510, after adb stalled).
+  Since W3 the restore pair opens a folder through the same picker driver, and its part B switches workspaces. Since W3 the gate also hides Android's error dialogs after boot (`hide_error_dialogs`): in gate 43069846571, Android's *Application Not Responding* dialog for System UI took the keys group's tap. A full run took 33 minutes at W1 (42862715744), 37 at W2 (43007795087, attempt 1), 33 to 39 at W3 (43088413208, 43076652650, 43069846571), 36 at W4 (43183687317), 40 at W5 (43228855243) and 46 at W6 (43247963954; 40 in 43270594252, and 71 in 43256861510, after adb stalled), and 38 at Phase 3's exit (43284276984).
 
 ## 3. Toolchain pins in CI
 

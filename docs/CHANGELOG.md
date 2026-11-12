@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Changed — Phase 3 W7, documentation and phase exit (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md); report: [phases/PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md))
+- **What's still to come names the right phase:** Settings no longer lists folders as coming (they open from Home since Phase 3), and gives extensions Phase 8. The workbench's panels say search arrives in Phase 4, source control in Phase 7, extensions in Phase 8, and running in Phase 5 with debugging in Phase 9. The status bar's branch chip says Git arrives in Phase 7. The search panel points to Go to File for finding a file by name.
+- **Phase 3's report** ([PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md)): every gate with its evidence, the measurements, what is not reliably met (the release cold start on the emulator with Impeller, over the budget in two of five gates), and four decisions for the owner.
+- **One phone checklist for the exit session** ([PHASE_3_PHONE_CHECKLIST.md](phases/PHASE_3_PHONE_CHECKLIST.md)): every check parked since Phase 1, about 75 minutes on the exit gate's profile APK.
+- **Docs synced** with Phase 3 as built: architecture (the broker, Pigeon, the data model), editor files, security (the storage review done), runtime storage model, tech stack, performance, design system, roadmap and README.
+- W7 verified by CI 43284276980 (`01:38 +846: All tests passed!`) and phase gate 43284276984 (every group on its first try; cold start 1302 ms).
+
 ### Added — Phase 3 W6, tests, performance and quality (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md))
 - **Impeller:** the app now draws with Impeller, Flutter's default renderer, instead of Skia, which Flutter 3.47 deprecates as an opt-out. Every phase-gate group passed with it on the CI emulator. There, with software graphics, it starts the app 0.3 to 0.5 s slower than Skia, and in two of four runs over the 1.5 s budget. The phone check before the phase ends decides.
 - **No pause when a very large file is first edited or restored:** the fingerprint CodeForge keeps of a file's saved text, to know after a restart whether the file changed, is taken in the background for files of 64 KiB and more. On the emulator, the screen kept drawing while 10 MiB was fingerprinted (13 or 14 frames, at most 96 to 140 ms apart); before, it stopped for 260 to 280 ms.

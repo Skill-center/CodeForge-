@@ -74,6 +74,13 @@ Every component: default/hover(hardware)/pressed/focused/disabled/loading/error 
 
 **Added in Phase 3 W4:** the explorer's row menu (long-press, the ⋯ button on the selected row, the context-menu key or Shift+F10) with New File, New Folder, Rename, Move to…, Duplicate, Copy Path and Delete in three groups; the name dialog, the folder chooser for Move to… and the delete question (`features/workbench/explorer_dialogs.dart`, `file_dialogs.dart`); a *deleted on disk* banner over the editor and a struck-through tab; Go to File (`features/palette/go_to_file.dart`), which looks like the command palette, with each match's file glyph, its name and folder, the matched letters in the accent colour, and a status line under the list; and a *Save* action in About → Recent logs. `CfTreeRow` draws a file's glyph (§6).
 
+**Added elsewhere in Phase 3:**
+- **Home as the launcher (W2, W3):** the recents, one row per project or folder with its kind, its place and its status (*missing*, *access lost*), and a menu per row (Open; Rename… and Delete… for projects; Reconnect… and Remove from recents… for folders); the dialogs for a new project, a rename, a delete and removing a folder.
+- **Settings → Privacy (W1):** one switch, *Back up with Android*, whose text says what Android copies, where and on what terms, and a status row under it.
+- **Outside changes (W5):** a notice when a clean file was reloaded, and for a file changed under unsaved text a banner over the editor, not a dialog, with *Keep mine* and *Use the file*.
+- **Settings → Developer → Log viewer (W6, debug and profile builds):** the session's records, newest first, with a level filter and a tag menu whose rows are 48 dp tall.
+- **Goldens:** W6 added four for this chrome: Home's recents in every status, the explorer's menu, the changed-on-disk banner and Privacy (`app/test/goldens/chrome/`).
+
 ## 6. Iconography
 
 Material Symbols Rounded subset (bundled font, tree-shaken to used glyphs) + custom file-type glyphs (16 dp grid, 1.5 px stroke) for top 20 extensions; generic fallback. No emoji in UI chrome.
@@ -86,10 +93,13 @@ Material Symbols Rounded subset (bundled font, tree-shaken to used glyphs) + cus
 
 Copy: concise, technical, never cute. Errors say what happened + what to do ("Runtime not installed — Set up"). Placeholders are honest: Phase 1 editor placeholder reads "Editor arrives in Phase 2" in dev builds, removed as features land — no fake functionality (spec rule 8).
 
+**At Phase 3's exit (W7):** what the app says is still to come names ROADMAP's phases. Settings' *Coming in later phases* lists the Linux runtime (Phase 4) and extensions (Phase 8); Phase 3's *Storage & folders* left it, since folders open from Home. The workbench's placeholder panels say search arrives in Phase 4 (moved there by the owner on 2026-11-11), source control in Phase 7, extensions in Phase 8, and running in Phase 5 with debugging in Phase 9. Three of the four had named the wrong phase. `later_phases_test.dart` pins them all.
+
 ## 8. Accessibility
 
 Contrast gates in CI; text scale 1.0–2.0 without clipping (tested at 1.3); TalkBack labels on all interactive elements; focus order for hardware keyboards; reduced-motion honored; color never the only signal (icons + text accompany status colors).
 
 - **Automated (G7):** `accessibility_test.dart` runs Flutter's `androidTapTargetGuideline` and `labeledTapTargetGuideline` on every Phase 1 screen at all gate sizes, plus a direct ≥ 48×48 dp measurement of every enabled `InkWell` — the stock guideline skips targets touching a scrollable or screen edge, which would otherwise exempt tabs, tree rows, palette rows and the top bar.
 - **Rows with a trailing control** (switch, checkbox) are one semantics node: `CfSettingsTile` wraps its row in `MergeSemantics`, as `SwitchListTile` does, so a screen reader announces title, subtitle and switch state as one item instead of focusing an unlabeled switch.
+- **Phase 3:** the tab strip tells TalkBack which tab is active and which have unsaved changes (W1). Since W6 the sweeps also cover Home's recents and dialogs, a recent's actions, the explorer's menu, Settings → Privacy (at 1.3× text too) and the log viewer, and `keyboard_insets_test` opens Home's dialogs beside the keyboard at every gate size.
 - **Manual:** a TalkBack spot-check on a device is part of each phase exit (owner).

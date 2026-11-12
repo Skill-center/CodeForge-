@@ -6,6 +6,8 @@
 
 **Phase 2 update (2026-11-10):** the editor and persistence rows below are now **as built and CI-proven**: the WebView plugin, CodeMirror 6, the editor toolchain, Drift and SQLite (run ids in [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md)). ADR-0004 chose CodeMirror 6 over Monaco. Every npm version is an exact pin in `editor/package.json`, installed with `npm ci` from the committed lockfile.
 
+**Phase 3 update (2026-11-12):** Pigeon (the storage broker's typed API), schema v2, the Kotlin unit tests in CI and the renderer (Impeller since W6) are **as built and CI-proven** (run ids in [phases/PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md)). Phase 3 added two dependencies, both for development: Pigeon 29.2.0 and, for the Kotlin tests, JUnit 4.13.2. It added two fonts: a subset of Material Symbols Rounded (Apache-2.0) and CodeForge's own file glyphs (UI_DESIGN_SYSTEM). Flutter stays at 3.47.9 while the move to 3.50.0, which needs AGP 9.1.1 and KGP 2.4.10, waits for the owner (BUILD_AND_RELEASE §3).
+
 ---
 
 ## 1. Core stack (locked by spec + audit)
@@ -28,7 +30,7 @@
 | WebView | **webview_flutter** | 4.14.1 | Official plugin; Android WebView host for editor |
 | WebView (Android) | webview_flutter_android | 4.14.1 | Pinned alongside: the editor host hardens the WebView through its Android-only API (file/content access off, debugging in debug builds only). It exposes no request interception and no `onRenderProcessGone` (see SECURITY.md §3) |
 | Hashing | crypto | 3.0.8 | SHA-256 check of the bundled editor page against its manifest before it runs; it was already in the lockfile as a transitive dependency, now declared directly |
-| Local DB | **Drift** (SQLite) | **2.35.3** — as built (Phase 2 W5) | Typed queries, migrations, reactive streams. Schema v1 holds workspaces, open tabs and the hot-exit journal (ADR-0008). SQLite comes from the `sqlite3` package's build hook (3.9.0, a prebuilt, hash-checked library per ABI), so there is no `sqlite3_flutter_libs` and no NDK build. Codegen: drift_dev 2.35.2 and build_runner 2.17.1, dev dependencies that CI runs (BUILD_AND_RELEASE §2.1) |
+| Local DB | **Drift** (SQLite) | **2.35.3** — as built (Phase 2 W5) | Typed queries, migrations, reactive streams. Schema v1 held workspaces, open tabs and the hot-exit journal; v2 (Phase 3 W3, the first migration) adds each workspace's kind and place and its explorer view (ADR-0008). SQLite comes from the `sqlite3` package's build hook (3.9.0, a prebuilt, hash-checked library per ABI), so there is no `sqlite3_flutter_libs` and no NDK build. Codegen: drift_dev 2.35.2 and build_runner 2.17.1, dev dependencies that CI runs (BUILD_AND_RELEASE §2.1) |
 | Preferences | shared_preferences | 2.5.6 | Settings only; structured state goes to Drift |
 | Lints | flutter_lints | 6.0.0 | Baseline + custom import-boundary rules |
 | Icons | **Material Symbols Rounded** (google/material-design-icons, Apache-2.0) | **2.978**, commit `10ecc14` (2026-10-23) — as built (Phase 3 W4) | UI_DESIGN_SYSTEM §6. `app/assets/fonts/MaterialSymbolsRounded.ttf` is a static instance (unfilled, grade 0, optical size 20, weight 400) holding only the 63 icons the app names in `lib/design_system/tokens/icons.dart`: 14.1 KB, against 15.2 MB for the variable source. `app/tool/fonts/subset_symbols.py` (fontTools 4.68.0) rebuilds it from the checksummed source, byte for byte; the font's description and About → Bundled font licenses say it is modified. Flutter's own widgets still use Material Icons (`uses-material-design`) |

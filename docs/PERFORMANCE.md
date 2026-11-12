@@ -50,6 +50,12 @@ As built in Phase 2: the phase gate runs two benchmarks on the KVM emulator, on 
 
 Every gate also measures cold start on a release x86_64 APK (`perf.json`). On a device, the engine suite runs from Settings → Developer → Editor benchmark, and Settings → Developer → Frame timing records frame build and raster times. The Phase 2 numbers are in [PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md) §7.
 
+As built in Phase 3, the gate adds two timed groups:
+- **The `watch` group** (W5, `app/integration_test/watch_test.dart`) times each reload of a file changed behind the app's back, from the write, on the device's clock, in a project and in a folder from shared storage (G4: within 2 s).
+- **The `measure` group** (W6, `app/integration_test/measure_test.dart`): a project of 10,000 files opened and Go to File's index built; 1 and 10 MiB written and read through `dart:io` in a project and through the storage broker in a folder; a folder of 1,000 entries listed; and frames counted while 10 MiB is digested on the UI isolate and on a background one. It writes `measure.json` and `measure.txt`, recorded and never judged on the emulator.
+
+Since W6 the cold-start group times the shipped APK, which renders with Impeller, then the same build with Skia, then the shipped one again (`cold_start_skia` and `cold_start_again` in `perf.json`; only the first block is held to the budget). The Phase 3 numbers are in [PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md) §7.
+
 ## 5. Regression policy
 
 A merged PR that worsens a tracked metric > 15% gets a follow-up issue tagged `perf-regression` and must be fixed or consciously re-budgeted (ADR) before the next phase gate. Numbers live in artifacts, summaries in docs — never vibes.

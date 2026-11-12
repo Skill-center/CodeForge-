@@ -59,11 +59,13 @@ RuntimeHost
 | Location | Contents | Access |
 |---|---|---|
 | App-private `files/runtime/` | sealed prefix (rootfs mirror), home, tmp, markers | app only; executables symlink to APK |
-| App-private `files/workspaces/` | default project area ("CodeForge" projects) | app only; no permission prompt |
-| SAF user-picked trees | imported/external projects | persistable URI permissions; StorageBroker canonicalizes + scopes every bridge path |
+| App-private `files/workspaces/` | projects, one folder each (`files/workspaces/<name>`; as built in Phase 3) | app only; no permission prompt |
+| SAF user-picked trees | folders from shared storage (as built in Phase 3) | persistable URI grants, no storage permission; `StorageBroker.kt` checks every path segment by segment and walks it from the granted root through the provider's own listings (SECURITY §4.1) |
 | `nativeLibraryDir` | APK-shipped executables (read-only) | exec allowed, writes impossible |
 
 Git operations on SAF trees: Phase 7 spike decides between (a) running git on a mirrored app-private checkout with sync, or (b) direct SAF file I/O via a FUSE-free path translation. Default expectation: projects created in-app live app-private (full POSIX semantics); SAF trees are import/export + edit, with runtime execution offered via workspace copy. This is documented honestly in the explorer UX.
+
+**As built in Phase 3:** both workspace rows exist: projects on `dart:io` with atomic saves, and folders through the storage broker, whose saves are written in place (ARCHITECTURE §2.8). Nothing runs yet. Running code, and how a folder from shared storage reaches the runtime (a copy into a project, or import and export), are decided with the runtime in Phase 4 (PHASE_3_PLAN §8).
 
 ## 5. Distribution shapes (ADR-0010)
 
