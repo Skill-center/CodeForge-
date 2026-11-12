@@ -6,7 +6,7 @@
 
 **Phase 2 update (2026-11-10):** the editor and persistence rows below are now **as built and CI-proven**: the WebView plugin, CodeMirror 6, the editor toolchain, Drift and SQLite (run ids in [phases/PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md)). ADR-0004 chose CodeMirror 6 over Monaco. Every npm version is an exact pin in `editor/package.json`, installed with `npm ci` from the committed lockfile.
 
-**Phase 3 update (2026-11-12):** Pigeon (the storage broker's typed API), schema v2, the Kotlin unit tests in CI and the renderer (Impeller since W6) are **as built and CI-proven** (run ids in [phases/PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md)). Phase 3 added two dependencies, both for development: Pigeon 29.2.0 and, for the Kotlin tests, JUnit 4.13.2. It added two fonts: a subset of Material Symbols Rounded (Apache-2.0) and CodeForge's own file glyphs (UI_DESIGN_SYSTEM). Flutter stays at 3.47.9 while the move to 3.50.0, which needs AGP 9.1.1 and KGP 2.4.10, waits for the owner (BUILD_AND_RELEASE §3).
+**Phase 3 update (2026-11-12):** Pigeon (the storage broker's typed API), schema v2, the Kotlin unit tests in CI and the renderer (Impeller since W6) are **as built and CI-proven** (run ids in [phases/PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md)). Phase 3 added two dependencies, both for development: Pigeon 29.2.0 and, for the Kotlin tests, JUnit 4.13.2. It added two fonts: a subset of Material Symbols Rounded (Apache-2.0) and CodeForge's own file glyphs (UI_DESIGN_SYSTEM). Phase 3 ended on Flutter 3.47.9. At acceptance (2026-11-12) the owner decided to move to 3.50.0, which needs AGP 9.1.1 and KGP 2.4.10 or later, with both plugins upgraded together (BUILD_AND_RELEASE §3).
 
 ---
 

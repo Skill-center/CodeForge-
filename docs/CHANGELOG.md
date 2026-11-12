@@ -4,6 +4,9 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 3 accepted (2026-11-12)
+- The owner accepted Phase 3 and decided: the exit phone session runs after the next slice of work; G7's cold start is judged by that session's phone figure, and Impeller stays; FULL against NORMAL (ADR-0008) moves to Phase 4's Firebase Test Lab runs; Flutter 3.50.0, the Android Gradle Plugin and Kotlin's Gradle plugin are upgraded together ([PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md) §1).
+
 ### Changed — Phase 3 W7, documentation and phase exit (plan: [phases/PHASE_3_PLAN.md](phases/PHASE_3_PLAN.md); report: [phases/PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md))
 - **What's still to come names the right phase:** Settings no longer lists folders as coming (they open from Home since Phase 3), and gives extensions Phase 8. The workbench's panels say search arrives in Phase 4, source control in Phase 7, extensions in Phase 8, and running in Phase 5 with debugging in Phase 9. The status bar's branch chip says Git arrives in Phase 7. The search panel points to Go to File for finding a file by name.
 - **Phase 3's report** ([PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md)): every gate with its evidence, the measurements, what is not reliably met (the release cold start on the emulator with Impeller, over the budget in two of five gates), and four decisions for the owner.

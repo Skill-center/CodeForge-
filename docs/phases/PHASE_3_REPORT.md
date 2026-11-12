@@ -1,6 +1,6 @@
 # Phase 3 Report — Workspace & Files
 
-**Status:** **Built; awaiting the owner's acceptance.** The exit phone session is prepared and not yet run (§8) · **Date:** 2026-11-12 · **Branch:** `arena/f57c33ee-codeforge`
+**Status:** **Accepted by the owner on 2026-11-12**; the owner runs the exit phone session after the next slice of work (§1, §8) · **Date:** 2026-11-12 · **Branch:** `arena/f57c33ee-codeforge`
 **Plan:** [PHASE_3_PLAN.md](PHASE_3_PLAN.md) · **Spec:** §8 Phase 3, §7, §12.19 · **Rule:** every claim below cites a CI run or an evidence commit. Where something was not measured or not met, this report says so.
 
 ---
@@ -26,7 +26,7 @@ ROADMAP's MVP 3, "SAF open-folder, explorer CRUD, file watch, state survives res
 | G4 Outside changes | ✅ met | the gate's `watch` group (since 43222339848): reloads within 2 s on the emulator; unit and widget tests |
 | G5 Restart | ✅ met | the restore pair, extended (since 43069846571) |
 | G6 Owner items | ✅ met | the backup group (`bmgr`) in every gate since W1; the log sink's tests; the W4 and W6 items |
-| G7 Performance | ◐ measurements recorded; **the release cold start met the budget in the exit gate (1302 ms), but not reliably:** with Impeller it went over 1500 ms in two of Phase 3's five gates | `measure.json`, `perf.json` (§7) |
+| G7 Performance | ◐ measurements recorded; **the release cold start met the budget in the exit gate (1302 ms), but not reliably:** with Impeller it went over 1500 ms in two of Phase 3's five gates; **decided 2026-11-12:** the exit session's phone figure decides | `measure.json`, `perf.json` (§7) |
 | G8 Quality & security | ✅ met | CI 43284276980: Flutter, editor and Kotlin green, the manifest check; SECURITY §4.1 done; the accessibility sweeps |
 | G9 Docs | ✅ this commit | this report; the plan's §7 documents synced |
 
@@ -45,11 +45,11 @@ ROADMAP's MVP 3, "SAF open-folder, explorer CRUD, file watch, state survives res
 - **W1–W5:** each work package was reported and accepted with "next".
 - **2026-11-12, after W6:** the owner told the agent to continue into W7 without waiting for approval ("you are free"). W6's report and this one were therefore written without an intermediate "next".
 
-**Decisions for the owner at acceptance:**
-1. **Accept Phase 3,** with the exit phone session (§8) run now or later, as the plan's definition of done allows.
-2. **G7's cold start** (§7.2). Impeller passed every group, so it stays by your rule, but on the CI emulator its cold start straddles the 1500 ms budget: 1302 to 1688 ms in Phase 3's five Impeller gates, two of them over, where the same build on Skia took 961 to 1067 ms. The exit gate's 1302 ms is within it. The emulator draws in software; PERFORMANCE.md's budget is for a mid-range phone. **Recommended:** let the phone session's figure (§8, *With a computer*) decide G7. The alternative is to exit Phase 3 on Skia, whose opt-out Flutter will remove.
-3. **FULL against NORMAL** (ADR-0008) needs the repository's integration test run on a phone, which needs Flutter on a computer. **Recommended:** move it to Phase 4's Firebase Test Lab runs, which you chose for tests that need no computer attached.
-4. **Flutter 3.50.0** is still open: it needs AGP 9.1.1 or later and KGP 2.4.10 or later (BUILD_AND_RELEASE §3). The app stays on 3.47.9 until you decide.
+**Owner decisions at acceptance (2026-11-12).** The report asked four questions, and the owner answered:
+1. **Phase 3 is accepted** ("yeah I accept, I'll do it after this slice"). The owner runs the exit phone session after the next slice of work (§8).
+2. **G7's cold start: the exit session's phone figure decides,** for now ("your recommendation is ok for now"). Impeller stays.
+3. **FULL against NORMAL moves to Phase 4's Firebase Test Lab runs.** The owner adds the Firebase project and its CI credential after the next slice ("yeah I will add it after this slice").
+4. **Flutter 3.50.0 is taken, with the Android Gradle Plugin and Kotlin's Gradle plugin upgraded together** ("so we upgrade all of them together"). Following the 3.50.0 template, as since Phase 1, that means AGP 9.3.1, Kotlin 2.4.20 and Gradle 9.5.0 (BUILD_AND_RELEASE §3).
 
 ## 2. Evidence index
 
@@ -191,6 +191,8 @@ The two renderers run the same app code, which awaits only the preferences befor
 
 ## 8. The exit phone session
 
+**Decided at acceptance (2026-11-12):** the owner runs the session after the next slice of work. If that slice changes the app, the checklist will name the newer phase-gate build; Phase 3's final build (artifact 13975424637) stays downloadable until 2026-12-12.
+
 The owner chose one session at Phase 3's exit for every check parked since Phase 1 (2026-11-11). [PHASE_3_PHONE_CHECKLIST.md](PHASE_3_PHONE_CHECKLIST.md) has all of them, on the profile APK of the exit gate, in about 75 minutes: Impeller and frame timing, folders on the owner's phone (picker, outside changes, restart, reconnect), large files with the policy and the save pause, the keyboard (Gboard) matrix, the selection matrix, TalkBack over Phases 1–3's chrome, cold start and memory with adb (optional), and backup with a Google account.
 
 | Check | From | Result |
@@ -203,13 +205,13 @@ The owner chose one session at Phase 3's exit for every check parked since Phase
 | TalkBack spot-check (16 items) | Phases 1–3 | not run yet |
 | Cold start (G7) and memory, with adb | Phase 3 W6, ADR-0004 | not run yet |
 | Backup with a Google account | Phase 3 W1, ADR-0012 | not run yet |
-| FULL against NORMAL (ADR-0008) | Phase 2 W7 | proposed for Phase 4's Firebase Test Lab (decision 3) |
+| FULL against NORMAL (ADR-0008) | Phase 2 W7 | moved to Phase 4's Firebase Test Lab (owner decision 2026-11-12) |
 
 ## 9. Deviations and known limitations
 
 ### 9.1 Deviations from the plan (documented as built)
 
-- **G7's cold start is not reliably met on the emulator** with Impeller: two of five gates over the budget, the exit gate within it (§7.2, decision 2).
+- **G7's cold start is not reliably met on the emulator** with Impeller: two of five gates over the budget, the exit gate within it (§7.2). The owner decided at acceptance that the exit session's phone figure decides (§1).
 - **The benchmark driver.** The owner's item was a reconnect "so that every gate has complete figures". The reconnect is built and tested (7 vitest tests), but no Phase 3 gate has dropped an open session, so it has not met a real drop. What did cost figures was different: in gates 43222339848 and 43247963954 the driver never reached one engine's page, and the first fix (f9a4b43) polled another app's frozen DevTools socket so often that adb stalled for half an hour. Since 1680e1d the driver limits every call and forwards only to the app's own socket. Gate 43270594252 drove both engines without a stall, and so did the exit gate, 43284276984.
 - **No intermediate "next" after W6:** the owner let the agent continue into W7 (§1).
 - **One phase gate per work package** stayed the rule, but W6 needed four: Impeller's run, the measurements, and two driver fixes. W7 cancelled one (43281243239) that a later commit superseded.
@@ -225,7 +227,7 @@ The owner chose one session at Phase 3's exit for every check parked since Phase
 | `FolderWatches.kt` has no JVM test; services coverage 79.4 % | covered on the emulator only | Phase 4, if a fake provider can host a cursor's observer |
 | Undo history doesn't survive a process death; the unsaved text does | accepted 2026-11-11 | revisit if it becomes a problem |
 | The status strip shows a fixed branch chip, `main`, until Git arrives | its tooltip says so | Phase 7 |
-| Flutter 3.50.0 needs AGP 9.1.1 and KGP 2.4.10 | the app stays on 3.47.9 | owner decision (decision 4) |
+| Flutter 3.50.0 needs AGP 9.1.1 and KGP 2.4.10 | the app stayed on 3.47.9 through Phase 3 | **decided 2026-11-12:** upgraded together after acceptance (§1, decision 4) |
 | Other text encodings, search across files, copying between projects and folders | refused, Phase 4, decided with the runtime | ROADMAP; PHASE_3_PLAN §8 |
 
 ### 9.3 Gate history
@@ -236,6 +238,6 @@ The owner chose one session at Phase 3's exit for every check parked since Phase
 
 ## 10. Next-phase readiness (Phase 4 — Runtime integration)
 
-- **Owner actions before Phase 4** (ROADMAP's decision queue): the licence direction (ADR-0011), by Phase 4's start; a free Firebase project and one CI credential for Test Lab (ADR-0009); t1's PR #81 merged.
-- **Carried in:** search across files with the runtime (ripgrep in projects, a scan in folders); how a folder reaches the runtime (a copy into a project, or import and export); minSdk 26 verified on API 26–28 emulators; Flutter 3.50.0 if decided.
+- **Owner actions before Phase 4** (ROADMAP's decision queue): the licence direction (ADR-0011), by Phase 4's start; a free Firebase project and one CI credential for Test Lab (ADR-0009), which the owner adds after the next slice; t1's PR #81 merged.
+- **Carried in:** search across files with the runtime (ripgrep in projects, a scan in folders); how a folder reaches the runtime (a copy into a project, or import and export); minSdk 26 verified on API 26–28 emulators; FULL against NORMAL on Test Lab's phones. Phase 4 starts on Flutter 3.50.0.
 - **Ready:** the storage model's two workspace kinds exist (RUNTIME_INTEGRATION §4); the Kotlin host has its first real surface, a typed Pigeon API and JVM tests in CI; the emulator gate has a host-side driver for Android's own UI.
