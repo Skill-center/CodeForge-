@@ -131,6 +131,25 @@ jobs:
           flutter build apk --release --target-platform android-x64
           cp build/app/outputs/flutter-apk/app-release.apk build/gate/app-release-x64.apk
 
+      # The same release APK rendering with Skia, for the cold-start group to
+      # time beside the shipped one (Phase 3 W6: Impeller's first gate timed
+      # cold start at 1688 ms, against 755-1372 ms on Skia in earlier gates).
+      # The manifest gets Flutter's opt-out for this build only, and is put
+      # back at once. Never shipped.
+      - name: Build release APK with Skia (x86_64, cold-start comparison)
+        continue-on-error: true
+        run: |
+          manifest=android/app/src/main/AndroidManifest.xml
+          cp "$manifest" "$RUNNER_TEMP/AndroidManifest.xml"
+          status=0
+          python3 tool/ci/skia_manifest.py "$manifest" \
+            && flutter build apk --release --target-platform android-x64 \
+            && cp build/app/outputs/flutter-apk/app-release.apk \
+                 build/gate/app-release-x64-skia.apk || status=$?
+          cp "$RUNNER_TEMP/AndroidManifest.xml" "$manifest"
+          git diff --exit-code -- "$manifest"
+          exit "$status"
+
       # Phase 2 W3 engine benchmark pages (CodeMirror 6 + Monaco), built only
       # now: the release APK above stays free of them, while the phone APK
       # and the integration tests below (which rebuild the debug APK) bundle

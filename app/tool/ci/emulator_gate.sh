@@ -17,7 +17,9 @@
 #                                  Phase 3 W3 G5: the gate folder the restore
 #                                  pair opens through Android's picker, the
 #                                  driver's log and the picker's last screen
-#   coldstart*.txt / perf.json     G6 measurement (record-only)
+#   coldstart*.txt / perf.json     G6 measurement (record-only); since Phase 3
+#                                  W6 also the same build with Skia, and the
+#                                  shipped one again (coldstart_skia|again.txt)
 #   editing.txt                    Phase 2 W6 G5: find, replace, go to line
 #   keys.txt / keys_injector.txt   Phase 2 W6 G6: toolbar touches and hardware
 #                                  shortcuts, injected through adb (below);
@@ -1442,6 +1444,60 @@ debug_bytes=$(stat -c %s build/gate/app-plain-debug.apk 2>/dev/null || echo 0)
   echo "budget_ms=1500 within_budget=$within"
   [ "$installed" = "1" ] || echo "install_failed_record_only=true"
 } | tee "$RESULTS/coldstart-summary.txt"
+# The renderer comparison (Phase 3 W6): the same release build with Skia
+# (built with Flutter's opt-out by phase-gate.yml), timed the same way right
+# after, then the shipped APK once more, so that drift between the blocks
+# shows. Record-only; the budget above stays on the first block, as in
+# every gate before.
+# cold_runs <file>: 10 cold starts of the installed app into <file>; prints
+# the TotalTime samples.
+cold_runs() {
+  local run out t list=""
+  : > "$RESULTS/$1"
+  for run in $(seq 1 10); do
+    "$ADB" shell am force-stop "$APP_ID" || true
+    sleep 2
+    out=$("$ADB" shell am start -W -n "$APP_ID/.MainActivity" 2>&1 | tr -d '\r')
+    printf '%s\n' "--- run $run" "$out" >> "$RESULTS/$1"
+    t=$(printf '%s\n' "$out" | awk '/TotalTime:/ {print $2}')
+    [ -n "$t" ] && list="$list $t"
+  done
+  echo "$list"
+}
+# median_of <samples...>: their median (0 for none).
+median_of() {
+  [ "$#" -gt 0 ] || { echo 0; return; }
+  printf '%s\n' "$@" | sort -n \
+    | awk '{a[NR]=$1} END {print (NR % 2) ? a[(NR + 1) / 2] : int((a[NR / 2] + a[NR / 2 + 1]) / 2)}'
+}
+# cold_install <apk> <log>: the app replaced by <apk>.
+cold_install() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  "$ADB" install "$1" > "$RESULTS/$2" 2>&1
+}
+SKIA_APK=build/gate/app-release-x64-skia.apk
+skia_samples=""
+again_samples=""
+if [ "$installed" = "1" ] && [ "$COLD_KIND" = "release-x64" ] && [ -f "$SKIA_APK" ]; then
+  if cold_install "$SKIA_APK" install_skia.txt; then
+    skia_samples=$(cold_runs coldstart_skia.txt)
+  fi
+  if cold_install "$COLD_APK" install_again.txt; then
+    again_samples=$(cold_runs coldstart_again.txt)
+  fi
+fi
+# shellcheck disable=SC2086 # word-split the sample lists on purpose.
+skia_median=$(median_of $skia_samples)
+# shellcheck disable=SC2086
+again_median=$(median_of $again_samples)
+# shellcheck disable=SC2086
+skia_json=$(echo $skia_samples | tr ' ' ',')
+# shellcheck disable=SC2086
+again_json=$(echo $again_samples | tr ' ' ',')
+{
+  echo "cold_start_skia_median_ms=$skia_median (same build, EnableImpeller=false; comparison, not shipped)"
+  echo "cold_start_again_median_ms=$again_median (the shipped APK once more, after Skia)"
+} | tee -a "$RESULTS/coldstart-summary.txt"
 # shellcheck disable=SC2086
 samples_json=$(echo $samples | tr ' ' ',')
 cat > "$RESULTS/perf.json" <<EOF
@@ -1458,6 +1514,17 @@ cat > "$RESULTS/perf.json" <<EOF
     "budget_ms": 1500,
     "within_budget": $within
   },
+  "cold_start_skia": {
+    "apk": "the same release build with EnableImpeller=false (comparison, not shipped)",
+    "samples_ms": [$skia_json],
+    "median_ms": $skia_median
+  },
+  "cold_start_again": {
+    "apk": "$COLD_KIND, once more after the Skia block",
+    "samples_ms": [$again_json],
+    "median_ms": $again_median
+  },
+  "renderer": "impeller (Flutter's default since Phase 3 W6)",
   "apk_bytes": {
     "debug": $debug_bytes,
     "cold_start_apk": $cold_bytes
