@@ -27,7 +27,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { listTargets, logger, PageSession, pressKey, processMemory, sleep, webViewForwarder } from './cdp_kit.mjs';
+import { listTargets, logger, PageSession, pressKey, probeTargets, processMemory, sleep, webViewForwarder } from './cdp_kit.mjs';
 
 const EDITOR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CASES = JSON.parse(readFileSync(join(EDITOR, 'bench', 'composition_cases.json'), 'utf8')).cases;
@@ -104,9 +104,11 @@ async function compositionSuite(cdp) {
   return { cases: results.length, failures: results.filter((r) => !r.ok).length, results };
 }
 
+const DRIVER_TITLE = /^codeforge-bench:(codemirror|monaco):driver$/;
+
 async function driverTargets(port) {
   const targets = await listTargets(port);
-  return targets.filter((t) => /^codeforge-bench:(codemirror|monaco):driver$/.test(t.title ?? ''));
+  return targets.filter((t) => DRIVER_TITLE.test(t.title ?? ''));
 }
 
 /**
@@ -167,25 +169,39 @@ const save = () => writeFileSync(args.out, `${JSON.stringify(report, null, 2)}\n
 save();
 const deadline = Date.now() + args.timeout * 1000;
 log(`waiting for benchmark pages (${args.adb ? `adb, ${args.package}` : `port ${args.port}`})`);
-// While no page waits for the driver, what DevTools lists is noted once a
-// minute, so that a gate whose driver never drove an engine shows why.
+// While no page waits for the driver, what it sees is noted once a minute,
+// so that a gate whose driver never drove an engine shows why.
 let noted = Date.now();
-const note = async () => {
+const note = (seen) => {
   if (Date.now() - noted < 60000) return;
   noted = Date.now();
-  const titles = (await listTargets(args.port)).map((t) => t.title || t.url || '?');
-  log(`still waiting: ${titles.length} DevTools targets${titles.length ? ` (${titles.join(', ')})` : ''}`);
+  log(`still waiting: ${seen}`);
 };
+// A DevTools socket that does not answer is left alone for QUIET_MS:
+// requests to it can pile up and stall adb (see webViewForwarder).
+const QUIET_MS = 30000;
+let quietUntil = 0;
 while (Date.now() < deadline) {
   if (args.engines && args.engines.every((e) => report.engines[e] && !report.engines[e].error)) break;
   if (!(await ensureForward().catch(() => false))) {
-    await note();
+    note('the app has no DevTools socket (not running, or no WebView yet)');
     await sleep(2000);
     continue;
   }
-  const [target] = await driverTargets(args.port);
+  if (Date.now() < quietUntil) {
+    await sleep(1000);
+    continue;
+  }
+  const { targets, error } = await probeTargets(args.port);
+  if (error === 'timeout') {
+    log(`DevTools did not answer; trying again in ${QUIET_MS / 1000} s`);
+    quietUntil = Date.now() + QUIET_MS;
+    continue;
+  }
+  const target = targets.find((t) => DRIVER_TITLE.test(t.title ?? ''));
   if (!target) {
-    await note();
+    const titles = targets.map((t) => t.title || t.url || '?');
+    note(`${titles.length} DevTools targets${titles.length ? ` (${titles.join(', ')})` : ''}${error ? ` (request ${error})` : ''}`);
     await sleep(1000);
     continue;
   }

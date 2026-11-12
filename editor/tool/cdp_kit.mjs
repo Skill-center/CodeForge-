@@ -170,26 +170,28 @@ export async function processMemory(args) {
 
 /**
  * A function that forwards local port `args.port` to the app's WebView
- * DevTools socket and says whether there is one. WebView names the socket
- * after the app's pid; /proc/net/unix (what chrome://inspect reads) is the
- * fallback when the pid is unknown. Without adb (a local Chromium on
+ * DevTools socket and says whether there is one to talk to. WebView names
+ * the socket after the app's pid. Without adb (a local Chromium on
  * `args.port`) there is nothing to forward.
+ *
+ * Only the app's own socket is forwarded, and only once /proc/net/unix (what
+ * chrome://inspect reads) lists it. Until Phase 3 W6, while the app was not
+ * running, the driver forwarded to the newest socket of any app. In phase
+ * gate 43256861510 that app never answered, most likely frozen in the
+ * background, and the driver, polling every few seconds by then, kept
+ * opening connections to it; adb stalled for half an hour (an install took
+ * 544 s), and a benchmark attempt failed.
  */
 export function webViewForwarder(args, log) {
   let forwardedSocket = null;
   return async function ensureForward() {
     if (!args.adb) return true;
     const pid = (await adb(['shell', 'pidof', args.package], args.adb).catch(() => '')).trim().split(/\s+/)[0];
-    // With the app's pid known its socket name is too (it may simply not
-    // exist yet: no WebView created so far). Without a pid the fallback may
-    // pick another app's socket, which is harmless: targets are matched by
-    // title, and the next poll re-forwards once the app is running.
-    let socket = /^\d+$/.test(pid ?? '') ? `webview_devtools_remote_${pid}` : null;
-    if (!socket) {
-      const unix = await adb(['shell', 'cat', '/proc/net/unix'], args.adb).catch(() => '');
-      socket = [...unix.matchAll(/@(webview_devtools_remote_\d+)/g)].pop()?.[1] ?? null;
-    }
-    if (!socket) return false;
+    if (!/^\d+$/.test(pid ?? '')) return false;
+    // The socket appears with the app's first WebView.
+    const socket = `webview_devtools_remote_${pid}`;
+    const unix = await adb(['shell', 'cat', '/proc/net/unix'], args.adb).catch(() => '');
+    if (!new RegExp(`@${socket}(?:\\s|$)`, 'm').test(unix)) return false;
     if (socket !== forwardedSocket) {
       await adb(['forward', `tcp:${args.port}`, `localabstract:${socket}`], args.adb);
       forwardedSocket = socket;
@@ -273,13 +275,23 @@ export class PageSession {
   }
 }
 
-/** The DevTools targets on `port` (empty when nothing answers within `timeoutMs`). */
-export async function listTargets(port, timeoutMs = 5000) {
+/**
+ * The DevTools targets on `port`, and why there are none: `error` is
+ * 'timeout' when nothing answered within `timeoutMs` (a caller should then
+ * leave the socket alone for a while: see webViewForwarder), 'failed' when
+ * the request failed, and null otherwise.
+ */
+export async function probeTargets(port, timeoutMs = 5000) {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(timeoutMs) });
     const targets = await response.json();
-    return Array.isArray(targets) ? targets : [];
-  } catch {
-    return [];
+    return { targets: Array.isArray(targets) ? targets : [], error: null };
+  } catch (error) {
+    return { targets: [], error: error?.name === 'TimeoutError' ? 'timeout' : 'failed' };
   }
+}
+
+/** The DevTools targets on `port` (empty when nothing answers within `timeoutMs`). */
+export async function listTargets(port, timeoutMs = 5000) {
+  return (await probeTargets(port, timeoutMs)).targets;
 }

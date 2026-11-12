@@ -1,12 +1,15 @@
 // @vitest-environment node
 // The benchmark driver's reconnect (Phase 3 W6, an owner decision): a
 // DevTools session that drops is found again and the stage runs again.
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createServer as createTcpServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { Cdp, DROPPED, PageSession, adb, isDropped, listTargets } from '../tool/cdp_kit.mjs';
+import { Cdp, DROPPED, PageSession, adb, isDropped, listTargets, probeTargets, webViewForwarder } from '../tool/cdp_kit.mjs';
 
 /** A fake connection: `evaluate` answers from `script`, in order. */
 function fakeCdp(script, log) {
@@ -175,6 +178,102 @@ describe('timeouts', () => {
     expect(String(failure.message)).toMatch(/^cannot connect to .*: no answer in 200 ms$/);
     expect(isDropped(failure)).toBe(true);
     for (const socket of sockets) socket.destroy();
+    server.close();
+  });
+});
+
+// A fake adb: `pidof` prints the file `pid` (and fails without it), `cat
+// /proc/net/unix` prints the file `unix`, and every call is kept in `calls`.
+function fakeAdb() {
+  const dir = mkdtempSync(join(tmpdir(), 'fake-adb-'));
+  const bin = join(dir, 'adb');
+  writeFileSync(
+    bin,
+    [
+      '#!/bin/sh',
+      `echo "$*" >> '${dir}/calls'`,
+      'case "$*" in',
+      `  "shell pidof dev.codeforge.app") cat '${dir}/pid' 2>/dev/null || exit 1 ;;`,
+      `  "shell cat /proc/net/unix") cat '${dir}/unix' 2>/dev/null ;;`,
+      'esac',
+      '',
+    ].join('\n'),
+  );
+  chmodSync(bin, 0o755);
+  return {
+    args: { adb: bin, package: 'dev.codeforge.app', port: 9222 },
+    set: (name, text) => writeFileSync(join(dir, name), text),
+    calls: () => {
+      try {
+        return readFileSync(join(dir, 'calls'), 'utf8').trim().split('\n');
+      } catch {
+        return [];
+      }
+    },
+    forwards: function () {
+      return this.calls().filter((c) => c.startsWith('forward '));
+    },
+    remove: () => rmSync(dir, { recursive: true, force: true }),
+  };
+}
+
+const unixLine = (name) => `0000000000000000: 00000002 00000000 00010000 0001 01 4242 @${name}\n`;
+
+// Phase gate 43256861510: forwarding to another app's socket while the app
+// was not running stalled adb for half an hour. Only the app's own socket,
+// once it exists, is forwarded.
+describe('webViewForwarder', () => {
+  it("never forwards to another app's socket while the app is not running", async () => {
+    const adbFake = fakeAdb();
+    adbFake.set('unix', `Num       RefCount Protocol Flags    Type St Inode Path\n${unixLine('webview_devtools_remote_4433')}`);
+    const ensureForward = webViewForwarder(adbFake.args, () => {});
+    expect(await ensureForward()).toBe(false);
+    expect(adbFake.forwards()).toEqual([]);
+    adbFake.remove();
+  });
+
+  it("waits for the app's socket, then forwards to it once", async () => {
+    const adbFake = fakeAdb();
+    const logged = [];
+    adbFake.set('pid', '7663\n');
+    adbFake.set('unix', unixLine('webview_devtools_remote_4433') + unixLine('webview_devtools_remote_76631'));
+    const ensureForward = webViewForwarder(adbFake.args, (m) => logged.push(m));
+    expect(await ensureForward()).toBe(false);
+    expect(adbFake.forwards()).toEqual([]);
+
+    adbFake.set('unix', unixLine('webview_devtools_remote_4433') + unixLine('webview_devtools_remote_7663'));
+    expect(await ensureForward()).toBe(true);
+    expect(await ensureForward()).toBe(true);
+    expect(adbFake.forwards()).toEqual(['forward tcp:9222 localabstract:webview_devtools_remote_7663']);
+    expect(logged).toEqual(['forwarded tcp:9222 to webview_devtools_remote_7663']);
+    adbFake.remove();
+  });
+});
+
+describe('probeTargets', () => {
+  it('tells a socket that does not answer from one that refuses', async () => {
+    const silent = createServer(() => {});
+    await new Promise((resolve) => silent.listen(0, '127.0.0.1', resolve));
+    expect(await probeTargets(silent.address().port, 200)).toEqual({ targets: [], error: 'timeout' });
+    silent.closeAllConnections();
+    silent.close();
+
+    const closed = createTcpServer();
+    await new Promise((resolve) => closed.listen(0, '127.0.0.1', resolve));
+    const { port } = closed.address();
+    await new Promise((resolve) => closed.close(resolve));
+    expect(await probeTargets(port, 2000)).toEqual({ targets: [], error: 'failed' });
+  });
+
+  it('returns the targets DevTools lists', async () => {
+    const targets = [{ id: 'A', title: 'codeforge-bench:codemirror:driver', type: 'page' }];
+    const server = createServer((_, response) => {
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify(targets));
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    expect(await probeTargets(server.address().port, 2000)).toEqual({ targets, error: null });
+    server.closeAllConnections();
     server.close();
   });
 });
