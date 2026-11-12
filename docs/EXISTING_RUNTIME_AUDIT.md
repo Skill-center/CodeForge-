@@ -1,6 +1,6 @@
 # Existing Runtime Audit — m-cyber12/t1 ("Coding Harness")
 
-**Audited:** 2026-11-05 · **Source:** https://github.com/m-cyber12/t1 · **Code branch:** `arena/f91bdedf-t1` @ `0e26d7a` (open PR #81 → `main`) · **Upstream version:** 0.33.1 (versionCode 40)
+**Audited:** 2026-11-05 · **Source:** https://github.com/m-cyber12/t1 · **Code branch:** `arena/f91bdedf-t1` @ `0e26d7a` (then open as PR #81 → `main`; **merged on 2026-11-11 as PR #229**, main `7b496c3`, the same tree) · **Upstream version:** 0.33.1 (versionCode 40)
 
 > `main` contains only a 5-byte README. All findings below refer to the PR branch. The repository also carries hundreds of `diagnostics/e2e-*`, `diagnostics/sealed-*-sdk{34,36}`, and `diagnostics/exec-model-*` branches — CI evidence snapshots published every 5 minutes during emulator runs. CodeForge will use workflow artifacts instead (see [BUILD_AND_RELEASE.md](BUILD_AND_RELEASE.md)).
 

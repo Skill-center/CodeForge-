@@ -16,6 +16,8 @@ Owner chose "decide later". The audit found:
 | **B. Permissive app (Apache-2.0/MIT)** | Apache-2.0 or MIT | xterm.js (B in ADR-0006); PTY JNI only under verified Apache-2.0 lineage or rewritten (~200 lines, clean-room) | Do not vendor Termux-modified modules; userland notices + source offer still required |
 | **C. Source-available/proprietary** | custom | same constraints as B | Legal review of every vendored file; userland obligations unchanged |
 
+**Found while planning Phase 4 (2026-11-12, [PHASE_4_PLAN](../phases/PHASE_4_PLAN.md) §0):** the runtime core that Phase 4 vendors needs no Termux code. `ExecModelTest`, `SealedShellTest`, the command runner (`ProcessBuilder`), the environment, the toolchain probes, the payload installer, the `sealed-runtime` kernel and the preload helpers are t1's own; only `HarnessSession` (on Termux's `TerminalSession`), the PTY in `termux.c` and `terminal-view` are Termux-derived. So the path decides the terminal, not the runtime core. One more point for path A: t1's pack installer uses Google's Play Feature Delivery library, published under the Play Core Software Development Kit Terms of Service rather than an open-source licence, which a GPLv3 Play build with packs would combine with Termux's GPLv3 code.
+
 ## Interim rules (until decided)
 1. All CodeForge-original code keeps clear ownership headers; no license file committed yet (avoid implying a grant).
 2. Nothing GPL-derived is vendored before the decision (Phase 4 vendoring starts with the decision).

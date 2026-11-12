@@ -4,6 +4,9 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 4 planned (2026-11-12)
+- [PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md): runtime integration in eight work packages, starting with the toolchain upgrade (Flutter 3.50.0, AGP 9.3.1, Kotlin 2.4.20, Gradle 9.5.0, and the move to `package:material_ui` that 3.50 requires). The vendoring waits for the licence decision (ADR-0011). Found while planning: t1's code was merged as PR #229; Firebase Test Lab shuts down on 2027-09-30.
+
 ### Phase 3 accepted (2026-11-12)
 - The owner accepted Phase 3 and decided: the exit phone session runs after the next slice of work; G7's cold start is judged by that session's phone figure, and Impeller stays; FULL against NORMAL (ADR-0008) moves to Phase 4's Firebase Test Lab runs; Flutter 3.50.0, the Android Gradle Plugin and Kotlin's Gradle plugin are upgraded together ([PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md) §1).
 
