@@ -2,7 +2,7 @@ smoke attempt=1 exit=0
 editor attempt=1 exit=0
 editing attempt=1 exit=0
 keys attempt=1 exit=0
-keys_events: 2 ANRs, 0 crashes since boot
+keys_events: 0 ANRs, 0 crashes since boot
 editor_bench_codemirror attempt=1 exit=0
 editor_bench_monaco attempt=1 exit=0
 large_files_itest attempt=1 exit=0
@@ -37,7 +37,20 @@ explorer_disk_checks=19 explorer_listings=3
 watch_itest attempt=1 exit=0
 watch_group=pass
 watch_picker_picked=1 watch_outside_changes=12 watch_backgrounded=2
-watch_reload project 632 ms (device clock)
-watch_resume project 381 ms (from coming back)
-watch_reload folder 813 ms (device clock)
-watch_resume folder 367 ms (from coming back)
+watch_reload project 802 ms (device clock)
+watch_resume project 492 ms (from coming back)
+watch_reload folder 739 ms (device clock)
+watch_resume folder 719 ms (from coming back)
+measure_itest attempt=1 exit=0
+measure_group=pass
+measure_picker_picked=1
+measure: project of 10000 files written in 3792 ms (setup)
+measure: project opened in 331 ms (root listed)
+measure: Go to File's index of 10000 files in 239 ms (median of 3: 272, 239, 132)
+measure: dart:io 1048614 chars: write 29 ms, read 25 ms (medians of 3)
+measure: dart:io 10485681 chars: write 76 ms, read 29 ms (medians of 3)
+measure: digest of 10 MiB on the UI isolate: 280 ms, 0 frames, longest without one 280 ms
+measure: digest of 10 MiB on a background isolate: 821 ms, 14 frames, longest without one 96 ms
+measure: listing 1000 entries through the broker: 572 ms (median of 3: 572, 651, 476)
+measure: broker 1048614 chars: write 80 ms, read 45 ms (medians of 3)
+measure: broker 10485681 chars: write 135 ms, read 79 ms (medians of 3)
