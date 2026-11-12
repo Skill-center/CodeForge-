@@ -586,59 +586,68 @@ void main() {
   });
 
   group('outside changes (Phase 3 W5, G4)', () {
-    test('stat answers the stamp a read gives, and why there is none', () async {
-      final files = await _opened();
-      final read = (await files.readText('main.js')).orThrow;
-      expect((await files.stat('main.js')).orThrow, read.stamp);
-      _file('main.js').writeAsStringSync('console.log(2); // longer\n');
-      final changed = (await files.stat('main.js')).orThrow;
-      expect(changed, isNot(read.stamp));
-      expect(changed, (await files.readText('main.js')).orThrow.stamp);
-      expect(
-        (await files.stat('gone.js')).failureOrNull,
-        _fails(FileProblem.notFound),
-      );
-      expect((await files.stat('src')).failureOrNull, _fails(FileProblem.wrongType));
-      expect(
-        (await files.stat('../outside')).failureOrNull,
-        _fails(FileProblem.invalidPath),
-      );
-    });
+    test(
+      'stat answers the stamp a read gives, and why there is none',
+      () async {
+        final files = await _opened();
+        final read = (await files.readText('main.js')).orThrow;
+        expect((await files.stat('main.js')).orThrow, read.stamp);
+        _file('main.js').writeAsStringSync('console.log(2); // longer\n');
+        final changed = (await files.stat('main.js')).orThrow;
+        expect(changed, isNot(read.stamp));
+        expect(changed, (await files.readText('main.js')).orThrow.stamp);
+        expect(
+          (await files.stat('gone.js')).failureOrNull,
+          _fails(FileProblem.notFound),
+        );
+        expect(
+          (await files.stat('src')).failureOrNull,
+          _fails(FileProblem.wrongType),
+        );
+        expect(
+          (await files.stat('../outside')).failureOrNull,
+          _fails(FileProblem.invalidPath),
+        );
+      },
+    );
 
-    test('a watched folder tells of files written, made and deleted in it', () async {
-      final files = await _opened();
-      var notices = 0;
-      final subscription = files.watchFolder('src').listen((_) => notices++);
-      // inotify is armed once the stream is listened to and the path is
-      // resolved: give it a moment.
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      Future<void> expectNotice(String what) async {
-        final before = notices;
-        final watch = Stopwatch()..start();
-        while (notices == before) {
-          if (watch.elapsed > const Duration(seconds: 5)) {
-            fail('No notice for $what.');
+    test(
+      'a watched folder tells of files written, made and deleted in it',
+      () async {
+        final files = await _opened();
+        var notices = 0;
+        final subscription = files.watchFolder('src').listen((_) => notices++);
+        // inotify is armed once the stream is listened to and the path is
+        // resolved: give it a moment.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        Future<void> expectNotice(String what) async {
+          final before = notices;
+          final watch = Stopwatch()..start();
+          while (notices == before) {
+            if (watch.elapsed > const Duration(seconds: 5)) {
+              fail('No notice for $what.');
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 20));
           }
-          await Future<void>.delayed(const Duration(milliseconds: 20));
         }
-      }
 
-      _file('src/app.py').writeAsStringSync('print(2)\n');
-      await expectNotice('a write');
-      _file('src/new.txt').writeAsStringSync('new\n');
-      await expectNotice('a new file');
-      _file('src/new.txt').deleteSync();
-      await expectNotice('a delete');
-      // Not recursive: a folder inside is its own watch.
-      Directory('$_root/src/deeper').createSync();
-      await expectNotice('a new folder');
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      final quiet = notices;
-      _file('src/deeper/inside.txt').writeAsStringSync('x\n');
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      expect(notices, quiet, reason: 'a change one level down');
-      await subscription.cancel();
-    });
+        _file('src/app.py').writeAsStringSync('print(2)\n');
+        await expectNotice('a write');
+        _file('src/new.txt').writeAsStringSync('new\n');
+        await expectNotice('a new file');
+        _file('src/new.txt').deleteSync();
+        await expectNotice('a delete');
+        // Not recursive: a folder inside is its own watch.
+        Directory('$_root/src/deeper').createSync();
+        await expectNotice('a new folder');
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        final quiet = notices;
+        _file('src/deeper/inside.txt').writeAsStringSync('x\n');
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        expect(notices, quiet, reason: 'a change one level down');
+        await subscription.cancel();
+      },
+    );
 
     test('a folder that is not there cannot be watched', () async {
       final files = await _opened();

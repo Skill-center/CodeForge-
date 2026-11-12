@@ -73,8 +73,7 @@ final class _World {
 
   FakeEditorSurface get page => pages.single;
 
-  FileWatchController get watcher =>
-      container.read(fileWatchProvider.notifier);
+  FileWatchController get watcher => container.read(fileWatchProvider.notifier);
 
   OpenDocument doc(String path) => state.documents[path]!;
 
@@ -209,20 +208,23 @@ void main() {
       expect(w.files.textOf('main.js'), 'changed outside\n// more\n');
     });
 
-    test('a file touched without a new text only takes the new stamp', () async {
-      final w = _World();
-      await w.start();
-      await w.open('utils.js');
-      final before = w.doc('utils.js').stamp;
-      w.files.putText('utils.js', w.files.textOf('utils.js')!);
-      await _until(
-        () => w.doc('utils.js').stamp != before,
-        what: 'the new stamp',
-      );
-      expect(w.page.replaces, 0);
-      expect(w.notices, isEmpty);
-      expect(w.doc('utils.js').dirty, isFalse);
-    });
+    test(
+      'a file touched without a new text only takes the new stamp',
+      () async {
+        final w = _World();
+        await w.start();
+        await w.open('utils.js');
+        final before = w.doc('utils.js').stamp;
+        w.files.putText('utils.js', w.files.textOf('utils.js')!);
+        await _until(
+          () => w.doc('utils.js').stamp != before,
+          what: 'the new stamp',
+        );
+        expect(w.page.replaces, 0);
+        expect(w.notices, isEmpty);
+        expect(w.doc('utils.js').dirty, isFalse);
+      },
+    );
 
     test('typing that races the reload wins: the page refuses it', () async {
       final w = _World();
@@ -417,13 +419,15 @@ void main() {
       await w.start();
       final index = w.container.read(fileIndexProvider.notifier);
       await index.rebuild();
-      List<String> indexed() =>
-          [for (final f in w.container.read(fileIndexProvider).files) f.path];
+      List<String> indexed() => [
+        for (final f in w.container.read(fileIndexProvider).files) f.path,
+      ];
       List<String> rootNames() => [
-        for (final e in w.container
-            .read(workspaceControllerProvider)
-            .listings['']!
-            .valueOrNull!)
+        for (final e
+            in w.container
+                .read(workspaceControllerProvider)
+                .listings['']!
+                .valueOrNull!)
           e.name,
       ];
 
@@ -476,7 +480,9 @@ void main() {
         ..remove('src/greeting.dart')
         ..remove('src/notes.txt');
       await _until(
-        () => !w.container.read(workspaceControllerProvider).listings
+        () => !w.container
+            .read(workspaceControllerProvider)
+            .listings
             .containsKey('src'),
         what: 'the listing to go',
       );
@@ -486,10 +492,11 @@ void main() {
 
   group('re-checked without notices', () {
     test('every few seconds in the foreground', () async {
-      final files = MemoryFileService()..failWatch = const FileFailure(
-        'This storage sends no notices.',
-        problem: FileProblem.unsupported,
-      );
+      final files = MemoryFileService()
+        ..failWatch = const FileFailure(
+          'This storage sends no notices.',
+          problem: FileProblem.unsupported,
+        );
       final w = _World(
         files: files,
         settings: const FileWatchSettings(
@@ -507,10 +514,11 @@ void main() {
     });
 
     test('when a tab is activated', () async {
-      final files = MemoryFileService()..failWatch = const FileFailure(
-        'This storage sends no notices.',
-        problem: FileProblem.unsupported,
-      );
+      final files = MemoryFileService()
+        ..failWatch = const FileFailure(
+          'This storage sends no notices.',
+          problem: FileProblem.unsupported,
+        );
       final w = _World(files: files);
       await w.start();
       await w.open('main.js');
@@ -525,27 +533,29 @@ void main() {
       );
     });
 
-    test('in the background nothing runs, and coming back catches up', () async {
-      final w = _World();
-      await w.start();
-      await w.open('main.js');
-      w.watcher.paused();
-      w.files
-        ..putText('main.js', 'changed while away\n')
-        ..putText('away.txt', 'new\n');
-      await _quiet();
-      expect(w.pageText('main.js'), isNot('changed while away\n'));
-      await w.watcher.resumed();
-      await _until(
-        () => w.pageText('main.js') == 'changed while away\n',
-        what: 'the resume check',
-      );
-      final root = w.container.read(workspaceControllerProvider).listings['']!;
-      expect(
-        root.valueOrNull!.map((e) => e.name),
-        contains('away.txt'),
-      );
-    });
+    test(
+      'in the background nothing runs, and coming back catches up',
+      () async {
+        final w = _World();
+        await w.start();
+        await w.open('main.js');
+        w.watcher.paused();
+        w.files
+          ..putText('main.js', 'changed while away\n')
+          ..putText('away.txt', 'new\n');
+        await _quiet();
+        expect(w.pageText('main.js'), isNot('changed while away\n'));
+        await w.watcher.resumed();
+        await _until(
+          () => w.pageText('main.js') == 'changed while away\n',
+          what: 'the resume check',
+        );
+        final root = w.container
+            .read(workspaceControllerProvider)
+            .listings['']!;
+        expect(root.valueOrNull!.map((e) => e.name), contains('away.txt'));
+      },
+    );
   });
 
   group('a folder from shared storage', () {

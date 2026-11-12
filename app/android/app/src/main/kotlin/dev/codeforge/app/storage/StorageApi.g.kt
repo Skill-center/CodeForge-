@@ -15,6 +15,9 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 private object StorageApiPigeonUtils {
 
+  fun createConnectionError(channelName: String): FlutterError {
+    return FlutterError("channel-error",  "Unable to establish connection on channel: '$channelName'.", "")  }
+
   fun wrapResult(result: Any?): List<Any?> {
     return listOf(result)
   }
@@ -596,6 +599,19 @@ interface StorageApi {
    * does not say), or null when the user backs out.
    */
   fun saveDocument(suggestedName: String, mimeType: String, bytes: ByteArray, initialUri: String?, callback: (Result<String?>) -> Unit)
+  /**
+   * Starts change notices for the folder at [path] (Phase 3 W5): its
+   * children query stays open, and the provider says when the rows behind
+   * it change, as Android's own provider does while such a query is open.
+   * Notices arrive through [StorageEvents.folderChanged] with [watchId]
+   * until [unwatch]. False when the provider gave no query to keep open.
+   */
+  fun watch(treeUri: String, path: String, watchId: Long, callback: (Result<Boolean>) -> Unit)
+  /**
+   * Stops [watchId]'s notices and closes its query. An id that is not
+   * watched is ignored.
+   */
+  fun unwatch(watchId: Long, callback: (Result<Unit>) -> Unit)
 
   companion object {
     /** The codec used by StorageApi. */
@@ -900,6 +916,82 @@ interface StorageApi {
           channel.setMessageHandler(null)
         }
       }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.watch$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val treeUriArg = args[0] as String
+            val pathArg = args[1] as String
+            val watchIdArg = args[2] as Long
+            api.watch(treeUriArg, pathArg, watchIdArg) { result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(StorageApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.unwatch$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val watchIdArg = args[0] as Long
+            api.unwatch(watchIdArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(StorageApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+    }
+  }
+}
+/**
+ * What the storage broker tells Dart unasked (Phase 3 W5).
+ *
+ * Generated class from Pigeon that represents Flutter messages that can be called from Kotlin.
+ */
+class StorageEvents(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+  companion object {
+    /** The codec used by StorageEvents. */
+    val codec: MessageCodec<Any?> by lazy {
+      StorageApiPigeonCodec()
+    }
+  }
+  /**
+   * Something in [watchId]'s folder changed: an entry was created,
+   * written, renamed or deleted. Notices for one folder arrive at most
+   * every 100 ms.
+   */
+  fun folderChanged(watchIdArg: Long, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.codeforge.StorageEvents.folderChanged$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(watchIdArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(StorageApiPigeonUtils.createConnectionError(channelName)))
+      } 
     }
   }
 }

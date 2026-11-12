@@ -28,9 +28,7 @@ DocumentsState _state(WidgetTester tester) =>
 
 Future<TestHarness> _pumpWorkbench(WidgetTester tester) async {
   setSurface(tester, 1280, 800);
-  final harness = TestHarness(
-    shell: const ShellState(lastRoute: '/workspace'),
-  );
+  final harness = TestHarness(shell: const ShellState(lastRoute: '/workspace'));
   await tester.pumpWidget(harness.app());
   await tester.pumpAndSettle();
   return harness;
@@ -72,7 +70,10 @@ void main() {
     expect(_state(tester).activePath, 'main.js');
     harness.files.putText('main.js', '// rewritten by a formatter\n');
     await _afterBatch(tester);
-    expect(_pageText(tester, harness, 'main.js'), '// rewritten by a formatter\n');
+    expect(
+      _pageText(tester, harness, 'main.js'),
+      '// rewritten by a formatter\n',
+    );
     expect(_state(tester).documents['main.js']!.dirty, isFalse);
     expect(
       find.text('main.js changed on disk and was reloaded.'),
@@ -155,7 +156,10 @@ void main() {
     harness.files.remove('main.js');
     await _afterBatch(tester);
     expect(_state(tester).isOpen('main.js'), isFalse);
-    expect(find.text('main.js was deleted on disk, so its tab closed.'), findsOneWidget);
+    expect(
+      find.text('main.js was deleted on disk, so its tab closed.'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('tree_main.js')), findsNothing);
     await tester.pump(const Duration(seconds: 5));
   });

@@ -299,8 +299,7 @@ final class _App {
     expect(host.textOf(docId), before, reason: '$label: taken in while away');
     await gate.front();
     await _waitPlain(
-      () =>
-          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
+      () => WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
       what: '$label: the app to come back',
     );
     final back = DateTime.now();

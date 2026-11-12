@@ -34,6 +34,20 @@ Object? _extractReplyValueOrThrow(
   return replyList.firstOrNull;
 }
 
+List<Object?> wrapResponse({
+  Object? result,
+  PlatformException? error,
+  bool empty = false,
+}) {
+  if (empty) {
+    return <Object?>[];
+  }
+  if (error == null) {
+    return <Object?>[result];
+  }
+  return <Object?>[error.code, error.message, error.details];
+}
+
 bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) {
     return true;
@@ -809,5 +823,96 @@ class StorageApi {
       isNullValid: true,
     );
     return pigeonVar_replyValue as String?;
+  }
+
+  /// Starts change notices for the folder at [path] (Phase 3 W5): its
+  /// children query stays open, and the provider says when the rows behind
+  /// it change, as Android's own provider does while such a query is open.
+  /// Notices arrive through [StorageEvents.folderChanged] with [watchId]
+  /// until [unwatch]. False when the provider gave no query to keep open.
+  Future<bool> watch(String treeUri, String path, int watchId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.watch$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[treeUri, path, watchId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// Stops [watchId]'s notices and closes its query. An id that is not
+  /// watched is ignored.
+  Future<void> unwatch(int watchId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.unwatch$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[watchId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+}
+
+/// What the storage broker tells Dart unasked (Phase 3 W5).
+abstract class StorageEvents {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  /// Something in [watchId]'s folder changed: an entry was created,
+  /// written, renamed or deleted. Notices for one folder arrive at most
+  /// every 100 ms.
+  Future<void> folderChanged(int watchId);
+
+  static void setUp(
+    StorageEvents? api, {
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty
+        ? '.$messageChannelSuffix'
+        : '';
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.codeforge.StorageEvents.folderChanged$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_watchId = args[0]! as int;
+          try {
+            await api.folderChanged(arg_watchId);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
   }
 }

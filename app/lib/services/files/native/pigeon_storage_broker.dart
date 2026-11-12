@@ -192,18 +192,15 @@ final class PigeonStorageBroker implements StorageBroker {
       onListen: () {
         _hear();
         _watches[id] = controller;
-        started = _call(
-          'watch',
-          _quick,
-          () => _api.watch(treeUri, path, id),
-        ).then((result) {
-          if (result case Err<bool>(:final failure)) {
-            _watches.remove(id);
-            if (!controller.isClosed) {
-              controller.addError(failure);
-            }
-          }
-        });
+        started = _call('watch', _quick, () => _api.watch(treeUri, path, id))
+            .then((result) {
+              if (result case Err<bool>(:final failure)) {
+                _watches.remove(id);
+                if (!controller.isClosed) {
+                  controller.addError(failure);
+                }
+              }
+            });
       },
       onCancel: () async {
         _watches.remove(id);

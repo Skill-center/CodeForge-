@@ -449,9 +449,7 @@ void main() {
       });
       final broker = PigeonStorageBroker();
       var notices = 0;
-      final subscription = broker
-          .watch(_uri, 'src')
-          .listen((_) => notices++);
+      final subscription = broker.watch(_uri, 'src').listen((_) => notices++);
       final watch = Stopwatch()..start();
       while (asked.isEmpty && watch.elapsed < const Duration(seconds: 5)) {
         await Future<void>.delayed(const Duration(milliseconds: 5));
