@@ -167,14 +167,25 @@ const save = () => writeFileSync(args.out, `${JSON.stringify(report, null, 2)}\n
 save();
 const deadline = Date.now() + args.timeout * 1000;
 log(`waiting for benchmark pages (${args.adb ? `adb, ${args.package}` : `port ${args.port}`})`);
+// While no page waits for the driver, what DevTools lists is noted once a
+// minute, so that a gate whose driver never drove an engine shows why.
+let noted = Date.now();
+const note = async () => {
+  if (Date.now() - noted < 60000) return;
+  noted = Date.now();
+  const titles = (await listTargets(args.port)).map((t) => t.title || t.url || '?');
+  log(`still waiting: ${titles.length} DevTools targets${titles.length ? ` (${titles.join(', ')})` : ''}`);
+};
 while (Date.now() < deadline) {
   if (args.engines && args.engines.every((e) => report.engines[e] && !report.engines[e].error)) break;
   if (!(await ensureForward().catch(() => false))) {
+    await note();
     await sleep(2000);
     continue;
   }
   const [target] = await driverTargets(args.port);
   if (!target) {
+    await note();
     await sleep(1000);
     continue;
   }

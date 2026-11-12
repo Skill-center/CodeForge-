@@ -1,9 +1,12 @@
 // @vitest-environment node
 // The benchmark driver's reconnect (Phase 3 W6, an owner decision): a
 // DevTools session that drops is found again and the stage runs again.
+import { createServer } from 'node:http';
+import { createServer as createTcpServer } from 'node:net';
+
 import { describe, expect, it } from 'vitest';
 
-import { Cdp, DROPPED, PageSession, isDropped } from '../tool/cdp_kit.mjs';
+import { Cdp, DROPPED, PageSession, adb, isDropped, listTargets } from '../tool/cdp_kit.mjs';
 
 /** A fake connection: `evaluate` answers from `script`, in order. */
 function fakeCdp(script, log) {
@@ -140,5 +143,38 @@ describe('PageSession', () => {
     // A page that never comes back: the stage fails with "page not found".
     const lost = new PageSession({ find: async () => null, connect: page.connect, pollMs: 1, waitMs: 20 });
     await expect(lost.run('input mode', (cdp) => cdp.evaluate('mode'))).rejects.toThrow('page not found');
+  });
+});
+
+// A gate's driver once waited minutes on calls that never finished, and
+// missed a whole engine (Phase 3 W6): every call it makes now gives up.
+describe('timeouts', () => {
+  it('lists no targets when DevTools does not answer', async () => {
+    const server = createServer(() => {});
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    const started = Date.now();
+    expect(await listTargets(port, 200)).toEqual([]);
+    expect(Date.now() - started).toBeLessThan(3000);
+    server.closeAllConnections();
+    server.close();
+  });
+
+  it('stops an adb call that does not finish', async () => {
+    const started = Date.now();
+    await expect(adb(['5'], 'sleep', 200)).rejects.toThrow();
+    expect(Date.now() - started).toBeLessThan(3000);
+  });
+
+  it('fails a connection that never opens, as a dropped session', async () => {
+    const sockets = [];
+    const server = createTcpServer((socket) => sockets.push(socket));
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    const failure = await Cdp.connect(`ws://127.0.0.1:${port}/devtools/page/x`, 200).catch((e) => e);
+    expect(String(failure.message)).toMatch(/^cannot connect to .*: no answer in 200 ms$/);
+    expect(isDropped(failure)).toBe(true);
+    for (const socket of sockets) socket.destroy();
+    server.close();
   });
 });

@@ -33,11 +33,26 @@ export function isDropped(error) {
 }
 
 export class Cdp {
-  static async connect(url) {
+  /** Opens a session on `url`; a socket that does not open within `timeoutMs` fails. */
+  static async connect(url, timeoutMs = 10000) {
     const ws = new WebSocket(url);
     await new Promise((resolve, reject) => {
-      ws.onopen = resolve;
-      ws.onerror = () => reject(new Error(`cannot connect to ${url}`));
+      const timer = setTimeout(() => {
+        reject(new Error(`cannot connect to ${url}: no answer in ${timeoutMs} ms`));
+        try {
+          ws.close();
+        } catch {
+          // Not open yet.
+        }
+      }, timeoutMs);
+      ws.onopen = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      ws.onerror = () => {
+        clearTimeout(timer);
+        reject(new Error(`cannot connect to ${url}`));
+      };
     });
     return new Cdp(ws);
   }
@@ -110,8 +125,14 @@ export async function pressKey(cdp, ch) {
   await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...key });
 }
 
-export async function adb(args, bin) {
-  const { stdout } = await run(bin, args, { maxBuffer: 16 * 1024 * 1024 });
+/**
+ * Runs adb (or `bin`) with `args` and returns its output. A call that has not
+ * finished within `timeoutMs` is stopped and fails, so a stuck device can
+ * not hold a driver's loop (Phase 3 W6: a gate's driver waited minutes and
+ * missed a whole engine).
+ */
+export async function adb(args, bin, timeoutMs = 20000) {
+  const { stdout } = await run(bin, args, { maxBuffer: 16 * 1024 * 1024, timeout: timeoutMs });
   return stdout.replace(/\r/g, '');
 }
 
@@ -252,10 +273,10 @@ export class PageSession {
   }
 }
 
-/** The DevTools targets on `port` (empty when nothing answers). */
-export async function listTargets(port) {
+/** The DevTools targets on `port` (empty when nothing answers within `timeoutMs`). */
+export async function listTargets(port, timeoutMs = 5000) {
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/json/list`);
+    const response = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(timeoutMs) });
     const targets = await response.json();
     return Array.isArray(targets) ? targets : [];
   } catch {
