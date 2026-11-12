@@ -27,7 +27,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Cdp, listTargets, logger, pressKey, processMemory, sleep, webViewForwarder } from './cdp_kit.mjs';
+import { listTargets, logger, PageSession, pressKey, processMemory, sleep, webViewForwarder } from './cdp_kit.mjs';
 
 const EDITOR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CASES = JSON.parse(readFileSync(join(EDITOR, 'bench', 'composition_cases.json'), 'utf8')).cases;
@@ -109,34 +109,54 @@ async function driverTargets(port) {
   return targets.filter((t) => /^codeforge-bench:(codemirror|monaco):driver$/.test(t.title ?? ''));
 }
 
+/**
+ * The page being driven, found again after a dropped session (Phase 3 W6):
+ * the same target, or else the same engine's page waiting for the driver.
+ * The forward is renewed first, in case the app's socket moved.
+ */
+function findAgain(args, target) {
+  return async () => {
+    await ensureForward().catch(() => false);
+    const targets = await driverTargets(args.port);
+    return targets.find((t) => t.id === target.id) ?? targets.find((t) => t.title === target.title) ?? null;
+  };
+}
+
 async function drive(target, args) {
   const engine = target.title.split(':')[1];
   log(`driving ${engine} (${target.id})`);
-  const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
+  // Each stage sets the page up itself, so a stage that lost its session
+  // runs again from the start once the page is found again.
+  const session = new PageSession({ find: findAgain(args, target), log: (m) => log(`${engine}: ${m}`) });
   const summary = { engine, startedAt: new Date().toISOString() };
   try {
-    summary.inputMode = await cdp.evaluate('codeforgeBench.inputMode()');
-    summary.userAgent = await cdp.evaluate('navigator.userAgent');
-    summary.inputLatency = await inputLatency(cdp);
+    summary.inputMode = await session.run('input mode', (cdp) => cdp.evaluate('codeforgeBench.inputMode()'));
+    summary.userAgent = await session.run('user agent', (cdp) => cdp.evaluate('navigator.userAgent'));
+    summary.inputLatency = await session.run('input latency', inputLatency);
     log(`${engine}: input p50 ${summary.inputLatency.p50Ms} ms, p95 ${summary.inputLatency.p95Ms} ms`);
-    summary.composition = await compositionSuite(cdp);
+    summary.composition = await session.run('composition', compositionSuite);
     log(`${engine}: composition ${summary.composition.cases - summary.composition.failures}/${summary.composition.cases} ok`);
-    summary.memorySession = await cdp.evaluate('codeforgeBench.openLarge()', 120000);
-    summary.jsHeap = await cdp.evaluate(
-      'performance.memory ? { usedMB: Math.round(performance.memory.usedJSHeapSize / 104857.6) / 10, totalMB: Math.round(performance.memory.totalJSHeapSize / 104857.6) / 10 } : null',
+    summary.memorySession = await session.run('memory session', (cdp) => cdp.evaluate('codeforgeBench.openLarge()', 120000));
+    summary.jsHeap = await session.run('js heap', (cdp) =>
+      cdp.evaluate(
+        'performance.memory ? { usedMB: Math.round(performance.memory.usedJSHeapSize / 104857.6) / 10, totalMB: Math.round(performance.memory.totalJSHeapSize / 104857.6) / 10 } : null',
+      ),
     );
     summary.processMemory = await processMemory(args).catch((e) => ({ error: String(e.message ?? e) }));
-    summary.pageErrors = await cdp.evaluate('codeforgeBench.errors()');
+    summary.pageErrors = await session.run('page errors', (cdp) => cdp.evaluate('codeforgeBench.errors()'));
   } catch (e) {
     summary.error = String(e.message ?? e);
     log(`${engine}: ${summary.error}`);
   }
   try {
-    await cdp.evaluate(`codeforgeBench.driverDone(${JSON.stringify({ ok: !summary.error })})`);
+    await session.run('hand back', (cdp) =>
+      cdp.evaluate(`codeforgeBench.driverDone(${JSON.stringify({ ok: !summary.error })})`),
+    );
   } catch (e) {
     summary.handBackError = String(e.message ?? e);
   }
-  cdp.close();
+  summary.reconnects = session.reconnects;
+  session.close();
   return summary;
 }
 

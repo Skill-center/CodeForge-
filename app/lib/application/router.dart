@@ -2,7 +2,7 @@
 ///
 /// Initial location is the restored last route (whitelisted in ShellState).
 /// The dev gallery exists only in debug builds; the developer tools (editor
-/// benchmark, frame timing) in debug and profile builds.
+/// benchmark, frame timing, log viewer) in debug and profile builds.
 library;
 
 import 'package:flutter/foundation.dart';
@@ -15,6 +15,7 @@ import '../features/settings/appearance_screen.dart';
 import '../features/settings/dev_gallery_screen.dart';
 import '../features/settings/developer/editor_benchmark_screen.dart';
 import '../features/settings/developer/frame_timing_screen.dart';
+import '../features/settings/developer/log_viewer_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/workbench/workbench_screen.dart';
 import 'shell_controller.dart';
@@ -58,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: 'frame-timing',
               builder: (context, state) => const FrameTimingScreen(),
+            ),
+            GoRoute(
+              path: 'logs',
+              builder: (context, state) => const LogViewerScreen(),
             ),
           ],
         ],

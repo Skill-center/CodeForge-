@@ -153,6 +153,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.go('/settings/frame-timing'),
                 ),
                 CfSettingsTile(
+                  key: const ValueKey('settings_log_viewer'),
+                  leading: const Icon(CfIcons.receiptLong),
+                  title: 'Log viewer',
+                  subtitle: "This session's log, by level and tag",
+                  trailing: const Icon(CfIcons.chevronRight, size: 18),
+                  onTap: () => context.go('/settings/logs'),
+                ),
+                CfSettingsTile(
                   key: const ValueKey('settings_large_files'),
                   leading: const Icon(CfIcons.noteAdd),
                   title: 'Create large test files',

@@ -4,6 +4,8 @@
 /// stand in for the real five seconds.
 library;
 
+import 'dart:async';
+
 import 'package:codeforge/application/documents/document_journal.dart';
 import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/core/errors/failure.dart';
@@ -40,6 +42,7 @@ void main() {
 
   DocumentJournal journalWith({
     Duration interval = const Duration(seconds: 5),
+    TextDigester digester = digestText,
   }) {
     final journal = DocumentJournal(
       store: store,
@@ -62,6 +65,7 @@ void main() {
       onWrite: results.add,
       snapshotInterval: interval,
       clock: () => now,
+      digester: digester,
     );
     addTearDown(journal.dispose);
     return journal;
@@ -355,6 +359,64 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     expect((await stored(journal)).single.snapshot.text, 'a');
     expect(results.last.isOk, isTrue);
+  });
+
+  group("the saved text's digest (Phase 3 W6)", () {
+    test('a slow digest holds the snapshot, and later writes wait', () async {
+      final digests = <String, Completer<String>>{};
+      final journal = journalWith(
+        digester: (text) => (digests[text] = Completer<String>()).future,
+      );
+      docs['d1'] = _Doc('main.js', 'saved\n');
+      type(journal, 'd1', 'a');
+      type(journal, 'd1', 'b');
+      type(journal, 'd1', 'c');
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(store.inner.writes, 0, reason: 'the snapshot waits for its base');
+      expect(digests.keys, ['saved\n']);
+
+      digests['saved\n']!.complete('digest-of-saved');
+      final entries = await stored(journal);
+      expect(entries.single.snapshot.baseDigest, 'digest-of-saved');
+      expect(entries.single.snapshot.text, 'saved\na');
+      expect(entries.single.changes, hasLength(2));
+      expect(replayed(entries.single), 'saved\nabc');
+      expect(results.every((result) => result.isOk), isTrue);
+    });
+
+    test('is taken once per saved text', () async {
+      final asked = <String>[];
+      final journal = journalWith(
+        digester: (text) async {
+          asked.add(text);
+          return textDigest(text);
+        },
+      );
+      docs['d1'] = _Doc('main.js', 'v1\n');
+      type(journal, 'd1', 'a');
+      journal.refresh('d1');
+      journal.refresh('d1');
+      await journal.idle;
+      expect(asked, ['v1\n']);
+
+      // Saved: a new saved text, so a new digest.
+      docs['d1']!.saved = 'v1\na';
+      type(journal, 'd1', 'b');
+      journal.refresh('d1');
+      final entries = await stored(journal);
+      expect(asked, ['v1\n', 'v1\na']);
+      expect(entries.single.snapshot.baseDigest, textDigest('v1\na'));
+    });
+
+    test('of a long text is the same off the UI isolate', () async {
+      final saved = 'é€ line of saved text 😀\n' * 4000;
+      expect(saved.length, greaterThan(backgroundDigestChars));
+      final journal = journalWith();
+      docs['d1'] = _Doc('big.txt', saved);
+      type(journal, 'd1', 'x');
+      final entries = await stored(journal);
+      expect(entries.single.snapshot.baseDigest, textDigest(saved));
+    });
   });
 
   test('nothing is written after dispose', () async {

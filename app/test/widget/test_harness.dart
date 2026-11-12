@@ -14,6 +14,7 @@ import 'package:codeforge/application/bench/editor_bench_providers.dart';
 import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/keyboard_state.dart';
 import 'package:codeforge/application/providers.dart';
+import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/design_system/theme/theme.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
@@ -109,6 +110,8 @@ final class TestHarness {
     sessionStoreProvider.overrideWithValue(sessionStore),
     hardwareKeyboardSourceProvider.overrideWithValue(hardwareKeyboard),
     backupServiceProvider.overrideWithValue(backup),
+    // The fake clock never sees a background isolate finish (Phase 3 W6).
+    textDigesterProvider.overrideWithValue(digestTextInline),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),
     editorBenchRunnerFactoryProvider.overrideWithValue(
       benchRunnerFactory ?? fakeBenchRunnerFactory(),

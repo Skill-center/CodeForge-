@@ -84,6 +84,7 @@ final class DocumentController extends Notifier<DocumentsState> {
       store: ref.read(sessionStoreProvider),
       describe: _describe,
       onWrite: _onJournalWrite,
+      digester: ref.read(textDigesterProvider),
     );
     _journal = journal;
     ref.onDispose(() {
@@ -1141,6 +1142,16 @@ final class DocumentController extends Notifier<DocumentsState> {
     if (!ref.mounted || state.isOpen(path)) {
       return;
     }
+    // The saved text's digest, to tell whether the file changed since the
+    // journal was written: off the UI isolate when the text is long
+    // (Phase 3 W6). Not needed when the file is back to the replayed text.
+    String? savedDigest;
+    if (read case Ok<TextFile>(:final value) when value.text != replay.text) {
+      savedDigest = await ref.read(textDigesterProvider)(value.text);
+      if (!ref.mounted || state.isOpen(path)) {
+        return;
+      }
+    }
     var savedText = '';
     FileStamp? stamp;
     var mixedLineEndings = false;
@@ -1156,7 +1167,7 @@ final class DocumentController extends Notifier<DocumentsState> {
         savedText = value.text;
         stamp = value.stamp;
         mixedLineEndings = value.mixedLineEndings;
-        if (snapshot.baseDigest != textDigest(value.text)) {
+        if (snapshot.baseDigest != savedDigest) {
           conflict = DocumentConflict.changedOnDisk;
         }
       case Err<TextFile>(:final failure):

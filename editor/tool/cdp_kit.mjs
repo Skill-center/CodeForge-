@@ -19,6 +19,19 @@ export function logger(name) {
   return (message) => console.log(`[${name} ${new Date().toISOString().slice(11, 19)}] ${message}`);
 }
 
+/** What a request on a DevTools connection that closed fails with. */
+export const DROPPED = 'DevTools connection closed';
+
+/**
+ * Whether `error` means the DevTools session itself dropped (its socket
+ * closed, a request went unanswered, or a new connection failed), not that
+ * the page threw: what a reconnect may cure.
+ */
+export function isDropped(error) {
+  const message = String(error?.message ?? error);
+  return message === DROPPED || / timed out$/.test(message) || message.startsWith('cannot connect to ');
+}
+
 export class Cdp {
   static async connect(url) {
     const ws = new WebSocket(url);
@@ -44,12 +57,15 @@ export class Cdp {
     };
     ws.onclose = () => {
       this.closed = true;
-      for (const waiter of this.pending.values()) waiter.reject(new Error('DevTools connection closed'));
+      for (const waiter of this.pending.values()) waiter.reject(new Error(DROPPED));
       this.pending.clear();
     };
   }
 
   send(method, params = {}, timeoutMs = 60000) {
+    // A closed socket drops what is sent without a word: say so at once
+    // instead of waiting out the timeout.
+    if (this.closed) return Promise.reject(new Error(DROPPED));
     const id = (this.nextId += 1);
     this.ws.send(JSON.stringify({ id, method, params }));
     return new Promise((resolve, reject) => {
@@ -160,6 +176,80 @@ export function webViewForwarder(args, log) {
     }
     return true;
   };
+}
+
+/**
+ * One page's DevTools session that reconnects when it drops (Phase 3 W6, an
+ * owner decision): in Phase 2, 7 of the last 11 gates lost CodeMirror's
+ * memory figures when the connection closed during the memory session
+ * ("DevTools connection closed", then "Runtime.evaluate timed out" on the
+ * hand-back).
+ *
+ * `run(stage, fn)` calls `fn(cdp)` and returns what it returns. If the
+ * session dropped (`isDropped`), it finds the page again with `find()`
+ * (polling every `pollMs` for up to `waitMs`), connects with `connect(url)`,
+ * and calls `fn` again from the start, up to `attempts` calls in all; each
+ * stage starts by setting up the page, so a call can be repeated. An error
+ * from the page itself is thrown at once. Every reconnect is kept in
+ * `reconnects` for the report.
+ */
+export class PageSession {
+  constructor({ find, connect = (url) => Cdp.connect(url), log = () => {}, attempts = 3, waitMs = 30000, pollMs = 1000 }) {
+    this.find = find;
+    this.connect = connect;
+    this.log = log;
+    this.attempts = attempts;
+    this.waitMs = waitMs;
+    this.pollMs = pollMs;
+    this.cdp = null;
+    this.reconnects = [];
+  }
+
+  /** Connects to the page `find()` gives, waiting for it to show. */
+  async open() {
+    const deadline = Date.now() + this.waitMs;
+    let lastError = new Error('page not found');
+    for (;;) {
+      const target = await this.find().catch((e) => {
+        lastError = e;
+        return null;
+      });
+      if (target) {
+        try {
+          this.cdp = await this.connect(target.webSocketDebuggerUrl);
+          return this.cdp;
+        } catch (e) {
+          lastError = e;
+        }
+      }
+      if (Date.now() >= deadline) throw lastError;
+      await sleep(this.pollMs);
+    }
+  }
+
+  async run(stage, fn) {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        if (!this.cdp || this.cdp.closed) await this.open();
+        return await fn(this.cdp);
+      } catch (error) {
+        if (!isDropped(error) || attempt >= this.attempts) throw error;
+        const message = String(error?.message ?? error);
+        this.reconnects.push({ stage, attempt, error: message, at: new Date().toISOString() });
+        this.log(`${stage}: ${message}; reconnecting for attempt ${attempt + 1} of ${this.attempts}`);
+        this.close();
+      }
+    }
+  }
+
+  close() {
+    try {
+      this.cdp?.close();
+    } catch {
+      // Already closed.
+    }
+    this.cdp = null;
+  }
 }
 
 /** The DevTools targets on `port` (empty when nothing answers). */

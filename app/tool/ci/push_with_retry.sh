@@ -3,6 +3,8 @@
 # evidence and bootstrap results can land at the same time): on rejection,
 # fetch + rebase onto the remote tip and retry. CI results never touch the
 # same files as each other, so a rebase conflict means something is wrong.
+# Changes left in the working tree (a run that commits only some of its
+# results: golden failure images, Phase 3 W6) are stashed around the rebase.
 # Usage (from the repository root): push_with_retry.sh <branch>
 set -uo pipefail
 
@@ -13,7 +15,7 @@ for attempt in 1 2 3 4 5; do
   fi
   echo "push attempt $attempt rejected; rebasing onto origin/$branch"
   git fetch origin "$branch" || true
-  if ! git rebase "origin/$branch"; then
+  if ! git rebase --autostash "origin/$branch"; then
     git rebase --abort || true
     echo "::error::rebase conflict while pushing CI results to $branch"
     exit 1

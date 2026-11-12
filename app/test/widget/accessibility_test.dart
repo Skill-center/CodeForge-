@@ -18,6 +18,7 @@ import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/design_system/tokens/geometry.dart';
 import 'package:codeforge/features/settings/about_screen.dart';
 import 'package:codeforge/features/settings/appearance_screen.dart';
+import 'package:codeforge/features/settings/developer/log_viewer_screen.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -137,7 +138,23 @@ typedef _SettingsPage = ({String title, Type screen});
 const List<_SettingsPage> _settingsPages = [
   (title: 'Appearance', screen: AppearanceScreen),
   (title: 'About CodeForge', screen: AboutScreen),
+  // Settings → Developer (Phase 3 W6).
+  (title: 'Log viewer', screen: LogViewerScreen),
 ];
+
+/// Settings scrolled to its Privacy section (Phase 3 W1): the backup row.
+Future<void> _pumpPrivacy(WidgetTester tester) async {
+  await _pump(tester, _settings);
+  final backup = find.byKey(const ValueKey('settings_backup'));
+  await tester.scrollUntilVisible(
+    backup,
+    120,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.ensureVisible(backup);
+  await tester.pumpAndSettle();
+  expect(backup, findsOneWidget);
+}
 
 Future<void> _openSettingsPage(WidgetTester tester, _SettingsPage page) async {
   await _pump(tester, _settings);
@@ -262,6 +279,23 @@ void main() {
         await _flush(tester);
       });
     }
+
+    testWidgets('settings privacy: no overflow at any gate size', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      for (final (width, height) in _gateSizes) {
+        setSurface(tester, width, height);
+        await _pumpPrivacy(tester);
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'privacy at ${width.toInt()}x${height.toInt()}',
+        );
+      }
+      await _flush(tester);
+    });
 
     testWidgets('home with recents: no overflow at any gate size', (
       tester,
@@ -396,7 +430,7 @@ void main() {
       final semantics = tester.ensureSemantics();
       setSurface(tester, 412, 915);
       await _pump(tester, _workspace);
-      for (final dialog in workbenchDialogs) {
+      for (final dialog in [...workbenchDialogs, ...homeDialogs]) {
         unawaited(dialog.open(tester.element(find.byType(EditorPane))));
         await tester.pumpAndSettle();
         expect(
@@ -430,6 +464,60 @@ void main() {
       await _expectAccessibleTargets(tester);
       Navigator.of(tester.element(find.byType(CfAlertDialog))).pop();
       await tester.pumpAndSettle();
+      await _flush(tester);
+      semantics.dispose();
+    });
+
+    testWidgets("the explorer's menu (Phase 3 W4)", (tester) async {
+      final semantics = tester.ensureSemantics();
+      setSurface(tester, 1280, 800);
+      await _pump(tester, _workspace);
+      await tester.longPress(find.byKey(const ValueKey('tree_main.js')));
+      await tester.pumpAndSettle();
+      final rename = find.byKey(const ValueKey('explorer_menu_rename'));
+      expect(rename, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('explorer_menu_delete')),
+        findsOneWidget,
+      );
+      await _expectAccessibleTargets(tester);
+      Navigator.of(tester.element(rename)).pop();
+      await tester.pumpAndSettle();
+      await _flush(tester);
+      semantics.dispose();
+    });
+
+    testWidgets("a recent's actions, for a project and a lost folder (W3)", (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      setSurface(tester, 412, 915);
+      await _pumpHomeWithRecents(tester);
+      const lost = FolderLocation(treeUri: _lostUri, name: 'lost');
+      for (final (id, action) in [
+        ('project-a', 'recent_delete'),
+        (lost.id, 'recent_reconnect'),
+      ]) {
+        final menu = find.byKey(ValueKey('recent_menu_$id'));
+        await tester.ensureVisible(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        final item = find.byKey(ValueKey(action));
+        expect(item, findsOneWidget, reason: id);
+        await _expectAccessibleTargets(tester);
+        Navigator.of(tester.element(item)).pop();
+        await tester.pumpAndSettle();
+      }
+      await _flush(tester);
+      semantics.dispose();
+    });
+
+    testWidgets('settings: privacy (Phase 3 W1)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      setSurface(tester, 412, 915);
+      await _pumpPrivacy(tester);
+      await _expectAccessibleTargets(tester);
       await _flush(tester);
       semantics.dispose();
     });

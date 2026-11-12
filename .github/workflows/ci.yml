@@ -340,6 +340,24 @@ jobs:
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/digest.txt"
           echo "::warning title=Tests failed (last 40 lines)::$(cat "$RUNNER_TEMP/digest.txt")"
 
+      # Golden diff images (Phase 3 W6, an owner item): a golden test that
+      # failed left its golden, its own drawing and their differences in a
+      # failures/ folder beside it. They move to ci-results/golden-failures/
+      # (tool/ci/collect_golden_failures.sh) and are committed back with the
+      # diagnostics, on any commit: the bootstrap commit-back takes them
+      # with everything else, and "Commit golden failures back" below does
+      # it for the others.
+      - name: Collect golden failures
+        id: golden_failures
+        if: always()
+        run: |
+          count=$(bash tool/ci/collect_golden_failures.sh test ci-results)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "golden failure images: $count"
+          if [ "$count" != "0" ]; then
+            echo "::warning title=Golden failures::$count images in app/ci-results/golden-failures/ ($(paste -sd' ' ci-results/golden-failures.txt))"
+          fi
+
       # The Gradle distribution: cached between runs, and fetched with
       # retries when the cache has none, because services.gradle.org stalls
       # now and then (app/tool/ci/fetch_gradle.sh). A failed fetch fails
@@ -408,6 +426,22 @@ jobs:
             echo "apk_sha256=$sha"
             echo "apk_bytes=$size"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # The merged manifest (Phase 3 W6, G8): no storage permission, and
+      # ADR-0012's backup attributes (tool/ci/check_manifest.py, which first
+      # shows itself catching each kind of drift). The debug manifest holds
+      # everything the release one does, and the debug-only INTERNET.
+      - name: Manifest check
+        id: manifest
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          status=0
+          { python3 tool/ci/check_manifest.py --self-test \
+              && python3 tool/ci/check_manifest.py build/app debug; } \
+            > ci-results/manifest.txt 2>&1 || status=$?
+          cat ci-results/manifest.txt
+          exit "$status"
 
       # The host's Kotlin unit tests (src/test; Phase 3 W1: the backup
       # policy and its rules files). After the APK build, which wrote
@@ -491,6 +525,23 @@ jobs:
             bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
           fi
 
+      # A commit without [bootstrap] commits nothing back, except the images
+      # of golden tests that failed, with the diagnostics they belong to.
+      - name: Commit golden failures back
+        if: >-
+          always() && steps.golden_failures.outputs.count != '' &&
+          steps.golden_failures.outputs.count != '0' &&
+          !contains(github.event.head_commit.message, '[bootstrap]')
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "codeforge-ci"
+          git config user.email "ci@codeforge.invalid"
+          git add -A app/ci-results
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ci): golden failure images [skip ci]"
+            bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
+          fi
+
       - name: Upload APK
         if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
@@ -511,7 +562,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build kotlin_tests; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -522,6 +573,7 @@ jobs:
               licenses) outcome="${{ steps.licenses.outcome }}" ;;
               tests) outcome="${{ steps.tests.outcome }}" ;;
               build) outcome="${{ steps.build.outcome }}" ;;
+              manifest) outcome="${{ steps.manifest.outcome }}" ;;
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
             esac
             echo "$gate: $outcome"

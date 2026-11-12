@@ -83,16 +83,18 @@ final class _Journal {
   bool baseKept = false;
   String? keptBase;
 
-  /// [textDigest] of [_digestOf], computed once per saved text.
+  /// [textDigest] of [_digestOf], taken once per saved text, off the UI
+  /// isolate when the text is long (Phase 3 W6).
   String? _digestOf;
-  String? _digest;
+  Future<String>? _digest;
 
-  String digestOf(String savedText) {
-    if (!identical(_digestOf, savedText)) {
-      _digestOf = savedText;
-      _digest = textDigest(savedText);
+  Future<String> digestOf(String savedText, TextDigester digester) {
+    final digest = _digest;
+    if (digest != null && identical(_digestOf, savedText)) {
+      return digest;
     }
-    return _digest!;
+    _digestOf = savedText;
+    return _digest = digester(savedText);
   }
 }
 
@@ -103,10 +105,12 @@ final class DocumentJournal {
     required void Function(Result<void> result) onWrite,
     this.snapshotInterval = const Duration(seconds: 5),
     DateTime Function()? clock,
+    TextDigester digester = digestText,
   }) : _store = store,
        _describe = describe,
        _onWrite = onWrite,
-       _clock = clock ?? DateTime.now;
+       _clock = clock ?? DateTime.now,
+       _digester = digester;
 
   /// A snapshot is written after this many changes, between timer ticks too.
   static const int changesPerSnapshot = 200;
@@ -124,6 +128,9 @@ final class DocumentJournal {
   final JournalSubject? Function(String docId) _describe;
   final void Function(Result<void> result) _onWrite;
   final DateTime Function() _clock;
+
+  /// Digests saved texts for the snapshots' base: [digestText] in the app.
+  final TextDigester _digester;
 
   final Map<String, _Journal> _journals = {};
   Future<void> _queue = Future<void>.value();
@@ -347,21 +354,26 @@ final class DocumentJournal {
       ..pending = 0
       ..length = subject.text.length
       ..snapshotAt = _clock();
-    final snapshot = JournalSnapshot(
-      workspaceId: subject.workspaceId,
-      path: subject.path,
-      text: subject.text,
-      version: subject.version,
-      baseDigest: journal.baseKept
-          ? journal.keptBase
-          : subject.hasFile
-          ? journal.digestOf(subject.savedText)
-          : null,
-      format: subject.format,
-      language: subject.language,
-    );
+    // The saved text's digest starts now, off the UI isolate when the text
+    // is long (Phase 3 W6), while earlier writes finish.
+    final baseDigest = journal.baseKept
+        ? Future<String?>.value(journal.keptBase)
+        : subject.hasFile
+        ? journal.digestOf(subject.savedText, _digester)
+        : Future<String?>.value();
     // Replaces every stored change of the document (see the library doc).
-    enqueue(() => _store.writeSnapshot(snapshot, restart: true));
+    enqueue(() async {
+      final snapshot = JournalSnapshot(
+        workspaceId: subject.workspaceId,
+        path: subject.path,
+        text: subject.text,
+        version: subject.version,
+        baseDigest: await baseDigest,
+        format: subject.format,
+        language: subject.language,
+      );
+      return _store.writeSnapshot(snapshot, restart: true);
+    });
   }
 
   void _startTimer() {

@@ -1,8 +1,10 @@
 /// The workbench's dialogs, opened the way its actions open them, for the
-/// overflow and accessibility sweeps (Phase 2 gate G8).
+/// overflow and accessibility sweeps (Phase 2 gate G8), and since Phase 3
+/// W6 Home's, with the longest texts Home gives them.
 library;
 
 import 'package:codeforge/application/file_operations.dart';
+import 'package:codeforge/features/home/home_dialogs.dart';
 import 'package:codeforge/features/workbench/editor_dialogs.dart';
 import 'package:codeforge/features/workbench/explorer_dialogs.dart';
 import 'package:codeforge/features/workbench/file_dialogs.dart';
@@ -115,5 +117,51 @@ final List<WorkbenchDialog> workbenchDialogs = [
       sharedStorage: true,
     ),
     confirm: 'delete_confirm',
+  ),
+];
+
+/// Home's dialogs (Phase 3 W3), as Home opens them: from the screen, not
+/// from the workbench.
+final List<WorkbenchDialog> homeDialogs = [
+  WorkbenchDialog(
+    'new project',
+    (context) => askNewProject(context, taken: const ['demo']),
+    confirm: 'project_name_confirm',
+    field: 'project_name_field',
+  ),
+  WorkbenchDialog(
+    'rename project',
+    (context) => askProjectName(
+      context,
+      current: 'a-project-with-a-rather-long-name',
+      taken: const ['a-project-with-a-rather-long-name', 'demo'],
+    ),
+    confirm: 'project_name_confirm',
+    field: 'project_name_field',
+  ),
+  WorkbenchDialog(
+    'delete project',
+    (context) => askHomeConfirm(
+      context,
+      title: 'Delete "a-project-with-a-rather-long-name"?',
+      message:
+          'This deletes 1,204 files from this device, and it cannot be '
+          'undone. Unsaved changes in 3 files are discarded too.',
+      confirmLabel: 'Delete',
+    ),
+    confirm: 'home_confirm_ok',
+  ),
+  WorkbenchDialog(
+    'remove folder',
+    (context) => askHomeConfirm(
+      context,
+      title: 'Remove "a-folder-with-a-rather-long-name" from recents?',
+      message:
+          'CodeForge gives back its access to the folder. The folder and '
+          'its files stay on the device. Unsaved changes in 3 files are '
+          'discarded.',
+      confirmLabel: 'Remove',
+    ),
+    confirm: 'home_confirm_ok',
   ),
 ];

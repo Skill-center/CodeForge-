@@ -8,6 +8,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/editor/journal.dart';
 import '../core/files/workspace_location.dart';
 import '../services/contracts.dart';
 import '../services/fakes.dart';
@@ -104,6 +105,12 @@ final sessionStoreProvider = Provider<SessionStore>((ref) {
   ref.onDispose(() => unawaited(store.close()));
   return store;
 });
+
+/// How saved texts are digested, for the journal's base and a restore's
+/// check (Phase 3 W6): long texts on a background isolate. Widget tests
+/// override this with [digestTextInline]: their fake clock never sees a
+/// background isolate finish.
+final textDigesterProvider = Provider<TextDigester>((ref) => digestText);
 
 /// Android's backup switch (ADR-0012), over the host's channel. Tests
 /// override this with a fake; without a host it reports itself unavailable.

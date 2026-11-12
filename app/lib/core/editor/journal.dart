@@ -9,6 +9,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 
@@ -133,3 +134,32 @@ JournalReplay replayJournal({
 /// SHA-256 of [text]'s UTF-8 bytes, in hex: how a journal recognises the
 /// saved text it was written against.
 String textDigest(String text) => sha256.convert(utf8.encode(text)).toString();
+
+/// How the app digests a saved text: [digestText], or [digestTextInline]
+/// where no background isolate can finish (widget tests' fake clock).
+typedef TextDigester = Future<String> Function(String text);
+
+/// Texts of at least this many characters are digested on a background
+/// isolate by [digestText]; shorter ones on the caller's, where starting an
+/// isolate would cost more than the digest.
+const int backgroundDigestChars = 64 * 1024;
+
+/// [textDigest] of [text], on a background isolate when [text] is long
+/// (Phase 3 W6, an owner item of 2026-11-11): on the UI isolate, the digest
+/// of the saved text took up to 28 ms at 1 MiB and 80–184 ms at 10 MiB in a
+/// debug build (PHASE_2_REPORT §9.2), and no frame could come meanwhile.
+/// The text goes to the isolate, and only the digest comes back. If no
+/// isolate can be started, the digest is taken here after all.
+Future<String> digestText(String text) async {
+  if (text.length < backgroundDigestChars) {
+    return textDigest(text);
+  }
+  try {
+    return await Isolate.run(() => textDigest(text), debugName: 'text digest');
+  } on Object {
+    return textDigest(text);
+  }
+}
+
+/// [textDigest] on the caller's isolate, as a [TextDigester].
+Future<String> digestTextInline(String text) async => textDigest(text);

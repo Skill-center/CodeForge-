@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'application/provider_failure_logger.dart';
 import 'application/providers.dart';
 import 'core/logging/logger.dart';
 import 'services/editor/bench/bench_pages.dart';
@@ -68,6 +69,8 @@ Future<void> bootstrap() async {
 
       runApp(
         ProviderScope(
+          // Provider failures reach the log (Phase 3 W6).
+          observers: const [ProviderFailureLogger()],
           overrides: [
             settingsStoreProvider.overrideWithValue(settingsStore),
             shellStateStoreProvider.overrideWithValue(shellStore),

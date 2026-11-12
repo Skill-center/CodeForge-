@@ -208,7 +208,9 @@ void main() {
           _raiseKeyboard(tester, width, height);
           final room = height - _keyboardHeight(width, height);
           await _pumpWorkspace(tester, TerminalStop.half);
-          for (final dialog in workbenchDialogs) {
+          // Home's (Phase 3 W6) open over the workbench here: a dialog
+          // lays out the same over any screen.
+          for (final dialog in [...workbenchDialogs, ...homeDialogs]) {
             unawaited(dialog.open(tester.element(find.byType(EditorPane))));
             await tester.pumpAndSettle();
             await _expectDialogFits(
