@@ -61,7 +61,7 @@ On 2026-11-06 the owner parked every check that needs their phone. Where an emul
 | FULL against NORMAL on flash, and the save pause (ADR-0008) | Phase 2 W7 | the save pause: **a phone only, since Phase 3 W1** (the Developer action's files); FULL against NORMAL: a phone and adb, to time the store | the gate's session-store timings |
 | Backup with a real Google account | Phase 3 W1 (ADR-0012) | a phone with a Google account and device backup on, the W1 phone APK ([checklist](phases/PHASE_2_PHONE_CHECKLIST.md) §8.2) | the gate's `backup` group (Android's local transport) |
 | Folder picker and a folder workspace on the owner's phone, and since W3 the picker opening at a folder's old place (*Reconnect*) | Phase 3 W2 | a phone, whose picker may differ from the emulator's | the gate's `folders` group, and since W3 the restore pair |
-| Impeller on hardware, if W6 switches to it | Phase 3 W6 | a phone, the profile APK | the gate run with Impeller |
+| Impeller on hardware (W6 switched to it), and the release cold start with it (median of 10), which went over 1500 ms in two of W6's four gates on the emulator | Phase 3 W6 | a phone, the profile and release APKs, a computer with adb for the cold start | the gate runs with Impeller (43238952262 and later), and times the same build with Skia (since 4ca62ed) |
 
 ## Owner decision queue (non-blocking for P1–P3)
 
