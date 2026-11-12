@@ -1,0 +1,12 @@
+self-test: good manifest -> pass
+self-test: a storage permission -> caught: storage permission declared: android.permission.READ_EXTERNAL_STORAGE
+self-test: a media permission from a library -> caught: storage permission declared: android.permission.READ_MEDIA_IMAGES
+self-test: legacy external storage -> caught: requestLegacyExternalStorage="true"
+self-test: backup turned off -> caught: allowBackup is 'false', ADR-0012 says 'true'
+self-test: no backup agent -> caught: backupAgent is None, ADR-0012 says 'dev.codeforge.app.CodeForgeBackupAgent'
+self-test: the old rules only -> caught: dataExtractionRules is None, ADR-0012 says '@xml/data_extraction_rules'
+self-test: an extra backup attribute -> caught: backupInForeground="true" is not in ADR-0012
+manifest: build/app/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml
+permissions: android.permission.INTERNET, dev.codeforge.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+backup: allowBackup=true, backupAgent=dev.codeforge.app.CodeForgeBackupAgent, dataExtractionRules=@xml/data_extraction_rules, fullBackupContent=@xml/backup_rules, fullBackupOnly=true
+manifest_check=pass findings=0
