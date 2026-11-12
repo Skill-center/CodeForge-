@@ -287,9 +287,9 @@ final class _Notices implements StorageEvents {
 
   @override
   Future<void> folderChanged(int watchId) async {
-    final controller = _watches[watchId];
-    if (controller != null && !controller.isClosed) {
-      controller.add(null);
+    // No local for the controller: its watch closes it, not this.
+    if (_watches[watchId]?.isClosed == false) {
+      _watches[watchId]!.add(null);
     }
   }
 }

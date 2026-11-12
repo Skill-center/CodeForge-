@@ -7,6 +7,8 @@
 /// work the previous one still had in flight lands nowhere.
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/errors/failure.dart';
@@ -123,7 +125,8 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
         );
       } while (stale.contains(folder));
     } finally {
-      loading.remove(folder);
+      // This very load: dropped from the map, not awaited.
+      unawaited(loading.remove(folder));
     }
   }
 

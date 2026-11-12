@@ -721,7 +721,8 @@ final class DocumentController extends Notifier<DocumentsState> {
         await _checkFile(path);
       } while (ref.mounted && _checkAgain.contains(path));
     } finally {
-      _checking.remove(path);
+      // This very check: dropped from the map, not awaited.
+      unawaited(_checking.remove(path));
     }
   }
 

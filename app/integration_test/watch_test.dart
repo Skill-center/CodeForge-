@@ -30,6 +30,7 @@ import 'package:codeforge/application/workspace_controller.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/core/logging/logger.dart';
+import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
 import 'package:codeforge/services/platform/app_directories.dart';
 import 'package:codeforge/services/storage/drift_session_store.dart'
@@ -61,7 +62,7 @@ List<String> _rootNames(ProviderContainer container) => [
               .read(workspaceControllerProvider)
               .listings['']
               ?.valueOrNull ??
-          const [])
+          const <FileEntry>[])
     entry.name,
 ];
 
