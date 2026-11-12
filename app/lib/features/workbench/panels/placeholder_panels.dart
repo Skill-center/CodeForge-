@@ -1,5 +1,7 @@
 /// Honest placeholder panels for later phases: search, git, extensions,
-/// run. Each states exactly what it will become and when.
+/// run. Each states exactly what it will become and when, in ROADMAP's
+/// phases (checked at Phase 3's exit: search across files moved to Phase 4
+/// by the owner's decision of 2026-11-11).
 library;
 
 import 'package:flutter/material.dart';
@@ -16,9 +18,10 @@ class SearchPanel extends StatelessWidget {
       icon: CfIcons.search,
       title: 'Workspace search',
       message:
-          'Full-text and filename search across your project, with results '
-          'grouped by file.',
-      phaseNote: 'Arrives in Phase 3',
+          'Full-text search across your project, with results grouped by '
+          'file. To open a file by name, use Go to File… in the command '
+          'palette (Ctrl+P).',
+      phaseNote: 'Arrives in Phase 4',
     );
   }
 }
@@ -34,7 +37,7 @@ class GitPanel extends StatelessWidget {
       message:
           'Stage, commit, branch and review diffs — powered by the bundled '
           'Linux runtime.',
-      phaseNote: 'Arrives in Phase 6',
+      phaseNote: 'Arrives in Phase 7',
     );
   }
 }
@@ -50,7 +53,7 @@ class ExtensionsPanel extends StatelessWidget {
       message:
           'Language packs and tools from a curated, Play-compliant catalog. '
           'No arbitrary code downloads.',
-      phaseNote: 'Arrives in Phase 7',
+      phaseNote: 'Arrives in Phase 8',
     );
   }
 }
@@ -66,7 +69,7 @@ class RunPanel extends StatelessWidget {
       message:
           'Run Python, Node.js and shell tasks in the sealed runtime with '
           'live output.',
-      phaseNote: 'Arrives in Phases 4–5',
+      phaseNote: 'Running arrives in Phase 5, debugging in Phase 9',
     );
   }
 }

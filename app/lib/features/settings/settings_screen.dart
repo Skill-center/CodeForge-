@@ -96,13 +96,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     .setReducedMotion(!settings.reducedMotion),
               ),
               const PrivacySection(),
+              // ROADMAP's phases. Folders, Phase 3's, open from Home.
               const CfSectionHeader('Coming in later phases'),
-              const CfSettingsTile(
-                leading: Icon(CfIcons.folder),
-                title: 'Storage & folders',
-                subtitle: 'Phase 3 — SAF workspace access',
-                onTap: null,
-              ),
               const CfSettingsTile(
                 leading: Icon(CfIcons.memory),
                 title: 'Linux runtime',
@@ -112,7 +107,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const CfSettingsTile(
                 leading: Icon(CfIcons.extension),
                 title: 'Extensions',
-                subtitle: 'Phase 7 — curated catalog',
+                subtitle: 'Phase 8 — curated catalog',
                 onTap: null,
               ),
               const CfSectionHeader('About'),
