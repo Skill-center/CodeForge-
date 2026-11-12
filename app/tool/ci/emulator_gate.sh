@@ -37,6 +37,11 @@
 #                                  app's back (run-as in a project, adb shell
 #                                  in a folder), each reload's delay, and the
 #                                  app sent to the background and back
+#   measure.txt / measure.json     Phase 3 W6 G7 (record-only): a 10,000-file
+#                                  project opened and indexed, 1 and 10 MiB
+#                                  through dart:io and through the broker, a
+#                                  1,000-entry folder listed, and frames while
+#                                  10 MiB is digested on and off the UI isolate
 #   editor_bench.json|.txt         Phase 2 W3 engine benchmark (CodeMirror 6
 #                                  vs Monaco; information for ADR-0004), from
 #                                  editor_bench_<engine>.txt + the DevTools
@@ -1324,6 +1329,62 @@ cat "$RESULTS/watch.txt" >> "$RESULTS/attempts.txt"
 "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
 "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
 [ "$watch_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Measurements (Phase 3 W6, G7: recorded, never judged here)"
+# One part (integration_test/measure_test.dart): a project of 10,000 files
+# the test writes, opened and indexed for Go to File; 1 and 10 MiB written
+# and read through dart:io there; frames while 10 MiB is digested on the UI
+# isolate and on a background one; then the gate folder through Android's
+# picker (folder_driver answers it), its folder many/ listed (1,000 files
+# this script writes as the shell user) and 1 and 10 MiB written and read
+# through the broker. Times are medians of three runs. The numbers fail
+# nothing; a part that cannot finish does, since it leaves G7 without them.
+MEASURE_MANY=many
+measure_run() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  folder_fixture_push measure_fixture.txt || return 1
+  # many/0001.txt … many/1000.txt, each holding its number.
+  "$ADB" shell "mkdir -p $FOLDER_ROOT/$GATE_FOLDER/$MEASURE_MANY && cd $FOLDER_ROOT/$GATE_FOLDER/$MEASURE_MANY && i=1 && while [ \$i -le 1000 ]; do echo \$i > \$(printf '%04d' \$i).txt; i=\$((i + 1)); done" \
+    < /dev/null >> "$RESULTS/measure_fixture.txt" 2>&1 || return 1
+  echo "$MEASURE_MANY: $("$ADB" shell ls "$FOLDER_ROOT/$GATE_FOLDER/$MEASURE_MANY" < /dev/null | wc -l) entries" \
+    | tee -a "$RESULTS/measure_fixture.txt"
+  "$ADB" logcat -c < /dev/null
+  # Named apart from measure.txt, the group's verdict below.
+  ITEST_LIMIT=20m ITEST_ATTEMPTS=1 run_itest measure_itest \
+    integration_test/measure_test.dart || return 1
+}
+FOLDER_UI="$RESULTS/measure_ui.xml" folder_driver \
+  > "$RESULTS/measure_driver.txt" 2>&1 &
+measure_driver_pid=$!
+measure_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if measure_run; then
+    measure_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "measure attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$measure_driver_pid" 2>/dev/null || true
+wait "$measure_driver_pid" 2>/dev/null || true
+# The report, joined from its MEASURE_JSON <part>/<parts> lines.
+python3 tool/ci/join_report.py MEASURE_JSON "$RESULTS/measure_itest.txt" \
+  "$RESULTS/measure.json" || echo "measure report failed (record-only)"
+{
+  echo "measure_group=$([ "$measure_ok" = "1" ] && echo pass || echo fail)"
+  echo "measure_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/measure_driver.txt")"
+  grep -oE 'measure gate: .*' "$RESULTS/measure_itest.txt" | sed 's/^measure gate: /measure: /'
+} | tee "$RESULTS/measure.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/measure.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no gate folders, and no app.
+"$ADB" logcat -c < /dev/null
+"$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$measure_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"
