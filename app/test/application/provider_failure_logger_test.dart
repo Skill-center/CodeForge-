@@ -64,10 +64,7 @@ void main() {
       throw const FormatException('bad listing');
     }, name: 'listingProvider');
 
-    await expectLater(
-      container.read(failing.future),
-      throwsA(anything),
-    );
+    await expectLater(container.read(failing.future), throwsA(anything));
 
     final record = _failures(logger).single;
     expect(record.fields['provider'], 'listingProvider');
@@ -125,7 +122,10 @@ void main() {
       '(package:codeforge/application/file_index.dart:350:12)\n'
       '#2      main (package:codeforge/main.dart:9:3)\n',
     );
-    expect(appFrameOf(stack), 'package:codeforge/application/file_index.dart:350:12');
+    expect(
+      appFrameOf(stack),
+      'package:codeforge/application/file_index.dart:350:12',
+    );
     expect(
       appFrameOf(StackTrace.fromString('#0 main (dart:core/x.dart:1:1)')),
       isNull,

@@ -81,10 +81,12 @@ void main() {
     final records = _logger().records;
 
     test('keeps every record by default, newest first', () {
-      expect(
-        filterLogRecords(records).map((r) => r.event),
-        ['failed', 'listing_slow', 'opened', 'page_ready'],
-      );
+      expect(filterLogRecords(records).map((r) => r.event), [
+        'failed',
+        'listing_slow',
+        'opened',
+        'page_ready',
+      ]);
     });
 
     test('keeps the level chosen and the levels above it', () {
