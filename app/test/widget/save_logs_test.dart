@@ -16,7 +16,9 @@ import '../support/fake_storage_broker.dart';
 import 'test_harness.dart';
 
 Future<void> _openLogs(WidgetTester tester, FakeStorageBroker broker) async {
-  await tester.pumpWidget(TestHarness(broker: broker).wrap(const AboutScreen()));
+  await tester.pumpWidget(
+    TestHarness(broker: broker).wrap(const AboutScreen()),
+  );
   await tester.pumpAndSettle();
   final tile = find.text('Recent logs');
   await tester.ensureVisible(tile);
@@ -112,7 +114,10 @@ void main() {
         matches(RegExp(r'^codeforge-logs-\d{8}-\d{4}\.txt$')),
       );
       expect(utf8.decode(file.bytes), contains('test/save_logs_marker'));
-      expect(find.text('Logs saved to codeforge-logs-mine.txt'), findsOneWidget);
+      expect(
+        find.text('Logs saved to codeforge-logs-mine.txt'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('backing out says nothing', (tester) async {

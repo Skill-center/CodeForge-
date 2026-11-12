@@ -46,8 +46,8 @@ String goToFileStatus(FileIndexState index) {
   const skipped = '.git and node_modules are skipped.';
   final count = formatCount(index.files.length);
   return switch (index.status) {
-    FileIndexStatus.idle || FileIndexStatus.building =>
-      'Finding files… $count so far',
+    FileIndexStatus.idle ||
+    FileIndexStatus.building => 'Finding files… $count so far',
     FileIndexStatus.failed =>
       'The files could not be listed. ${index.failure?.message ?? ''}'.trim(),
     FileIndexStatus.ready when index.truncated =>

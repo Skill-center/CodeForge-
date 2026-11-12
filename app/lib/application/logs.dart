@@ -89,6 +89,7 @@ String saveLogsFailureMessage(Failure failure) {
       'Logs not saved: this device has no picker to save files with.',
     FileProblem.timeout =>
       'Logs not saved: the storage did not answer in time. Try again.',
-    _ => 'Logs not saved: the storage failed. Try again, or pick another place.',
+    _ =>
+      'Logs not saved: the storage failed. Try again, or pick another place.',
   };
 }

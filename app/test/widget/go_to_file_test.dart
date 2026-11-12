@@ -183,9 +183,7 @@ void main() {
     expect(formatCount(50000), '50,000');
     expect(formatCount(1234567), '1,234,567');
     expect(
-      goToFileStatus(
-        const FileIndexState(status: FileIndexStatus.building),
-      ),
+      goToFileStatus(const FileIndexState(status: FileIndexStatus.building)),
       'Finding files… 0 so far',
     );
     expect(

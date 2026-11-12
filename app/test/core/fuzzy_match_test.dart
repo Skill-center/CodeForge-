@@ -28,7 +28,9 @@ List<String> _rank(String query) => [
 void main() {
   group('matching', () {
     test('takes the characters in order, in any case', () {
-      final target = FuzzyTarget('lib/features/workbench/workbench_screen.dart');
+      final target = FuzzyTarget(
+        'lib/features/workbench/workbench_screen.dart',
+      );
       expect(fuzzyContains('wbscr', target), isTrue);
       expect(fuzzyContains(normalizeQuery('WbScr'), target), isTrue);
       expect(fuzzyContains('rcsbw', target), isFalse);
@@ -55,14 +57,21 @@ void main() {
       )!;
       // In the file name, not in the folder of the same name.
       expect(match.positions, [23, 27, 33, 34, 35]);
-      expect(
-        matchPath('main', FuzzyTarget('lib/main.dart'))!.positions,
-        [4, 5, 6, 7],
-      );
-      expect(
-        matchPath('libmain', FuzzyTarget('lib/main.dart'))!.positions,
-        [0, 1, 2, 4, 5, 6, 7],
-      );
+      expect(matchPath('main', FuzzyTarget('lib/main.dart'))!.positions, [
+        4,
+        5,
+        6,
+        7,
+      ]);
+      expect(matchPath('libmain', FuzzyTarget('lib/main.dart'))!.positions, [
+        0,
+        1,
+        2,
+        4,
+        5,
+        6,
+        7,
+      ]);
     });
 
     test('keeps indices when lower case would change the length', () {
@@ -71,10 +80,7 @@ void main() {
       final target = FuzzyTarget('İstanbul/Notes.md');
       expect(target.lower.length, target.path.length);
       final match = matchPath('notes', target)!;
-      expect(
-        match.positions.map((i) => target.path[i]).join(),
-        'Notes',
-      );
+      expect(match.positions.map((i) => target.path[i]).join(), 'Notes');
     });
 
     test('knows hidden paths', () {

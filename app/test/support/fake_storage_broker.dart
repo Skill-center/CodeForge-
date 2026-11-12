@@ -117,8 +117,8 @@ final class FakeStorageBroker implements StorageBroker {
   FileFailure? failNextSave;
 
   /// Every file saved through the create-document picker, in order.
-  final List<({String suggestedName, String mimeType, Uint8List bytes})>
-  saved = [];
+  final List<({String suggestedName, String mimeType, Uint8List bytes})> saved =
+      [];
 
   FakeFolder addTree(
     String treeUri,

@@ -96,8 +96,7 @@ void main() {
 
   test('stops at 50,000 files and says so', () async {
     final w = _World({
-      for (var i = 0; i <= FileIndexController.maxEntries; i++)
-        'f/$i.txt': '',
+      for (var i = 0; i <= FileIndexController.maxEntries; i++) 'f/$i.txt': '',
     });
     await w.build();
     expect(w.state.status, FileIndexStatus.ready);
@@ -136,11 +135,7 @@ void main() {
     late _World w;
 
     setUp(() async {
-      w = _World({
-        'src/app.js': '',
-        'src/lib/util.js': '',
-        'README.md': '',
-      });
+      w = _World({'src/app.js': '', 'src/lib/util.js': '', 'README.md': ''});
       await w.start();
       await w.build();
     });
@@ -150,10 +145,7 @@ void main() {
       await w.settle();
       expect(w.paths, ['README.md', 'source/app.js', 'source/lib/util.js']);
 
-      expect(
-        (await w.operations.move('source/lib/util.js', '')).isOk,
-        isTrue,
-      );
+      expect((await w.operations.move('source/lib/util.js', '')).isOk, isTrue);
       await w.settle();
       expect(w.paths, ['README.md', 'source/app.js', 'util.js']);
     });

@@ -475,10 +475,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('palette_file.goTo')));
       await tester.pumpAndSettle();
       // Every match is one node: its name and its folder, and the tap.
-      expect(
-        find.bySemanticsLabel('greeting.dart, in src'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('greeting.dart, in src'), findsOneWidget);
       await _expectAccessibleTargets(tester);
       await _flush(tester);
       semantics.dispose();
