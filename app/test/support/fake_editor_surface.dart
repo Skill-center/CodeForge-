@@ -108,6 +108,9 @@ final class FakeEditorSurface implements EditorSurface {
   /// Where `cmd.gotoLine` asked the cursor to go, in order.
   final List<({int line, int? column})> gotoLines = [];
   Map<String, Object?>? configuration;
+
+  /// Documents whose text the host replaced whole (`doc.replace`).
+  int replaces = 0;
   String? loadedHtml;
   int loads = 0;
   int reloads = 0;
@@ -218,9 +221,22 @@ final class FakeEditorSurface implements EditorSurface {
         });
       case 'doc.replace':
         _withDocument(id, payload, (docId, doc) {
+          // Like the real page: a guarded replace (Phase 3 W5) leaves a
+          // document that moved on alone. Edits are never held back here,
+          // so the version alone tells.
+          final base = payload['baseVersion'];
+          if (base is int && base != doc.version) {
+            _error(
+              id,
+              'stale',
+              'document $docId is at version ${doc.version}, not $base',
+            );
+            return;
+          }
           doc
             ..text = payload.string('text')
             ..version = payload.integer('version');
+          replaces += 1;
           _changed();
           _ok(id);
         });

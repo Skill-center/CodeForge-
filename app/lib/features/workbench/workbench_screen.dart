@@ -12,9 +12,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../application/documents/disk_notices.dart';
 import '../../application/documents/document_controller.dart';
 import '../../application/editor/editor_providers.dart';
 import '../../application/editor/find_controller.dart';
+import '../../application/file_watch_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../application/workbench_intents.dart';
 import '../../application/workspace_controller.dart';
@@ -101,6 +103,11 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         state == AppLifecycleState.hidden) {
       // Flush layout memory before Android may kill the process (G5).
       ref.read(shellControllerProvider.notifier).flush();
+      // Outside changes wait until the app comes back (Phase 3 W5).
+      ref.read(fileWatchProvider.notifier).paused();
+    } else if (state == AppLifecycleState.resumed) {
+      // What changed meanwhile, notices or not, shows now.
+      unawaited(ref.read(fileWatchProvider.notifier).resumed());
     }
   }
 
@@ -271,6 +278,14 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     final landscape = isLandscapeSurface(size.width, size.height);
     final compactPortrait = form == CfFormFactor.compact && !landscape;
     final shell = ref.watch(shellControllerProvider);
+    // Files that change outside the app are watched while the workbench
+    // shows (Phase 3 W5); what that does to them is said here.
+    ref.listen(fileWatchProvider, (_, _) {});
+    ref.listen(diskNoticesProvider, (_, notice) {
+      if (notice != null) {
+        showFileMessage(context, notice.message);
+      }
+    });
 
     // Top-level routes are reached with go(), so there is nothing beneath
     // them to pop: system back (incl. predictive back) returns home, like the

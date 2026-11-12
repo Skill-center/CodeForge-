@@ -33,6 +33,10 @@
 #                                  checked on disk, process death, a missing
 #                                  folder and a lost grant (driver log,
 #                                  picker screen, fixture, disk after part A)
+#   watch.txt / watch_*.txt        Phase 3 W5 G4: files changed behind the
+#                                  app's back (run-as in a project, adb shell
+#                                  in a folder), each reload's delay, and the
+#                                  app sent to the background and back
 #   editor_bench.json|.txt         Phase 2 W3 engine benchmark (CodeMirror 6
 #                                  vs Monaco; information for ADR-0004), from
 #                                  editor_bench_<engine>.txt + the DevTools
@@ -613,8 +617,12 @@ echo "::endgroup::"
 # disk <path> | list <path> | rmtree | mkdir | done); folder_driver answers
 # through the app's files folder (run-as: files/foldergate/<run>.<n>), where
 # the test reads it (integration_test/folder_gate.dart). The driver runs
-# only around the two groups that need it: its polling must not load adb
-# while the keys group injects keys.
+# only around the groups that need it: its polling must not load adb
+# while the keys group injects keys. Since Phase 3 W5 it also changes files
+# behind the app's back (put | rm <path> in the gate folder, as the shell
+# user; pput | prm <path> under the app's files/workspaces, through
+# run-as), answering the device's clock just before the change, and sends
+# the app to the background and back (home | front).
 FOLDER_ROOT=/sdcard/Documents
 GATE_FOLDER=cf-gate
 GATE_OUTSIDE=cf-gate-outside
@@ -627,6 +635,37 @@ folder_safe_path() {
     */../* | */./*) return 1 ;;
   esac
   return 0
+}
+# A word a test may have written into a file: letters, digits and ._,:-
+folder_safe_word() {
+  case "$1" in
+    "" | *[!A-Za-z0-9._,:-]*) return 1 ;;
+  esac
+  return 0
+}
+# folder_change put|rm <file> [<word>]: <file> on shared storage written as
+# "<word>" and a line break, or deleted, by the shell user: another app, as
+# far as the app can tell. Prints the device's clock just before (seconds
+# since the epoch, to the microsecond; empty if the shell can't say).
+folder_change() {
+  if [ "$1" = put ]; then
+    "$ADB" shell "echo \$EPOCHREALTIME; printf '%s\\n' $3 > $2" < /dev/null \
+      | tr -d '\r' | head -n 1
+  else
+    "$ADB" shell "echo \$EPOCHREALTIME; rm -f $2" < /dev/null \
+      | tr -d '\r' | head -n 1
+  fi
+}
+# project_change pput|prm <path> [<word>]: the same under the app's own
+# files/workspaces, through run-as: the app's user, in another process.
+project_change() {
+  if [ "$1" = pput ]; then
+    "$ADB" shell "run-as $APP_ID sh -c 'echo \$EPOCHREALTIME; printf \"%s\\n\" $3 > files/workspaces/$2'" \
+      < /dev/null | tr -d '\r' | head -n 1
+  else
+    "$ADB" shell "run-as $APP_ID sh -c 'echo \$EPOCHREALTIME; rm -f files/workspaces/$2'" \
+      < /dev/null | tr -d '\r' | head -n 1
+  fi
 }
 # folder_answer <id> <answer>: the answer, cut to characters a shell word
 # can hold, into the app's files folder.
@@ -725,7 +764,7 @@ folder_save() {
   echo saved
 }
 folder_driver() {
-  local last="" line id kind arg answer
+  local last="" line id kind arg word answer
   echo "driver: polling the log for requests ($(date +%T))"
   while :; do
     line=$("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null \
@@ -735,6 +774,7 @@ folder_driver() {
     id="${1:-}"
     kind="${2:-}"
     arg="${3:-}"
+    word="${4:-}"
     if [ -z "$id" ] || [ "$id" = "$last" ]; then
       sleep 0.25
       continue
@@ -755,11 +795,30 @@ folder_driver() {
         ;;
       rmtree) "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" < /dev/null; answer=done ;;
       mkdir) "$ADB" shell mkdir -p "$FOLDER_ROOT/$GATE_FOLDER" < /dev/null; answer=done ;;
+      put | rm)
+        if folder_safe_path "$arg" && { [ "$kind" = rm ] || folder_safe_word "$word"; }; then
+          answer=$(folder_change "$kind" "$FOLDER_ROOT/$GATE_FOLDER/$arg" "$word")
+        else
+          answer=bad-path
+        fi
+        ;;
+      pput | prm)
+        if folder_safe_path "$arg" && { [ "$kind" = prm ] || folder_safe_word "$word"; }; then
+          answer=$(project_change "$kind" "$arg" "$word")
+        else
+          answer=bad-path
+        fi
+        ;;
+      home) "$ADB" shell input keyevent KEYCODE_HOME < /dev/null; answer="done" ;;
+      front)
+        "$ADB" shell am start -n "$APP_ID/.MainActivity" < /dev/null > /dev/null 2>&1
+        answer="done"
+        ;;
       done) echo "request $id: done ($(date +%T))"; continue ;;
       *) answer=unknown-request ;;
     esac
     folder_answer "$id" "$answer"
-    echo "request $id: $kind $arg -> $answer ($(date +%T))"
+    echo "request $id: $kind $arg $word -> $answer ($(date +%T))"
   done
 }
 # folder_fixture_push <evidence file>: the gate folder and the folder
@@ -1215,6 +1274,56 @@ cat "$RESULTS/explorer.txt" >> "$RESULTS/attempts.txt"
 "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
 "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
 [ "$explorer_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Integration — outside changes (Phase 3 W5, G4: files changed behind the app's back reach it within 2 s; unsaved text is never replaced; the app's own saves change nothing; the background is caught up on)"
+# One part (integration_test/watch_test.dart): the demo project, changed by
+# this script through run-as (FOLDERGATE pput | prm), then the gate folder
+# through Android's real picker and provider, changed as the shell user
+# (put | rm); on each, the app is sent to the background and back (home |
+# front). Each change answers the device's clock just before it, so the
+# test times every reload from the write itself. The part runs once per
+# attempt, from a fresh fixture and no app; an infrastructure failure runs
+# it again.
+watch_run() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  folder_fixture_push watch_fixture.txt || return 1
+  "$ADB" logcat -c < /dev/null
+  # Named apart from watch.txt, the group's verdict below.
+  ITEST_LIMIT=14m ITEST_ATTEMPTS=1 run_itest watch_itest \
+    integration_test/watch_test.dart || return 1
+}
+FOLDER_UI="$RESULTS/watch_ui.xml" folder_driver \
+  > "$RESULTS/watch_driver.txt" 2>&1 &
+watch_driver_pid=$!
+watch_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if watch_run; then
+    watch_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "watch attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$watch_driver_pid" 2>/dev/null || true
+wait "$watch_driver_pid" 2>/dev/null || true
+{
+  echo "watch_group=$([ "$watch_ok" = "1" ] && echo pass || echo fail)"
+  echo "watch_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/watch_driver.txt")" \
+    "watch_outside_changes=$(grep -cE ': p?(put|rm) ' "$RESULTS/watch_driver.txt")" \
+    "watch_backgrounded=$(grep -c ': home ' "$RESULTS/watch_driver.txt")"
+  grep -oE 'watch gate: [a-z]+ [a-z]+ [0-9]+ ms \([a-z ]+\)' "$RESULTS/watch_itest.txt" \
+    | sed 's/^watch gate: /watch_/'
+} | tee "$RESULTS/watch.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/watch.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no gate folders, and no app.
+"$ADB" logcat -c < /dev/null
+"$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$watch_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

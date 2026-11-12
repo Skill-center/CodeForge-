@@ -161,7 +161,9 @@ Future<void> resolveRestoredConflicts(
     final state = ref.read(documentControllerProvider);
     final path = state.openPaths
         .where(
-          (p) => !asked.contains(p) && state.documents[p]?.conflict != null,
+          (p) =>
+              !asked.contains(p) &&
+              (state.documents[p]?.conflict?.restored ?? false),
         )
         .firstOrNull;
     final doc = path == null ? null : state.documents[path];
@@ -189,6 +191,33 @@ Future<void> resolveRestoredConflicts(
         }
         _announce(context, result);
     }
+  }
+}
+
+/// Drops [path]'s unsaved changes for the file as it is on disk, after
+/// asking (Phase 3 W5: the editor pane's banner when the file changed
+/// outside the app while it had unsaved changes).
+Future<void> useFileVersion(
+  BuildContext context,
+  WidgetRef ref,
+  String path,
+) async {
+  final confirmed = await askToConfirm(
+    context,
+    title: 'Use the file?',
+    message:
+        'Your unsaved changes to ${pathBaseName(path)} are dropped, and the '
+        'editor shows the file as it is on disk.',
+    confirmLabel: 'Use the file',
+  );
+  if (!confirmed || !context.mounted) {
+    return;
+  }
+  final result = await ref
+      .read(documentControllerProvider.notifier)
+      .useDiskVersion(path);
+  if (context.mounted) {
+    _announce(context, result);
   }
 }
 

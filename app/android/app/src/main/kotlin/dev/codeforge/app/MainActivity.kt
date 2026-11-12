@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import dev.codeforge.app.storage.StorageApi
 import dev.codeforge.app.storage.StorageBroker
+import dev.codeforge.app.storage.StorageEvents
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -70,7 +71,7 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
-        storage = StorageBroker(this).also { StorageApi.setUp(messenger, it) }
+        storage = StorageBroker(this, StorageEvents(messenger)).also { StorageApi.setUp(messenger, it) }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {

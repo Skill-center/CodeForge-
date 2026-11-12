@@ -288,6 +288,52 @@ final class LocalFileService implements FileService {
   }
 
   @override
+  Future<Result<FileStamp>> stat(String path) async {
+    final String real;
+    switch (await _resolve(path)) {
+      case Ok<String>(:final value):
+        real = value;
+      case Err<String>(:final failure):
+        return Err(failure);
+    }
+    final found = File(real).statSync();
+    return switch (found.type) {
+      FileSystemEntityType.notFound => Err(
+        FileFailure('$path does not exist.', problem: FileProblem.notFound),
+      ),
+      FileSystemEntityType.file => Ok(
+        FileStamp(modified: found.modified, size: found.size),
+      ),
+      _ => Err(
+        FileFailure('$path is not a file.', problem: FileProblem.wrongType),
+      ),
+    };
+  }
+
+  /// inotify through `Directory.watch` (Phase 3 W5): Dart watches one
+  /// folder at a time on Linux, Android included. A save's temporary file
+  /// causes notices too; the listing that follows never shows it.
+  @override
+  Stream<void> watchFolder(String path) =>
+      Stream.fromFuture(_resolve(path, allowRoot: true)).asyncExpand((found) {
+        switch (found) {
+          case Err<String>(:final failure):
+            return Stream<void>.error(failure);
+          case Ok<String>(:final value):
+            if (FileSystemEntity.typeSync(value) !=
+                FileSystemEntityType.directory) {
+              return Stream<void>.error(
+                FileFailure(
+                  '${_label(path)} is not a folder.',
+                  problem: FileProblem.notFound,
+                ),
+              );
+            }
+            return Directory(value).watch().map<void>((_) {});
+        }
+      });
+
+  @override
   Future<Result<void>> createFolder(String path) async {
     final String real;
     switch (await _resolveEntry(path)) {

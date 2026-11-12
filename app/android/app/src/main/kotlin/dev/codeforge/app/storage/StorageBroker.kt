@@ -49,11 +49,16 @@ import java.util.concurrent.atomic.AtomicInteger
  * file the user makes there. The app keeps no grant to it: that file is the
  * user's, written once.
  *
+ * **Watching.** `watch` (Phase 3 W5) keeps a folder's children query open,
+ * so its provider tells the app when the folder changes ([FolderWatches]);
+ * the notices reach Dart through [StorageEvents].
+ *
  * Logs name the call, its outcome and its duration: never a URI, a path
  * or a file name.
  */
-class StorageBroker(private val activity: Activity) : StorageApi {
+class StorageBroker(private val activity: Activity, private val events: StorageEvents) : StorageApi {
     private val resolver: ContentResolver = activity.applicationContext.contentResolver
+    private val watches = FolderWatches(resolver) { id -> events.folderChanged(id) {} }
     private val main = Handler(Looper.getMainLooper())
     private val pool = ThreadPoolExecutor(
         THREADS,
@@ -272,10 +277,25 @@ class StorageBroker(private val activity: Activity) : StorageApi {
     override fun delete(treeUri: String, path: String, callback: (Result<Unit>) -> Unit) =
         submit("delete", CHANGE_MS, callback) { call -> ops(treeUri, call, write = true).delete(path) }
 
-    /** Stops the threads; the engine and its Dart side are going away. */
+    override fun watch(treeUri: String, path: String, watchId: Long, callback: (Result<Boolean>) -> Unit) =
+        submit("watch", QUICK_MS, callback) { call ->
+            val folder = ops(treeUri, call).stat(path)
+            if (!folder.isDirectory) {
+                throw StorageException(StorageProblem.WRONG_TYPE, "That is a file, not a folder.")
+            }
+            watches.start(watchId, parseTree(treeUri), folder.id, call.signal)
+        }
+
+    override fun unwatch(watchId: Long, callback: (Result<Unit>) -> Unit) {
+        watches.stop(watchId)
+        callback(Result.success(Unit))
+    }
+
+    /** Stops the threads and the watches; the engine and its Dart side are going away. */
     fun close() {
         pendingPick = null
         pendingSave = null
+        watches.close()
         pool.shutdownNow()
         timer.shutdownNow()
     }

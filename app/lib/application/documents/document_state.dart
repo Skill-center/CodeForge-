@@ -51,9 +51,11 @@ final class OpenDocument {
   /// writes [format]'s style throughout.
   final bool mixedLineEndings;
 
-  /// Set when unsaved changes restored from the hot-exit journal no longer
-  /// match the file: the user decides which to keep (the workbench asks).
-  /// Both stay as they are until then.
+  /// Set when unsaved changes no longer match the file: restored from the
+  /// hot-exit journal after the file changed, or kept while the file
+  /// changed outside the app (Phase 3 W5). The user decides which to keep
+  /// (the workbench asks); both stay as they are until then. [savedText]
+  /// and [stamp] already describe the file as it is now.
   final DocumentConflict? conflict;
 
   /// Opened as plain text because of its size (core/editor/large_files.dart)
@@ -81,6 +83,7 @@ final class OpenDocument {
     FileStamp? stamp,
     bool? dirty,
     bool? mixedLineEndings,
+    DocumentConflict? conflict,
     bool clearConflict = false,
     bool? largeFile,
     bool? largeFileNotice,
@@ -94,23 +97,32 @@ final class OpenDocument {
       stamp: stamp ?? this.stamp,
       dirty: dirty ?? this.dirty,
       mixedLineEndings: mixedLineEndings ?? this.mixedLineEndings,
-      conflict: clearConflict ? null : conflict,
+      conflict: clearConflict ? null : conflict ?? this.conflict,
       largeFile: largeFile ?? this.largeFile,
       largeFileNotice: largeFileNotice ?? this.largeFileNotice,
     );
   }
 }
 
-/// How restored unsaved changes disagree with the file.
+/// How unsaved changes disagree with the file.
 enum DocumentConflict {
-  /// The file changed on disk after the edits were made.
+  /// Restored changes: the file changed on disk after the edits were made.
   changedOnDisk,
 
-  /// The file is gone.
+  /// Restored changes: the file is gone.
   deleted,
 
-  /// The file can no longer be read as text.
+  /// Restored changes: the file can no longer be read as text.
   unreadable,
+
+  /// The file changed outside the app while the document had unsaved
+  /// changes (Phase 3 W5). The editor pane asks, without a dialog, so
+  /// typing can go on; saving first asks whether to overwrite.
+  changedWhileOpen;
+
+  /// Restored from the hot-exit journal: the workbench asks about these in
+  /// a dialog when the workspace opens.
+  bool get restored => this != changedWhileOpen;
 }
 
 /// All open documents. Every open path has one tab, one document and one
@@ -177,7 +189,7 @@ final class DocumentsState {
   /// tab order.
   String? get firstConflict {
     for (final path in openPaths) {
-      if (documents[path]?.conflict != null) {
+      if (documents[path]?.conflict?.restored ?? false) {
         return path;
       }
     }

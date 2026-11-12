@@ -7,6 +7,7 @@
 /// missing folder or a lost grant fails every call.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -416,6 +417,49 @@ final class FakeStorageBroker implements StorageBroker {
     }
     saved.add((suggestedName: suggestedName, mimeType: mimeType, bytes: bytes));
     return Ok(name);
+  }
+
+  /// The folders watched now (Phase 3 W5), as `<tree URI>|<path>`.
+  final Map<String, StreamController<void>> _watches = {};
+
+  /// Watching fails with this from now on, as a provider that refuses
+  /// would.
+  FileFailure? failWatch;
+
+  /// Whether [path] in [treeUri] is being watched.
+  bool isWatched(String treeUri, String path) =>
+      _watches.containsKey('$treeUri|$path');
+
+  /// How many folders are being watched.
+  int get watchCount => _watches.length;
+
+  /// Tells whoever watches [path] in [treeUri] that it changed, as the
+  /// provider would.
+  void notifyChanged(String treeUri, String path) {
+    _watches['$treeUri|$path']?.add(null);
+  }
+
+  @override
+  Stream<void> watch(String treeUri, String path) {
+    final key = '$treeUri|$path';
+    late final StreamController<void> controller;
+    controller = StreamController<void>(
+      onListen: () {
+        final failure = failWatch;
+        if (failure != null) {
+          controller.addError(failure);
+          return;
+        }
+        _watches[key] = controller;
+      },
+      onCancel: () {
+        if (identical(_watches[key], controller)) {
+          _watches.remove(key);
+        }
+        unawaited(controller.close());
+      },
+    );
+    return controller.stream;
   }
 
   Future<Result<BrokerEntry>> _relocate(

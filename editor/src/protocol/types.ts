@@ -96,6 +96,7 @@ export const ERROR_CODES = [
   'unknown_doc',
   'doc_exists',
   'no_active_doc',
+  'stale',
   'internal',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -190,7 +191,13 @@ export interface HostToEditor {
   'doc.open': DocOpenPayload;
   'doc.activate': { docId: string };
   'doc.close': { docId: string };
-  'doc.replace': { docId: string; text: string; version: number };
+  /**
+   * Replaces a document's text. With `baseVersion` (Phase 3 W5: a file that
+   * changed outside the app) the page refuses with `stale` unless its
+   * document is still at that version with no edits waiting to be sent, so
+   * nothing typed is ever replaced.
+   */
+  'doc.replace': { docId: string; text: string; version: number; baseVersion?: number };
   /** Re-highlights a document under another language (Save As to a new extension). */
   'doc.setLanguage': { docId: string; language: LanguageId };
   'doc.flush': { docId?: string };

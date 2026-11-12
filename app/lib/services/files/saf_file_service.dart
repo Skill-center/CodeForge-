@@ -176,6 +176,51 @@ final class SafFileService implements FileService {
     }
   }
 
+  @override
+  Future<Result<FileStamp>> stat(String path) async {
+    final invalid = workspacePathProblem(path);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    switch (await _broker.stat(_uri, path)) {
+      case Err<BrokerEntry>(:final failure):
+        return Err(_explain(failure, path, _Doing.read));
+      case Ok<BrokerEntry>(:final value):
+        if (value.isDirectory) {
+          return Err(
+            FileFailure('$path is not a file.', problem: FileProblem.wrongType),
+          );
+        }
+        final modified = value.modified;
+        final size = value.size;
+        if (modified != null && size != null) {
+          return Ok(FileStamp(modified: modified, size: size));
+        }
+    }
+    // The provider gave no time or no size: the stamp stands on the bytes,
+    // as readText makes it.
+    switch (await _broker.read(_uri, path, maxBytes: maxTextFileBytes)) {
+      case Err<BrokerRead>(:final failure):
+        return Err(_explain(failure, path, _Doing.read));
+      case Ok<BrokerRead>(:final value):
+        return Ok(stampOf(value.entry, value.bytes));
+    }
+  }
+
+  /// The broker's change notices (Phase 3 W5): a children query kept open
+  /// on the Kotlin side, whose provider says when the folder changes.
+  /// Android's own provider does; others may send nothing.
+  @override
+  Stream<void> watchFolder(String path) {
+    final invalid = workspacePathProblem(path, allowRoot: true);
+    if (invalid != null) {
+      return Stream<void>.error(
+        FileFailure(invalid, problem: FileProblem.invalidPath),
+      );
+    }
+    return _broker.watch(_uri, path);
+  }
+
   /// What the explorer may do to [entry]: what its provider declares, and
   /// nothing that changes it under a grant for reading only.
   FileCapabilities _capabilitiesOf(BrokerEntry entry) {

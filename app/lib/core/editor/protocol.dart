@@ -94,6 +94,7 @@ const List<String> protocolErrorCodes = [
   'unknown_doc',
   'doc_exists',
   'no_active_doc',
+  'stale',
   'internal',
 ];
 
@@ -415,7 +416,12 @@ final Map<String, _Check> _hostToEditor = {
   ),
   'doc.activate': _obj({'docId': _docId}),
   'doc.close': _obj({'docId': _docId}),
-  'doc.replace': _obj({'docId': _docId, 'text': _text, 'version': _version}),
+  // With baseVersion (Phase 3 W5) the page refuses (`stale`) unless the
+  // document is still at that version with nothing waiting to be sent.
+  'doc.replace': _obj(
+    {'docId': _docId, 'text': _text, 'version': _version},
+    {'baseVersion': _version},
+  ),
   'doc.setLanguage': _obj({
     'docId': _docId,
     'language': _oneOf(editorLanguageIds),

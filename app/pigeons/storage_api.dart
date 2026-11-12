@@ -13,7 +13,10 @@
 // runs the work on its own threads, so no call ever blocks Android's main
 // thread, and the generated Kotlin needs no coroutines library. A failure
 // is a FlutterError whose code the Dart client maps to a FileProblem
-// (lib/services/files/native/pigeon_storage_broker.dart).
+// (lib/services/files/native/pigeon_storage_broker.dart). The calls Kotlin
+// makes into Dart (StorageEvents, Phase 3 W5) are callback-style too:
+// without `@asyncCallback` Pigeon generates Kotlin `suspend` functions,
+// which need the coroutines library.
 import 'package:pigeon/pigeon.dart';
 
 /// A folder the user picked, as the broker finds it now.
@@ -206,4 +209,27 @@ abstract class StorageApi {
     Uint8List bytes,
     String? initialUri,
   );
+
+  /// Starts change notices for the folder at [path] (Phase 3 W5): its
+  /// children query stays open, and the provider says when the rows behind
+  /// it change, as Android's own provider does while such a query is open.
+  /// Notices arrive through [StorageEvents.folderChanged] with [watchId]
+  /// until [unwatch]. False when the provider gave no query to keep open.
+  @asyncCallback
+  bool watch(String treeUri, String path, int watchId);
+
+  /// Stops [watchId]'s notices and closes its query. An id that is not
+  /// watched is ignored.
+  @asyncCallback
+  void unwatch(int watchId);
+}
+
+/// What the storage broker tells Dart unasked (Phase 3 W5).
+@FlutterApi()
+abstract class StorageEvents {
+  /// Something in [watchId]'s folder changed: an entry was created,
+  /// written, renamed or deleted. Notices for one folder arrive at most
+  /// every 100 ms.
+  @asyncCallback
+  void folderChanged(int watchId);
 }

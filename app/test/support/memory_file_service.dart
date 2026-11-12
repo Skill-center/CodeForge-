@@ -5,9 +5,13 @@
 /// path rules, so byte-order marks, CRLF files and refusals behave as they
 /// do on disk. Since Phase 3 W4 it holds empty folders too, and does the
 /// explorer's operations under the same rules as a project: nothing is
-/// replaced, and a folder never goes into itself.
+/// replaced, and a folder never goes into itself. Since W5 its folders can
+/// be watched: changes made the way another program would (putText,
+/// remove, …) notify their folder, and writes through the service do too
+/// when [MemoryFileService.notifyOwnWrites] says so, as real storage does.
 library;
 
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:codeforge/core/errors/failure.dart';
@@ -66,8 +70,12 @@ final class MemoryFileService implements FileService {
     return failure == null ? Ok(workspace) : Err(failure);
   }
 
+  /// Every folder listed through the service, in order (Phase 3 W5).
+  final List<String> listed = [];
+
   @override
   Future<Result<List<FileEntry>>> listDirectory(String path) async {
+    listed.add(path);
     if (failListings[path] case final failure?) {
       return Err(failure);
     }
@@ -171,7 +179,94 @@ final class MemoryFileService implements FileService {
       return Err(failure);
     }
     writes.add(path);
-    return Ok(_put(path, encodeText(text, format)));
+    final created = _topmostNew(path);
+    final stamp = _put(path, encodeText(text, format));
+    if (notifyOwnWrites) {
+      _notify(pathParent(path));
+      if (created != null) {
+        _notify(pathParent(created));
+      }
+    }
+    return Ok(stamp);
+  }
+
+  @override
+  Future<Result<FileStamp>> stat(String path) async {
+    final invalid = workspacePathProblem(path);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    stats.add(path);
+    final stamp = _stamps[path];
+    if (stamp != null) {
+      return Ok(stamp);
+    }
+    if (isFolder(path)) {
+      return Err(
+        FileFailure('$path is not a file.', problem: FileProblem.wrongType),
+      );
+    }
+    return Err(
+      FileFailure('$path does not exist.', problem: FileProblem.notFound),
+    );
+  }
+
+  @override
+  Stream<void> watchFolder(String path) {
+    final failure = failWatch;
+    if (failure != null) {
+      return Stream<void>.error(failure);
+    }
+    late final StreamController<void> controller;
+    controller = StreamController<void>(
+      onListen: () => _watchers.putIfAbsent(path, () => []).add(controller),
+      onCancel: () {
+        _watchers[path]?.remove(controller);
+        if (_watchers[path]?.isEmpty ?? false) {
+          _watchers.remove(path);
+        }
+        unawaited(controller.close());
+      },
+    );
+    return controller.stream;
+  }
+
+  /// Whether writes through this service notify the folders they change,
+  /// as on real storage (Phase 3 W5). Off unless a test says: the app's own
+  /// saves then cause no notices at all.
+  bool notifyOwnWrites = false;
+
+  /// Watching any folder fails with this, as storage that can't watch.
+  Failure? failWatch;
+
+  /// The folders watched now, by path, with their listeners.
+  final Map<String, List<StreamController<void>>> _watchers = {};
+
+  /// The folders being watched now.
+  Set<String> get watched => {..._watchers.keys};
+
+  /// Every path [stat] was asked about, in order.
+  final List<String> stats = [];
+
+  /// Tells whoever watches [folder] that it changed.
+  void _notify(String folder) {
+    for (final controller in [...?_watchers[folder]]) {
+      controller.add(null);
+    }
+  }
+
+  /// The topmost folder above [path] that does not exist yet, or null: a
+  /// write there creates it, which its own folder sees.
+  String? _topmostNew(String path) {
+    String? topmost;
+    for (var folder = pathParent(path); folder.isNotEmpty;) {
+      if (isFolder(folder)) {
+        break;
+      }
+      topmost = folder;
+      folder = pathParent(folder);
+    }
+    return topmost;
   }
 
   @override
@@ -382,29 +477,42 @@ final class MemoryFileService implements FileService {
       _folders.any((p) => p.startsWith('$path/'));
 
   /// Adds an empty folder the way another program would.
-  void putFolder(String path) => _folders.add(path);
+  void putFolder(String path) {
+    final created = _topmostNew(path);
+    _folders.add(path);
+    _notify(pathParent(created ?? path));
+  }
 
   /// Every file's path.
   Iterable<String> get paths => _files.keys;
 
   /// Writes [text] the way another program would: a new stamp, no checks.
+  /// Since Phase 3 W5 the file's folder hears of it, and so does the folder
+  /// of any folder the write creates.
   void putText(
     String path,
     String text, {
     TextFormat format = TextFormat.standard,
   }) {
-    _put(path, encodeText(text, format));
+    putBytes(path, encodeText(text, format));
   }
 
-  /// Deletes [path] the way another program would.
+  /// Deletes the file [path] the way another program would; its folder
+  /// hears of it.
   void remove(String path) {
     _files.remove(path);
     _stamps.remove(path);
+    _notify(pathParent(path));
   }
 
   /// Writes raw [bytes] the way another program would.
   void putBytes(String path, List<int> bytes) {
+    final created = _topmostNew(path);
     _put(path, Uint8List.fromList(bytes));
+    _notify(pathParent(path));
+    if (created != null) {
+      _notify(pathParent(created));
+    }
   }
 
   FileStamp _put(String path, Uint8List bytes) {

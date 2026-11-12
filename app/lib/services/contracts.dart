@@ -160,6 +160,21 @@ abstract interface class FileService {
     FileStamp? expected,
   });
 
+  /// The file's stamp now, as [readText] would report it (Phase 3 W5): an
+  /// open document compares it with the stamp it was read or saved with to
+  /// see whether something else changed the file. [FileProblem.notFound]
+  /// when the file is gone, [FileProblem.wrongType] for a folder.
+  Future<Result<FileStamp>> stat(String path);
+
+  /// Notices that the folder [path] ('' is the workspace root) changed,
+  /// while listened to (Phase 3 W5): an entry directly inside it was
+  /// created, written, renamed or deleted. Not recursive: each folder is
+  /// watched on its own. A notice says only that something changed, and
+  /// the app's own writes cause notices too. Storage that sends no notices
+  /// gives a stream that never emits; a folder that can't be watched gives
+  /// an error. Cancelling the subscription stops the watch.
+  Stream<void> watchFolder(String path);
+
   // The explorer's operations (Phase 3 W4). None of them ever replaces
   // anything: a name that is taken is refused with [FileProblem.exists],
   // and the explorer asks for another.

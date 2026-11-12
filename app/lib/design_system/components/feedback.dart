@@ -12,7 +12,9 @@ enum CfBannerKind { info, warning, danger }
 
 /// Inline banner for phase notices and honest capability labels. An action
 /// sits under the message, at its end, so a narrow phone keeps the
-/// message's full width; the dismiss cross stays beside it.
+/// message's full width; the dismiss cross stays beside it. A second
+/// action (Phase 3 W5: a choice between two versions of a file) goes
+/// before the first, and they wrap when the row is too narrow.
 class CfBanner extends StatelessWidget {
   const CfBanner({
     super.key,
@@ -20,6 +22,8 @@ class CfBanner extends StatelessWidget {
     this.kind = CfBannerKind.info,
     this.actionLabel,
     this.onAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
     this.onDismiss,
   });
 
@@ -27,6 +31,8 @@ class CfBanner extends StatelessWidget {
   final CfBannerKind kind;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? secondaryActionLabel;
+  final VoidCallback? onSecondaryAction;
   final VoidCallback? onDismiss;
 
   @override
@@ -67,7 +73,27 @@ class CfBanner extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
-                if (actionLabel != null)
+                if (actionLabel != null && secondaryActionLabel != null)
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: CfSpacing.xs,
+                      children: [
+                        CfButton(
+                          label: secondaryActionLabel!,
+                          variant: CfButtonVariant.ghost,
+                          onPressed: onSecondaryAction,
+                        ),
+                        CfButton(
+                          label: actionLabel!,
+                          variant: CfButtonVariant.ghost,
+                          onPressed: onAction,
+                        ),
+                      ],
+                    ),
+                  )
+                else if (actionLabel != null)
                   Align(
                     alignment: AlignmentDirectional.centerEnd,
                     child: CfButton(

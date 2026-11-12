@@ -17,6 +17,12 @@
 /// reopens both on the next start. A restored document whose file changed
 /// meanwhile keeps both texts until the user picks one
 /// ([OpenDocument.conflict]).
+///
+/// Files that change outside the app while open (Phase 3 W5) are taken in
+/// by [DocumentController.checkDisk]: a document without unsaved changes
+/// shows the new text, one with unsaved changes keeps them and the user
+/// picks, and a deleted file closes its clean tab. The file watcher
+/// (file_watch_controller.dart) says when to look.
 library;
 
 import 'dart:async';
@@ -42,6 +48,7 @@ import '../file_index.dart';
 import '../providers.dart';
 import '../shell_controller.dart';
 import '../workspace_controller.dart';
+import 'disk_notices.dart';
 import 'document_journal.dart';
 import 'document_state.dart';
 
@@ -56,6 +63,15 @@ final class DocumentController extends Notifier<DocumentsState> {
   final Map<String, Future<Result<void>>> _saving = {};
   late DocumentJournal _journal;
   Timer? _tabSave;
+
+  /// Disk checks in progress (Phase 3 W5), by path, and paths asked about
+  /// again meanwhile.
+  final Map<String, Future<void>> _checking = {};
+  final Set<String> _checkAgain = {};
+
+  /// A file's stamp when it could not be taken in (not text any more, too
+  /// large), by document: it is not read again until its stamp changes.
+  final Map<String, FileStamp> _ignoredStamps = {};
 
   @override
   DocumentsState build() {
@@ -277,6 +293,7 @@ final class DocumentController extends Notifier<DocumentsState> {
     }
     // Saved, or the user chose to drop the changes: either way, done.
     _journal.discard(doc.docId);
+    _ignoredStamps.remove(doc.docId);
     final documents = {...state.documents}..remove(path);
     final recent = [...state.recent.where((p) => p != path)];
     final wasActive = state.activePath == path;
@@ -327,6 +344,16 @@ final class DocumentController extends Notifier<DocumentsState> {
     if (doc == null) {
       return Err(
         FileFailure('$path is not open.', problem: FileProblem.notFound),
+      );
+    }
+    if (!overwrite && doc.conflict == DocumentConflict.changedWhileOpen) {
+      // Its stamp is the changed file's already: without this, the save
+      // would replace the other program's text without asking.
+      return Err(
+        FileFailure(
+          '$path changed on disk while it had unsaved changes.',
+          problem: FileProblem.changedOnDisk,
+        ),
       );
     }
     final String text;
@@ -652,6 +679,234 @@ final class DocumentController extends Notifier<DocumentsState> {
     );
   }
 
+  /// Compares open documents with their files and takes in what changed
+  /// outside the app (Phase 3 W5, docs/EDITOR_ARCHITECTURE.md §6): [paths],
+  /// or every open document.
+  ///
+  /// - **No unsaved changes:** the document shows the file's new text
+  ///   (EditorHost.reloadText), cursor and scroll kept as far as they fit,
+  ///   and a notice says so. Typing that races the reload wins: the page
+  ///   refuses it, and the document counts as having unsaved changes.
+  /// - **Unsaved changes:** they stay. The file becomes the saved text, and
+  ///   the user picks which to keep ([DocumentConflict.changedWhileOpen]);
+  ///   a save meanwhile asks first. Changes that match the file just turn
+  ///   the document clean.
+  /// - **Deleted:** a clean tab closes with a notice; one with unsaved
+  ///   changes stays, marked deleted on disk.
+  /// - **Own writes:** a save records the stamp it wrote, so a file that
+  ///   still has it is left alone; documents being opened or saved are not
+  ///   looked at. A file touched without a new text only takes the new
+  ///   stamp.
+  Future<void> checkDisk([Iterable<String>? paths]) async {
+    final targets = (paths ?? state.openPaths).toSet();
+    await Future.wait([for (final path in targets) _checkOne(path)]);
+  }
+
+  Future<void> _checkOne(String path) {
+    final running = _checking[path];
+    if (running != null) {
+      // Looked at once more when the check in progress ends.
+      _checkAgain.add(path);
+      return running;
+    }
+    final checking = _checkUntilQuiet(path);
+    _checking[path] = checking;
+    return checking;
+  }
+
+  Future<void> _checkUntilQuiet(String path) async {
+    try {
+      do {
+        _checkAgain.remove(path);
+        await _checkFile(path);
+      } while (ref.mounted && _checkAgain.contains(path));
+    } finally {
+      _checking.remove(path);
+    }
+  }
+
+  /// A save or an open of [path] is in progress: its stamp is about to
+  /// change.
+  bool _busy(String path) =>
+      _saving.containsKey(path) || _opening.containsKey(path);
+
+  /// [path] still shows [doc] as it was when a check began: same tab, same
+  /// stamp, nothing saving it.
+  bool _stillAsChecked(String path, OpenDocument doc) {
+    final now = state.documents[path];
+    return now != null &&
+        now.docId == doc.docId &&
+        now.stamp == doc.stamp &&
+        !_busy(path);
+  }
+
+  Future<void> _checkFile(String path) async {
+    final doc = state.documents[path];
+    final stamp = doc?.stamp;
+    if (doc == null || stamp == null || _busy(path)) {
+      return;
+    }
+    final found = await _files.stat(path);
+    if (!ref.mounted || !_stillAsChecked(path, doc)) {
+      return;
+    }
+    switch (found) {
+      case Ok<FileStamp>(:final value):
+        if (value == stamp || value == _ignoredStamps[doc.docId]) {
+          return;
+        }
+        await _takeIn(path, doc, value);
+      case Err<FileStamp>(failure: FileFailure(problem: FileProblem.notFound)):
+        await _deletedOutside(path, doc);
+      case Err<FileStamp>(:final failure):
+        // The folder is gone or unreachable: the workspace says so; the
+        // document stays as it is.
+        appLogger.debug(
+          'documents',
+          'disk_check_failed',
+          fields: {'path': path, 'error': failure.message},
+        );
+    }
+  }
+
+  /// Takes in [path]'s file, found with the stamp [found] that [doc] was
+  /// not read or saved with.
+  Future<void> _takeIn(String path, OpenDocument doc, FileStamp found) async {
+    final read = await _files.readText(path);
+    if (!ref.mounted || !_stillAsChecked(path, doc)) {
+      return;
+    }
+    final TextFile file;
+    switch (read) {
+      case Ok<TextFile>(:final value):
+        file = value;
+      case Err<TextFile>(failure: FileFailure(problem: FileProblem.notFound)):
+        await _deletedOutside(path, doc);
+        return;
+      case Err<TextFile>(:final failure):
+        // Not text any more, or too large: the document keeps what it has,
+        // and this stamp is not read again.
+        _ignoredStamps[doc.docId] = found;
+        appLogger.warn(
+          'documents',
+          'disk_change_unreadable',
+          fields: {'path': path, 'error': failure.message},
+        );
+        return;
+    }
+    _ignoredStamps.remove(doc.docId);
+    final current = state.documents[path]!;
+    if (file.text == current.savedText) {
+      // Touched, or written again with the same text: only the stamp (and
+      // perhaps the line endings it is written back with) moved.
+      _replace(
+        current.copyWith(
+          stamp: file.stamp,
+          format: file.format,
+          mixedLineEndings: file.mixedLineEndings,
+        ),
+      );
+      appLogger.debug('documents', 'disk_touched', fields: {'path': path});
+      return;
+    }
+    final docId = current.docId;
+    final baseVersion = _host.versionOf(docId);
+    final clean = !current.dirty && !_differs(docId, current.savedText);
+    // From here on the file is the saved text, whatever the editor shows:
+    // what is on disk is what a save would replace.
+    _replace(
+      current.copyWith(
+        format: file.format,
+        savedText: file.text,
+        stamp: file.stamp,
+        mixedLineEndings: file.mixedLineEndings,
+      ),
+    );
+    if (clean && baseVersion != null) {
+      final reloaded = await _host.reloadText(
+        docId,
+        file.text,
+        baseVersion: baseVersion,
+      );
+      if (!ref.mounted) {
+        return;
+      }
+      final now = state.documents[path];
+      if (now == null || now.docId != docId) {
+        return;
+      }
+      if (reloaded.isOk) {
+        appLogger.info(
+          'documents',
+          'disk_reloaded',
+          fields: {'path': path, 'bytes': file.stamp.size},
+        );
+        _notices.post('${now.name} changed on disk and was reloaded.');
+        return;
+      }
+      // Typed meanwhile: the page kept the text, so it has unsaved changes.
+      appLogger.info(
+        'documents',
+        'disk_reload_refused',
+        fields: {'path': path},
+      );
+    }
+    final latest = state.documents[path];
+    if (latest == null || latest.docId != docId) {
+      return;
+    }
+    final dirty = _differs(docId, file.text);
+    _replace(
+      dirty
+          ? latest.copyWith(
+              dirty: true,
+              conflict: DocumentConflict.changedWhileOpen,
+            )
+          : latest.copyWith(dirty: false, clearConflict: true),
+    );
+    _journal.rebase(docId, dirty: dirty);
+    if (!dirty) {
+      // The unsaved changes were what the file now holds.
+      appLogger.info('documents', 'disk_matches_edits', fields: {'path': path});
+      return;
+    }
+    appLogger.info('documents', 'disk_conflict', fields: {'path': path});
+    _notices.post(
+      '${latest.name} changed on disk. Your unsaved changes are kept: '
+      'choose which version to keep.',
+    );
+  }
+
+  /// [path]'s file is gone: a clean tab closes, one with unsaved changes
+  /// stays, marked deleted on disk ([pathDeleted]). Edits the page has not
+  /// sent yet are fetched first, so they count.
+  Future<void> _deletedOutside(String path, OpenDocument doc) async {
+    await _host.flush(doc.docId);
+    if (!ref.mounted) {
+      return;
+    }
+    final current = state.documents[path];
+    if (current == null || current.docId != doc.docId || _busy(path)) {
+      return;
+    }
+    _ignoredStamps.remove(doc.docId);
+    final kept = current.dirty || _differs(current.docId, current.savedText);
+    if (kept && !current.dirty) {
+      // Edits the flush just brought, whose report has not arrived yet:
+      // the tab must not close over them.
+      _replace(current.copyWith(dirty: true));
+    }
+    pathDeleted(path);
+    _notices.post(
+      kept
+          ? '${current.name} was deleted on disk. Your text is still here: '
+                'save it to write the file again.'
+          : '${current.name} was deleted on disk, so its tab closed.',
+    );
+  }
+
+  DiskNotices get _notices => ref.read(diskNoticesProvider.notifier);
+
   /// Creates an empty file at [path] and opens it. Refuses a path where
   /// something exists ([FileProblem.exists]).
   Future<Result<void>> createFile(String path) async {
@@ -806,8 +1061,10 @@ final class DocumentController extends Notifier<DocumentsState> {
     );
   }
 
-  /// Settles [path]'s conflict for the restored changes: the document stays
-  /// as restored, unsaved, and the next save writes it over the file.
+  /// Settles [path]'s conflict for the unsaved changes: restored ones, or
+  /// ones kept while the file changed outside the app (Phase 3 W5). The
+  /// document stays as it is, unsaved, and the next save writes it over
+  /// the file.
   void keepRestoredEdits(String path) {
     final doc = state.documents[path];
     if (doc == null || doc.conflict == null) {
@@ -818,7 +1075,7 @@ final class DocumentController extends Notifier<DocumentsState> {
     appLogger.info('documents', 'conflict_kept_edits', fields: {'path': path});
   }
 
-  /// Settles [path]'s conflict for the file: the restored changes go and
+  /// Settles [path]'s conflict for the file: the unsaved changes go and
   /// the document shows the file as it is now. A file that is gone, or can
   /// no longer be read, closes instead.
   Future<Result<void>> useDiskVersion(String path) async {

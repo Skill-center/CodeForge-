@@ -142,6 +142,36 @@ describe('EditorController', () => {
     expect(of('editor.history').at(-1)).toMatchObject({ canUndo: true });
   });
 
+  it('replaces a document guarded by its version only when nothing was typed since (Phase 3 W5)', () => {
+    const { ctl, scheduler, of } = setup();
+    ctl.open({ docId: 'd1', text: 'old', language: 'plaintext', version: 3 });
+    // Typed, not sent yet: what the host knows as version 3 is not what shows.
+    typeText(ctl, '!');
+    const typed = ctl.view.state.doc.toString();
+    expect(errorCode(() => ctl.replace('d1', 'from disk', 4, 3))).toBe('stale');
+    expect(ctl.view.state.doc.toString()).toBe(typed);
+    // Sent: the page is at version 4, which the host has not seen yet.
+    scheduler.run();
+    expect(of('doc.changed')).toHaveLength(1);
+    expect(errorCode(() => ctl.replace('d1', 'from disk', 4, 3))).toBe('stale');
+    expect(ctl.view.state.doc.toString()).toBe(typed);
+    expect(of('editor.history').at(-1)).toMatchObject({ canUndo: true });
+    // The host caught up: the file's text replaces it, and versions go on.
+    ctl.replace('d1', 'from disk', 5, 4);
+    expect(ctl.snapshot('d1')).toMatchObject({ text: 'from disk', version: 5 });
+    expect(of('doc.changed')).toHaveLength(1);
+    expect(errorCode(() => ctl.replace('d9', 'x', 1, 0))).toBe('unknown_doc');
+  });
+
+  it('keeps the cursor of a guarded replace inside the new text', () => {
+    const { ctl } = setup();
+    ctl.open({ docId: 'd1', text: 'a long first line', language: 'plaintext', version: 0, selection: { anchor: 7, head: 7 } });
+    ctl.replace('d1', 'a long second line', 1, 0);
+    expect(ctl.view.state.selection.main.head).toBe(7);
+    ctl.replace('d1', 'abc', 2, 1);
+    expect(ctl.view.state.selection.main.head).toBe(3);
+  });
+
   it('flushes pending edits before answering a snapshot', () => {
     const { ctl, of } = setup();
     ctl.open({ docId: 'd1', text: '', language: 'plaintext', version: 0 });

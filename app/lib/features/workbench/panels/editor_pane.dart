@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../application/documents/document_controller.dart';
+import '../../../application/documents/document_state.dart';
 import '../../../application/editor/find_controller.dart';
 import '../../../application/keyboard_state.dart';
 import '../../../application/settings_controller.dart';
@@ -100,6 +101,14 @@ class EditorPane extends ConsumerWidget {
             (showToolbar ? CfSymbolToolbar.extent : 0) +
             largeFileBannerExtent +
             2 * editorRow;
+        // The file changed outside the app while the document had unsaved
+        // changes (Phase 3 W5): the user picks a version here, without a
+        // dialog, so typing can go on meanwhile.
+        final conflictNotice =
+            activeDoc != null &&
+            activeDoc.conflict == DocumentConflict.changedWhileOpen &&
+            !journalBanner &&
+            height >= largeFileRoom;
         // A document whose file was deleted (Phase 3 W4) says so first: its
         // text exists nowhere else. A conflict about it is asked instead.
         final deletedNotice =
@@ -111,6 +120,7 @@ class EditorPane extends ConsumerWidget {
         final largeFileNotice =
             (activeDoc?.largeFileNotice ?? false) &&
             !journalBanner &&
+            !conflictNotice &&
             !deletedNotice &&
             height >= largeFileRoom;
         return Column(
@@ -162,6 +172,7 @@ class EditorPane extends ConsumerWidget {
                       'would lose them. Save your files to keep them safe.',
                 ),
               ),
+            if (conflictNotice) _DiskConflictNotice(path: activeDoc.path),
             if (deletedNotice) _DeletedNotice(path: activeDoc.path),
             if (largeFileNotice && activeDoc != null)
               _LargeFileNotice(path: activeDoc.path),
@@ -280,6 +291,42 @@ class _DeletedNotice extends ConsumerWidget {
               'it.',
           actionLabel: 'Save',
           onAction: () => saveFile(context, ref, path),
+        ),
+      ),
+    );
+  }
+}
+
+/// The file of the document at [path] changed outside the app while the
+/// document had unsaved changes (Phase 3 W5): both versions are kept until
+/// the user picks one. At most [EditorPane.largeFileBannerExtent] tall,
+/// like the large-file banner.
+class _DiskConflictNotice extends ConsumerWidget {
+  const _DiskConflictNotice({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxHeight: EditorPane.largeFileBannerExtent,
+      ),
+      child: SingleChildScrollView(
+        primary: false,
+        padding: const EdgeInsets.all(CfSpacing.sm),
+        child: CfBanner(
+          key: const ValueKey('disk_conflict_notice'),
+          kind: CfBannerKind.warning,
+          message:
+              '${pathBaseName(path)} changed on disk while you had unsaved '
+              'changes. Both versions are kept until you choose.',
+          secondaryActionLabel: 'Use the file',
+          onSecondaryAction: () => useFileVersion(context, ref, path),
+          actionLabel: 'Keep mine',
+          onAction: () => ref
+              .read(documentControllerProvider.notifier)
+              .keepRestoredEdits(path),
         ),
       ),
     );

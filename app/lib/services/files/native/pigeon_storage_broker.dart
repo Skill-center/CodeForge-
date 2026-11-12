@@ -18,6 +18,12 @@ final class PigeonStorageBroker implements StorageBroker {
 
   final StorageApi _api;
 
+  /// The folders watched now, by the id Kotlin's notices carry (Phase 3
+  /// W5).
+  final Map<int, StreamController<void>> _watches = {};
+  int _nextWatchId = 0;
+  bool _hearing = false;
+
   // Kotlin's time limits (StorageBroker.kt) plus 5 s: Kotlin answers
   // `timeout` itself; these catch a host that never answers at all.
   static const Duration _quick = Duration(seconds: 15);
@@ -175,6 +181,52 @@ final class PigeonStorageBroker implements StorageBroker {
     );
   }
 
+  /// One children query kept open on the Kotlin side per listener; its
+  /// provider's notices arrive through [StorageEvents] with the watch's id.
+  @override
+  Stream<void> watch(String treeUri, String path) {
+    final id = ++_nextWatchId;
+    Future<void>? started;
+    late final StreamController<void> controller;
+    controller = StreamController<void>(
+      onListen: () {
+        _hear();
+        _watches[id] = controller;
+        started = _call(
+          'watch',
+          _quick,
+          () => _api.watch(treeUri, path, id),
+        ).then((result) {
+          if (result case Err<bool>(:final failure)) {
+            _watches.remove(id);
+            if (!controller.isClosed) {
+              controller.addError(failure);
+            }
+          }
+        });
+      },
+      onCancel: () async {
+        _watches.remove(id);
+        // Asked to stop only once Kotlin has started it, so that a watch
+        // cancelled at once does not outlive its listener.
+        await started;
+        await _call('unwatch', _quick, () => _api.unwatch(id));
+        // Not awaited: closing completes only after this cancel has.
+        unawaited(controller.close());
+      },
+    );
+    return controller.stream;
+  }
+
+  /// Takes the broker's notices from now on, once per client.
+  void _hear() {
+    if (_hearing) {
+      return;
+    }
+    _hearing = true;
+    StorageEvents.setUp(_Notices(_watches));
+  }
+
   static FolderInfo _folder(TreeMessage tree) => FolderInfo(
     treeUri: tree.treeUri,
     name: tree.name,
@@ -225,6 +277,22 @@ final class PigeonStorageBroker implements StorageBroker {
           cause: error,
         ),
       );
+    }
+  }
+}
+
+/// Kotlin's change notices, handed to the watch they belong to. A notice
+/// for a watch that has stopped meanwhile goes nowhere.
+final class _Notices implements StorageEvents {
+  _Notices(this._watches);
+
+  final Map<int, StreamController<void>> _watches;
+
+  @override
+  Future<void> folderChanged(int watchId) async {
+    final controller = _watches[watchId];
+    if (controller != null && !controller.isClosed) {
+      controller.add(null);
     }
   }
 }

@@ -210,6 +210,26 @@ final class _ProjectFiles implements FileService {
     }
   }
 
+  @override
+  Future<Result<FileStamp>> stat(String path) async {
+    switch (_folder()) {
+      case Ok<MemoryFileService>(:final value):
+        return value.stat(path);
+      case Err<MemoryFileService>(:final failure):
+        return Err(failure);
+    }
+  }
+
+  @override
+  Stream<void> watchFolder(String path) {
+    switch (_folder()) {
+      case Ok<MemoryFileService>(:final value):
+        return value.watchFolder(path);
+      case Err<MemoryFileService>(:final failure):
+        return Stream<void>.error(failure);
+    }
+  }
+
   /// [body] over the project's folder, or why it is missing.
   Future<Result<T>> _within<T>(
     Future<Result<T>> Function(MemoryFileService files) body,

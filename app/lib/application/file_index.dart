@@ -9,10 +9,13 @@
 ///   so ([FileIndexState.truncated]), and at
 ///   [FileIndexController.maxDepth] folders deep. A folder that can't be
 ///   listed is left out; only the top folder failing fails the index.
-/// - **Kept current** by the explorer's operations (FileOperations) and by
-///   New File and Save As (DocumentController). Changes made outside the
-///   app are W5's: until then they show after the workspace is opened
-///   again. Changes apply one at a time, in order, after any build.
+/// - **Kept current** by the explorer's operations (FileOperations), by
+///   New File and Save As (DocumentController), and since W5 by the file
+///   watcher (file_watch_controller.dart): a watched folder that changed
+///   outside the app is listed again, and [FileIndexController.folderListed]
+///   brings its part of the index in line. Changes in folders nobody
+///   watches show after the workspace is opened again. Changes apply one
+///   at a time, in order, after any build.
 /// - **Per workspace:** switching workspaces drops it.
 library;
 
@@ -182,6 +185,81 @@ final class FileIndexController extends Notifier<FileIndexState> {
           ? null
           : _ready(files, truncated: current.truncated);
     });
+  }
+
+  /// [folder] was listed again with [entries] (Phase 3 W5: it changed
+  /// outside the app). Files that appeared directly in it join the index;
+  /// files and folders that went leave it, with everything in them; and
+  /// folders the index knows nothing in are walked, so a folder that
+  /// appeared brings its files.
+  void folderListed(String folder, List<FileEntry> entries) {
+    if (_inSkippedFolder(folder)) {
+      return;
+    }
+    final prefix = folder.isEmpty ? '' : '$folder/';
+    final fileNames = <String>{};
+    final folderNames = <String>{};
+    for (final entry in entries) {
+      (entry.isDirectory ? folderNames : fileNames).add(entry.name);
+    }
+    final generation = _generation;
+    unawaited(
+      _enqueue(generation, () async {
+        if (state.status != FileIndexStatus.ready) {
+          return;
+        }
+        final files = <FuzzyTarget>[];
+        final knownFiles = <String>{};
+        final knownFolders = <String>{};
+        var changed = false;
+        for (final file in state.files) {
+          if (!file.path.startsWith(prefix)) {
+            files.add(file);
+            continue;
+          }
+          final rest = file.path.substring(prefix.length);
+          final slash = rest.indexOf('/');
+          final name = slash < 0 ? rest : rest.substring(0, slash);
+          final there = slash < 0
+              ? fileNames.contains(name)
+              : folderNames.contains(name);
+          if (!there) {
+            changed = true;
+            continue;
+          }
+          files.add(file);
+          (slash < 0 ? knownFiles : knownFolders).add(name);
+        }
+        var truncated = state.truncated;
+        for (final name in fileNames) {
+          if (knownFiles.contains(name)) {
+            continue;
+          }
+          if (files.length >= maxEntries) {
+            truncated = true;
+            break;
+          }
+          files.add(FuzzyTarget('$prefix$name'));
+          changed = true;
+        }
+        final known = {for (final file in files) file.path};
+        for (final name in folderNames) {
+          if (knownFolders.contains(name) || skippedFolders.contains(name)) {
+            continue;
+          }
+          final before = files.length;
+          final walked = await _walk('$prefix$name', files, known, generation);
+          if (walked == null) {
+            return;
+          }
+          truncated = truncated || walked.truncated;
+          changed = changed || files.length != before;
+        }
+        if (changed || truncated != state.truncated) {
+          state = _ready(files, truncated: truncated);
+        }
+      }),
+    );
   }
 
   /// Applies [change] to the built index, after everything queued before

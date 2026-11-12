@@ -164,7 +164,7 @@ const HOST_TO_EDITOR: Record<string, Check> = {
   ),
   'doc.activate': obj({ docId }),
   'doc.close': obj({ docId }),
-  'doc.replace': obj({ docId, text, version }),
+  'doc.replace': obj({ docId, text, version }, { baseVersion: version }),
   'doc.setLanguage': obj({ docId, language: oneOf(LANGUAGE_IDS) }),
   'doc.flush': obj({}, { docId }),
   'doc.snapshot': obj({ docId }),

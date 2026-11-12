@@ -34,14 +34,20 @@ final class WorkspaceState {
 
 final class WorkspaceController extends Notifier<WorkspaceState> {
   Future<Result<WorkspaceRef>>? _opening;
-  final Set<String> _loading = {};
-  final Set<String> _stale = {};
+
+  /// Listings in progress, by folder, and folders asked for again while
+  /// theirs was. Per workspace: a listing the last one started lands
+  /// nowhere, and does not hold this one's back.
+  Map<String, Future<void>> _loading = {};
+  Set<String> _stale = {};
 
   @override
   WorkspaceState build() {
     ref.keepAlive();
     // Another workspace opened: everything here starts over.
     ref.watch(fileServiceProvider);
+    _loading = {};
+    _stale = {};
     return const WorkspaceState();
   }
 
@@ -80,20 +86,34 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
 
   /// Lists [folder], or lists it again. A request that arrives while the
   /// folder is being listed runs once more afterwards, so nothing created
-  /// meanwhile is missed.
-  Future<void> load(String folder) async {
-    if (_loading.contains(folder)) {
+  /// meanwhile is missed; either way the future completes once the listing
+  /// is as fresh as the last request (Phase 3 W5: the file watcher reads it
+  /// right after).
+  Future<void> load(String folder) {
+    final running = _loading[folder];
+    if (running != null) {
       _stale.add(folder);
-      return;
+      return running;
     }
-    _loading.add(folder);
+    final loading = _loading;
+    final listing = _listUntilFresh(folder, loading, _stale);
+    // Set after the listing reached its first await, before it can end.
+    loading[folder] = listing;
+    return listing;
+  }
+
+  Future<void> _listUntilFresh(
+    String folder,
+    Map<String, Future<void>> loading,
+    Set<String> stale,
+  ) async {
     try {
       do {
-        _stale.remove(folder);
+        stale.remove(folder);
         final result = await ref
             .read(fileServiceProvider)
             .listDirectory(folder);
-        if (!ref.mounted) {
+        if (!ref.mounted || !identical(loading, _loading)) {
           return;
         }
         state = WorkspaceState(
@@ -101,10 +121,30 @@ final class WorkspaceController extends Notifier<WorkspaceState> {
           failure: state.failure,
           listings: {...state.listings, folder: result},
         );
-      } while (_stale.contains(folder));
+      } while (stale.contains(folder));
     } finally {
-      _loading.remove(folder);
+      loading.remove(folder);
     }
+  }
+
+  /// [folder] is gone (Phase 3 W5: deleted outside the app): its listing
+  /// and those of the folders in it go. The root stays: its failure shows.
+  void forget(String folder) {
+    if (folder.isEmpty) {
+      return;
+    }
+    final kept = {
+      for (final entry in state.listings.entries)
+        if (!isWithin(entry.key, folder)) entry.key: entry.value,
+    };
+    if (kept.length == state.listings.length) {
+      return;
+    }
+    state = WorkspaceState(
+      workspace: state.workspace,
+      failure: state.failure,
+      listings: kept,
+    );
   }
 
   /// Lists every listed folder again, after files were created.

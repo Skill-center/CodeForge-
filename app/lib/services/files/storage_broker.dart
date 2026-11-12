@@ -176,6 +176,13 @@ abstract interface class StorageBroker {
   /// storage has no bin.
   Future<Result<void>> delete(String treeUri, String path);
 
+  /// Change notices for the folder at [path] while listened to (Phase 3
+  /// W5): its provider says when the folder's entries change, as Android's
+  /// own does; a provider that does not leaves the stream silent. A folder
+  /// that can't be watched gives a [FileFailure] error. Cancelling stops
+  /// the watch.
+  Stream<void> watch(String treeUri, String path);
+
   /// Shows Android's create-document picker, suggesting [suggestedName] as
   /// a file of [mimeType] and starting at [initialUri] (a document URI)
   /// when given, and writes [bytes] to the file the user makes (Phase 3

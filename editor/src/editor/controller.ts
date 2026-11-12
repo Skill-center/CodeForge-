@@ -251,7 +251,7 @@ export class EditorController {
         return this.close((payload as HostToEditor['doc.close']).docId);
       case 'doc.replace': {
         const p = payload as HostToEditor['doc.replace'];
-        return this.replace(p.docId, p.text, p.version);
+        return this.replace(p.docId, p.text, p.version, p.baseVersion);
       }
       case 'doc.setLanguage': {
         const p = payload as HostToEditor['doc.setLanguage'];
@@ -358,10 +358,16 @@ export class EditorController {
   /**
    * Replaces a document's text with the host's (recovery, external change).
    * Unsent edits are discarded and the undo history restarts; the host
-   * flushes first when it wants them.
+   * flushes first when it wants them. With [baseVersion] (Phase 3 W5: the
+   * file changed outside the app) nothing typed is replaced: a document at
+   * another version, or with edits not sent yet, is refused (`stale`) and
+   * stays as it is.
    */
-  replace(docId: string, text: string, version: number): void {
+  replace(docId: string, text: string, version: number, baseVersion?: number): void {
     const entry = this.require(docId);
+    if (baseVersion !== undefined && (entry.version !== baseVersion || this.batcher.hasPending(docId))) {
+      throw new EditorError('stale', `document ${docId} is at version ${entry.version}, not ${baseVersion}`);
+    }
     this.batcher.discard(docId);
     const isActive = this.activeId === docId;
     const current = isActive ? this.view.state : entry.state;

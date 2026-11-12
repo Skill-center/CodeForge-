@@ -77,9 +77,10 @@ object DocFlags {
 }
 
 /**
- * Paths to document ids, filled by listings and resolutions (Phase 3 W2;
- * W5's watch events clear it). Least recently used ids go first. Shared by
- * the broker's threads.
+ * Paths to document ids, filled by listings and resolutions (Phase 3 W2).
+ * Least recently used ids go first. Shared by the broker's threads. A
+ * change outside the app needs no clearing (Phase 3 W5): DocumentOps uses
+ * a remembered id only after a query shows the same name there.
  */
 class DocumentIdCache(private val capacity: Int = 20_000) {
     private val ids = object : LinkedHashMap<String, String>(256, 0.75f, true) {

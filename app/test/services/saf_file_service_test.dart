@@ -368,6 +368,55 @@ void main() {
     });
   });
 
+  group('outside changes (Phase 3 W5, G4)', () {
+    test('stat answers the stamp a read gives, by time or by hash', () async {
+      final read = (await files.readText('hello.txt')).orThrow;
+      expect((await files.stat('hello.txt')).orThrow, read.stamp);
+      folder.putText('hello.txt', 'Changed by another app\n');
+      final changed = (await files.stat('hello.txt')).orThrow;
+      expect(changed, isNot(read.stamp));
+      expect(changed, (await files.readText('hello.txt')).orThrow.stamp);
+
+      folder.timeless = true;
+      final hashed = (await files.stat('hello.txt')).orThrow;
+      expect(hashed.digest, isNotNull);
+      expect(hashed, (await files.readText('hello.txt')).orThrow.stamp);
+
+      expect(
+        (await files.stat('ghost.txt')).failureOrNull,
+        _fails(FileProblem.notFound),
+      );
+      expect(
+        (await files.stat('src')).failureOrNull,
+        _fails(FileProblem.wrongType),
+      );
+      expect(
+        (await files.stat('../x')).failureOrNull,
+        _fails(FileProblem.invalidPath),
+      );
+    });
+
+    test('watching a folder goes to the broker, and stops with it', () async {
+      var notices = 0;
+      final subscription = files.watchFolder('src').listen((_) => notices++);
+      await Future<void>.delayed(Duration.zero);
+      expect(broker.isWatched(_uri, 'src'), isTrue);
+      broker.notifyChanged(_uri, 'src');
+      await Future<void>.delayed(Duration.zero);
+      expect(notices, 1);
+      await subscription.cancel();
+      expect(broker.isWatched(_uri, 'src'), isFalse);
+
+      Object? error;
+      final refused = files
+          .watchFolder('../x')
+          .listen((_) {}, onError: (Object e) => error = e);
+      await Future<void>.delayed(Duration.zero);
+      expect(error, _fails(FileProblem.invalidPath));
+      await refused.cancel();
+    });
+  });
+
   group('the Pigeon client', () {
     TestWidgetsFlutterBinding.ensureInitialized();
     const prefix = 'dev.flutter.pigeon.codeforge.StorageApi';
@@ -383,9 +432,66 @@ void main() {
     }
 
     tearDown(() {
-      for (final method in ['list', 'read', 'checkTree']) {
+      for (final method in ['list', 'read', 'checkTree', 'watch', 'unwatch']) {
         messenger.setMockMessageHandler('$prefix.$method', null);
       }
+    });
+
+    test('watches through Kotlin, hears its notices, and stops', () async {
+      final asked = <List<Object?>>[];
+      answer('watch', (args) {
+        asked.add(args);
+        return [true];
+      });
+      answer('unwatch', (args) {
+        asked.add(args);
+        return <Object?>[];
+      });
+      final broker = PigeonStorageBroker();
+      var notices = 0;
+      final subscription = broker
+          .watch(_uri, 'src')
+          .listen((_) => notices++);
+      final watch = Stopwatch()..start();
+      while (asked.isEmpty && watch.elapsed < const Duration(seconds: 5)) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      expect(asked.single.take(2), [_uri, 'src']);
+      final id = asked.single[2]! as int;
+
+      Future<void> notice(int watchId) async {
+        await messenger.handlePlatformMessage(
+          'dev.flutter.pigeon.codeforge.StorageEvents.folderChanged',
+          StorageEvents.pigeonChannelCodec.encodeMessage(<Object?>[watchId]),
+          (_) {},
+        );
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      await notice(id);
+      expect(notices, 1);
+      await notice(id + 1000);
+      expect(notices, 1, reason: 'another watch\'s notice');
+
+      await subscription.cancel();
+      expect(asked.last, [id]);
+      await notice(id);
+      expect(notices, 1, reason: 'stopped');
+    });
+
+    test('a watch Kotlin refuses ends in an error', () async {
+      answer('watch', (args) => ['not_found', 'from Kotlin', null]);
+      answer('unwatch', (args) => <Object?>[]);
+      Object? error;
+      final subscription = PigeonStorageBroker()
+          .watch(_uri, 'gone')
+          .listen((_) {}, onError: (Object e) => error = e);
+      final watch = Stopwatch()..start();
+      while (error == null && watch.elapsed < const Duration(seconds: 5)) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      expect(error, _fails(FileProblem.notFound));
+      await subscription.cancel();
     });
 
     test('maps entries, times and flags', () async {

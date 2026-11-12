@@ -526,6 +526,66 @@ final class EditorHost {
     );
   }
 
+  /// Replaces [docId]'s text with [text] only if nothing was typed since
+  /// the shadow was at [baseVersion] (Phase 3 W5: a document without
+  /// unsaved changes whose file changed outside the app). The page refuses
+  /// (`stale`) when its document has moved on or holds edits it has not
+  /// sent yet, and then nothing changes here either: the caller treats the
+  /// document as having unsaved changes. Undo history starts over; the
+  /// cursor and scroll stay as close as the new text allows.
+  Future<Result<void>> reloadText(
+    String docId,
+    String text, {
+    required int baseVersion,
+  }) async {
+    final doc = _documents[docId];
+    if (doc == null) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    if (text.contains('\r')) {
+      return const Err(
+        BridgeFailure('Editor text must use \\n line breaks only.'),
+      );
+    }
+    if (doc.version != baseVersion) {
+      return Err(
+        BridgeFailure(
+          'Document $docId is at version ${doc.version}, not $baseVersion.',
+          cause: 'stale',
+        ),
+      );
+    }
+    final version = baseVersion + 1;
+    if (!_ready || (_syncing != null && !await _afterSync())) {
+      // No page to ask: the shadow is what the page will be given.
+      final current = _documents[docId];
+      if (current == null || current.version != baseVersion) {
+        return Err(
+          BridgeFailure('Document $docId changed meanwhile.', cause: 'stale'),
+        );
+      }
+      current.resync(text: text, version: version);
+      _emit(DocumentEdited(docId, version));
+      return const Ok(null);
+    }
+    final replaced = await _request('doc.replace', {
+      'docId': docId,
+      'text': text,
+      'version': version,
+      'baseVersion': baseVersion,
+    }, timeout: _timeoutFor(text.length));
+    switch (replaced) {
+      case Err<Object?>(:final failure):
+        return Err(failure);
+      case Ok<Object?>():
+        // The page shows the new text from [version] on; its next edits
+        // build on it, so the shadow takes it before any of them arrives.
+        _documents[docId]?.resync(text: text, version: version);
+        _emit(DocumentEdited(docId, version));
+        return const Ok(null);
+    }
+  }
+
   /// Highlights [docId] as [language] from now on (Save As to another
   /// extension). Text, cursor and undo history stay as they are.
   Future<Result<void>> setLanguage(String docId, String language) async {
