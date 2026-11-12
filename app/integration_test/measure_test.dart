@@ -229,7 +229,9 @@ void main() {
           ]);
         }
       }
-      _say('project of $_projectFiles files written in ${fill.elapsedMilliseconds} ms (setup)');
+      _say(
+        'project of $_projectFiles files written in ${fill.elapsedMilliseconds} ms (setup)',
+      );
 
       final open = Stopwatch()..start();
       final opened = await switcher.open(project);
@@ -266,7 +268,12 @@ void main() {
       final tenMiB = largeJavaScript(largeSampleChars(10));
       final projectFiles = container.read(fileServiceProvider);
       report['projectIo'] = {
-        '1MiB': await _readWrite(projectFiles, 'io_1mib.txt', oneMiB, 'dart:io'),
+        '1MiB': await _readWrite(
+          projectFiles,
+          'io_1mib.txt',
+          oneMiB,
+          'dart:io',
+        ),
         '10MiB': await _readWrite(
           projectFiles,
           'io_10mib.txt',
