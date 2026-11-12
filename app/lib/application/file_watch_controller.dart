@@ -19,8 +19,10 @@
 ///   for storage that sends no notices, and for documents in folders past
 ///   the limit. A save records the stamp it wrote, so the app's own writes
 ///   change nothing.
-/// - **In the background** nothing runs: notices wait, and coming back
-///   lists every watched folder again, since notices may have been missed.
+/// - **In the background** nothing runs: notices wait. Coming back tries
+///   again the watches that failed, compares every open document with its
+///   file and lists every watched folder again, since notices may have
+///   been missed.
 ///
 /// The workbench keeps this alive while it shows, and tells it when the
 /// app goes to the background and comes back.
@@ -177,9 +179,9 @@ final class FileWatchController extends Notifier<List<String>> {
     _recheck = null;
   }
 
-  /// The app came back: every watched folder is listed again and every
-  /// open document compared with its file, since notices may have been
-  /// missed meanwhile.
+  /// The app came back: watches that failed are tried again, every open
+  /// document is compared with its file and every watched folder listed
+  /// again, since notices may have been missed meanwhile.
   Future<void> resumed() async {
     if (_foreground) {
       return;
@@ -189,6 +191,9 @@ final class FileWatchController extends Notifier<List<String>> {
     _batch?.cancel();
     _batch = null;
     _changed.clear();
+    // Watches that failed start again; their folders are listed below,
+    // with every other one.
+    _watchWanted(relist: false);
     final generation = _generation;
     final listed = ref.read(workspaceControllerProvider).listings;
     final folders = [
@@ -196,13 +201,22 @@ final class FileWatchController extends Notifier<List<String>> {
         if (listed.containsKey(folder)) folder,
     ];
     appLogger.debug('watch', 'resumed', fields: {'folders': folders.length});
+    // The documents do not wait for the listings: they are what the user
+    // looks at.
+    await Future.wait([
+      _documents.checkDisk(),
+      _relistAll(folders, generation),
+    ]);
+  }
+
+  /// Lists [folders] again, one at a time, until the workspace changes.
+  Future<void> _relistAll(List<String> folders, int generation) async {
     for (final folder in folders) {
       await _relist(folder);
       if (!ref.mounted || generation != _generation) {
         return;
       }
     }
-    await _documents.checkDisk();
   }
 
   List<String> _wanted() {
@@ -215,8 +229,9 @@ final class FileWatchController extends Notifier<List<String>> {
     );
   }
 
-  /// Watches what is wanted now, and nothing else.
-  void _watchWanted() {
+  /// Watches what is wanted now, and nothing else. A folder watched anew
+  /// that has a listing is listed again, unless [relist] is false.
+  void _watchWanted({bool relist = true}) {
     final wanted = _wanted();
     final keep = wanted.toSet();
     for (final folder in [..._subscriptions.keys]) {
@@ -233,7 +248,7 @@ final class FileWatchController extends Notifier<List<String>> {
       _subscribe(folder, files);
       // Listed while nobody watched it (collapsed, then expanded again):
       // the listing may be old.
-      if (listed.containsKey(folder) && _foreground) {
+      if (relist && listed.containsKey(folder) && _foreground) {
         unawaited(_relist(folder));
       }
     }

@@ -558,6 +558,31 @@ void main() {
     );
   });
 
+  group('watches that fail', () {
+    test('are tried again when the app comes back', () async {
+      final files = MemoryFileService()
+        ..failWatch = const FileFailure(
+          'The storage could not watch just then.',
+          problem: FileProblem.io,
+        );
+      final w = _World(files: files);
+      await w.start();
+      await w.open('main.js');
+      expect(w.files.watched, isEmpty);
+      w.files.failWatch = null;
+      w.watcher.paused();
+      await w.watcher.resumed();
+      expect(w.files.watched, {''});
+      // Seen through the watch: the periodic check is an hour away.
+      w.files.putText('main.js', 'noticed again\n');
+      await _until(
+        () => w.pageText('main.js') == 'noticed again\n',
+        what: 'a notice from the watch tried again',
+      );
+      expect(w.doc('main.js').dirty, isFalse);
+    });
+  });
+
   group('a folder from shared storage', () {
     const uri =
         'content://com.android.externalstorage.documents/tree/primary%3Awatch';
