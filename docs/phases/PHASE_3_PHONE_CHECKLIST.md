@@ -1,6 +1,6 @@
 # Phase 3 exit session: every parked phone check
 
-**Status:** ready for the owner's session. Prepared in Phase 3 W7, as the owner decided on 2026-11-11: one session at Phase 3's exit, with every check parked since Phase 1 ([ROADMAP.md](../ROADMAP.md), *Parked owner checks*). Results go into [PHASE_3_REPORT.md](PHASE_3_REPORT.md) §8. Non-blocking for acceptance unless the owner decides otherwise (PHASE_3_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of phase gate [43284276984](https://github.com/Skill-center/CodeForge-/actions/runs/43284276984) (commit a78cbee, Phase 3's final app), kept until 2026-12-12 · **Time:** about 75 minutes, in any number of sittings; do §9 last.
+**Status:** ready for the owner's session. Prepared in Phase 3 W7, as the owner decided on 2026-11-11: one session at Phase 3's exit, with every check parked since Phase 1 ([ROADMAP.md](../ROADMAP.md), *Parked owner checks*). Results go into [PHASE_3_REPORT.md](PHASE_3_REPORT.md) §8. Non-blocking for acceptance unless the owner decides otherwise (PHASE_3_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of phase gate [43384226759](https://github.com/Skill-center/CodeForge-/actions/runs/43384226759) (commit 81a7b4d: Phase 3's app on Phase 4 W1's toolchain, Flutter 3.50.0), kept until 2026-12-13. Phase 3's own build (gate 43284276984, artifact 13975424637, commit a78cbee) stays downloadable until 2026-12-12 · **Time:** about 75 minutes, in any number of sittings; do §9 last.
 
 The emulator gate runs every group on each `[phase-gate]` commit. A phone adds what an emulator can't: a real ARM CPU and GPU (Impeller draws with it), your Android's own folder picker, your keyboard, TalkBack, and a real Google account.
 
@@ -13,12 +13,12 @@ The emulator gate runs every group on each `[phase-gate]` commit. A phone adds w
 
 ## 1. Install
 
-1. On GitHub, signed in: [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/43284276984/artifacts/13975424637) downloads directly. Otherwise go to **Actions → Phase gate →** run 43284276984 **→ Artifacts → `codeforge-phone-profile-arm64`**. It is a zip holding one APK.
+1. On GitHub, signed in: [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/43384226759/artifacts/14018654763) downloads directly. Otherwise go to **Actions → Phase gate →** run 43384226759 **→ Artifacts → `codeforge-phone-profile-arm64`**. It is a zip holding one APK.
 2. **Uninstall any earlier CodeForge build first.** Every CI build is signed with its own throwaway key, so Android refuses to install over another one.
 3. Unzip, open the APK on the phone, and allow "install unknown apps" for your browser or file manager when asked. With adb: `adb uninstall dev.codeforge.app`, then `adb install codeforge-phone-profile-arm64.apk`.
 4. **Keep the APK file:** §9 installs this same file again.
 
-This is a profile build: optimised like a release, with a Developer section in Settings. The debug build of the same commit is the `codeforge-debug-apk` artifact of CI [43284276980](https://github.com/Skill-center/CodeForge-/actions/runs/43284276980) (all ABIs, kept until 2027-02-10); no check below needs it.
+This is a profile build: optimised like a release, with a Developer section in Settings. The debug build of the same commit is the `codeforge-debug-apk` artifact of CI [43384226740](https://github.com/Skill-center/CodeForge-/actions/runs/43384226740) (all ABIs, kept until 2027-02-11); no check below needs it.
 
 ## 2. Impeller on your phone (5 minutes; Phase 3 W6)
 

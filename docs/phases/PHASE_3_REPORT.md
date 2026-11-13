@@ -191,7 +191,7 @@ The two renderers run the same app code, which awaits only the preferences befor
 
 ## 8. The exit phone session
 
-**Decided at acceptance (2026-11-12):** the owner runs the session after the next slice of work. If that slice changes the app, the checklist will name the newer phase-gate build; Phase 3's final build (artifact 13975424637) stays downloadable until 2026-12-12.
+**Decided at acceptance (2026-11-12):** the owner runs the session after the next slice of work. If that slice changes the app, the checklist will name the newer phase-gate build; Phase 3's final build (artifact 13975424637) stays downloadable until 2026-12-12. **2026-11-13:** Phase 4 W1 moved the app to Flutter 3.50.0, so the checklist names its build: phase gate 43384226759, [artifact 14018654763](https://github.com/Skill-center/CodeForge-/actions/runs/43384226759/artifacts/14018654763), kept until 2026-12-13.
 
 The owner chose one session at Phase 3's exit for every check parked since Phase 1 (2026-11-11). [PHASE_3_PHONE_CHECKLIST.md](PHASE_3_PHONE_CHECKLIST.md) has all of them, on the profile APK of the exit gate, in about 75 minutes: Impeller and frame timing, folders on the owner's phone (picker, outside changes, restart, reconnect), large files with the policy and the save pause, the keyboard (Gboard) matrix, the selection matrix, TalkBack over Phases 1–3's chrome, cold start and memory with adb (optional), and backup with a Google account.
 

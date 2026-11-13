@@ -12,7 +12,9 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 - **CI builds a release APK on every run**, so a failure that only release builds show is caught there, not first in the phase gate. The phase gate keeps the logs of its builds with its evidence.
 - **CI uses the Node 24 versions of GitHub's actions** (checkout, setup-java, cache, upload-artifact, download-artifact, setup-node), each read against its release notes.
 - The debug APK is about 1.9 MB smaller: 175,890,252 bytes, from 177,806,969 at Phase 3's exit.
-- Verified by CI 43373527631 (`+846: All tests passed!`; analysis clean; 44 Kotlin tests).
+- **The watch gate waits for its last notice** before it ends: it once failed on a snack bar still animating at teardown, after every check had passed.
+- **Cold start on the CI emulator: 879 ms** with the release build (1302 ms at Phase 3's exit; 793 ms with Skia). The exit phone session now uses W1's build ([PHASE_3_PHONE_CHECKLIST.md](phases/PHASE_3_PHONE_CHECKLIST.md)).
+- Verified by CI 43373527631 (`+846: All tests passed!`; analysis clean; 44 Kotlin tests), 43375227087, 43379964388 and 43384226740, and phase gate 43384226759 (every group on its first attempt). Gates 43375227077 and 43379964330 found the release-build and test-timing problems fixed here.
 
 ### Licence decided (2026-11-12)
 - **CodeForge is licensed under the Apache License 2.0** (`LICENSE`; the owner's decision, [ADR-0011](adr/0011-license.md) path B). By ADR-0006's rule the terminal frontend is therefore xterm.js: Termux's GPLv3 terminal modules are never vendored, and Phase 5 writes the PTY. t1 takes the same licence before Phase 4 vendors its code.

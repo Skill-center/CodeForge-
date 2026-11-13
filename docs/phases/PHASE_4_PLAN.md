@@ -1,6 +1,6 @@
 # Phase 4 Implementation Plan — Runtime Integration
 
-**Status:** **Proposed (2026-11-12).** W1 starts on the owner's "next". **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. The vendoring packages (W2 on) start once t1 carries the same licence.
+**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. The vendoring packages (W2 on) start once t1 carries the same licence.
 **Spec reference:** §8 Phase 4 (runtime integration), §2 (reuse existing assets), §6.4–6.5 (the terminal connects to the existing environment; the capability model), §7 (security) · **Architecture:** [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [EXISTING_RUNTIME_AUDIT.md](../EXISTING_RUNTIME_AUDIT.md), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0006](../adr/0006-terminal-frontend.md), [ADR-0007](../adr/0007-min-sdk.md), [ADR-0009](../adr/0009-ci-github-actions.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Source:** `m-cyber12/t1` main @ `7b496c3`, whose tree equals the audited `0e26d7a`
 
 ---
@@ -97,6 +97,38 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 - That gate's phone profile APK becomes the build of the exit phone session, which the owner runs after this slice. PHASE_3_PHONE_CHECKLIST will name it. Phase 3's final build (artifact 13975424637) stays downloadable until 2026-12-12.
 
 **Docs:** TECH_STACK, BUILD_AND_RELEASE §3, `app/README.md`, the changelog.
+
+**As built (W1):**
+- **Pins:** Flutter 3.50.0 (Dart 3.14.0), Kotlin's Gradle plugin 2.4.20 and Gradle 9.5.0, as planned. **Deviation:** the Android Gradle Plugin is **9.3.3**, the 9.3 line's latest patch, not the template's 9.3.1. AGP 9.3.0 and 9.3.1 bundle a lint that crashes on JDK 17 in every release build (Google issue 522845800, fixed in 9.3.2), and 9.3.3 also fixes D8/R8 bugs. Flutter 3.50.0 warns only below 9.3.1. JDK 17, compileSdk, targetSdk and the NDK are unchanged.
+- **`material_ui` 1.10.0:** the bootstrap's `migrate_design_widgets` pass moved all 87 imports and changed nothing else. `pubspec.yaml` was untouched by it, and the lockfile only marks `material_ui` direct and moves `test_api` to 0.7.14. `analysis_options.yaml` enables the lint. None of the 26 golden images changed.
+- **Navigation** builds go_router's `NoTransitionPage` itself, with go_router's own key, name, arguments and restoration id.
+- **What the gates found** (three runs):
+  1. **Gate 43375227077:** every group passed, but the three AOT builds (release x64, the Skia comparison, the phone profile APK) failed, so the cold start fell back to the debug APK (2443 ms). The job log named two causes:
+     - Dart 3.14.0's AOT compiler crashes on a `final` local assigned in one case of a switch whose other case returns, then captured by a closure ([dart-lang/sdk#64917](https://github.com/dart-lang/sdk/issues/64917), P0, open on 2026-11-13). Home's folder reconnect had that shape and was restructured, with the same behaviour. A scan of `lib/` and of the main dependencies found no other instance.
+     - AGP 9.3.1's lint crashes on JDK 17, hence 9.3.3.
+  2. **Gate 43379964330:** the release builds worked (cold start 901 ms). Every group passed except watch: all of its checks passed, but the snack bar of its last reload was still animating when the test ended. The test now waits for that notice.
+  3. **Gate 43384226759:** every group passed, each integration test on its first attempt, with no ANR and no crash.
+- **CI builds the x86_64 release APK on every run** (24,631,359 bytes), so a failure only release builds show is caught there. The phase gate keeps its build logs in its evidence.
+- **Actions:** the Node 24 majors. GitHub's warnings about Node 20 and the deprecated setup-java v4 are gone (CI 43375227087).
+- **Gradle warnings** from AGP 9.3 and KGP 2.4.20 come from Flutter's template and Gradle plugin, not from our build files (BUILD_AND_RELEASE §3).
+- **Evidence:** CI 43373527631 (the bootstrap: `+846: All tests passed!`, analysis clean, 230 files formatted with none changed, 44 Kotlin tests, coverage 90.4 %), 43375227087, 43379964388 and 43384226740, and the gates above.
+- **Against Phase 3's exit gate** (43284276984; debug-APK figures vary from run to run on the emulator):
+
+  | | Phase 3 exit | W1, gate 43384226759 |
+  |---|---|---|
+  | Cold start, release x64 with Impeller (G6 budget 1500 ms) | 1302 ms | **879 ms** |
+  | The same build with Skia | 992 ms | 793 ms |
+  | The shipped APK again, after Skia | 1338 ms | 875 ms |
+  | Release memory, app and renderers | 231.0 MB | 230.4 MB |
+  | CodeMirror (debug): input p95, memory | 49.6 ms, 527.5 MB | 55.8 ms, 520.4 MB |
+  | Monaco (debug): input p95, memory | 68.4 ms, 597.5 MB | 50.7 ms, 624.5 MB |
+  | Project of 10,000 files: opened, indexed | 273 ms, 206 ms | 247 ms, 142 ms |
+  | 1,000 entries listed through the broker | 529 ms | 326 ms |
+  | Watch reloads: project, folder | 470 ms, 888 ms | 784 ms, 782 ms |
+  | ANRs (Phase 3's were Play services') | 3 | 0 |
+  | Debug APK | 177,806,969 B | 175,890,512 B |
+
+- **The exit phone session's build:** the `codeforge-phone-profile-arm64` artifact of gate 43384226759 ([artifact 14018654763](https://github.com/Skill-center/CodeForge-/actions/runs/43384226759/artifacts/14018654763), kept until 2026-12-13), which PHASE_3_PHONE_CHECKLIST names.
 
 ### W2 — Provenance, pins and the sealed-runtime kernel (1 session; needs t1's Apache-2.0 LICENSE) → G2
 

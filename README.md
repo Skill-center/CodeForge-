@@ -10,7 +10,7 @@
 > - CodeMirror 6 runs in a hardened Android System WebView, with many tabs, find and replace, a symbol toolbar and hardware shortcuts. Unsaved text survives the app being killed.
 > - Android backup is the user's choice, off by default.
 >
-> The runtime and the terminal arrive in Phases 4–5, and the screens say so honestly. Phase 4 is planned ([plan](docs/phases/PHASE_4_PLAN.md)). Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
+> The runtime and the terminal arrive in Phases 4–5, and the screens say so honestly. Phase 4 is under way ([plan](docs/phases/PHASE_4_PLAN.md)): its first package moved CodeForge to Flutter 3.50.0. Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
 
 ---
 
