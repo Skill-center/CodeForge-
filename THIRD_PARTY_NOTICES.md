@@ -33,7 +33,7 @@ The editor page is built from `editor/`: CodeMirror 6 and its language packages,
 <!-- userland:begin -->
 <!-- Written by runtime/notices.py from runtime/pins.json and the pinned files. Do not edit by hand: CI checks it. -->
 
-**112 package versions** ship in the payloads: the bootstrap `2026.02.12-r1+apt.android-7` refreshed by the pinned core set (resolved 2026-11-13T09:32:13Z). Per ABI: arm64-v8a 112 packages, 48 of them pinned; x86_64 112 packages, 48 of them pinned.
+**112 package versions** ship in the payloads: the bootstrap `2026.02.12-r1+apt.android-7` refreshed by the pinned core set (resolved 2026-11-13T09:43:19Z). Per ABI: arm64-v8a 112 packages, 50 of them pinned; x86_64 112 packages, 50 of them pinned.
 
 Licences, counted per package version: GPL-3.0 23, GPL-2.0 22, MIT 16, BSD-2-Clause 13, BSD-3-Clause 13, LGPL-2.1 10, unidentified 8, Apache-2.0 5, LGPL-3.0 5, ISC 3, Public Domain 3, Artistic-License-2.0 2, curl 2, LGPL-2.0 2, Zlib 2, AGPL-3.0-only 1, Artistic-2.0 1, GPL-2.0-or-later 1, GPL-3.0-or-later 1, MPL-2.0 1, NCSA 1, PSF-2.0 1, Ruby 1, Unicode-3.0 1.
 
@@ -51,7 +51,7 @@ A licence with an asterisk was identified from its text's wording; the others ar
 | ca-certificates | 1:2026.11.05-1 | arm64-v8a, x86_64 | MPL-2.0 | `share/doc/ca-certificates/copyright` → `share/LICENSES/MPL-2.0.txt` | https://curl.se/docs/caextract.html |
 | command-not-found | 3.2-16 | arm64-v8a, x86_64 | Apache-2.0 | `share/doc/command-not-found/copyright` → `share/LICENSES/Apache-2.0.txt` | https://github.com/termux/command-not-found |
 | coreutils | 9.9 | arm64-v8a, x86_64 | GPL-3.0 | `share/doc/coreutils/copyright` → `share/LICENSES/GPL-3.0.txt` | https://www.gnu.org/software/coreutils/ |
-| curl | 8.18.0-1 | arm64-v8a, x86_64 | none found | — | https://curl.se/ |
+| curl | 8.23.0 | arm64-v8a, x86_64 | none found | — | https://curl.se/ |
 | dash | 0.5.12-2 | arm64-v8a, x86_64 | BSD-3-Clause\* | `share/doc/dash/copyright` | http://gondor.apana.org.au/~herbert/dash/ |
 | debianutils | 5.23.2-1 | arm64-v8a, x86_64 | GPL-2.0 | `share/doc/debianutils/copyright` → `share/LICENSES/GPL-2.0.txt` | https://packages.debian.org/debianutils |
 | dialog | 1.3-20240307-1 | arm64-v8a, x86_64 | LGPL-2.1 | `share/doc/dialog/copyright` → `share/LICENSES/LGPL-2.1.txt` | https://invisible-island.net/dialog/ |
@@ -152,7 +152,7 @@ A licence with an asterisk was identified from its text's wording; the others ar
 | util-linux | 2.41.2-1 | arm64-v8a, x86_64 | BSD-2-Clause\*, BSD-3-Clause\*, GPL-2.0\*, GPL-3.0\*, ISC\*, LGPL-2.1\* | `share/doc/util-linux/COPYING.BSD-3-Clause`<br>`share/doc/util-linux/COPYING.BSD-4-Clause-UC`<br>`share/doc/util-linux/COPYING.GPL-2.0-or-later`<br>`share/doc/util-linux/COPYING.GPL-3.0-or-later`<br>`share/doc/util-linux/COPYING.ISC`<br>`share/doc/util-linux/COPYING.LGPL-2.1-or-later` | https://en.wikipedia.org/wiki/Util-linux |
 | which | 2.25 | arm64-v8a, x86_64 | GPL-2.0-or-later | `share/doc/which/copyright` → `share/LICENSES/GPL-2.0-or-later.txt` | https://savannah.gnu.org/projects/which/ |
 | xxhash | 0.8.3-1 | arm64-v8a, x86_64 | BSD-2-Clause\*, GPL-2.0 | `share/doc/xxhash/copyright`<br>`share/doc/xxhash/copyright.1` → `share/LICENSES/GPL-2.0.txt` | https://cyan4973.github.io/xxHash/ |
-| xz-utils | 5.8.2 | arm64-v8a, x86_64 | none found | — | https://tukaani.org/xz/ |
+| xz-utils | 5.8.4 | arm64-v8a, x86_64 | none found | — | https://tukaani.org/xz/ |
 | zlib | 1.4 | arm64-v8a, x86_64 | Zlib\* | `share/doc/zlib/copyright` | https://www.zlib.net/ |
 | zstd | 1.5.7-1 | arm64-v8a, x86_64 | GPL-2.0 | `share/doc/zstd/copyright` → `share/LICENSES/GPL-2.0.txt` | https://github.com/facebook/zstd |
 

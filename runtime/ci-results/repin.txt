@@ -39,6 +39,37 @@ refresh openssl             bootstrap 1:3.6.1      -> 1:3.6.5      (libcurl:depe
 refresh ncurses             bootstrap 6.6.20260124+really6.5.20250830 -> 6.6.20260307+really6.5.20250830 (ncurses-ui-libs:depends needs = 6.6.20260307+really6.5.20250830)
 skip resolv-conf            1.3          (c-ares:depends; bootstrap has the same version)
 skip libandroid-glob        0.6-3        (krb5:depends; bootstrap has the same version)
+aarch64: curl, xz-utils left behind by the refresh; resolving again with them
+refresh curl                bootstrap 8.18.0-1     -> 8.23.0       (requested)
+refresh xz-utils            bootstrap 5.8.2        -> 5.8.4        (requested)
+refresh libcurl             bootstrap 8.18.0-1     -> 8.23.0       (git:depends)
+refresh libiconv            bootstrap 1.18-1       -> 1.19.1       (git:depends)
+refresh less                bootstrap 692          -> 710          (git:depends)
+refresh openssl             bootstrap 1:3.6.1      -> 1:3.6.5      (git:depends)
+refresh pcre2               bootstrap 10.47        -> 10.49        (git:depends)
+refresh zlib                bootstrap 1.3.1-1      -> 1.4          (git:depends)
+skip libandroid-posix-semaphore 0.1-4        (python:depends; bootstrap has the same version)
+skip libandroid-support     29-1         (python:depends; bootstrap has the same version)
+skip libbz2                 1.0.8-8      (python:depends; bootstrap has the same version)
+refresh liblzma             bootstrap 5.8.2        -> 5.8.4        (python:depends)
+refresh ncurses             bootstrap 6.6.20260124+really6.5.20250830 -> 6.6.20260307+really6.5.20250830 (python:depends)
+refresh readline            bootstrap 8.3.1-2      -> 8.3.6        (python:depends)
+skip zstd                   1.5.7-1      (python:depends; bootstrap has the same version)
+refresh ca-certificates     bootstrap 1:2025.12.02 -> 1:2026.11.05-1 (python-pip:depends)
+check   python              >= 3.11.1-1
+refresh libc++              bootstrap 29           -> 30           (nodejs:depends)
+skip libgmp                 6.3.0-2      (ruby:depends; bootstrap has the same version)
+check   libmagic            = 5.48-3
+refresh libcurl             bootstrap 8.18.0-1     -> 8.23.0       (curl:depends needs = 8.23.0)
+refresh liblzma             bootstrap 5.8.2        -> 5.8.4        (xz-utils:depends needs = 5.8.4)
+refresh libnghttp2          bootstrap 1.68.0-1     -> 1.71.0       (libcurl:depends)
+refresh libnghttp3          bootstrap 1.15.0       -> 1.19.0       (libcurl:depends)
+refresh libngtcp2           bootstrap 1.20.0       -> 1.26.0       (libcurl:depends)
+refresh libssh2             bootstrap 1.11.1-1     -> 1.11.1-2     (libcurl:depends)
+refresh openssl             bootstrap 1:3.6.1      -> 1:3.6.5      (libcurl:depends needs >= 1:3.2.1-1)
+refresh ncurses             bootstrap 6.6.20260124+really6.5.20250830 -> 6.6.20260307+really6.5.20250830 (ncurses-ui-libs:depends needs = 6.6.20260307+really6.5.20250830)
+skip resolv-conf            1.3          (c-ares:depends; bootstrap has the same version)
+skip libandroid-glob        0.6-3        (krb5:depends; bootstrap has the same version)
 fetch git                    2.56.1                       git_2.56.1_aarch64.deb
 fetch ripgrep                15.2.0                       ripgrep_15.2.0_aarch64.deb
 fetch python                 3.14.10                      python_3.14.10_aarch64.deb
@@ -52,6 +83,8 @@ fetch tree                   2.3.2                        tree_2.3.2_aarch64.deb
 fetch which                  2.25                         which_2.25_aarch64.deb
 fetch file                   5.48-3                       file_5.48-3_aarch64.deb
 fetch openssh                10.6p2                       openssh_10.6p2_aarch64.deb
+fetch curl                   8.23.0                       curl_8.23.0_aarch64.deb
+fetch xz-utils               5.8.4                        xz-utils_5.8.4_aarch64.deb
 fetch libcurl                8.23.0                       libcurl_8.23.0_aarch64.deb
 fetch libexpat               2.10.0                       libexpat_2.10.0_aarch64.deb
 fetch libiconv               1.19.1                       libiconv_1.19.1_aarch64.deb
@@ -128,6 +161,37 @@ refresh openssl             bootstrap 1:3.6.1      -> 1:3.6.5      (libcurl:depe
 refresh ncurses             bootstrap 6.6.20260124+really6.5.20250830 -> 6.6.20260307+really6.5.20250830 (ncurses-ui-libs:depends needs = 6.6.20260307+really6.5.20250830)
 skip resolv-conf            1.3          (c-ares:depends; bootstrap has the same version)
 skip libandroid-glob        0.6-3        (krb5:depends; bootstrap has the same version)
+x86_64: curl, xz-utils left behind by the refresh; resolving again with them
+refresh curl                bootstrap 8.18.0-1     -> 8.23.0       (requested)
+refresh xz-utils            bootstrap 5.8.2        -> 5.8.4        (requested)
+refresh libcurl             bootstrap 8.18.0-1     -> 8.23.0       (git:depends)
+refresh libiconv            bootstrap 1.18-1       -> 1.19.1       (git:depends)
+refresh less                bootstrap 692          -> 710          (git:depends)
+refresh openssl             bootstrap 1:3.6.1      -> 1:3.6.5      (git:depends)
+refresh pcre2               bootstrap 10.47        -> 10.49        (git:depends)
+refresh zlib                bootstrap 1.3.1-1      -> 1.4          (git:depends)
+skip libandroid-posix-semaphore 0.1-4        (python:depends; bootstrap has the same version)
+skip libandroid-support     29-1         (python:depends; bootstrap has the same version)
+skip libbz2                 1.0.8-8      (python:depends; bootstrap has the same version)
+refresh liblzma             bootstrap 5.8.2        -> 5.8.4        (python:depends)
+refresh ncurses             bootstrap 6.6.20260124+really6.5.20250830 -> 6.6.20260307+really6.5.20250830 (python:depends)
+refresh readline            bootstrap 8.3.1-2      -> 8.3.6        (python:depends)
+skip zstd                   1.5.7-1      (python:depends; bootstrap has the same version)
+refresh ca-certificates     bootstrap 1:2025.12.02 -> 1:2026.11.05-1 (python-pip:depends)
+check   python              >= 3.11.1-1
+refresh libc++              bootstrap 29           -> 30           (nodejs:depends)
+skip libgmp                 6.3.0-2      (ruby:depends; bootstrap has the same version)
+check   libmagic            = 5.48-3
+refresh libcurl             bootstrap 8.18.0-1     -> 8.23.0       (curl:depends needs = 8.23.0)
+refresh liblzma             bootstrap 5.8.2        -> 5.8.4        (xz-utils:depends needs = 5.8.4)
+refresh libnghttp2          bootstrap 1.68.0-1     -> 1.71.0       (libcurl:depends)
+refresh libnghttp3          bootstrap 1.15.0       -> 1.19.0       (libcurl:depends)
+refresh libngtcp2           bootstrap 1.20.0       -> 1.26.0       (libcurl:depends)
+refresh libssh2             bootstrap 1.11.1-1     -> 1.11.1-2     (libcurl:depends)
+refresh openssl             bootstrap 1:3.6.1      -> 1:3.6.5      (libcurl:depends needs >= 1:3.2.1-1)
+refresh ncurses             bootstrap 6.6.20260124+really6.5.20250830 -> 6.6.20260307+really6.5.20250830 (ncurses-ui-libs:depends needs = 6.6.20260307+really6.5.20250830)
+skip resolv-conf            1.3          (c-ares:depends; bootstrap has the same version)
+skip libandroid-glob        0.6-3        (krb5:depends; bootstrap has the same version)
 fetch git                    2.56.1                       git_2.56.1_x86_64.deb
 fetch ripgrep                15.2.0                       ripgrep_15.2.0_x86_64.deb
 fetch python                 3.14.10                      python_3.14.10_x86_64.deb
@@ -141,6 +205,8 @@ fetch tree                   2.3.2                        tree_2.3.2_x86_64.deb
 fetch which                  2.25                         which_2.25_x86_64.deb
 fetch file                   5.48-3                       file_5.48-3_x86_64.deb
 fetch openssh                10.6p2                       openssh_10.6p2_x86_64.deb
+fetch curl                   8.23.0                       curl_8.23.0_x86_64.deb
+fetch xz-utils               5.8.4                        xz-utils_5.8.4_x86_64.deb
 fetch libcurl                8.23.0                       libcurl_8.23.0_x86_64.deb
 fetch libexpat               2.10.0                       libexpat_2.10.0_x86_64.deb
 fetch libiconv               1.19.1                       libiconv_1.19.1_x86_64.deb
@@ -176,7 +242,7 @@ fetch libngtcp2              1.26.0                       libngtcp2_1.26.0_x86_6
 fetch libssh2                1.11.1-2                     libssh2_1.11.1-2_x86_64.deb
 fetch libresolv-wrapper      1.1.8                        libresolv-wrapper_1.1.8_x86_64.deb
 fetch libdb                  18.1.40-6                    libdb_18.1.40-6_x86_64.deb
-resolved 48 packages for aarch64 (the bootstrap provides 79)
-resolved 48 packages for x86_64 (the bootstrap provides 79)
+resolved 50 packages for aarch64 (the bootstrap provides 79; 2 added for consistency: curl, xz-utils)
+resolved 50 packages for x86_64 (the bootstrap provides 79; 2 added for consistency: curl, xz-utils)
 wrote /home/runner/work/CodeForge-/CodeForge-/runtime/pins.json
-pins: OK - 48 for aarch64, 48 for x86_64 on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:32:13Z
+pins: OK - 50 for aarch64 (2 for consistency), 50 for x86_64 (2 for consistency) on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:43:19Z

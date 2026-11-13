@@ -1,7 +1,7 @@
 === PASS runtime/tests/test-check-bundle-size.py
 test_a_base_over_the_limit_fails (__main__.LimitTest.test_a_base_over_the_limit_fails) ... the base module a device would download is over Play's 1 MB limit by 1.0 MB — move weight into a dynamic feature module (see pack_buildtools/)
 ok
-test_a_bundle_without_a_base_module_is_an_error (__main__.LimitTest.test_a_bundle_without_a_base_module_is_an_error) ... no base module in /tmp/tmpstoeczv2/app.aab
+test_a_bundle_without_a_base_module_is_an_error (__main__.LimitTest.test_a_bundle_without_a_base_module_is_an_error) ... no base module in /tmp/tmp0yduoebc/app.aab
 ok
 test_a_small_base_passes (__main__.LimitTest.test_a_small_base_passes) ... ok
 test_the_limit_is_per_device_not_the_sum_of_every_abi (__main__.LimitTest.test_the_limit_is_per_device_not_the_sum_of_every_abi) ... the base module a device would download is over Play's 0 MB limit by 0.1 MB — move weight into a dynamic feature module (see pack_buildtools/)
@@ -13,83 +13,62 @@ test_entries_are_grouped_by_module (__main__.MeasureTest.test_entries_are_groupe
 test_the_bundle_config_counts_against_the_base (__main__.MeasureTest.test_the_bundle_config_counts_against_the_base) ... ok
 
 ----------------------------------------------------------------------
-Ran 9 tests in 0.046s
+Ran 9 tests in 0.011s
 
 OK
-bundle: /tmp/tmp9e8spu86/app.aab
+bundle: /tmp/tmpj5yp205w/app.aab
   base     base                      2.0 MB (2 entries)
   base module against Play's 1 MB limit: 2.0 MB per device (200.0% of it); 2.0 MB for every ABI at once
-bundle: /tmp/tmpmimv2xph/app.aab
+bundle: /tmp/tmpptkraszu/app.aab
   base     base                      0.0 MB (3 entries)
   base module against Play's 200 MB limit: 0.0 MB per device (0.0% of it); 0.0 MB for every ABI at once
-bundle: /tmp/tmpn6p7l7v6/app.aab
+bundle: /tmp/tmpkneaep4z/app.aab
   base     base                      0.1 MB (3 entries)
   base module on arm64-v8a       0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module on x86_64          0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module against Play's 1 MB limit: 0.1 MB per device (6.1% of it); 0.1 MB for every ABI at once
-bundle: /tmp/tmpn6p7l7v6/app.aab
+bundle: /tmp/tmpkneaep4z/app.aab
   base     base                      0.1 MB (3 entries)
   base module on arm64-v8a       0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module on x86_64          0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module against Play's 0 MB limit: 0.1 MB per device; 0.1 MB for every ABI at once
-bundle: /tmp/tmp68p4rf3y/app.aab
+bundle: /tmp/tmp1sfa99pk/app.aab
   base     base                      0.0 MB (2 entries)
   feature  pack_buildtools           0.0 MB (2 entries)
   universal APK              0.0 MB
   base module against Play's 200 MB limit: 0.0 MB per device (0.0% of it); 0.0 MB for every ABI at once
-bundle: /tmp/tmplqqp5zw1/app.aab
+bundle: /tmp/tmplkvsdhbk/app.aab
   base     base                      1.5 MB (1 entries)
   base module against Play's 2 MB limit: 1.5 MB per device (75.0% of it); 1.5 MB for every ABI at once
 warning: base module is within 0.5 MB of Play's limit
 === PASS runtime/tests/test-notices.py
-.....notices: stale: ../../../../../tmp/codeforge-notices-z6u0ydcn/THIRD_PARTY_NOTICES.md, ../../../../../tmp/codeforge-notices-z6u0ydcn/SOURCE_OFFER.md. Regenerate with `python3 runtime/notices.py --cache <cache>` after fetching the pins, or push a [bootstrap] commit (CI rewrites them).
-....
+.........
 ----------------------------------------------------------------------
-Ran 9 tests in 1.706s
+Ran 9 tests in 2.110s
 
 OK
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-ty8p15x7/THIRD_PARTY_NOTICES.md
-notices: 6 package versions, 3 under a copyleft licence
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-z6u0ydcn/THIRD_PARTY_NOTICES.md
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-z6u0ydcn/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
-notices: ../../../../../tmp/codeforge-notices-z6u0ydcn/THIRD_PARTY_NOTICES.md is current
-notices: ../../../../../tmp/codeforge-notices-z6u0ydcn/SOURCE_OFFER.md is current
-notices: 6 package versions, 3 under a copyleft licence
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-kv1r5e6s/THIRD_PARTY_NOTICES.md
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-kv1r5e6s/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-0dr9hix9/THIRD_PARTY_NOTICES.md
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-0dr9hix9/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
-notices: ../../../../../tmp/codeforge-notices-0dr9hix9/THIRD_PARTY_NOTICES.md is current
-notices: ../../../../../tmp/codeforge-notices-0dr9hix9/SOURCE_OFFER.md is current
-notices: 6 package versions, 3 under a copyleft licence
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-agif22sq/THIRD_PARTY_NOTICES.md
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-agif22sq/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
 === PASS runtime/tests/test-pins.py
-...............
+..................
 ----------------------------------------------------------------------
-Ran 15 tests in 1.918s
+Ran 18 tests in 2.682s
 
 OK
 === PASS runtime/tests/test-provenance.py
-./home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:101: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-2_sx5wcg/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
+./home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:101: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-is8s9e_9/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
   text = open(os.path.join(self.root, "native", "PROVENANCE.md")).read()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:104: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/codeforge-provenance-2_sx5wcg/codeforge/native/kernel/src/main/java/dev/codeforge/runtime/sealed/Kernel.java'>
+/home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:104: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/codeforge-provenance-is8s9e_9/codeforge/native/kernel/src/main/java/dev/codeforge/runtime/sealed/Kernel.java'>
   actual = provenance.sha256(open(self.java, "rb").read())
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-...../home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:132: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-6p0_2gxb/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
+...../home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:132: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-5phdrk1f/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
   text = open(path).read()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 ..
 ----------------------------------------------------------------------
-Ran 8 tests in 0.079s
+Ran 8 tests in 0.084s
 
 OK
 === PASS runtime/tests/test-sealed-payload.py
 test-sealed-payload: OK
   executables=10 libraries=6 data=10 links=2 scripts=1
-script_test_files=5 cases=42 failed_files=0
+script_test_files=5 cases=45 failed_files=0

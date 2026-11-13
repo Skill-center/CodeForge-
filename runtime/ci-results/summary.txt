@@ -2,56 +2,45 @@
 Python 3.14.4
 *** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***
 --- script-tests
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-z6u0ydcn/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
-notices: ../../../../../tmp/codeforge-notices-z6u0ydcn/THIRD_PARTY_NOTICES.md is current
-notices: ../../../../../tmp/codeforge-notices-z6u0ydcn/SOURCE_OFFER.md is current
-notices: 6 package versions, 3 under a copyleft licence
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-kv1r5e6s/THIRD_PARTY_NOTICES.md
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-kv1r5e6s/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-0dr9hix9/THIRD_PARTY_NOTICES.md
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-0dr9hix9/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
-notices: ../../../../../tmp/codeforge-notices-0dr9hix9/THIRD_PARTY_NOTICES.md is current
-notices: ../../../../../tmp/codeforge-notices-0dr9hix9/SOURCE_OFFER.md is current
-notices: 6 package versions, 3 under a copyleft licence
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-agif22sq/THIRD_PARTY_NOTICES.md
-notices: rewrote the generated section of ../../../../../tmp/codeforge-notices-agif22sq/SOURCE_OFFER.md
-notices: 6 package versions, 3 under a copyleft licence
+=== PASS runtime/tests/test-check-bundle-size.py
+Ran 9 tests in 0.011s
+OK
+=== PASS runtime/tests/test-notices.py
+Ran 9 tests in 2.110s
+OK
 === PASS runtime/tests/test-pins.py
-Ran 15 tests in 1.918s
+Ran 18 tests in 2.682s
 OK
 === PASS runtime/tests/test-provenance.py
-Ran 8 tests in 0.079s
+Ran 8 tests in 0.084s
 OK
 === PASS runtime/tests/test-sealed-payload.py
-script_test_files=5 cases=42 failed_files=0
+script_test_files=5 cases=45 failed_files=0
 --- provenance
 provenance: OK - 18 vendored files (11 with the package renamed, 7 byte for byte) and 12 of CodeForge's own
 --- repin
 bootstrap aarch64  https://github.com/termux/termux-packages/releases/download/bootstrap-2026.02.12-r1%2Bapt.android-7/bootstrap-aarch64.zip
 bootstrap x86_64   https://github.com/termux/termux-packages/releases/download/bootstrap-2026.02.12-r1%2Bapt.android-7/bootstrap-x86_64.zip
-resolved 48 packages for aarch64 (the bootstrap provides 79)
-resolved 48 packages for x86_64 (the bootstrap provides 79)
+resolved 50 packages for aarch64 (the bootstrap provides 79; 2 added for consistency: curl, xz-utils)
+resolved 50 packages for x86_64 (the bootstrap provides 79; 2 added for consistency: curl, xz-utils)
 wrote /home/runner/work/CodeForge-/CodeForge-/runtime/pins.json
-pins: OK - 48 for aarch64, 48 for x86_64 on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:32:13Z
+pins: OK - 50 for aarch64 (2 for consistency), 50 for x86_64 (2 for consistency) on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:43:19Z
 --- pins
-pins: OK - 48 for aarch64, 48 for x86_64 on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:32:13Z
+pins: OK - 50 for aarch64 (2 for consistency), 50 for x86_64 (2 for consistency) on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:43:19Z
 --- fetch
 bootstrap aarch64  from the cache
 bootstrap 2026.02.12-r1+apt.android-7 for aarch64 verified
-fetched 48 pinned packages for aarch64 (48 from the cache, 72.4 MB)
+fetched 50 pinned packages for aarch64 (50 from the cache, 72.7 MB)
 bootstrap x86_64   from the cache
 bootstrap 2026.02.12-r1+apt.android-7 for x86_64 verified
-fetched 48 pinned packages for x86_64 (48 from the cache, 74.1 MB)
-cache_hit= cache_size=207408223
+fetched 50 pinned packages for x86_64 (50 from the cache, 74.4 MB)
+cache_hit= cache_size=208052287
 --- fail-closed
 pins: pinned package git 0.0.0-codeforge-missing (x86_64) is no longer in the repository: pool/main/g/git/git_0.0.0-codeforge-missing_x86_64.deb; the index now lists 2.56.1
 live-fail-closed: OK - fetching a pinned git that the repository does not have exited 1, named it, and handed nothing over
 --- payload-summary
-payload abi=arm64-v8a executables=534 unique_binaries=252 data_files=13892 symlinks=1169 scripts=24 userland_zip_bytes=97863910 library_bytes=99459336
-payload abi=x86_64 executables=535 unique_binaries=251 data_files=13894 symlinks=1169 scripts=24 userland_zip_bytes=97950102 library_bytes=99220392
+payload abi=arm64-v8a executables=534 unique_binaries=252 data_files=13892 symlinks=1169 scripts=24 userland_zip_bytes=97867524 library_bytes=99469960
+payload abi=x86_64 executables=535 unique_binaries=251 data_files=13894 symlinks=1169 scripts=24 userland_zip_bytes=97953717 library_bytes=99230560
 --- notices
 notices: rewrote the generated section of THIRD_PARTY_NOTICES.md
 notices: rewrote the generated section of SOURCE_OFFER.md

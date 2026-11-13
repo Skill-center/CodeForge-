@@ -35,7 +35,7 @@ For each package version in the payload:
 <!-- copyleft:begin -->
 <!-- Written by runtime/notices.py from runtime/pins.json and the pinned files. Do not edit by hand: CI checks it. -->
 
-**52 package versions** are under a copyleft licence (GPL, LGPL, AGPL, GFDL, MPL and the like), identified as in THIRD_PARTY_NOTICES.md. Bootstrap `2026.02.12-r1+apt.android-7`, pins resolved 2026-11-13T09:32:13Z.
+**52 package versions** are under a copyleft licence (GPL, LGPL, AGPL, GFDL, MPL and the like), identified as in THIRD_PARTY_NOTICES.md. Bootstrap `2026.02.12-r1+apt.android-7`, pins resolved 2026-11-13T09:43:19Z.
 
 | Package | Version | ABIs | Licence | Homepage |
 |---|---|---|---|---|
