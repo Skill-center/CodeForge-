@@ -373,7 +373,7 @@ jobs:
       # the build below, which Enforce reports.
       - name: Restore the Gradle distribution
         id: gradle-dist
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.gradle/wrapper/dists
           key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
@@ -387,7 +387,7 @@ jobs:
         if: >-
           steps.gradle-dist.outputs.cache-hit != 'true' &&
           steps.fetch-gradle.outcome == 'success'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.gradle/wrapper/dists
           key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}

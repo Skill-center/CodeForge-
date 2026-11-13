@@ -99,7 +99,7 @@ jobs:
       # gate to pass.
       - name: Restore the Gradle distribution
         id: gradle-dist
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.gradle/wrapper/dists
           key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
@@ -109,7 +109,7 @@ jobs:
 
       - name: Save the Gradle distribution
         if: steps.gradle-dist.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ~/.gradle/wrapper/dists
           key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
