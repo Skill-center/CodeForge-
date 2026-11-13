@@ -16,7 +16,7 @@
 
 | Workflow | Trigger | Jobs | Gate? |
 |---|---|---|---|
-| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (since Phase 3 W1) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check | PR merge blocker |
+| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (since Phase 3 W1) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check · the release x86_64 APK (Ph. 4 W1) · the sealed-runtime JVM tests and the runtime supply-chain job (Ph. 4 W2, §2.4) | PR merge blocker |
 | `phase-gate.yml` | `[phase-gate]` in the head commit message (manual dispatch once on `main`) | emulator integration tests on API 36 x86_64 `google_apis` (KVM) incl. the process-death restore pair · cold-start measurement on a release x86_64 APK · size report (`perf.json`) | phase exit blocker |
 | `runtime-gates.yml` | changes under native/, runtime/ (Ph. 4+; no nightly run, ADR-0009 amendment) | payload build (pins verified) · `ExecModelTest` + `SealedShellTest` on 34/36 · `ExecAudit`=0 · page-alignment check · bundle-size check · arm64 device leg (Firebase Test Lab, see §4) | release blocker |
 | `release.yml` | version tag `v*` | build GitHub "full" APK (arm64 + x86_64) · build Play AAB (arm64 base + PFD pack) · sign (secrets) · hashes + pins manifest · GitHub Release draft · Play upload to internal track (manual promote) | — |
@@ -82,6 +82,21 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 
   Since W3 the restore pair opens a folder through the same picker driver, and its part B switches workspaces. Since W3 the gate also hides Android's error dialogs after boot (`hide_error_dialogs`): in gate 43069846571, Android's *Application Not Responding* dialog for System UI took the keys group's tap. A full run took 33 minutes at W1 (42862715744), 37 at W2 (43007795087, attempt 1), 33 to 39 at W3 (43088413208, 43076652650, 43069846571), 36 at W4 (43183687317), 40 at W5 (43228855243) and 46 at W6 (43247963954; 40 in 43270594252, and 71 in 43256861510, after adb stalled), and 38 at Phase 3's exit (43284276984).
 
+### 2.4 Added in Phase 4
+
+- **Release build** (`ci.yml`, since W1): see §3.
+- **Sealed runtime tests** (`ci.yml`, since W2, gate G2): `:native:sealed-runtime:test` runs t1's kernel tests (22) on the JVM after the Kotlin tests. The counts go to `ci-results/sealed-runtime-tests.txt`, and `sealed_runtime_tests` is one of the gates *Enforce quality gates* checks.
+- **The runtime job** (`ci.yml`, since W2, gate G2) runs beside the editor and quality jobs, with Python 3 and no Flutter. In order:
+  1. the `runtime/` script tests (t1's two and CodeForge's three);
+  2. `provenance.py check`: native/PROVENANCE.md against the vendored files;
+  3. `pins.py check`;
+  4. the pinned bootstrap and packages fetched for both ABIs, verified and cached (§3);
+  5. a live fail-closed check: one pinned package pointed at a version the repository lacks must fail the fetch;
+  6. the payloads, built by t1's script from the pinned files (informative until W3);
+  7. the notices, checked current.
+
+  A `[repin]` commit first re-resolves the pins against the live repository. Its evidence goes to `runtime/ci-results/`, which `[bootstrap]` and `[repin]` runs commit back, along with the pins and the regenerated notices. It takes about 3½ minutes.
+
 ## 3. Toolchain pins in CI
 
 - Flutter: `.flutter-version` (**3.50.0** since Phase 4 W1; 3.47.9 before). Both workflows read the file and pass the version to `subosito/flutter-action`; the next step records the Flutter installed (`ci-results/flutter.txt`, and a notice on the run) and fails if it is another.
@@ -91,6 +106,10 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - **Release builds in CI (since Phase 4 W1):** every CI run also builds the x86_64 release APK (`ci-results/build-release.txt`; its size goes to `apk.txt`), because AOT-compiled Dart, R8 and the release lint run in no debug build. That gate's first run on Flutter 3.50.0 passed every debug check while all three AOT builds failed.
   - **Dart 3.14.0's AOT compiler** (Flutter 3.50.0) crashes on one shape of code: a `final` local assigned in one case of a switch whose other cases return, then captured by a closure ([dart-lang/sdk#64917](https://github.com/dart-lang/sdk/issues/64917), P0, open on 2026-11-13). Home's folder reconnect had it and was restructured; a scan of `lib/` and of the main dependencies found no other. The release build in CI catches a new one.
   - **Known Gradle warnings, none from our build files.** AGP 9.3 warns that `android.builtInKotlin=false` and `android.newDsl=false` (set by Flutter's template, as in 3.47.9) are deprecated, that the legacy variant API (`applicationVariants`, `testVariants`, `unitTestVariants`, and `libraryVariants` in Flutter's `integration_test`) is obsolete, and Kotlin 2.4.20 that the `kotlin-android` plugin the Flutter Gradle plugin applies is no longer needed since AGP 9. AGP 10 removes all of these. They are Flutter's to move first, through its template and Gradle plugin; the app's build files use none of these APIs (CI 43373527631, `ci-results/kotlin-tests.txt`).
+- **The runtime's inputs** (since Phase 4 W2): `runtime/pins.json` pins the Termux bootstrap per ABI (`2026.02.12-r1+apt.android-7`, by t1's SHA-256s) and every package of the payload by version, file and SHA-256: 50 per ABI on 2026-11-13.
+  - **Fetching:** CI fetches exactly those files and caches them under the hash of `pins.json` (`actions/cache`, about 208 MB).
+  - **Failing closed:** when a pinned file is gone, the build fails and names the package. Termux keeps only the latest versions, and GitHub evicts a cache that goes unused for 7 days.
+  - **Re-pinning** is a `[repin]` commit (runtime/README.md).
 - Actions: the Node 24 majors since Phase 4 W1 (TECH_STACK §6): `actions/checkout` v7, `setup-java` v6, `cache` v6, `upload-artifact` v7, `download-artifact` v8, `setup-node` v7, and `subosito/flutter-action@v2`.
 - Caches: pub, gradle, npm keyed by lockfiles. The Gradle distribution is cached by the wrapper properties and fetched with retries when the cache has none (`app/tool/ci/fetch_gradle.sh`), because services.gradle.org stalls now and then (phase gates 42477797842 and 42478331067). Emulators: GitHub's Linux runners **do** expose KVM to public repositories once a udev rule is applied — Phase 1's first six gate runs silently fell back to software emulation (the KVM probe raced the asynchronous `udevadm trigger`), with 4.5–15.6 min boots and system_server watchdog restarts. The gate now settles udev before probing, records the acceleration it actually used, and waits for a *stable* framework (three consecutive package/settings/activity-manager probes), not just `sys.boot_completed`.
 - Secrets (release only): `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, `PLAY_SERVICE_ACCOUNT_JSON`. Never available to fork PRs. `GITHUB_TOKEN` least privilege per job.
@@ -119,8 +138,11 @@ npm run build:bench                    # optional, debug/profile only: benchmark
                                        # to app/assets/editor_bench/ (~1.3 MB gz);
                                        # never present for a release build
 
-# Phase 4+ (runtime payload; network needed once, SHA-verified)
-python3 runtime/fetch-core-debs.py && ./gradlew :app:assembleDebug
+# Phase 4+ (runtime payload; network needed once, SHA-verified; runtime/README.md)
+python3 runtime/pins.py fetch --arch x86_64 --cache runtime/generated/cache \
+    --out runtime/generated/debs/x86_64             # exactly the pinned packages
+(cd app/android && ./gradlew :native:sealed-runtime:test)   # the kernel's JVM tests
+# W3 wires the payload into the Gradle build
 ```
 
 Sandbox note (honesty): the Phase 0 environment had no Flutter/Java/Android SDK and no access to `dl.google.com`, so **all builds happen in GitHub Actions or on developer machines** — this repo's CI is the build authority from day one.

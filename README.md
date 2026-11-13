@@ -10,7 +10,7 @@
 > - CodeMirror 6 runs in a hardened Android System WebView, with many tabs, find and replace, a symbol toolbar and hardware shortcuts. Unsaved text survives the app being killed.
 > - Android backup is the user's choice, off by default.
 >
-> The runtime and the terminal arrive in Phases 4–5, and the screens say so honestly. Phase 4 is under way ([plan](docs/phases/PHASE_4_PLAN.md)): its first package moved CodeForge to Flutter 3.50.0. Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
+> The runtime and the terminal arrive in Phases 4–5, and the screens say so honestly. Phase 4 is under way ([plan](docs/phases/PHASE_4_PLAN.md)): its first package moved CodeForge to Flutter 3.50.0, and its second vendored t1's sealed-runtime kernel and pinned every input of the runtime. Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
 
 ---
 
@@ -63,7 +63,7 @@ docs/                    ← architecture, ADRs 0001–0012, phase plans and rep
 README.md · AGENTS.md · CONTRIBUTING.md
 ```
 
-`native/` + `runtime/` (the vendored sealed runtime) arrive with Phase 4 — see [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md). Nothing is scaffolded before it's used.
+`native/` (the vendored sealed-runtime kernel; [PROVENANCE](native/PROVENANCE.md)) and `runtime/` (its pinned supply chain; [README](runtime/README.md)) arrived in Phase 4 W2 — see [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md). Nothing is scaffolded before it's used.
 
 ## Building
 

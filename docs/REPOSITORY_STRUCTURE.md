@@ -57,21 +57,27 @@ CodeForge-/
 │   ├── package.json              # exact pins; npm ci only
 │   └── .nvmrc                    # Node 24 in CI
 │
-├── native/                       # vendored runtime modules (Phase 4, from t1 @ 0e26d7a)
-│   ├── PROVENANCE.md             # source repo, commit, per-module license notes
-│   ├── sealed-runtime/           # whole module (plain Java, JVM tests)
-│   ├── runtime-core/             # t1's harness-core subset: config/paths/env/runner/size +
+├── native/                       # vendored runtime modules (Phase 4, from t1 @ d9789a2)
+│   ├── PROVENANCE.md             # source repo + commit, licence, every file's SHA-256 (W2)
+│   ├── sealed-runtime/           # t1's kernel, whole: plain Java, 22 JVM tests (W2)
+│   ├── runtime-core/             # (W3) t1's harness-core subset: config/paths/env/runner/size +
 │   │                             #   exec adapter (no apt machinery) + harness-exec/probe JNI;
 │   │                             #   no Termux terminal modules (ADR-0011: Apache-2.0)
-│   └── pack_buildtools/          # Play Feature Delivery module
+│   └── pack_buildtools/          # (later) Play Feature Delivery module
 │
-├── runtime/                      # runtime supply chain (Phase 4, from t1 scripts/)
-│   ├── build-sealed-payload.py
-│   ├── fetch-core-debs.py
-│   ├── check-bundle-size.py
-│   ├── check-page-alignment.py
-│   ├── pins.json                 # bootstrap + package versions, SHA-256
-│   └── tests/
+├── runtime/                      # runtime supply chain (Phase 4 W2): t1's scripts/ + CodeForge's
+│   ├── build-sealed-payload.py   # t1: the payload from the bootstrap + the pinned .debs
+│   ├── fetch-core-debs.py        # t1: Termux's index, the resolver, downloads
+│   ├── check-bundle-size.py      # t1
+│   ├── check-page-alignment.py   # t1
+│   ├── check-sealed-manifest.sh  # t1
+│   ├── pins.json                 # every input pinned: bootstrap per ABI, packages, SHA-256
+│   ├── pins.py                   # check · fetch (fails closed) · bootstrap · resolve ([repin])
+│   ├── notices.py                # drafts THIRD_PARTY_NOTICES / SOURCE_OFFER from the pins
+│   ├── provenance.py             # checks native/PROVENANCE.md against the vendored files
+│   ├── README.md                 # how the supply chain fits together
+│   ├── ci-results/               # the runtime job's evidence (committed back)
+│   └── tests/                    # t1's 2 script tests, CodeForge's 3 + fixtures, live check
 │
 ├── docs/                         # all project documentation (spec §13)
 │   ├── adr/                      # architecture decision records
@@ -87,14 +93,15 @@ CodeForge-/
 ├── CONTRIBUTING.md
 ├── README.md
 ├── LICENSE                       # Apache License 2.0 (ADR-0011, 2026-11-12)
-└── THIRD_PARTY_NOTICES.md        # before first binary release (userland obligations)
+├── THIRD_PARTY_NOTICES.md        # drafted in Phase 4 W2; complete before the first binary release
+└── SOURCE_OFFER.md               # the copyleft userland's source offer; same
 ```
 
 ## Boundary rules
 
 1. **`app/` never contains runtime binaries.** Payload assets are generated into Gradle build dirs by `runtime/` scripts at build time (t1 pattern) — never committed.
 2. **`editor/` builds a deterministic page** committed nowhere: CI builds it into `app/assets/editor/` and the Android build consumes it from there. `manifest.json` records its SHA-256, size and bundled packages.
-3. **`native/` is vendored, not forked-and-forgotten.** PROVENANCE.md records upstream commit; changes are either upstreamable patches (documented) or CodeForge-specific adapters in clearly separated files. Re-sync procedure documented there.
+3. **`native/` is vendored, not forked-and-forgotten.** PROVENANCE.md records upstream commit; changes are either upstreamable patches (documented) or CodeForge-specific adapters in clearly separated files. Re-sync procedure documented there. Since Phase 4 W2, CI enforces it: `runtime/provenance.py check` fails when a vendored file differs from t1 by anything but its recorded change, or when a file under `native/` or `runtime/` is unrecorded.
 4. **Generated artifacts stay out of Git** (build/, .dart_tool/, node_modules/, payloads, APKs). `.gitignore` covers them from Phase 1.
 5. **Docs move with code.** A PR that changes architecture updates the matching doc + ADR in the same PR (spec rule 12).
 

@@ -1,7 +1,7 @@
 # Phase 4 Implementation Plan — Runtime Integration
 
-**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. The vendoring packages (W2 on) start once t1 carries the same licence.
-**Spec reference:** §8 Phase 4 (runtime integration), §2 (reuse existing assets), §6.4–6.5 (the terminal connects to the existing environment; the capability model), §7 (security) · **Architecture:** [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [EXISTING_RUNTIME_AUDIT.md](../EXISTING_RUNTIME_AUDIT.md), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0006](../adr/0006-terminal-frontend.md), [ADR-0007](../adr/0007-min-sdk.md), [ADR-0009](../adr/0009-ci-github-actions.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Source:** `m-cyber12/t1` main @ `7b496c3`, whose tree equals the audited `0e26d7a`
+**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*); **W2 done on 2026-11-13** (CI 43401882656 and 43403453442, see *As built (W2)*). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. t1 carries the same licence since 2026-11-13 (main `d9789a2`), and CodeForge vendors from that commit.
+**Spec reference:** §8 Phase 4 (runtime integration), §2 (reuse existing assets), §6.4–6.5 (the terminal connects to the existing environment; the capability model), §7 (security) · **Architecture:** [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [EXISTING_RUNTIME_AUDIT.md](../EXISTING_RUNTIME_AUDIT.md), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0006](../adr/0006-terminal-frontend.md), [ADR-0007](../adr/0007-min-sdk.md), [ADR-0009](../adr/0009-ci-github-actions.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Source:** `m-cyber12/t1` main @ `d9789a2` (2026-11-13): the audited tree `0e26d7a` (merged as `7b496c3`) plus its Apache-2.0 LICENSE
 
 ---
 
@@ -143,6 +143,48 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
   - A mirror of the pinned packages (a GitHub release) would redistribute GPL binaries, so it is considered only after the licence decision, with the source offer.
 - **The notices start here.** THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md are drafted from the pinned packages' copyright files (ADR-0011's interim rule 3).
 
+**As built (W2):**
+- **The source:** t1's main at `d9789a2` (2026-11-13). It differs from the audited `0e26d7a` only by its Apache-2.0 LICENSE, which is the text of CodeForge's own ([native/PROVENANCE.md](../../native/PROVENANCE.md)).
+- **The kernel** (`native/sealed-runtime/`):
+  - t1's 8 classes and 3 test classes, copied by t1's own `export-sealed-runtime.sh` with the package `dev.codeforge.runtime.sealed`. Each file differs from t1 in its `package` line alone.
+  - The build script is t1's, in the Kotlin DSL. `settings.gradle.kts` includes the module and points both project directories, `:native` and `:native:sealed-runtime`, at the repository's root.
+  - Nothing depends on the module before W3. **Its 22 tests pass** (CI 43401882656), and the debug and release APKs are unchanged by it.
+- **`runtime/`:** t1's five scripts and their two tests, byte for byte. CodeForge's own files sit beside them (REPOSITORY_STRUCTURE's boundary rule 3): `pins.py`, `notices.py`, `provenance.py`, the tests' fixtures, three test files and a live check, and a README.
+- **PROVENANCE** lists every vendored file with its t1 path and the SHA-256 of both copies.
+  - `runtime/provenance.py check`, run in CI, proves that undoing the package rename gives t1's bytes for each file. It also fails on any file under `native/` or `runtime/` that isn't recorded.
+  - Its `record` command is the last step of a re-vendor.
+- **The pins** (`runtime/pins.json`):
+  - **What is pinned:** the bootstrap per ABI by t1's SHA-256, and t1's 13 core packages. CI's first `[repin]` resolved them with t1's resolver into **50 packages per ABI**, at the same versions on both: 72.7 MB of `.deb`s for arm64 and 74.4 MB for x86_64. 17 of them replace the bootstrap's copies, and 33 are new.
+  - **Found by the first resolution:** replacing a bootstrap library strands the bootstrap packages built against it. A Termux subpackage depends on its parent's exact version, so the bootstrap's `curl` 8.18.0-1 needs `libcurl (= 8.18.0-1)`, and it would have shipped beside 8.23.0. t1 composes its payload the same way.
+    - **The fix:** `pins.py resolve` adds every stranded package to the request and resolves again, until every dependency in the payload is met. This time that was `curl` and `xz-utils`, which pins.json lists under `consistency`.
+    - `check` now verifies the whole payload, the bootstrap's packages included (CI 43403453442).
+  - **Fetching never resolves.** It takes exactly the pinned files and verifies each one. When a file is gone it fails closed, naming every missing package and what the index lists now.
+  - **Caching:** CI keeps the files in a cache keyed on the pins' hash.
+  - **Re-pinning** is a commit tagged `[repin]`: CI resolves it and commits the result back.
+- **G2's fail-closed criterion, shown twice:**
+  - **On a synthetic repository** (`test-pins.py`): a version that is gone, changed bytes, a different bootstrap, and every missing package named in one report.
+  - **On the live Termux repository:** CI points one pinned package at a version that doesn't exist. The fetch exits 1, names `git`, and hands nothing to the payload builder (`runtime/ci-results/fail-closed.txt`).
+- **The payloads build** from exactly the pinned files with t1's script. This is informative until W3.
+
+  | ABI | Executables | Shipped as | Data files |
+  |---|---|---|---|
+  | arm64 | 534 | 252 unique binaries, 99.5 MB as JNI libraries | 13,892, in a 97.9 MB zip |
+  | x86_64 | 535 | 251 unique binaries, 99.2 MB | 13,894, in a 98.0 MB zip |
+
+  **For W3:** that is about 197 MB per ABI before the APK compresses it. The APK and per-device sizes are G3's to measure.
+- **The notices** are drafted from the licence files inside the pinned packages: 112 package versions, 52 of them under a copyleft licence (SOURCE_OFFER.md).
+  - **How licences are named:** most come from Termux's links to `share/LICENSES/<id>.txt`. The others are identified from their text and marked with an asterisk.
+  - **16 packages are listed for W7's review:**
+    - 8 have no licence file of their own. 7 of them are subpackages whose licence sits in their parent's directory (`curl`'s in `libcurl`'s); `gpgv`'s parent isn't shipped at all.
+    - The other 8 have a text the draft doesn't identify: lsof's and Info-ZIP's own licences, and summary files.
+- **CI:**
+  - **The quality job** runs the kernel's tests as its gate `sealed_runtime_tests`.
+  - **A new `runtime` job** runs the script tests (5 files, 45 cases), the provenance and pins checks, the fetch for both ABIs, the live fail-closed check, the payloads and the notices. It takes about 3½ minutes, a re-pin included.
+- **Evidence:**
+  - **CI 43401882656** (`[bootstrap][repin]`): every job green, `sealed_runtime_tests=22`, `+846: All tests passed!`, 44 Kotlin tests, and the release x64 APK unchanged at 24,631,359 bytes.
+  - **CI 43403453442:** the consistency re-pin. Every job is green, the sealed-runtime tests and the release build among them.
+  - **No emulator gate for W2:** nothing in the app changed, and G2's evidence is CI. W3's gate runs on the module in the build.
+
 ### W3 — RuntimeHost: install, verify, audit (2 sessions) 🔑 critical path → G3
 
 **`native/runtime-core/`:** an Android library in the package `dev.codeforge.runtime.core`.
@@ -256,7 +298,7 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 
 | Gate | Criterion | Evidence |
 |---|---|---|
-| **G1 Toolchain** | CI builds with Flutter 3.50.0, AGP 9.3.1, KGP 2.4.20 and Gradle 9.5.0. Analysis is clean and formatting unchanged, every test passes, and every changed golden has been looked at. The Kotlin tests pass. Every phase-gate group passes, and the cold start is recorded with Impeller and with Skia | CI and gate run ids |
+| **G1 Toolchain** | CI builds with Flutter 3.50.0, AGP 9.3.3 (planned as 9.3.1; see *As built (W1)*), KGP 2.4.20 and Gradle 9.5.0. Analysis is clean and formatting unchanged, every test passes, and every changed golden has been looked at. The Kotlin tests pass. Every phase-gate group passes, and the cold start is recorded with Impeller and with Skia | CI and gate run ids |
 | **G2 Kernel** | `:native:sealed-runtime:test` passes with t1's tests changed only in their package. The `runtime/` script tests pass. PROVENANCE is complete. A missing pinned package fails the build closed | CI |
 | **G3 Install** | The first install runs off the UI thread with progress, within 60 s on a mid-range phone (emulator and Test Lab figures recorded). A warm start takes 100 ms or less. A flipped byte gives a typed failure and the runtime is never marked ready. `ExecAudit` = 0 at every start. APK and per-device sizes recorded | the gate's runtime group, instrumented tests |
 | **G4 Versions** | node, python, git, bash, perl, ruby and rg versions reach the Flutter UI through RuntimeHost and match the pinned packages. Ending a process leaves no child | instrumented, widget and gate tests |

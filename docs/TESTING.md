@@ -12,7 +12,8 @@
 | Dart widget | `flutter test` + golden files | components, navigation, adaptive layouts (3 breakpoints × orientation), theme switching | every PR |
 | Bridge contract | Dart test + vitest, shared JSON fixtures | every message type round-trips; unknown version/type rejected | every PR touching protocol |
 | JS unit | vitest | CM6 change-set apply/rebase, protocol validation, search regex semantics | every PR touching editor/ |
-| Kotlin/JVM unit | Gradle `test` | host services with fakes; vendored sealed-runtime tests unchanged | every PR touching android/native |
+| Kotlin/JVM unit | Gradle `test` | host services with fakes; vendored sealed-runtime tests unchanged (`:native:sealed-runtime:test`, 22 since Phase 4 W2) | every CI run |
+| Runtime supply chain | `python3 runtime/tests/test-*.py` (unittest) | t1's payload and bundle-size tests; CodeForge's pins (fail-closed, consistency), notices and provenance tests on synthetic Termux repositories; a live fail-closed check against Termux | every CI run (the `runtime` job, since Phase 4 W2) |
 | Android instrumented | `connectedAndroidTest` on emulator | Pigeon channels end-to-end, SAF flows, WebView bridge, lifecycle/process-death | phase gates (no nightly run, §5) |
 | Runtime gates | ported `ExecModelTest`/`SealedShellTest` | exec model + sealed userland on API 34/36 x86_64 **and arm64 device** (Firebase Test Lab, ADR-0009) | Phase 4 gate, then every phase gate |
 | E2E workflow | `integration_test` | spec §10 scenario: open project → create file → edit → save → run → output → edit → commit | phase gates from Ph. 5/7 |

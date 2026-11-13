@@ -4,6 +4,15 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 4 W2, provenance, pins and the sealed-runtime kernel (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
+- **t1's sealed-runtime kernel is vendored** (`native/sealed-runtime/`), from t1 `d9789a2`, now Apache-2.0 like CodeForge. Its 8 classes and 3 test classes differ from t1 only in their package, and its 22 tests run in CI.
+- **Every input of the runtime is pinned** (`runtime/pins.json`): the Termux bootstrap for each ABI and 50 packages per ABI, each by version and SHA-256. A build takes exactly those files, and stops when one is gone, naming the package. Re-pinning is a deliberate `[repin]` commit.
+- **The payload is consistent.** The first resolution left the bootstrap's `curl` and `xz-utils` beside newer libraries that they require at exact versions. Resolving now brings such packages along, and the check covers the whole payload.
+- **[native/PROVENANCE.md](../native/PROVENANCE.md)** records every vendored file with both hashes, and CI proves that each one differs from t1 only by its recorded change.
+- **The notices are drafted.** [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) lists the userland's 112 package versions with their licences, read from the packages' own licence files. [SOURCE_OFFER.md](../SOURCE_OFFER.md) lists the 52 that are copyleft. W7 completes both.
+- **CI has a runtime job:** the script tests, the provenance and pins checks, the fetch for both ABIs, a live check that a missing pinned package fails the build, the payloads and the notices.
+- Verified by CI 43401882656 (`+846: All tests passed!`; 22 kernel tests; 44 Kotlin tests) and 43403453442.
+
 ### Changed — Phase 4 W1, toolchain (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
 - **Flutter 3.50.0**, with the Android pins of its template: Kotlin's Gradle plugin 2.4.20 and Gradle 9.5.0, and Android Gradle Plugin 9.3.3, the latest patch of the template's 9.3 line, because 9.3.1's lint crashes release builds on JDK 17. Upgraded together as the owner decided.
 - **The Material widgets come from `package:material_ui`** (1.10.0), because Flutter 3.50 deprecates the framework's copy. All 87 files that imported it moved, by Flutter's own fix, and analysis now flags any new import of the old library. The app looks the same: none of the 26 golden images changed.
