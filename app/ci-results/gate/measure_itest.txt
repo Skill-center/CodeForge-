@@ -13,29 +13,30 @@ Downloading packages...
   pigeon 29.2.0 (30.0.2 available)
   riverpod 3.4.3 (3.5.0 available)
   shared_preferences_android 2.5.4 (2.5.5 available)
+  shared_preferences_foundation 2.6.1 (2.6.2 available)
   sqlite3 3.9.0 (3.9.1 available)
-  test_api 0.7.12 (0.7.15 available)
+  test_api 0.7.14 (0.7.15 available)
 Got dependencies!
-15 packages have newer versions incompatible with dependency constraints.
+16 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/measure_test.dart
-Running Gradle task 'assembleDebug'...                             23.0s
+Running Gradle task 'assembleDebug'...                             10.5s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...          887ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...          516ms
 00:00 +0: measurements: 10,000-file project, 1 and 10 MiB, 1,000-entry folder, frames during a 10 MiB digest
-measure gate: project of 10000 files written in 3706 ms (setup)
-measure gate: project opened in 273 ms (root listed)
-measure gate: Go to File's index of 10000 files in 206 ms (median of 3: 270, 206, 160)
-measure gate: dart:io 1048614 chars: write 14 ms, read 8 ms (medians of 3)
-measure gate: dart:io 10485681 chars: write 70 ms, read 29 ms (medians of 3)
-measure gate: digest of 10 MiB on the UI isolate: 269 ms, 0 frames, longest without one 269 ms
-measure gate: digest of 10 MiB on a background isolate: 662 ms, 11 frames, longest without one 134 ms
-FOLDERGATE 1794511677985.1 pick cf-gate
-folder gate: request 1794511677985.1 answered picked
-measure gate: listing 1000 entries through the broker: 529 ms (median of 3: 773, 529, 477)
-measure gate: broker 1048614 chars: write 71 ms, read 22 ms (medians of 3)
-measure gate: broker 10485681 chars: write 133 ms, read 96 ms (medians of 3)
-MEASURE_JSON 1/2 {"schema":1,"kind":"codeforge-measurements","runs":3,"project":{"files":10000,"folders":111,"openMs":273,"index":{"files":10000,"medianMs":206,"runsMs":[270,206,160]}},"projectIo":{"1MiB":{"chars":1048614,"write":{"medianMs":14,"runsMs":[9,14,22]},"read":{"medianMs":8,"runsMs":[23,8,3]}},"10MiB":{"chars":10485681,"write":{"medianMs":70,"runsMs":[48,70,70]},"read":{"medianMs":29,"runsMs":[29,58,28]}}},"digest10MiB":{"chars":10485681,"uiIsolate":{"ms":269,"frames":0,"longestGapMs":269},"background":{"ms":662,"frames":11,"longestGapMs":134}},"folderList":{"entries":1000,"medianMs":529,"runsMs":[7
-MEASURE_JSON 2/2 73,529,477]},"folderIo":{"1MiB":{"chars":1048614,"write":{"medianMs":71,"runsMs":[119,71,54]},"read":{"medianMs":22,"runsMs":[22,62,15]}},"10MiB":{"chars":10485681,"write":{"medianMs":133,"runsMs":[143,133,128]},"read":{"medianMs":96,"runsMs":[58,104,96]}}}}
-00:21 +1: (tearDownAll)
-00:22 +1: All tests passed!
+measure gate: project of 10000 files written in 3459 ms (setup)
+measure gate: project opened in 269 ms (root listed)
+measure gate: Go to File's index of 10000 files in 182 ms (median of 3: 268, 182, 150)
+measure gate: dart:io 1048614 chars: write 11 ms, read 9 ms (medians of 3)
+measure gate: dart:io 10485681 chars: write 75 ms, read 50 ms (medians of 3)
+measure gate: digest of 10 MiB on the UI isolate: 214 ms, 0 frames, longest without one 214 ms
+measure gate: digest of 10 MiB on a background isolate: 503 ms, 11 frames, longest without one 100 ms
+FOLDERGATE 1794551109191.1 pick cf-gate
+folder gate: request 1794551109191.1 answered picked
+measure gate: listing 1000 entries through the broker: 456 ms (median of 3: 456, 558, 349)
+measure gate: broker 1048614 chars: write 64 ms, read 50 ms (medians of 3)
+measure gate: broker 10485681 chars: write 137 ms, read 80 ms (medians of 3)
+MEASURE_JSON 1/2 {"schema":1,"kind":"codeforge-measurements","runs":3,"project":{"files":10000,"folders":111,"openMs":269,"index":{"files":10000,"medianMs":182,"runsMs":[268,182,150]}},"projectIo":{"1MiB":{"chars":1048614,"write":{"medianMs":11,"runsMs":[10,11,13]},"read":{"medianMs":9,"runsMs":[9,15,5]}},"10MiB":{"chars":10485681,"write":{"medianMs":75,"runsMs":[75,63,79]},"read":{"medianMs":50,"runsMs":[50,51,22]}}},"digest10MiB":{"chars":10485681,"uiIsolate":{"ms":214,"frames":0,"longestGapMs":214},"background":{"ms":503,"frames":11,"longestGapMs":100}},"folderList":{"entries":1000,"medianMs":456,"runsMs":[
+MEASURE_JSON 2/2 456,558,349]},"folderIo":{"1MiB":{"chars":1048614,"write":{"medianMs":64,"runsMs":[295,64,20]},"read":{"medianMs":50,"runsMs":[50,65,11]}},"10MiB":{"chars":10485681,"write":{"medianMs":137,"runsMs":[137,81,138]},"read":{"medianMs":80,"runsMs":[47,80,104]}}}}
+00:20 +1: (tearDownAll)
+00:21 +1: All tests passed!
