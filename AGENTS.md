@@ -28,12 +28,12 @@ Analyze → Plan → Implement → Test → Verify → Document → Report.
 
 ## 4. Runtime reuse rules (the audited asset)
 
-- The foundation is `m-cyber12/t1` @ `0e26d7a` (PR #81). Read docs/EXISTING_RUNTIME_AUDIT.md and docs/RUNTIME_INTEGRATION.md before touching anything runtime-related.
+- The foundation is `m-cyber12/t1` @ `0e26d7a` (PR #81's branch, merged on 2026-11-11 as PR #229; main `7b496c3` has the same tree). Read docs/EXISTING_RUNTIME_AUDIT.md and docs/RUNTIME_INTEGRATION.md before touching anything runtime-related.
 - **Do not rebuild what exists.** Do not add a second runtime, a proot distro, or linker hacks.
 - The four sealed invariants are inviolable: symlinks-into-nativeLibraryDir (never copies); verify-while-writing; version-resolved deps + DT_NEEDED sonames; explicit interpreter env (PYTHONHOME etc.).
 - Vendoring (Phase 4+) requires `native/PROVENANCE.md` (repo, commit, per-module license) and the upstream JVM tests passing unchanged.
 - No executable code may be downloaded at runtime. Ever. (ADR-0005.)
-- GPL-derived modules are not vendored before ADR-0011 is decided.
+- CodeForge is Apache-2.0 (ADR-0011, Accepted 2026-11-12), and so is t1's code it vendors (t1's LICENSE first). No GPL-derived code is linked into the app: Termux's `terminal-emulator` (with `termux.c`), `terminal-view` and t1's `HarnessSession` are never vendored; Phase 5 writes the PTY clean-room, or reuses `termux.c` only if a legal review verifies its Apache-2.0 jackpal lineage. The terminal is xterm.js (ADR-0006). GPL userland binaries ship only as an aggregate, with their licence texts and a source offer published before any binary release (ADR-0010).
 
 ## 5. Architecture boundaries
 
