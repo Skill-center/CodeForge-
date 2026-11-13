@@ -35,3 +35,11 @@ plugins {
 
 include(":app")
 rootProject.name = "codeforge"
+
+// The vendored sealed-runtime kernel (Phase 4 W2; native/PROVENANCE.md): a plain Java
+// library at the repository's root, tested on the JVM by `:native:sealed-runtime:test`.
+// The parent project points at the repository's native/ as well, so no directory is
+// assumed under app/android. Nothing depends on the module until W3's RuntimeHost.
+include(":native:sealed-runtime")
+project(":native").projectDir = file("../../native")
+project(":native:sealed-runtime").projectDir = file("../../native/sealed-runtime")

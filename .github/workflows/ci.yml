@@ -494,6 +494,50 @@ jobs:
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/kotlin-digest.txt"
           echo "::warning title=Kotlin unit tests failed::$(cat "$RUNNER_TEMP/kotlin-digest.txt")"
 
+      # The vendored sealed-runtime kernel's JUnit tests (Phase 4 W2, gate G2):
+      # t1's tests, changed only in their package (native/PROVENANCE.md; the
+      # runtime job's provenance check proves it), on the JVM with no Android
+      # SDK. The module is included by app/android/settings.gradle.kts, and
+      # nothing depends on it before W3. Counted from the JUnit XML like the
+      # Kotlin tests; a run that found no tests fails.
+      - name: Sealed runtime tests
+        id: sealed_runtime_tests
+        continue-on-error: true
+        run: |
+          status=0
+          ( cd android && timeout --kill-after=30s 10m \
+              ./gradlew :native:sealed-runtime:test --console=plain ) \
+            > ci-results/sealed-runtime-tests.txt 2>&1 || status=$?
+          tests=0; failures=0; errors=0; skipped=0
+          for f in build/sealed-runtime/test-results/test/TEST-*.xml; do
+            [ -f "$f" ] || continue
+            head=$(grep -o '<testsuite [^>]*>' "$f" | head -n 1)
+            t=$(printf '%s' "$head" | sed -n 's/.* tests="\([0-9]*\)".*/\1/p')
+            fl=$(printf '%s' "$head" | sed -n 's/.* failures="\([0-9]*\)".*/\1/p')
+            e=$(printf '%s' "$head" | sed -n 's/.* errors="\([0-9]*\)".*/\1/p')
+            sk=$(printf '%s' "$head" | sed -n 's/.* skipped="\([0-9]*\)".*/\1/p')
+            tests=$((tests + ${t:-0}))
+            failures=$((failures + ${fl:-0}))
+            errors=$((errors + ${e:-0}))
+            skipped=$((skipped + ${sk:-0}))
+          done
+          summary="sealed_runtime_tests=$tests failures=$failures errors=$errors skipped=$skipped gradle_exit=$status"
+          echo "$summary" | tee -a ci-results/sealed-runtime-tests.txt >> "$GITHUB_STEP_SUMMARY"
+          [ "$status" -eq 0 ] && [ "$tests" -gt 0 ] \
+            && [ "$failures" -eq 0 ] && [ "$errors" -eq 0 ]
+
+      - name: Sealed runtime digest
+        if: steps.sealed_runtime_tests.outcome == 'failure'
+        run: |
+          {
+            grep -n -A 12 -E 'What went wrong|FAILED|error:' \
+              ci-results/sealed-runtime-tests.txt | head -n 30
+            echo '--- the last 15 lines:'
+            tail -n 15 ci-results/sealed-runtime-tests.txt
+          } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+            | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/sealed-digest.txt"
+          echo "::warning title=Sealed runtime tests failed::$(cat "$RUNNER_TEMP/sealed-digest.txt")"
+
       # The release build (Phase 4 W1): AOT-compiled Dart, R8 and the release
       # lint, none of which the debug build runs. Flutter 3.50.0's first gate
       # found both failing while every debug check passed: Dart 3.14.0's AOT
@@ -604,7 +648,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests release_build; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests sealed_runtime_tests release_build; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -617,9 +661,249 @@ jobs:
               build) outcome="${{ steps.build.outcome }}" ;;
               manifest) outcome="${{ steps.manifest.outcome }}" ;;
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
+              sealed_runtime_tests) outcome="${{ steps.sealed_runtime_tests.outcome }}" ;;
               release_build) outcome="${{ steps.release_build.outcome }}" ;;
             esac
             echo "$gate: $outcome"
             [ "$outcome" = "success" ] || fail=1
           done
+          exit $fail
+
+  # The sealed runtime's supply chain (Phase 4 W2, gate G2): the runtime/
+  # script tests, native/PROVENANCE.md against the vendored files, the pins,
+  # and the pinned bootstrap and packages fetched for both ABIs, failing
+  # closed. Python 3 and the runner's zstd are all it needs; no Flutter.
+  # The pinned files are cached under the hash of runtime/pins.json, because
+  # Termux keeps only the latest versions (runtime/README.md).
+  # A commit whose message has [repin] re-resolves the pins against the live
+  # repository first. [repin] and [bootstrap] commit the pins, the
+  # regenerated notices and runtime/ci-results back; any other commit checks
+  # that the notices are current.
+  runtime:
+    name: Runtime supply chain (pins, scripts, provenance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CACHE: runtime/generated/cache
+      RESULTS: runtime/ci-results
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Mode and tools
+        id: mode
+        env:
+          REPIN: ${{ contains(github.event.head_commit.message, '[repin]') }}
+          BOOTSTRAP: ${{ contains(github.event.head_commit.message, '[bootstrap]') }}
+        run: |
+          rm -rf "$RESULTS" && mkdir -p "$RESULTS"
+          commit_back=false
+          if [ "$REPIN" = true ] || [ "$BOOTSTRAP" = true ]; then commit_back=true; fi
+          echo "repin=$REPIN" >> "$GITHUB_OUTPUT"
+          echo "commit_back=$commit_back" >> "$GITHUB_OUTPUT"
+          { python3 --version; zstd --version
+            echo "repin=$REPIN commit_back=$commit_back sha=$GITHUB_SHA"
+          } | tee "$RESULTS/tools.txt"
+
+      - name: Script tests
+        id: script_tests
+        continue-on-error: true
+        run: |
+          files=0; failed=0; cases=0
+          : > "$RESULTS/script-tests.txt"
+          for t in runtime/tests/test-*.py; do
+            files=$((files + 1))
+            if timeout --kill-after=30s 10m python3 "$t" > "$RUNNER_TEMP/one.txt" 2>&1; then
+              result=PASS
+            else
+              result=FAIL; failed=$((failed + 1))
+            fi
+            echo "$result $t"
+            { echo "=== $result $t"; cat "$RUNNER_TEMP/one.txt"; } >> "$RESULTS/script-tests.txt"
+            # unittest prints "Ran N tests"; t1's payload test is one end-to-end case.
+            n=$(sed -n 's/^Ran \([0-9]*\) tests\{0,1\} in .*/\1/p' "$RUNNER_TEMP/one.txt" | tail -n 1)
+            cases=$((cases + ${n:-1}))
+          done
+          summary="script_test_files=$files cases=$cases failed_files=$failed"
+          echo "$summary" | tee -a "$RESULTS/script-tests.txt" >> "$GITHUB_STEP_SUMMARY"
+          [ "$files" -gt 0 ] && [ "$failed" -eq 0 ]
+
+      - name: Provenance
+        id: provenance
+        continue-on-error: true
+        run: |
+          python3 runtime/provenance.py check 2>&1 | tee "$RESULTS/provenance.txt"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Restore the pinned files
+        id: pin_cache
+        uses: actions/cache/restore@v6
+        with:
+          path: runtime/generated/cache
+          key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
+
+      - name: Re-pin
+        id: repin
+        if: steps.mode.outputs.repin == 'true'
+        continue-on-error: true
+        run: |
+          status=0
+          timeout --kill-after=30s 20m python3 runtime/pins.py resolve --cache "$CACHE" \
+            > "$RESULTS/repin.txt" 2>&1 || status=$?
+          tail -n 30 "$RESULTS/repin.txt"
+          exit "$status"
+
+      - name: Check the pins
+        id: pins
+        continue-on-error: true
+        run: |
+          python3 runtime/pins.py check 2>&1 | tee "$RESULTS/pins.txt"
+          exit "${PIPESTATUS[0]}"
+
+      # Exactly the pinned files, each verified against its pin. A pinned file
+      # the repository no longer has fails here, naming the package (G2).
+      - name: Fetch the pinned files
+        id: fetch
+        continue-on-error: true
+        run: |
+          status=0
+          for arch in aarch64 x86_64; do
+            python3 runtime/pins.py bootstrap --arch "$arch" --cache "$CACHE" \
+              --out runtime/generated/bootstrap || status=1
+            python3 runtime/pins.py fetch --arch "$arch" --cache "$CACHE" \
+              --out "runtime/generated/debs/$arch" || status=1
+          done > "$RESULTS/fetch.txt" 2>&1
+          echo "cache_hit=${{ steps.pin_cache.outputs.cache-hit }} cache_size=$(du -sb "$CACHE" 2>/dev/null | cut -f1)" \
+            >> "$RESULTS/fetch.txt"
+          grep -v '^fetch ' "$RESULTS/fetch.txt" | tail -n 30
+          exit "$status"
+
+      - name: Save the pinned files
+        if: steps.fetch.outcome == 'success' && steps.pin_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: runtime/generated/cache
+          key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
+
+      # G2 against the real server: one pinned package pointed at a version
+      # the repository does not have must fail the fetch closed.
+      - name: Fail closed against the live repository
+        id: fail_closed
+        if: steps.fetch.outcome == 'success'
+        continue-on-error: true
+        run: |
+          status=0
+          timeout --kill-after=30s 10m python3 runtime/tests/live-fail-closed.py "$CACHE" \
+            > "$RESULTS/fail-closed.txt" 2>&1 || status=$?
+          cat "$RESULTS/fail-closed.txt"
+          exit "$status"
+
+      # Informative in W2 (W3 builds it into the app): the payload each ABI
+      # would ship, built by t1's script from exactly the pinned files.
+      - name: Build the sealed payloads
+        id: payload
+        if: steps.fetch.outcome == 'success'
+        continue-on-error: true
+        run: |
+          status=0
+          for abi in arm64-v8a x86_64; do
+            arch="$abi"; [ "$abi" = arm64-v8a ] && arch=aarch64
+            if timeout --kill-after=30s 15m python3 runtime/build-sealed-payload.py \
+                --bootstrap "runtime/generated/bootstrap/bootstrap-$arch.zip" --abi "$abi" \
+                --deb-dir "runtime/generated/debs/$arch" --out runtime/generated/payload \
+                > "$RESULTS/payload-$abi.txt" 2>&1; then
+              echo "payload $abi: built"
+            else
+              status=1; echo "payload $abi: FAILED"
+              { echo "--- $abi"; tail -n 15 "$RESULTS/payload-$abi.txt"; } >> "$RESULTS/payload-failures.txt"
+            fi
+            tail -n 8 "$RESULTS/payload-$abi.txt"
+          done
+          python3 - <<'PY' | tee "$RESULTS/payload-summary.txt" >> "$GITHUB_STEP_SUMMARY"
+          import glob, json, os
+          for path in sorted(glob.glob("runtime/generated/payload/assets/sealed-payload-*.json")):
+              report = json.load(open(path))
+              print("payload abi=%s executables=%s unique_binaries=%s data_files=%s symlinks=%s "
+                    "scripts=%s userland_zip_bytes=%s library_bytes=%s" % (
+                        report.get("abi"), report.get("executables"), report.get("uniqueBinaries"),
+                        report.get("dataFiles"), report.get("symlinks"), report.get("scripts"),
+                        report.get("userlandBytes"), report.get("libraryBytes")))
+          PY
+          exit "$status"
+
+      - name: Notices
+        id: notices
+        if: steps.fetch.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mode=--check
+          [ "${{ steps.mode.outputs.commit_back }}" = true ] && mode=
+          python3 runtime/notices.py --cache "$CACHE" $mode 2>&1 | tee "$RESULTS/notices.txt"
+          exit "${PIPESTATUS[0]}"
+
+      - name: Runtime digest
+        if: always()
+        run: |
+          {
+            for f in tools script-tests provenance repin pins fetch fail-closed payload-summary notices; do
+              [ -f "$RESULTS/$f.txt" ] || continue
+              echo "--- $f"
+              grep -E '^(Ran |OK|FAILED|PASS|FAIL|=== |provenance:|pins:|fetched |bootstrap |resolved |wrote |live-fail-closed:|payload |notices:|script_test_files|cache_hit|Python|\*\*\* Zstandard)' \
+                "$RESULTS/$f.txt" | tail -n 25
+            done
+          } | tee "$RESULTS/summary.txt"
+          for pair in "script_tests:script-tests" "provenance:provenance" "repin:repin" \
+                      "pins:pins" "fetch:fetch" "fail_closed:fail-closed" "payload:payload-failures" \
+                      "notices:notices"; do
+            step="${pair%%:*}"; file="$RESULTS/${pair#*:}.txt"
+            case "$step" in
+              script_tests) outcome="${{ steps.script_tests.outcome }}" ;;
+              provenance) outcome="${{ steps.provenance.outcome }}" ;;
+              repin) outcome="${{ steps.repin.outcome }}" ;;
+              pins) outcome="${{ steps.pins.outcome }}" ;;
+              fetch) outcome="${{ steps.fetch.outcome }}" ;;
+              fail_closed) outcome="${{ steps.fail_closed.outcome }}" ;;
+              payload) outcome="${{ steps.payload.outcome }}" ;;
+              notices) outcome="${{ steps.notices.outcome }}" ;;
+            esac
+            [ "$outcome" = failure ] && [ -f "$file" ] || continue
+            tail -n 20 "$file" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+              | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/digest.txt"
+            echo "::warning title=Runtime: $step failed::$(cat "$RUNNER_TEMP/digest.txt")"
+          done
+
+      - name: Commit the pins, notices and results back
+        if: always() && steps.mode.outputs.commit_back == 'true'
+        run: |
+          git config user.name "codeforge-ci"
+          git config user.email "ci@codeforge.invalid"
+          git add -A -- runtime/pins.json "$RESULTS" THIRD_PARTY_NOTICES.md SOURCE_OFFER.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ci): runtime pins, notices and results [skip ci]"
+            bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
+          fi
+
+      - name: Enforce the runtime gates
+        if: always()
+        run: |
+          fail=0
+          for gate in script_tests provenance repin pins fetch fail_closed notices; do
+            case "$gate" in
+              script_tests) outcome="${{ steps.script_tests.outcome }}" ;;
+              provenance) outcome="${{ steps.provenance.outcome }}" ;;
+              repin) outcome="${{ steps.repin.outcome }}" ;;
+              pins) outcome="${{ steps.pins.outcome }}" ;;
+              fetch) outcome="${{ steps.fetch.outcome }}" ;;
+              fail_closed) outcome="${{ steps.fail_closed.outcome }}" ;;
+              notices) outcome="${{ steps.notices.outcome }}" ;;
+            esac
+            # A re-pin is enforced only when the commit asked for one.
+            if [ "$gate" = repin ] && [ "${{ steps.mode.outputs.repin }}" != true ]; then
+              continue
+            fi
+            echo "$gate: $outcome"
+            [ "$outcome" = "success" ] || fail=1
+          done
+          echo "payload (informative until W3): ${{ steps.payload.outcome }}"
           exit $fail
