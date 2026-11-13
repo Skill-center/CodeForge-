@@ -117,16 +117,20 @@ class Repository:
 
 
 def make_bootstrap(path, packages, files=None, symlinks=None):
-    """A bootstrap zip: packages name -> (version, homepage or None).
+    """A bootstrap zip: packages name -> (version, homepage or None[, depends]).
 
     files: prefix path -> bytes; symlinks: link path -> target (SYMLINKS.txt,
     Termux's "target<-link" lines).
     """
     status = []
-    for name, (version, homepage) in sorted(packages.items()):
+    for name, fields in sorted(packages.items()):
+        version, homepage = fields[0], fields[1]
+        depends = fields[2] if len(fields) > 2 else None
         stanza = "Package: %s\nStatus: install ok installed\nVersion: %s\n" % (name, version)
         if homepage:
             stanza += "Homepage: %s\n" % homepage
+        if depends:
+            stanza += "Depends: %s\n" % depends
         status.append(stanza + "Description: synthetic bootstrap package\n")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with zipfile.ZipFile(path, "w") as archive:
@@ -148,7 +152,7 @@ def pins_for(repository, bootstraps, requested):
             files[arch] = {"url": pathlib.Path(path).as_uri(),
                            "sha256": hashlib.sha256(handle.read()).hexdigest()}
     return {
-        "schema": 1,
+        "schema": 2,
         "repository": {"url": repository.url, "suite": "stable"},
         "bootstrap": {"version": "test-bootstrap", "files": files, "packages": {}},
         "requested": list(requested),

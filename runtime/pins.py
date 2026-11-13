@@ -12,13 +12,23 @@ runtime/pins.json holds:
 * the bootstrap for each architecture: its release, URL and SHA-256;
 * the core set CodeForge asks for (t1's), and what resolving it gave: every
   package and dependency with its version, repository file, size and SHA-256,
-  in install order, plus the bootstrap's own package versions.
+  in install order, plus the bootstrap's own packages (version and
+  dependencies, from its dpkg status).
+
+The payload is the bootstrap with the pinned packages replacing the
+bootstrap's copies (t1's "refresh"). A Termux subpackage depends on its
+parent's exact version, so replacing a library can strand a bootstrap package
+built against the old one (the bootstrap's curl needs its own libcurl).
+`resolve` therefore adds every bootstrap package a replacement leaves unmet to
+the request, and resolves again until the whole payload is consistent; those
+packages are listed under `consistency`.
 
 Commands:
 
   check      validate pins.json without a network: its shape and hashes, and
-             that every pinned package's dependencies are met by the pinned
-             set and the bootstrap, by version (t1's invariant 3);
+             that every dependency in the payload, the bootstrap's packages
+             included, is met by the pinned set and the bootstrap, by version
+             (t1's invariant 3);
   fetch      download exactly the pinned packages of one architecture into a
              cache, verify each against its pin, and give the payload builder
              a directory that holds only them (with t1's packages.json). A
@@ -52,10 +62,13 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_PINS = os.path.join(HERE, "pins.json")
-SCHEMA = 1
+SCHEMA = 2
+# How many times `resolve` may widen the request to keep the payload consistent.
+CONSISTENCY_ROUNDS = 10
 # Termux's architecture names, and the Android ABI each one's payload is for.
 ABIS = {"aarch64": "arm64-v8a", "x86_64": "x86_64"}
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -172,6 +185,46 @@ def describe(alternative):
     return "%s (%s %s)" % (name, operator, required) if operator else name
 
 
+def unmet_dependencies(bootstrap, pinned):
+    """Every dependency the payload does not meet.
+
+    bootstrap and pinned map a name to {version, depends, preDepends,
+    provides}. The payload is the bootstrap with the pinned packages
+    replacing its copies. Returns (origin, name, version, field label,
+    alternatives) tuples, origin being "bootstrap" or "pinned".
+    """
+    composed = {name: ("bootstrap", entry) for name, entry in bootstrap.items()}
+    composed.update({name: ("pinned", entry) for name, entry in pinned.items()})
+    versions = {name: entry.get("version", "") for name, (_, entry) in composed.items()}
+    virtual = set()
+    for _, entry in composed.values():
+        virtual.update(split_provides(entry.get("provides", "")))
+
+    def met(alternative):
+        name, operator, required = alternative
+        if name in t1.ALWAYS_SKIP:
+            return True
+        if name in versions:
+            return t1.satisfies(versions[name], operator, required)
+        return name in virtual
+
+    unmet = []
+    for name, (origin, entry) in sorted(composed.items()):
+        for field, label in (("preDepends", "Pre-Depends"), ("depends", "Depends")):
+            for alternatives in t1.split_dependencies(entry.get(field, "")):
+                if not any(met(alternative) for alternative in alternatives):
+                    unmet.append((origin, name, entry.get("version", ""), label, alternatives))
+    return unmet
+
+
+def describe_unmet(arch, item):
+    origin, name, version, label, alternatives = item
+    who = "%s %s" % (arch, name) if origin == "pinned" else \
+        "%s bootstrap's %s %s" % (arch, name, version)
+    return ("%s: %s on %s is not met by the pinned set or the bootstrap"
+            % (who, label, " | ".join(describe(a) for a in alternatives)))
+
+
 def check_inputs(pins):
     """Problems with what a human writes: the repository, bootstrap, core set."""
     problems = []
@@ -227,6 +280,12 @@ def check_resolved(pins):
             problems.append("bootstrap.packages.%s is missing (resolve writes it "
                             "from the bootstrap's dpkg status)" % arch)
             base = {}
+        malformed = sorted(name for name, entry in base.items()
+                           if not isinstance(entry, dict) or not entry.get("version"))
+        if malformed:
+            problems.append("bootstrap.packages.%s: %s need a version (and their "
+                            "dependencies); re-pin" % (arch, ", ".join(malformed[:5])))
+            base = {name: entry for name, entry in base.items() if name not in malformed}
         pinned = {}
         for index, entry in enumerate(entries):
             name = entry.get("package")
@@ -256,31 +315,14 @@ def check_resolved(pins):
             if name not in pinned and name not in base:
                 problems.append("%s: requested %s is neither pinned nor in the bootstrap"
                                 % (arch, name))
-        # What the payload will hold: the bootstrap, with pinned packages
-        # replacing the bootstrap's copies (t1's "refresh").
-        versions = dict(base)
-        versions.update({name: entry.get("version", "") for name, entry in pinned.items()})
-        virtual = {}
-        for name, entry in pinned.items():
-            for provided in split_provides(entry.get("provides", "")):
-                virtual.setdefault(provided, name)
-
-        def met(alternative):
-            name, operator, required = alternative
-            if name in t1.ALWAYS_SKIP:
-                return True
-            if name in versions:
-                return t1.satisfies(versions[name], operator, required)
-            return name in virtual
-
-        for name, entry in pinned.items():
-            for field, label in (("preDepends", "Pre-Depends"), ("depends", "Depends")):
-                for alternatives in t1.split_dependencies(entry.get(field, "")):
-                    if not any(met(alternative) for alternative in alternatives):
-                        problems.append(
-                            "%s %s: %s on %s is not met by the pinned set or the bootstrap"
-                            % (arch, name, label,
-                               " | ".join(describe(a) for a in alternatives)))
+        # The payload: the bootstrap, with pinned packages replacing the
+        # bootstrap's copies (t1's "refresh"). Every dependency in it, the
+        # bootstrap's own included, must be met.
+        for item in unmet_dependencies(base, pinned):
+            problems.append(describe_unmet(arch, item))
+        for name in (pins.get("consistency") or {}).get(arch) or []:
+            if name not in pinned:
+                problems.append("%s: consistency lists %s, which is not pinned" % (arch, name))
     return problems
 
 
@@ -289,10 +331,13 @@ def check(pins):
 
 
 def summary(pins):
-    counts = ", ".join("%d for %s" % (len((pins.get("packages") or {}).get(arch) or []), arch)
-                       for arch in sorted(ABIS))
+    parts = []
+    for arch in sorted(ABIS):
+        count = len((pins.get("packages") or {}).get(arch) or [])
+        extra = len((pins.get("consistency") or {}).get(arch) or [])
+        parts.append("%d for %s (%d for consistency)" % (count, arch, extra))
     return ("pins: OK - %s on bootstrap %s; resolved %s"
-            % (counts, pins["bootstrap"]["version"], pins.get("resolvedAt", "never")))
+            % (", ".join(parts), pins["bootstrap"]["version"], pins.get("resolvedAt", "never")))
 
 
 # --------------------------------------------------------------------------- #
@@ -413,27 +458,81 @@ def fetch(pins, arch, cache, out):
 # resolve (re-pin)
 # --------------------------------------------------------------------------- #
 
+def bootstrap_status(zip_path):
+    """name -> {version, depends, preDepends, provides}, from the bootstrap's dpkg status."""
+    with zipfile.ZipFile(zip_path) as archive:
+        names = [name for name in archive.namelist() if name.endswith("var/lib/dpkg/status")]
+        if not names:
+            return {}
+        text = archive.read(names[0]).decode("utf-8", "replace")
+    status = {}
+    for stanza in t1.parse_stanzas(text):
+        name = stanza.get("Package")
+        if name:
+            status[name] = {"version": stanza.get("Version", ""),
+                            "depends": stanza.get("Depends", ""),
+                            "preDepends": stanza.get("Pre-Depends", ""),
+                            "provides": stanza.get("Provides", "")}
+    return status
+
+
+def stanza_entry(stanza):
+    return {"version": stanza.get("Version", ""), "depends": stanza.get("Depends", ""),
+            "preDepends": stanza.get("Pre-Depends", ""), "provides": stanza.get("Provides", "")}
+
+
+def resolve_consistently(arch, requested, index, provided, status, base):
+    """t1's resolution, widened until the whole payload's dependencies are met.
+
+    Replacing a bootstrap package can strand another bootstrap package built
+    against it (a Termux subpackage depends on its parent's exact version).
+    Each stranded package is added to the request, so t1's resolver takes it
+    from the repository too, until nothing is stranded. Returns the install
+    order and the names added. Fails closed when a stranded package cannot be
+    taken from the repository.
+    """
+    request = list(requested)
+    added = []
+    for _ in range(CONSISTENCY_ROUNDS):
+        order, missing = t1.resolve(request, index, provided, base, set(t1.ALWAYS_SKIP))
+        if missing:
+            raise PinError("%s: unresolved dependencies: %s"
+                           % (arch, ", ".join(sorted(set(missing)))))
+        pinned = {name: stanza_entry(index[name]) for name in order}
+        unmet = unmet_dependencies(status, pinned)
+        if not unmet:
+            return order, added
+        stranded = sorted({item[1] for item in unmet if item[0] == "bootstrap"})
+        new = [name for name in stranded if name not in request]
+        if not new:
+            raise PinError("%s: the payload cannot be made consistent:\n  %s"
+                           % (arch, "\n  ".join(describe_unmet(arch, item) for item in unmet)))
+        log("%s: %s left behind by the refresh; resolving again with %s"
+            % (arch, ", ".join(new), "them" if len(new) > 1 else "it"))
+        request.extend(new)
+        added.extend(new)
+    raise PinError("%s: the payload was still inconsistent after %d rounds"
+                   % (arch, CONSISTENCY_ROUNDS))
+
 def resolve(pins, cache, now=None):
     """Re-pin: resolve the core set against the live repository, arch by arch."""
     problems = check_inputs(pins)
     if problems:
         raise PinError("the pins' inputs do not pass the check:\n  " + "\n  ".join(problems))
     repository = pins["repository"]
-    packages, bootstrap_versions = {}, {}
+    packages, bootstrap_status_by_arch, consistency = {}, {}, {}
     for arch in sorted(ABIS):
         zip_path = fetch_bootstrap(pins, arch, cache)
-        base = t1.bootstrap_packages(zip_path)
-        if not base:
+        status = bootstrap_status(zip_path)
+        if not status:
             raise PinError("the %s bootstrap has no var/lib/dpkg/status" % arch)
+        base = {name: entry["version"] for name, entry in status.items()}
         try:
             index, provided = t1.load_index(repository["url"], repository["suite"], arch)
         except SystemExit as error:
             raise PinError(str(error))
-        order, missing = t1.resolve(pins["requested"], index, provided, base,
-                                    set(t1.ALWAYS_SKIP))
-        if missing:
-            raise PinError("%s: unresolved dependencies: %s"
-                           % (arch, ", ".join(sorted(set(missing)))))
+        order, added = resolve_consistently(arch, pins["requested"], index, provided, status,
+                                            base)
         directory = os.path.join(cache, "debs", arch)
         os.makedirs(directory, exist_ok=True)
         entries = []
@@ -456,12 +555,15 @@ def resolve(pins, cache, now=None):
                 "provides": stanza.get("Provides", ""),
             })
         packages[arch] = entries
-        bootstrap_versions[arch] = dict(sorted(base.items()))
-        print("resolved %d packages for %s (the bootstrap provides %d)"
-              % (len(entries), arch, len(base)))
+        bootstrap_status_by_arch[arch] = dict(sorted(status.items()))
+        consistency[arch] = added
+        print("resolved %d packages for %s (the bootstrap provides %d; %d added for "
+              "consistency%s)" % (len(entries), arch, len(base), len(added),
+                                  ": " + ", ".join(added) if added else ""))
     resolved = json.loads(json.dumps(pins))
     resolved["packages"] = packages
-    resolved["bootstrap"]["packages"] = bootstrap_versions
+    resolved["bootstrap"]["packages"] = bootstrap_status_by_arch
+    resolved["consistency"] = consistency
     resolved["resolvedAt"] = now or datetime.datetime.now(datetime.timezone.utc) \
         .replace(microsecond=0).isoformat().replace("+00:00", "Z")
     problems = check(resolved)

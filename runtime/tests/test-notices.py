@@ -15,7 +15,9 @@ fetches them with runtime/pins.py, and checks the drafted notices:
 Run: python3 runtime/tests/test-notices.py
 """
 
+import contextlib
 import importlib.util
+import io
 import os
 import shutil
 import subprocess
@@ -127,9 +129,11 @@ class NoticesTest(unittest.TestCase):
             handle.write(OFFER_TEMPLATE)
 
     def run_notices(self, *extra):
-        return notices.main(["--pins", self.pins_path, "--cache", self.cache,
-                             "--notices", self.notices_path,
-                             "--source-offer", self.offer_path] + list(extra))
+        # Quiet: CI's digest reads this test's output.
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return notices.main(["--pins", self.pins_path, "--cache", self.cache,
+                                 "--notices", self.notices_path,
+                                 "--source-offer", self.offer_path] + list(extra))
 
     def read(self, path):
         with open(path, encoding="utf-8") as handle:

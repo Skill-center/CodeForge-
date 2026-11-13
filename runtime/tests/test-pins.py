@@ -10,8 +10,11 @@ Against a synthetic Termux repository (tests/fixtures.py) served over file://:
   * a pinned package that has gone from the repository fails closed, naming
     the package and the way to re-pin (G2: "a missing pinned package fails the
     build closed"); so do changed bytes and a bootstrap that is not the pinned one;
-  * the check catches unmet dependencies, versions below a constraint and
-    malformed entries;
+  * a bootstrap package the refresh leaves behind (a subpackage needing its
+    parent's exact version) is refreshed too, and one that cannot be fails
+    the resolve;
+  * the check catches unmet dependencies, the bootstrap's included, versions
+    below a constraint and malformed entries;
   * the committed runtime/pins.json passes the check.
 
 Run: python3 runtime/tests/test-pins.py
@@ -100,10 +103,57 @@ class PinsTest(unittest.TestCase):
                     data = handle.read()
                 self.assertEqual(entry["sha256"], hashlib.sha256(data).hexdigest())
                 self.assertEqual(entry["size"], len(data))
-            self.assertEqual(pins["bootstrap"]["packages"][arch],
+            self.assertEqual({name: entry["version"] for name, entry
+                              in pins["bootstrap"]["packages"][arch].items()},
                              {"bash": "5.2", "libbaz": "1.0", "libold": "1.0"})
+            self.assertEqual(pins["consistency"][arch], [])
         self.assertTrue(pins["resolvedAt"].endswith("Z"))
         self.assertEqual(pins_tool.check(pins), [])
+
+    def with_bootstrap_package(self, name, version, depends):
+        """Rebuild the bootstraps with one more package, and re-pin their hashes."""
+        for arch in fixtures.ARCHES:
+            fixtures.make_bootstrap(self.bootstraps[arch], {
+                "libbaz": ("1.0", None), "libold": ("1.0", None), "bash": ("5.2", None),
+                name: (version, None, depends)})
+        fixtures.write_json(self.pins_path, fixtures.pins_for(
+            self.repository, self.bootstraps, ["app", "tool"]))
+
+    def test_a_bootstrap_package_left_behind_by_the_refresh_is_refreshed_too(self):
+        # The bootstrap's oldtool needs its libold exactly; the closure
+        # refreshes libold 1.0 -> 1.1, so oldtool must follow.
+        self.repository.add("oldtool", "1.1", files={"bin/oldtool": b"\x7fELF old"},
+                            depends="libold (= 1.1)")
+        self.with_bootstrap_package("oldtool", "1.0", "libold (= 1.0)")
+        pins = self.resolve()
+        for arch in fixtures.ARCHES:
+            versions = {e["package"]: e["version"] for e in pins["packages"][arch]}
+            self.assertEqual(versions["oldtool"], "1.1")
+            self.assertEqual(versions["libold"], "1.1")
+            self.assertEqual(pins["consistency"][arch], ["oldtool"])
+        self.assertEqual(pins_tool.check(pins), [])
+        code, stdout, err = run_pins("--pins", self.pins_path, "check")
+        self.assertEqual(code, 0, err)
+        self.assertIn("(1 for consistency)", stdout)
+
+    def test_a_bootstrap_package_that_cannot_follow_fails_the_resolve(self):
+        self.with_bootstrap_package("orphan", "1.0", "libold (= 1.0)")
+        code, _, err = run_pins("--pins", self.pins_path, "resolve", "--cache", self.cache)
+        self.assertEqual(code, 1)
+        self.assertIn("the payload cannot be made consistent", err)
+        self.assertIn("bootstrap's orphan 1.0: Depends on libold (= 1.0) is not met", err)
+
+    def test_check_reports_a_bootstrap_package_left_behind(self):
+        self.repository.add("oldtool", "1.1", files={"bin/oldtool": b"\x7fELF old"},
+                            depends="libold (= 1.1)")
+        self.with_bootstrap_package("oldtool", "1.0", "libold (= 1.0)")
+        pins = self.resolve()
+        pins["packages"]["x86_64"] = [e for e in pins["packages"]["x86_64"]
+                                      if e["package"] != "oldtool"]
+        problems = pins_tool.check(pins)
+        self.assertIn("x86_64 bootstrap's oldtool 1.0: Depends on libold (= 1.0) is not met by "
+                      "the pinned set or the bootstrap", problems)
+        self.assertIn("x86_64: consistency lists oldtool, which is not pinned", problems)
 
     def test_unresolved_pins_fail_the_check_and_name_the_fix(self):
         code, _, err = run_pins("--pins", self.pins_path, "check")
