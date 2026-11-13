@@ -4,6 +4,14 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Changed — Phase 4 W1, toolchain (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
+- **Flutter 3.50.0**, with the Android pins of its template: Android Gradle Plugin 9.3.1, Kotlin's Gradle plugin 2.4.20 and Gradle 9.5.0, upgraded together as the owner decided.
+- **The Material widgets come from `package:material_ui`** (1.10.0), because Flutter 3.50 deprecates the framework's copy. All 87 files that imported it moved, by Flutter's own fix, and analysis now flags any new import of the old library. The app looks the same: none of the 26 golden images changed.
+- **Screens still change without a transition.** The router builds the same transition-free pages go_router used before; go_router would otherwise have switched to Material's transitions once the app used `material_ui`.
+- **CI uses the Node 24 versions of GitHub's actions** (checkout, setup-java, cache, upload-artifact, download-artifact, setup-node), each read against its release notes.
+- The debug APK is about 1.9 MB smaller: 175,890,252 bytes, from 177,806,969 at Phase 3's exit.
+- Verified by CI 43373527631 (`+846: All tests passed!`; analysis clean; 44 Kotlin tests).
+
 ### Licence decided (2026-11-12)
 - **CodeForge is licensed under the Apache License 2.0** (`LICENSE`; the owner's decision, [ADR-0011](adr/0011-license.md) path B). By ADR-0006's rule the terminal frontend is therefore xterm.js: Termux's GPLv3 terminal modules are never vendored, and Phase 5 writes the PTY. t1 takes the same licence before Phase 4 vendors its code.
 
