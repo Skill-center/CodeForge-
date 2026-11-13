@@ -318,6 +318,20 @@ final class _App {
       lessThan(_budget.inMilliseconds),
       reason: '$label: caught up $ms ms after coming back',
     );
+    // The reload is also said in a snack bar, posted just after the text
+    // arrives. Wait for it and for its animations, so that none is still
+    // running when the test ends: phase gate 43379964330 failed on the
+    // snack bar's exit animation after every check here had passed.
+    final name = path.split('/').last;
+    await pumpUntil(
+      tester,
+      () => find
+          .text('$name changed on disk and was reloaded.')
+          .evaluate()
+          .isNotEmpty,
+      what: '$label: the reload notice',
+    );
+    await tester.pumpAndSettle();
   }
 }
 
