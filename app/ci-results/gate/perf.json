@@ -4,27 +4,27 @@
   "gpu": "swiftshader_indirect",
   "accel": "kvm",
   "cold_start": {
-    "apk": "debug",
+    "apk": "release-x64",
     "method": "am start -W (TotalTime) after am force-stop, 10 runs",
-    "samples_ms": [2971,2388,2400,2523,2487,2302,2265,2370,2501,2532],
-    "median_ms": 2443,
+    "samples_ms": [877,907,942,933,895,796,935,836,934,866],
+    "median_ms": 901,
     "budget_ms": 1500,
-    "within_budget": false
+    "within_budget": true
   },
   "cold_start_skia": {
     "apk": "the same release build with EnableImpeller=false (comparison, not shipped)",
-    "samples_ms": [],
-    "median_ms": 0
+    "samples_ms": [703,695,901,775,650,787,816,875,797,676],
+    "median_ms": 781
   },
   "cold_start_again": {
-    "apk": "debug, once more after the Skia block",
-    "samples_ms": [],
-    "median_ms": 0
+    "apk": "release-x64, once more after the Skia block",
+    "samples_ms": [736,844,945,892,950,911,744,900,891,887],
+    "median_ms": 891
   },
   "renderer": "impeller (Flutter's default since Phase 3 W6)",
   "apk_bytes": {
-    "debug": 175890180,
-    "cold_start_apk": 175890180
+    "debug": 175890404,
+    "cold_start_apk": 24631359
   },
   "nav_frame_profile": "not measured on CI in Phase 1 (requires a profile-mode build; see docs/phases/PHASE_1_REPORT.md)"
 }
