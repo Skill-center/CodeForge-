@@ -67,7 +67,7 @@ jobs:
       # workflow cannot see the CI run's artifact, so it builds the page from
       # the same lockfile (the build is reproducible: same bytes, same hash)
       # and verifies it before the APK bundles it.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: editor/.nvmrc
           cache: npm
