@@ -11,7 +11,7 @@ is the Flutter package; repository-level docs live in `../docs/`.
 | Dart | ships with Flutter | — |
 | JDK | Temurin 17 | CI `setup-java` |
 | Gradle | 9.5.0 | `android/gradle/wrapper/gradle-wrapper.properties` |
-| AGP | 9.3.1 | `android/settings.gradle.kts` |
+| AGP | 9.3.3 | `android/settings.gradle.kts` |
 | Kotlin | 2.4.20 | `android/settings.gradle.kts` |
 
 `android.builtInKotlin=false` is set deliberately: the Flutter Gradle plugin

@@ -254,17 +254,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (!mounted || picked == null) {
       return;
     }
-    final FolderInfo info;
+    // The picked folder is handed on from its case. A `final` assigned in one
+    // case of a switch whose other case returns, then captured by a closure
+    // after it, crashes Dart 3.14.0's AOT compiler (Flutter 3.50.0; release
+    // and profile builds only): dart-lang/sdk#64917.
     switch (picked) {
       case Err<FolderInfo?>(:final failure):
         _tell(failure.message);
-        return;
       case Ok<FolderInfo?>(:final value):
-        if (value == null) {
-          return;
+        if (value != null) {
+          await _reconnectTo(folder, value);
         }
-        info = value;
     }
+  }
+
+  /// Reconnects [folder] to [info], the folder picked at its place, after
+  /// asking when that is another folder.
+  Future<void> _reconnectTo(FolderLocation folder, FolderInfo info) async {
     if (!_switcher.isSameFolder(folder, info)) {
       final pickedName = info.name.isEmpty ? 'that folder' : '"${info.name}"';
       final replace = await askHomeConfirm(

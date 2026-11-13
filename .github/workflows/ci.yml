@@ -494,6 +494,39 @@ jobs:
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/kotlin-digest.txt"
           echo "::warning title=Kotlin unit tests failed::$(cat "$RUNNER_TEMP/kotlin-digest.txt")"
 
+      # The release build (Phase 4 W1): AOT-compiled Dart, R8 and the release
+      # lint, none of which the debug build runs. Flutter 3.50.0's first gate
+      # found both failing while every debug check passed: Dart 3.14.0's AOT
+      # compiler crashed on one function (dart-lang/sdk#64917), and AGP
+      # 9.3.1's lint crashed on JDK 17 (fixed in 9.3.2). One ABI, the
+      # emulator's, keeps it short; the phase gate builds the others.
+      - name: Build release APK (x86_64)
+        id: release_build
+        continue-on-error: true
+        run: |
+          status=0
+          timeout --kill-after=30s 20m flutter build apk --release \
+            --target-platform android-x64 > ci-results/build-release.txt 2>&1 \
+            || status=$?
+          if [ "$status" -eq 0 ]; then
+            apk=build/app/outputs/flutter-apk/app-release.apk
+            echo "release_x64_apk_bytes=$(stat -c%s "$apk")" \
+              | tee -a ci-results/apk.txt >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
+
+      - name: Release build digest
+        if: steps.release_build.outcome == 'failure'
+        run: |
+          {
+            grep -n -A 12 -E 'What went wrong|error:|Crash occurred|exited with code|FAILURE:' \
+              ci-results/build-release.txt | head -n 40
+            echo '--- the last 20 lines:'
+            tail -n 20 ci-results/build-release.txt
+          } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+            | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/release-digest.txt"
+          echo "::warning title=Release build failed::$(cat "$RUNNER_TEMP/release-digest.txt")"
+
       - name: Coverage summary
         if: always()
         run: |
@@ -571,7 +604,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests release_build; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -584,6 +617,7 @@ jobs:
               build) outcome="${{ steps.build.outcome }}" ;;
               manifest) outcome="${{ steps.manifest.outcome }}" ;;
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
+              release_build) outcome="${{ steps.release_build.outcome }}" ;;
             esac
             echo "$gate: $outcome"
             [ "$outcome" = "success" ] || fail=1

@@ -125,10 +125,17 @@ jobs:
       # Cold start (G6) is timed on a release build for the emulator ABI; if
       # this step fails the gate falls back to the plain debug APK and says so
       # in ci-results/gate/perf.json.
+      # Each of the builds below logs to build/gate/logs/, which goes into
+      # the evidence after the gate (the gate starts by clearing
+      # ci-results/gate/): W1's first gate on Flutter 3.50.0 lost all three
+      # to failures whose reasons were only in the job log.
       - name: Build release APK (x86_64, cold-start measurement)
         continue-on-error: true
         run: |
-          flutter build apk --release --target-platform android-x64
+          mkdir -p build/gate/logs
+          set -o pipefail
+          flutter build apk --release --target-platform android-x64 2>&1 \
+            | tee build/gate/logs/build-release-x64.txt
           cp build/app/outputs/flutter-apk/app-release.apk build/gate/app-release-x64.apk
 
       # The same release APK rendering with Skia, for the cold-start group to
@@ -142,10 +149,13 @@ jobs:
           manifest=android/app/src/main/AndroidManifest.xml
           cp "$manifest" "$RUNNER_TEMP/AndroidManifest.xml"
           status=0
+          mkdir -p build/gate/logs
           python3 tool/ci/skia_manifest.py "$manifest" \
             && flutter build apk --release --target-platform android-x64 \
+                 > build/gate/logs/build-release-x64-skia.txt 2>&1 \
             && cp build/app/outputs/flutter-apk/app-release.apk \
                  build/gate/app-release-x64-skia.apk || status=$?
+          tail -n 25 build/gate/logs/build-release-x64-skia.txt || true
           cp "$RUNNER_TEMP/AndroidManifest.xml" "$manifest"
           git diff --exit-code -- "$manifest"
           exit "$status"
@@ -164,7 +174,10 @@ jobs:
       - name: Build phone APK (profile, arm64)
         continue-on-error: true
         run: |
-          flutter build apk --profile --target-platform android-arm64
+          mkdir -p build/gate/logs
+          set -o pipefail
+          flutter build apk --profile --target-platform android-arm64 2>&1 \
+            | tee build/gate/logs/build-phone-profile-arm64.txt
           cp build/app/outputs/flutter-apk/app-profile.apk build/gate/codeforge-phone-profile-arm64.apk
           sha256sum build/gate/codeforge-phone-profile-arm64.apk
 
@@ -172,6 +185,13 @@ jobs:
         id: gate
         continue-on-error: true
         run: bash tool/ci/emulator_gate.sh
+
+      - name: Keep the build logs
+        if: always()
+        run: |
+          mkdir -p ci-results/gate
+          cp build/gate/logs/*.txt ci-results/gate/ 2>/dev/null || true
+          ls build/gate/logs 2>/dev/null || echo "no build logs"
 
       # Key evidence also goes out as check-run annotations (readable via the
       # API) in case the commit-back below fails.

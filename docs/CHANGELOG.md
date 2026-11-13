@@ -5,9 +5,11 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 ## [Unreleased]
 
 ### Changed — Phase 4 W1, toolchain (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
-- **Flutter 3.50.0**, with the Android pins of its template: Android Gradle Plugin 9.3.1, Kotlin's Gradle plugin 2.4.20 and Gradle 9.5.0, upgraded together as the owner decided.
+- **Flutter 3.50.0**, with the Android pins of its template: Kotlin's Gradle plugin 2.4.20 and Gradle 9.5.0, and Android Gradle Plugin 9.3.3, the latest patch of the template's 9.3 line, because 9.3.1's lint crashes release builds on JDK 17. Upgraded together as the owner decided.
 - **The Material widgets come from `package:material_ui`** (1.10.0), because Flutter 3.50 deprecates the framework's copy. All 87 files that imported it moved, by Flutter's own fix, and analysis now flags any new import of the old library. The app looks the same: none of the 26 golden images changed.
 - **Screens still change without a transition.** The router builds the same transition-free pages go_router used before; go_router would otherwise have switched to Material's transitions once the app used `material_ui`.
+- **Release builds work on Flutter 3.50.0.** Its Dart compiler crashes when building a release or profile app containing one shape of code ([dart-lang/sdk#64917](https://github.com/dart-lang/sdk/issues/64917)), which Home's folder reconnect had; that code is restructured, with the same behaviour.
+- **CI builds a release APK on every run**, so a failure that only release builds show is caught there, not first in the phase gate. The phase gate keeps the logs of its builds with its evidence.
 - **CI uses the Node 24 versions of GitHub's actions** (checkout, setup-java, cache, upload-artifact, download-artifact, setup-node), each read against its release notes.
 - The debug APK is about 1.9 MB smaller: 175,890,252 bytes, from 177,806,969 at Phase 3's exit.
 - Verified by CI 43373527631 (`+846: All tests passed!`; analysis clean; 44 Kotlin tests).

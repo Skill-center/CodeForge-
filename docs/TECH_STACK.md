@@ -8,7 +8,7 @@
 
 **Phase 3 update (2026-11-12):** Pigeon (the storage broker's typed API), schema v2, the Kotlin unit tests in CI and the renderer (Impeller since W6) are **as built and CI-proven** (run ids in [phases/PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md)). Phase 3 added two dependencies, both for development: Pigeon 29.2.0 and, for the Kotlin tests, JUnit 4.13.2. It added two fonts: a subset of Material Symbols Rounded (Apache-2.0) and CodeForge's own file glyphs (UI_DESIGN_SYSTEM). Phase 3 ended on Flutter 3.47.9. At acceptance (2026-11-12) the owner decided to move to 3.50.0, which needs AGP 9.1.1 and KGP 2.4.10 or later, with both plugins upgraded together (BUILD_AND_RELEASE §3).
 
-**Phase 4 update (2026-11-13, W1):** Flutter **3.50.0** with the Android pins of its template (AGP 9.3.1, Kotlin's Gradle plugin 2.4.20, Gradle 9.5.0), upgraded together as the owner decided, and `package:material_ui` 1.10.0 in place of the framework's Material library, which 3.50 deprecates, are **as built and CI-proven**: CI 43373527631 (`+846: All tests passed!`, analysis clean, 230 files formatted with none changed, 44 Kotlin tests). All 87 files that imported the framework's Material moved by Flutter's own fix, and none of the 26 golden images changed. The workflows moved to the Node 24 majors of GitHub's actions in W1 as well (§6).
+**Phase 4 update (2026-11-13, W1):** Flutter **3.50.0** with the Android pins of its template (Kotlin's Gradle plugin 2.4.20, Gradle 9.5.0, and AGP 9.3.3, the 9.3 line's latest patch rather than the template's 9.3.1, whose lint crashes on JDK 17 in release builds), upgraded together as the owner decided, and `package:material_ui` 1.10.0 in place of the framework's Material library, which 3.50 deprecates, are **as built and CI-proven**: CI 43373527631 (`+846: All tests passed!`, analysis clean, 230 files formatted with none changed, 44 Kotlin tests). All 87 files that imported the framework's Material moved by Flutter's own fix, and none of the 26 golden images changed. The workflows moved to the Node 24 majors of GitHub's actions in W1 as well (§6).
 
 ---
 
@@ -19,7 +19,7 @@
 | App framework | **Flutter** (stable) | **3.50.0** — as built (Phase 4 W1; 3.47.9 in Phases 1–3) | Spec mandate; single UI codebase, first-class Android embedding |
 | UI language | Dart (bundled SDK) | ships with Flutter | — |
 | Android host | **Kotlin** (+ vendored Java modules) | **2.4.20** — as built (Flutter 3.50.0 template; CI-proven; 2.4.0 until Phase 4 W1) | Spec; t1 modules are Java — Kotlin host interoperates natively on the JVM |
-| Android Gradle Plugin | AGP | **9.3.1** — as built (template default since Phase 4 W1, 9.1.0 before; `android.newDsl=false`, `android.builtInKotlin=false` keep the Flutter Gradle plugin on the classic DSL) | t1 proves 8.13.2; reconcile in Phase 4 only if vendoring needs it |
+| Android Gradle Plugin | AGP | **9.3.3** — as built (Phase 4 W1: the 9.3 line's latest patch, above the 3.50.0 template's 9.3.1, whose lint crashes on JDK 17 in every release build, Google issue 522845800, fixed in 9.3.2; 9.1.0 before; `android.newDsl=false`, `android.builtInKotlin=false` keep the Flutter Gradle plugin on the classic DSL) | t1 proves 8.13.2; reconcile in Phase 4 only if vendoring needs it |
 | Gradle | wrapper | **9.5.0** — as built (wrapper committed; 9.3.1 until Phase 4 W1) | Template default; AGP 9.3 needs 9.5.0 or later |
 | JDK | Temurin | 17 | t1 CI standard; Flutter/AGP compatible |
 | compileSdk / targetSdk | **36 / 36** | — | Spec + Play requirement (Aug 31 2026); sealed model makes it work |
