@@ -100,7 +100,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 - SemVer `MAJOR.MINOR.PATCH`; `versionName` from tag, `versionCode` monotonic (CI run number + offset). Phase milestones tag `v0.N.0`; public release starts `v1.0.0` at Phase 10 exit.
 - GitHub Release: `CodeForge-vX.Y.Z-arm64.apk` (full), `-x86_64.apk` (emulator/dev), `SHA256SUMS`, `PINS.json` (Flutter/AGP/NDK/bootstrap/package versions), source tarball link. Pre-release flag until Phase 10.
 - Play: AAB arm64 base + `pack_buildtools` on-demand; internal → closed → production promotion is manual; data-safety answers from t1 `store/data-safety.md` template (nothing collected).
-- **License gate:** no binary release until ADR-0011 resolved + `THIRD_PARTY_NOTICES.md` + source-offer for GPL userland components published with the release.
+- **License gate:** no binary release until `THIRD_PARTY_NOTICES.md` and the source offer for GPL userland components are published with the release (ADR-0011 resolved on 2026-11-12: Apache-2.0).
 
 ## 6. Local developer builds (documented for CONTRIBUTING)
 

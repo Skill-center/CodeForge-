@@ -1,12 +1,15 @@
 # Terminal Architecture
 
-**Status:** Design proposed; frontend choice gated in Phase 4 (ADR-0006) · Backend: vendored t1 PTY stack · Implementation Phases 4–5
+**Status:** **Frontend decided 2026-11-12: xterm.js** (ADR-0006 by its rule; the owner chose Apache-2.0, ADR-0011) · Backend: CodeForge's own PTY and session, on t1's environment rules (§1) · Implementation Phase 5
 
 ---
 
-## 1. Backend (settled): the audited PTY stack
+## 1. Backend: the existing runtime
 
 The terminal backend **is** the existing runtime, per spec §6.4 — not a replacement:
+
+**Changed 2026-11-12 (ADR-0011, Apache-2.0):** Termux's `terminal-emulator` (`termux.c`, `TerminalSession`) and t1's `HarnessSession`, which is built on it, are not vendored. Phase 5 writes the PTY clean-room (about 200 lines), or reuses `termux.c` only if a legal review verifies its Apache-2.0 jackpal lineage, and a CodeForge session class takes the place of `TerminalSession` and `HarnessSession`. The environment rules below carry over unchanged. xterm.js keeps the scrollback on screen, and the host keeps a buffer while the view is detached.
+
 
 - `terminal-emulator` JNI (`termux.c`) creates a real PTY; `TerminalSession` (Java) owns the process, scrollback buffer, and resize ioctls.
 - `HarnessSession` builds the environment: relocated prefix, `LD_PRELOAD` (`harness-exec.so` first), `HOME/TMPDIR/PATH/PYTHONHOME/…`, workspace cwd, `bash --noprofile --norc -i` (falls back to `/system/bin/sh` if the sealed bash is unavailable — degraded mode is visible, never silent).
@@ -26,7 +29,7 @@ The terminal backend **is** the existing runtime, per spec §6.4 — not a repla
 
 **Gate (Phase 4, on arm64 device):** input→echo latency p95 ≤ 50 ms both; IME suite (Gboard + hardware kb) zero lost input; 10 MB output flood no UI freeze; memory delta ≤ 80 MB; PlatformView composition jank < 5% frames > 32 ms.
 
-**Decision rule:** if A passes and owner accepts GPLv3 (ADR-0011) → A. If owner wants permissive licensing → B (PTY JNI reused under its Apache-2.0 jackpal lineage, verified by legal review). If A fails perf → B. Recorded with numbers in PHASE_4_REPORT.md.
+**Decision rule:** if A passes and owner accepts GPLv3 (ADR-0011) → A. If owner wants permissive licensing → B (PTY JNI reused under its Apache-2.0 jackpal lineage, verified by legal review). If A fails perf → B. Recorded with numbers in PHASE_4_REPORT.md. **Applied 2026-11-12:** the owner chose a permissive licence (Apache-2.0), so B, xterm.js. The gate's budgets apply to xterm.js when Phase 5 builds it.
 
 ## 3. Flutter-side terminal UX (either frontend)
 
@@ -39,6 +42,6 @@ The terminal backend **is** the existing runtime, per spec §6.4 — not a repla
 ## 4. Lifecycle & resource rules
 
 - Sessions owned by foreground service with notification ("2 terminal sessions running") — user can kill all from notification.
-- Backgrounded app: sessions keep running (service); WebView frontend (if B) may be detached — output buffered in `TerminalSession` scrollback, reattached on resume; native frontend (A) detaches view, session untouched.
+- Backgrounded app: sessions keep running (service); the WebView frontend (B, chosen) may be detached — output is buffered in the host session's buffer and reattached on resume.
 - Memory pressure: inactive session scrollback trimmed to configured rows; frontends destroyed/recreated lazily; **processes are never killed silently** for memory — only scrollback/renderers are reclaimed.
 - Resize: panel/sheet size changes → rows/cols ioctl (A) or `fit` addon (B), debounced 100 ms; rotation tested with `vim`, `htop`, `node` REPL.

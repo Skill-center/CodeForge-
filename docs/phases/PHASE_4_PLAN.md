@@ -1,6 +1,6 @@
 # Phase 4 Implementation Plan — Runtime Integration
 
-**Status:** **Proposed (2026-11-12).** W1 starts on the owner's "next". The vendoring packages (W2 on) start once the licence is decided ([ADR-0011](../adr/0011-license.md), due by this phase's start) and t1 carries that licence.
+**Status:** **Proposed (2026-11-12).** W1 starts on the owner's "next". **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. The vendoring packages (W2 on) start once t1 carries the same licence.
 **Spec reference:** §8 Phase 4 (runtime integration), §2 (reuse existing assets), §6.4–6.5 (the terminal connects to the existing environment; the capability model), §7 (security) · **Architecture:** [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [EXISTING_RUNTIME_AUDIT.md](../EXISTING_RUNTIME_AUDIT.md), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0006](../adr/0006-terminal-frontend.md), [ADR-0007](../adr/0007-min-sdk.md), [ADR-0009](../adr/0009-ci-github-actions.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Source:** `m-cyber12/t1` main @ `7b496c3`, whose tree equals the audited `0e26d7a`
 
 ---
@@ -13,9 +13,15 @@
 3. FULL against NORMAL ([ADR-0008](../adr/0008-persistence.md)) moves to this phase's Firebase Test Lab runs. The owner adds the Firebase project and its CI credential after the next slice.
 4. Flutter 3.50.0, the Android Gradle Plugin and Kotlin's Gradle plugin are upgraded together ("so we upgrade all of them together"): W1.
 
+**Owner decision while planning (2026-11-12): the licence is Apache-2.0.** Asked with this plan (ADR-0011's paths: A GPLv3, B permissive, C source-available), the owner chose path B with Apache-2.0, as recommended. So:
+- ADR-0011 is Accepted, and CodeForge's `LICENSE` (the Apache License 2.0) was added with the decision.
+- By ADR-0006's rule a permissive licence means **xterm.js** (ADR-0006 Accepted). Termux's `terminal-emulator` (with `termux.c` and `TerminalSession`), `terminal-view` and t1's `HarnessSession` are never vendored. Phase 5 builds the PTY and the session: the PTY clean-room (about 200 lines), or `termux.c` only if a legal review verifies its Apache-2.0 jackpal lineage.
+- The terminal-gate package this plan had for path A fell away, so the plan has seven packages.
+- t1 takes the same licence (an owner action) before W2 vendors from it.
+
 **Owner decisions for Phase 4 from 2026-11-11** (PHASE_3_PLAN §0):
-- **Licence** (ADR-0011): decided by Phase 4's start. Until then: no licence file, nothing GPL-derived vendored, no binary release.
-- **Terminal frontend** (ADR-0006): Termux's terminal view if the licence is GPLv3 and the view passes this phase's arm64 gate; otherwise xterm.js.
+- **Licence** (ADR-0011): decided by Phase 4's start. Until then: no licence file, nothing GPL-derived vendored, no binary release. **Decided on 2026-11-12: Apache-2.0** (above).
+- **Terminal frontend** (ADR-0006): Termux's terminal view if the licence is GPLv3 and the view passes this phase's arm64 gate; otherwise xterm.js. **With Apache-2.0: xterm.js** (above).
 - **minSdk** (ADR-0007): stays 26, verified on API 26–28 emulators in this phase. A raise to 29 needs the owner's sign-off.
 - **arm64 hardware** (ADR-0009, amended): Firebase Test Lab's physical phones, for the tests that need no computer attached.
 - **Play Console and upload key** (ADR-0010): prepared in this phase. A personal account created after 13 November 2023 needs a closed test (12 testers, 14 days in a row) before production.
@@ -30,17 +36,17 @@
 3. **Termux's package repository keeps only the latest version of each package** (Termux's own documentation: "we do not keep history of package versions"). t1 pins the bootstrap by SHA-256, but `fetch-core-debs.py` takes whatever versions the repository's index lists at build time ("the bootstrap is pinned, the package set is not"). W2 pins the package set (§3, W2).
 4. **Flutter 3.50 deprecates the framework's Material library.** `package:flutter/material.dart` is a `@Deprecated` library in 3.50.0 ("Use package:material_ui/material_ui.dart instead"), and CI's analysis fails on infos, so W1 migrates (§3, W1). go_router 18.1.3, already in the app, imports `package:material_ui` and recognises only material_ui's `MaterialApp`. The app's `MaterialApp` is the framework's, so go_router builds every page today as a `NoTransitionPage`.
 5. **Firebase Test Lab is deprecated:** Firebase's documentation says it shuts down on **30 September 2027**. Its successor, Google Cloud's Developer Device Platform, requires billing. Until then the free Spark plan allows 10 virtual-device and 5 physical-device test runs a day. Test Lab still serves this phase and probably the next few. What replaces it after September 2027 joins ROADMAP's decision queue.
-6. **Play Feature Delivery's library** (`com.google.android.play:feature-delivery`, used by t1's `PlayPackInstaller`) is published under the Play Core Software Development Kit Terms of Service, not an open-source licence. That matters for a GPLv3 app's Play build (§10, decision 1). This phase does not need it (§2).
+6. **Play Feature Delivery's library** (`com.google.android.play:feature-delivery`, used by t1's `PlayPackInstaller`) is published under the Play Core Software Development Kit Terms of Service, not an open-source licence. It would have mattered for a GPLv3 app's Play build; with Apache-2.0 there is no conflict. This phase does not need it (§2).
 
 ## 1. Objectives
 
 1. Move to Flutter 3.50.0 with AGP, Kotlin's Gradle plugin and Gradle upgraded together, and migrate to `package:material_ui`, which 3.50 requires. Phase 3's evidence is re-established on the new toolchain.
-2. Record the licence decision (ADR-0011), and vendor t1's runtime with its provenance and pinned inputs.
+2. Vendor t1's runtime under the licence the owner chose (Apache-2.0, ADR-0011), with its provenance and pinned inputs.
 3. Install the sealed userland in CodeForge. It installs lazily on the first workspace open, verifies every file while writing it, shows its progress, and audits itself at every start (`ExecAudit` = 0). A warm start takes 100 ms or less. Failures are typed and visible.
 4. Run one-shot commands and probe the tools across a typed boundary to Flutter: node, python, git, bash, perl, ruby and rg versions in the UI, and no orphan process.
 5. Turn the gates green on API 34 and 36 x86_64 emulators, on API 26–28 (ADR-0007) and on a physical arm64 phone in Test Lab (audit gap R2). Measure FULL against NORMAL on that phone (ADR-0008).
 6. Search across files: ripgrep in projects, a scan by the app in folders.
-7. Resolve the terminal frontend by ADR-0006's rule, draft the third-party notices and source offer, and prepare the Play Console.
+7. Draft the third-party notices and source offer, and prepare the Play Console. (The terminal frontend is resolved: xterm.js, by ADR-0006's rule.)
 
 ## 2. MVP 4 definition (ROADMAP)
 
@@ -92,9 +98,9 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 
 **Docs:** TECH_STACK, BUILD_AND_RELEASE §3, `app/README.md`, the changelog.
 
-### W2 — Licence, provenance and the sealed-runtime kernel (1 session; needs ADR-0011 decided and t1 licensed) → G2
+### W2 — Provenance, pins and the sealed-runtime kernel (1 session; needs t1's Apache-2.0 LICENSE) → G2
 
-- **ADR-0011 → Accepted** with the owner's path. ADR-0006's outcome follows: path A sends Termux's view to W7's gate; paths B and C choose xterm.js by the rule. t1 gets its LICENSE (an owner action), and CodeForge vendors from the licensed commit.
+- **The licence is in place:** ADR-0011 was Accepted on 2026-11-12 (Apache-2.0), and CodeForge's `LICENSE` came with the decision. t1 gets the same LICENSE (an owner action), and CodeForge vendors from that commit, keeping t1's attribution in PROVENANCE.
 - **`native/sealed-runtime/`:** a plain Java library (`java-library`, no Android SDK). It holds the 8 kernel classes (`SealedInstaller`, `PayloadExtractor`, `RuntimeManifest`, `SealedLayout`, `ExecAudit`, `ExecutableProbe`, `ExecutableKind`, `SealedUninstaller`) and the 3 JVM test classes (`SealedInstallerTest`, `ExecSealingTest`, `PackPayloadTest`). They are renamed to `dev.codeforge.runtime.sealed` with t1's `export-sealed-runtime.sh` pattern, and the tests are otherwise unchanged. `app/android/settings.gradle.kts` includes the module, and CI runs `:native:sealed-runtime:test`.
 - **`native/PROVENANCE.md`:** the source repository and commit, every file with its SHA-256, its licence, the package renames, and the re-vendor procedure.
 - **`runtime/`:** `build-sealed-payload.py`, `fetch-core-debs.py`, `check-bundle-size.py`, `check-page-alignment.py` and `check-sealed-manifest.sh`, with their unit tests running in CI.
@@ -110,7 +116,7 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 **`native/runtime-core/`:** an Android library in the package `dev.codeforge.runtime.core`.
 - **Vendored:** t1's `HarnessConfig`, `HarnessPaths`, `HarnessEnvironment`, `HarnessCommandRunner`, `HarnessSizeReport`, `Toolchain`, `exec/SealedPayloadInstaller` and `packs/{Pack, PackState, PackResult, PackInstaller, Packs}`. `Packs.isSealedBuild` is true at compile time, and the apt branch is deleted, not switched off.
 - **Left behind:** `HarnessBootstrap`, `provision/*`, `HarnessPackageInstaller`, `AptPackInstaller` and `PackCommands`.
-- **Arrives later:** `HarnessSession` comes only with the terminal (W7 under path A, or Phase 5). `PlayPackInstaller` comes with the build-tools pack.
+- **Not vendored:** `HarnessSession`, which is built on Termux's `TerminalSession`, and with it t1's `api project(":terminal-emulator")`. Phase 5 writes CodeForge's own session on its own PTY. `PlayPackInstaller` comes with the build-tools pack.
 
 **JNI:** `harness-exec.c` (the `LD_PRELOAD` path translator) and `harness-probe.c` (the exec probe), both t1's own. They are built with ndk-build and keep t1's 16 KB page-alignment flags (NDK 28.2 aligns by default anyway); `check-page-alignment.py` checks the APK.
 
@@ -189,20 +195,11 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 - **Budget:** PERFORMANCE has no search budget yet. W6 records the first-result and full-search times on the gate's 10,000-file project and folder, and proposes the budget.
 - **How a folder reaches the runtime** is decided in ADR-0013, with copy costs measured on the gate's folders. The options are (a) running in a copy, a one-way copy into a project, or (b) import and export. Phase 5 builds it with *Run*.
 
-### W7 — The terminal frontend's gate (path A only; 1–2 sessions) → G9
-
-- **Under path A (GPLv3):**
-  - Termux's `terminal-emulator` (with the PTY in `termux.c`), `terminal-view` and `HarnessSession` are vendored.
-  - The view is embedded as a PlatformView.
-  - ADR-0006's gate is measured on the Test Lab phone: input-to-echo p95 50 ms or less, a 10 MB flood without a frozen UI, a memory delta of 80 MB or less, composition jank under 5 %. The IME part goes to the owner's phone session.
-  - If it passes, the native view is chosen; if not, xterm.js.
-- **Under paths B and C:** no gate. ADR-0006 chooses xterm.js by its rule, and Phase 5 writes the PTY clean-room (about 200 lines), or reuses the Apache-2.0 jackpal lineage after a review.
-
-### W8 — Notices, Play preparation, docs and the phase exit (1 session) → G10
+### W7 — Notices, Play preparation, docs and the phase exit (1 session) → G9
 
 **Notices:** THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md are completed.
 - They cover the userland's packages with versions and licences, the Dart and npm dependencies, and the Flutter engine.
-- No binary release happens until ADR-0011 is Accepted and both documents are published (ADR-0010).
+- No binary release happens until both documents are published (ADR-0010; ADR-0011 is Accepted).
 
 **Play Console** (ADR-0010):
 - The owner: the developer account, and Play App Signing with an upload key.
@@ -220,7 +217,7 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 - `RuntimeHost.kt`, `SessionRegistry.kt` and the runtime's Pigeon API.
 - Settings' Runtime page, the status strip's runtime state, and the Search panel.
 - The ported gates in `androidTest/`, a runtime-gates job with five emulator legs, and a Test Lab job.
-- ADR-0011 and ADR-0007 Accepted, ADR-0006 resolved, ADR-0008's phone measurement, and ADR-0013 (how a folder reaches the runtime).
+- ADR-0007 Accepted, ADR-0008's phone measurement, and ADR-0013 (how a folder reaches the runtime). ADR-0011 (Apache-2.0, with CodeForge's `LICENSE`) and ADR-0006 (xterm.js) were decided with this plan.
 - THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md; the Play listing drafts; PHASE_4_REPORT.
 
 ## 5. Acceptance criteria (measurable gates)
@@ -235,8 +232,7 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 | **G6 arm64** | The same tests pass on a physical arm64 phone in Test Lab. FULL against NORMAL is measured there and ADR-0008 updated | Test Lab runs |
 | **G7 minSdk** | The API 26–28 legs pass and ADR-0007 is Accepted at 26, or the owner signs off a raise to 29 | runtime-gates run |
 | **G8 Search** | ripgrep in projects and the scan in folders find the gate's fixtures. Results open at the line and cancelling works. Figures recorded and a budget proposed | widget, integration and gate tests |
-| **G9 Terminal** | ADR-0006 resolved by its rule; under path A, by the arm64 gate | the ADR, Test Lab runs |
-| **G10 Licence and docs** | ADR-0011 Accepted and t1 licensed. Notices and source offer drafted. Docs synced and PHASE_4_REPORT written | the documents |
+| **G9 Licence and docs** | ADR-0011 Accepted (Apache-2.0) with CodeForge's `LICENSE`, and t1 licensed alike. ADR-0006 resolved (xterm.js). Notices and source offer drafted. Docs synced and PHASE_4_REPORT written | the documents |
 
 ## 6. Tests
 
@@ -252,10 +248,10 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
 
 ## 8. Known limitations (planned) and out of scope
 
-- No terminal sessions and no *Run* (Phase 5), no language servers (Phase 6), no Git UI (Phase 7), though git ships in the payload.
+- No terminal sessions and no *Run* (Phase 5: xterm.js, with CodeForge's own PTY and session), no language servers (Phase 6), no Git UI (Phase 7), though git ships in the payload.
 - No build-tools pack: no C or C++ compiling in this phase.
 - No 32-bit ARM build (§2).
-- No binary release: CI artifacts only, until ADR-0011 is Accepted and the notices and source offer are published (ADR-0010).
+- No binary release: CI artifacts only, until the notices and source offer are published (ADR-0010).
 - Folders don't reach the runtime in this phase. W6 decides how, and Phase 5 builds it.
 - npm and pip packages with native addons can't build without the build-tools pack. Phase 5 documents this in the app (SECURITY §2).
 
@@ -263,7 +259,7 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
 
 | Risk | Mitigation |
 |---|---|
-| The licence decision waits, and with it the vendoring | W1 needs no licence. The runtime core is the owner's own code under any path (§0, finding 2) |
+| t1's LICENSE waits, and with it the vendoring | W1 needs none. It is asked for with this plan (§10) |
 | Termux removes a pinned package version | Pins plus a CI cache under the pins' hash; the build fails closed, naming the package; re-pinning is a deliberate commit; a mirror after the licence decision |
 | The payload more than doubles the APK, slowing CI and the gate's installs (W6 once saw a 544.6 s install while adb stalled) | One payload ABI per APK; the install time recorded in the gate; the gate's limits raised only on evidence |
 | AGP 9.3 with a `java-library` and an ndk-build module inside a Flutter project (t1 built on AGP 8.13.2) | W2 and W3 build the modules first in a bootstrap commit, before any app code depends on them |
@@ -271,18 +267,14 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
 | API 26–28 behave differently (audit risk R3) | ADR-0007's rule |
 | Test Lab: 5 physical runs a day, 45 minutes a run, shut down on 2027-09-30 | One run per gate. A successor is decided before September 2027 (ROADMAP's decision queue) |
 | Side effects of the Material migration | Pages kept as `NoTransitionPage`; every changed golden looked at; `byTooltip` matches through semantics |
-| Play Feature Delivery's terms with a GPLv3 app | `PlayPackInstaller` waits for the build-tools pack, and is decided with ADR-0011 |
 | A long first install on low-end phones | Measured in Test Lab; progress in the UI; the editor works during the install |
 | Storage: 360–380 MB installed plus the APK | The Runtime page shows the size; *Reinstall* and uninstall through `SealedUninstaller` |
 
 ## 10. Owner actions and decisions, in order
 
-1. **Now, the licence (ADR-0011).** It was due by this phase's start, and W2 waits for it.
-   - **A. GPLv3:** Termux's terminal view can be used, if it passes W7's gate. The whole app is GPLv3. Its source is already public; GPL licence texts and the userland's source offer are needed. In the Play build, Termux's GPLv3 code would be combined with Google's Play Feature Delivery library, whose terms are not open source. The owner can add a permission for his own code, but not for Termux's authors' code, so a Play build that uses packs needs a careful look.
-   - **B. Permissive (Apache-2.0 or MIT):** xterm.js (MIT) in a WebView, like the editor. The PTY is written clean-room (about 200 lines) or comes from the Apache-2.0 jackpal lineage after a review. No Termux code is vendored. Apache-2.0 adds an explicit patent grant.
-   - **C. Source-available or proprietary:** the same constraints as B, plus a legal review of every vendored file.
-   - **Under every path:** the userland (bash, git, coreutils…) ships as an aggregate and needs its licence texts and a source offer. t1's runtime core can go under the chosen licence, since the owner wrote it.
-2. **After W1, the next slice:**
+1. **Decided on 2026-11-12: Apache-2.0** (ADR-0011's path B), recorded in ADR-0011 and ADR-0006, with CodeForge's `LICENSE`. The userland (bash, git, coreutils…) still ships as an aggregate, with its licence texts and a source offer (W2, W7).
+2. **Now, t1's LICENSE:** the Apache License 2.0 on t1's main. On GitHub: *Add file* → *Create new file*, name it `LICENSE`, *Choose a license template* → *Apache License 2.0*, and commit it to `main`. W2 vendors from that commit.
+3. **After W1, the next slice:**
    - **The exit phone session:** PHASE_3_PHONE_CHECKLIST, on W1's phone profile APK.
    - **Firebase:**
      1. Create a new Firebase project on the no-cost Spark plan, without a billing account.
@@ -291,6 +283,5 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
      4. Store its JSON key as the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id as the repository variable `FIREBASE_PROJECT_ID`.
 
      GitHub's OIDC token through Workload Identity Federation avoids a stored key, at the cost of a few more steps.
-3. **After the licence decision, t1's LICENSE:** the same licence, on t1's main. CodeForge vendors from that commit.
-4. **During this phase, the Play Console:** the developer account and the upload key. The closed test's start is proposed in W8.
+4. **During this phase, the Play Console:** the developer account and the upload key. The closed test's start is proposed in W7.
 5. **Later (ROADMAP's decision queue):** what runs the arm64 tests after Test Lab shuts down on 2027-09-30. The options are the Developer Device Platform (needs billing), the owner's phone sessions, or both.

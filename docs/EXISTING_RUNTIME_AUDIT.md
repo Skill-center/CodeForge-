@@ -101,8 +101,8 @@ Assets are delivered whole by Play (not ABI-split): the upload bundle therefore 
 
 ## 8. Reuse plan summary
 
-**Take:** `sealed-runtime` (whole) · `harness-core` minus apt machinery · PTY JNI + `harness-exec` preload · payload/build/check scripts · CI gate patterns · `pack_buildtools` PFD pattern · store templates · (candidate) terminal modules per ADR-0006.
+**Take:** `sealed-runtime` (whole) · `harness-core` minus apt machinery · PTY JNI + `harness-exec` preload · payload/build/check scripts · CI gate patterns · `pack_buildtools` PFD pattern · store templates · ~~(candidate) terminal modules per ADR-0006~~ (not taken: the licence is Apache-2.0, 2026-11-12).
 **Leave:** `HarnessBootstrap`, `provision/*`, `AptPackInstaller`, standalone `MainActivity`, apt build shape, diagnostics-branch publishing.
 **Port:** `ExecModelTest`, `SealedShellTest` into CodeForge's host; the four sealed invariants (symlinks-not-copies; verify-while-writing; version-resolved deps + DT_NEEDED sonames; explicit interpreter env) are non-negotiable and already JVM-tested.
 
-Integration mechanics: [RUNTIME_INTEGRATION.md](RUNTIME_INTEGRATION.md). Vendor provenance will be recorded in `runtime/PROVENANCE.md` when modules are copied (Phase 4).
+Integration mechanics: [RUNTIME_INTEGRATION.md](RUNTIME_INTEGRATION.md). Vendor provenance will be recorded in `native/PROVENANCE.md` when modules are copied (Phase 4).

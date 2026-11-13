@@ -33,7 +33,7 @@ CodeForge-/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
 │   │   ├── editor_bench/         # benchmark pages (gitignored except README; the phase
 │   │   │                         #   gate builds them for its debug APK and the phone APK)
-│   │   ├── terminal/             # xterm bundle only if ADR-0006 fallback chosen
+│   │   ├── terminal/             # xterm bundle (Phase 5; ADR-0006 chose xterm.js)
 │   │   ├── fonts/                # bundled UI + mono fonts (offline)
 │   │   └── icons/
 │   ├── test/                     # unit + widget tests mirror lib/; support/: scripted
@@ -60,10 +60,9 @@ CodeForge-/
 ├── native/                       # vendored runtime modules (Phase 4, from t1 @ 0e26d7a)
 │   ├── PROVENANCE.md             # source repo, commit, per-module license notes
 │   ├── sealed-runtime/           # whole module (plain Java, JVM tests)
-│   ├── harness-core/             # subset: config/paths/env/session/runner/size +
-│   │                             #   exec adapter + PlayPackInstaller (no apt machinery)
-│   ├── terminal-emulator/        # PTY JNI + harness-exec preload (+ parser if ADR-0006 native)
-│   ├── terminal-view/            # only if ADR-0006 picks native frontend
+│   ├── runtime-core/             # t1's harness-core subset: config/paths/env/runner/size +
+│   │                             #   exec adapter (no apt machinery) + harness-exec/probe JNI;
+│   │                             #   no Termux terminal modules (ADR-0011: Apache-2.0)
 │   └── pack_buildtools/          # Play Feature Delivery module
 │
 ├── runtime/                      # runtime supply chain (Phase 4, from t1 scripts/)
@@ -87,7 +86,7 @@ CodeForge-/
 ├── AGENTS.md                     # agent development rules (spec §12 workflow)
 ├── CONTRIBUTING.md
 ├── README.md
-├── LICENSE                       # pending ADR-0011 owner decision
+├── LICENSE                       # Apache License 2.0 (ADR-0011, 2026-11-12)
 └── THIRD_PARTY_NOTICES.md        # before first binary release (userland obligations)
 ```
 

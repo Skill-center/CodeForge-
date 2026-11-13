@@ -10,7 +10,7 @@ Play forbids post-install executable downloads and caps base modules at 200 MB/d
 - **Google Play (second track):** sealed AAB — arm64-only base ≤ 200 MB/device, `pack_buildtools` as on-demand Play Feature Delivery; internal → closed → production, manual promotion; data-safety: nothing collected.
 - Design for Play constraints **from day one** (no runtime code downloads anywhere, 16 KB alignment, target 36) so the GitHub build never diverges into an unpublishable shape.
 - No F-Droid/apt shape in v1 (dual mechanisms rejected by the port guide); revisit only as a separate product decision.
-- Release blocked until ADR-0011 (license) resolved + THIRD_PARTY_NOTICES + GPL source offer published.
+- Release blocked until ADR-0011 (license) resolved + THIRD_PARTY_NOTICES + GPL source offer published. (ADR-0011 resolved on 2026-11-12: Apache-2.0.)
 
 ## Consequences
 - Users get full toolchain freedom via GitHub immediately; Play users get the same core with store-delivered packs.

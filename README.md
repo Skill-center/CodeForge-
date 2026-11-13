@@ -43,7 +43,7 @@ Key audit corrections: "Seald" → **sealed** build model; the "~50 MB app" → 
 - Sealed execution model only · compileSdk/targetSdk **36** · minSdk **26**, to be verified by the Phase 4 reconciliation gate (owner decision 2026-11-11)
 - Riverpod 3 · GoRouter 18 · Drift (Phase 2+) · CodeMirror 6 primary editor candidate (device gate vs Monaco) — *chosen 2026-11-06 ([ADR-0004](docs/adr/0004-editor-engine.md))*
 - GitHub Actions as the build authority · GitHub Releases first, Play-compatible AAB second
-- License: the owner decides by Phase 4's start (ADR-0011) — release-gating, not development-blocking; the terminal frontend follows it (ADR-0006)
+- License: **Apache-2.0** (owner decision 2026-11-12, ADR-0011), so the terminal frontend is xterm.js (ADR-0006's rule)
 - arm64 device runs on Firebase Test Lab from Phase 4 (ADR-0009) · Play Console prepared at Phase 4 (ADR-0010) · all work stays on the working branch until v1 ([ROADMAP](docs/ROADMAP.md))
 
 ## Repository layout (today)
@@ -85,4 +85,4 @@ No fake features, no unverified claims, no phase skipped. See [AGENTS.md](AGENTS
 
 ## License
 
-Pending (ADR-0011). Original code is cleanly owned; GPLv3 exposure from Termux-derived terminal modules is mapped, with a permissive path available. Bundled userland components will ship with full notices + source offer before any binary release.
+CodeForge is licensed under the [Apache License 2.0](LICENSE) (owner decision 2026-11-12, [ADR-0011](docs/adr/0011-license.md)). Third-party components keep their own licences, and no Termux-derived terminal code is used. The bundled userland's components (bash, git, coreutils and others, some of them GPL) will ship with their licence texts and a source offer before any binary release.

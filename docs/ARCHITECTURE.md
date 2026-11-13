@@ -36,7 +36,7 @@ CodeForge is a **Flutter application with a Kotlin/Java Android host** that embe
 ### 1.1 Process & component model
 
 - **One Android app process** hosts: the Flutter engine, Kotlin host services, and child Linux processes (shell, node, python, git, LSP servers) spawned via the PTY/exec layer. Child processes are **not sandboxed from the app** — same UID. We say so plainly (SECURITY.md); isolation claims are limited to what Android actually provides (app sandbox vs. the rest of the OS, SAF consent for shared storage, WebView renderer isolation).
-- **WebViews are renderers, not authorities.** The editor WebView (CodeMirror 6) and optionally a terminal WebView (xterm.js fallback) load only bundled local assets via `WebViewAssetLoader` (`https://appassets.androidplatform.net/`), with a strict CSP, no network, no file access, and a single validated message bridge. All filesystem/process power lives in Kotlin/Dart services; the bridge enforces an allowlist of operations scoped to the open workspace.
+- **WebViews are renderers, not authorities.** The editor WebView (CodeMirror 6) and, from Phase 5, the terminal WebView (xterm.js, ADR-0006) load only bundled local assets via `WebViewAssetLoader` (`https://appassets.androidplatform.net/`), with a strict CSP, no network, no file access, and a single validated message bridge. All filesystem/process power lives in Kotlin/Dart services; the bridge enforces an allowlist of operations scoped to the open workspace.
 - **LSP servers and tools run as runtime child processes** (node/python from the sealed userland), supervised by the Kotlin host, spoken to over stdio JSON-RPC piped through the platform boundary. Never inside a WebView.
 
 ### 1.2 Communication contracts
@@ -173,7 +173,7 @@ app/android/
 │   ├── WebViewHost.kt           # asset loader, CSP, bridge validation
 │   └── channels/                # Pigeon impls, EventChannel producers
 ├── (Phase 4) vendored modules under native/:
-│   sealed-runtime/  harness-core/ (subset)  terminal-emulator/  [terminal-view/]
+│   sealed-runtime/  runtime-core/ (t1's harness-core subset; no Termux terminal modules, ADR-0011)
 └── pack_buildtools/             # Play Feature Delivery module (Phase 4/10)
 ```
 

@@ -24,7 +24,7 @@ Alternatives evaluated (spec §2 requires this):
 
 1. **Vendor `sealed-runtime` whole** (8 classes + JVM tests). Rename package to `dev.codeforge.runtime.sealed` via t1's `export-sealed-runtime.sh` pattern; tests must pass unchanged. This module has zero Android APIs — it runs in `./gradlew :native:sealed-runtime:test` on any JVM.
 2. **Vendor `harness-core` subset**: `HarnessConfig`, `HarnessPaths`, `HarnessEnvironment`, `HarnessSession`, `HarnessCommandRunner`, `HarnessSizeReport`, `Toolchain`, `exec/SealedPayloadInstaller`, `packs/{Pack,PackState,PackResult,PackInstaller,PlayPackInstaller,Packs}`. **Excluded**: `HarnessBootstrap`, `provision/*`, `AptPackInstaller`, `PackageCommands` — the apt shape does not ship. `Packs.isSealedBuild` becomes compile-time true; the apt branch is deleted, not toggled (no dead code paths that could fetch code at runtime).
-3. **Vendor PTY JNI + preload**: `termux.c`, `harness-exec.c`, `harness-probe.c`, `Android.mk` with the 16 KB linker flags. Terminal parser/view inclusion depends on ADR-0006.
+3. **Vendor the preload**: `harness-exec.c`, `harness-probe.c`, `Android.mk` with the 16 KB linker flags. **Decided 2026-11-12 (ADR-0011, Apache-2.0):** `termux.c` and Termux's parser and view are not vendored; the PTY is CodeForge's own, written in Phase 5 (ADR-0006: xterm.js).
 4. **Vendor `runtime/` scripts** + pins; wire into Gradle exactly as t1 does (generated assets, SHA-256 verification, `extractNativeLibs=true`, `useLegacyPackaging=true`).
 5. **Port the gates**: `ExecModelTest` + `SealedShellTest` become CodeForge instrumentation tests in `app/android/app/src/androidTest/`. They run in CI on x86_64 emulators at API 34/36 **and on arm64 hardware** (Firebase Test Lab, ADR-0009 amendment; closes audit gap R2) before MVP 4 is declared.
 
@@ -44,7 +44,7 @@ RuntimeHost
 ├── audit()               → ExecAudit at every startup; non-zero = degraded mode + report
 ├── environment()         → HarnessEnvironment.create (preload order, prefix vars)
 ├── exec(request)         → one-shot command (HarnessCommandRunner), typed result
-├── session(spec)         → PTY session (HarnessSession), registered in SessionRegistry
+├── session(spec)         → PTY session (CodeForge's own, Phase 5), registered in SessionRegistry
 ├── tools()               → Toolchain discovery: path, version, health per tool
 └── packs()               → PlayPackInstaller (Play) / bundled full variant (GitHub)
 ```

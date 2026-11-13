@@ -42,8 +42,8 @@
 |---|---|---|---|
 | Editor engine | **CodeMirror 6** (chosen: ADR-0004 Accepted 2026-11-06) | @codemirror/view **6.43.15**, state **6.7.6**, commands 6.11.1, language 6.13.1, search 6.7.2, autocomplete 6.20.4, @lezer/highlight 1.2.5, and the language packages for JavaScript 6.2.5, Python 6.2.1, JSON 6.0.2, HTML 6.4.12, CSS 6.3.1 and Markdown 6.5.2 | Mobile-native selection and IME, modular. As built, the shipped page with all of it is 285.1 KiB gzipped (budget 1.5 MB). It was chosen over Monaco on the emulator gate and the owner's low-end phone (PHASE_2_REPORT §7.1) |
 | Editor challenger | Monaco | 0.57.0 | Benchmarked in the Phase 2 gate; upstream states mobile browsers unsupported — uphill battle, evidence required to overturn CM6. As built (W3): an exact-pinned **dev** dependency of `editor/`, used only for the benchmark page (no web workers, in-process fallback); never part of the shipped editor page. Its bundled third-party notices (marked, DOMPurify) ship with the benchmark page |
-| Terminal frontend (fallback) | **@xterm/xterm** | 6.0.0 (+ addon-fit 0.11.0) | Only if ADR-0006 picks WebView route (license-driven or PlatformView perf fails) |
-| Terminal frontend (primary candidate) | vendored **terminal-view** (native) | t1 @ 0e26d7a | Proven touch/IME/selection; via Flutter PlatformView; license gate ADR-0011 |
+| Terminal frontend | **@xterm/xterm** | 6.0.0 (+ addon-fit 0.11.0) | **Chosen 2026-11-12** by ADR-0006's rule: the licence is permissive (Apache-2.0, ADR-0011). Built in Phase 5; versions re-verified then |
+| ~~Terminal frontend (primary candidate)~~ | ~~vendored **terminal-view** (native)~~ | — | **Not used** (2026-11-12): Termux-derived, conservatively GPLv3, which the Apache-2.0 app does not ship (ADR-0011) |
 | JS build | **esbuild** | 0.28.2 | Single-file bundle, deterministic, fast CI; no webpack |
 | JS language | TypeScript | **5.9.3** — as built (exact pin). npm `latest` is the 7.x Go-based rewrite; Phase 2 stayed on 5.9, and moving is a separate upgrade | Type-safe bridge protocol |
 | JS tests | **vitest** + happy-dom | 5.1.0 + 21.0.4 — as built | The page's unit and contract tests (187 at the Phase 2 exit) and the bundle verifier's DOM |
@@ -69,7 +69,7 @@ From t1 @ `0e26d7a` — versions as shipped in the audited sealed payload:
 
 1. **Minimal surface.** Every new dependency needs a one-paragraph justification in the PR (Android/ARM64 compat, license, maintenance, offline behavior, size). Default answer is no.
 2. **Pin everything.** `pubspec.lock` committed; exact npm versions + `npm ci`; Gradle versions catalog; bootstrap/payload SHA-256 pinned (t1 pattern). CI fails on uncommitted lockfile drift.
-3. **License screening at intake.** Allowed: MIT, BSD, Apache-2.0, ISC, MPL-2.0 (file-level). GPL/LGPL only via the vendored-runtime aggregation path with notices, or via explicit ADR-0011 decision for terminal modules. CI runs a license check on pub + npm trees.
+3. **License screening at intake.** Allowed: MIT, BSD, Apache-2.0, ISC, MPL-2.0 (file-level). GPL/LGPL only via the vendored-runtime aggregation path with notices: the app itself is Apache-2.0 since 2026-11-12 (ADR-0011), so no GPL code is linked into it. CI runs a license check on pub + npm trees.
 4. **Offline-first.** No dependency may require network at runtime for core features. Fonts, icons, editor bundles, terminal assets all ship in the APK.
 5. **Upgrade cadence.** Monthly dependency PR (automated diff + CI), never mid-phase unless security-driven. Flutter/AGP upgrades are their own PR with full gate suite.
 6. **Codegen restraint.** Phase 1: no build_runner in the critical path (hand-written immutables). Drift introduces codegen in Phase 2, contained to the data layer. *As built: Drift's code is the only generated code. CI generates it and fails any run whose committed copy differs.*

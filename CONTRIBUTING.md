@@ -9,7 +9,7 @@ Phase 0 (audit & architecture) is complete; the repository contains documentatio
 ## How to contribute right now
 
 - **Review the Phase 0 deliverables** — especially [docs/PHASE_0_REPORT.md](docs/PHASE_0_REPORT.md) and the [ADRs](docs/adr/). Challenge decisions with evidence; that's what ADRs are for.
-- **Owner decisions** are queued in [docs/ROADMAP.md](docs/ROADMAP.md): license direction (ADR-0011), terminal frontend preference (ADR-0006), arm64 device access for CI gates, minSdk reconciliation appetite (ADR-0007).
+- **Owner decisions** are queued in [docs/ROADMAP.md](docs/ROADMAP.md), with those already made: the licence (Apache-2.0, ADR-0011), the terminal frontend (xterm.js, ADR-0006), arm64 runs on Firebase Test Lab (ADR-0009) and minSdk 26 pending its Phase 4 check (ADR-0007).
 - Open issues for risks, corrections, or ideas — tag ideas `backlog` so they don't creep into the active phase.
 
 ## Development setup (from Phase 1)
@@ -49,4 +49,4 @@ Use GitHub private security advisories (enabled from Phase 1). Do not open publi
 
 ## License
 
-Pending owner decision (ADR-0011). Until then, contributions are accepted with the understanding that the project license will be one of the documented paths (GPLv3, Apache-2.0/MIT, or source-available) and that bundled runtime components carry their own OSS licenses with notices + source offer.
+Apache License 2.0 ([LICENSE](LICENSE); owner decision 2026-11-12, ADR-0011). Contributions are accepted under the same licence (its section 5). Bundled runtime components carry their own open-source licences, with notices and a source offer.
