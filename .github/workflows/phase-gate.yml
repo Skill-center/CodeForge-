@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload gate results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: phase-gate-results
           path: app/ci-results/gate/
@@ -220,7 +220,7 @@ jobs:
 
       - name: Upload phone APK
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codeforge-phone-profile-arm64
           path: app/build/gate/codeforge-phone-profile-arm64.apk

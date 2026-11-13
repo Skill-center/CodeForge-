@@ -80,7 +80,7 @@ jobs:
 
       - name: Upload editor results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: editor-results
           path: editor-results/
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload editor page
         if: steps.build.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: editor-page
           path: app/assets/editor/
@@ -553,7 +553,7 @@ jobs:
 
       - name: Upload APK
         if: steps.build.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codeforge-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
@@ -561,7 +561,7 @@ jobs:
 
       - name: Upload coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: app/coverage/lcov.info
