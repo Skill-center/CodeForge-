@@ -15,7 +15,7 @@ Phase 0 (audit & architecture) is complete; the repository contains documentatio
 ## Development setup (from Phase 1)
 
 ```bash
-# Prerequisites: Flutter 3.47.x (see .flutter-version), JDK 17, Android SDK 36.
+# Prerequisites: Flutter 3.50.x (see .flutter-version), JDK 17, Android SDK 36.
 cd app
 flutter pub get
 flutter test                 # unit + widget + goldens

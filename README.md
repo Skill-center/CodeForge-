@@ -68,7 +68,7 @@ README.md · AGENTS.md · CONTRIBUTING.md
 ## Building
 
 ```bash
-# Flutter 3.47.9 (see .flutter-version), JDK 17, Android SDK 36, Node 24 (editor/.nvmrc)
+# Flutter 3.50.0 (see .flutter-version), JDK 17, Android SDK 36, Node 24 (editor/.nvmrc)
 (cd editor && npm ci && npm run build)   # the editor page → app/assets/editor/ (gitignored; the APK needs it)
 cd app
 flutter pub get

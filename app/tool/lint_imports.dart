@@ -5,7 +5,9 @@
 ///  * services/ must not import features/, application/, design_system/.
 ///  * core/ must not import flutter (pure Dart) — except core/version.dart
 ///    is also pure; platform helpers live in core/platform and may use
-///    foundation only. features may import anything above them.
+///    foundation only. That includes the design libraries in their own
+///    packages since Flutter 3.50 (material_ui, cupertino_ui). features may
+///    import anything above them.
 ///  * features/X must not import features/Y except via workbench (the
 ///    workbench is the composition root for panels) and the shared palette.
 ///  * features/ never read `fileServiceProvider`: files are reached through
@@ -87,9 +89,14 @@ void main() {
         violations.add('$rel: services must not depend upward → $target');
       }
       if (rel.startsWith('core/')) {
-        if (target.startsWith('package:flutter/') &&
+        final frameworkLibrary =
+            target.startsWith('package:flutter/') &&
             !target.startsWith('package:flutter/foundation') &&
-            !target.startsWith('package:flutter/animation') &&
+            !target.startsWith('package:flutter/animation');
+        final designLibrary =
+            target.startsWith('package:material_ui/') ||
+            target.startsWith('package:cupertino_ui/');
+        if ((frameworkLibrary || designLibrary) &&
             !rel.startsWith('core/platform/')) {
           violations.add(
             '$rel: core stays pure Dart (foundation/animation ok) → $target',

@@ -11,6 +11,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # The Material widgets (Phase 4 W1). Flutter 3.50 deprecates the framework's
+  # copy (`package:flutter/material.dart`, frozen since 3.44); the Flutter team
+  # develops it in flutter/packages now. Pinned at the version the lockfile
+  # already resolved for go_router (docs/TECH_STACK.md §1).
+  material_ui: 1.10.0
   # State management + DI (ADR-0003). Compile-safe reactive controllers.
   flutter_riverpod: 3.4.3
   # Declarative routing with deep links + restoration (ADR-0003).

@@ -131,9 +131,9 @@ jobs:
       # file only as a pubspec (environment: flutter:) or an FVM file: given
       # .flutter-version it found no version and installed the latest
       # stable. That was the pinned 3.47.9 until Flutter 3.50.0 reached the
-      # stable channel, whose minimum Android Gradle Plugin is above ours:
-      # debug builds failed on the runners that got it (2026-11-11). The
-      # file is read here and passed as the version, and the next step
+      # stable channel, whose minimum Android Gradle Plugin was above ours
+      # then: debug builds failed on the runners that got it (2026-11-11).
+      # The file is read here and passed as the version, and the next step
       # fails if another Flutter was installed.
       - name: Read the Flutter pin
         id: flutter_pin
@@ -211,9 +211,18 @@ jobs:
           tail -40 ci-results/codegen-bootstrap.txt
           exit "$status"
 
+      # Flutter 3.50 deprecates the framework's Material library (Phase 4
+      # W1). The migrate_design_widgets fix moves imports of
+      # package:flutter/material.dart to package:material_ui/material_ui.dart
+      # (the app declares material_ui itself, pinned, so the fix adds no
+      # dependency). The plain passes apply every other fix and sort the
+      # moved imports: dart fix organizes a file's imports only in a pass that
+      # has no other fix for that file, hence two.
       - name: Bootstrap — dart fix + format
         if: contains(github.event.head_commit.message, '[bootstrap]')
         run: |
+          dart fix --apply --code=migrate_design_widgets
+          dart fix --apply
           dart fix --apply
           dart format .
 

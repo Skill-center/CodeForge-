@@ -1,8 +1,9 @@
 /// Dependency license gate (docs/SECURITY.md §7, ADR-0011).
 ///
 /// Scans the resolved pub cache for every package in pubspec.lock and fails
-/// on strong-copyleft licenses (GPL/AGPL/SSPL) that would conflict with a
-/// future proprietary release. Permissive + weak-copyleft (MIT, BSD, Apache,
+/// on strong-copyleft licenses (GPL/AGPL/SSPL): pub packages are linked into
+/// the app, which is Apache-2.0 with no GPL code in it (ADR-0011, Accepted
+/// 2026-11-12). Permissive + weak-copyleft (MIT, BSD, Apache,
 /// ISC, MPL, OFL) pass. Unknown licenses are listed for human review and
 /// fail the gate until allowlisted here with a justification.
 ///

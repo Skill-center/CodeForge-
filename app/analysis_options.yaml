@@ -25,6 +25,10 @@ linter:
     - cancel_subscriptions
     - close_sinks
     - directives_ordering
+    # Flutter 3.50 deprecates package:flutter/material.dart and cupertino.dart:
+    # design widgets come from package:material_ui (Phase 4 W1). CI's
+    # bootstrap applies this lint's fix (dart fix --code=migrate_design_widgets).
+    - migrate_design_widgets
     - omit_local_variable_types
     - prefer_const_constructors
     - prefer_const_declarations

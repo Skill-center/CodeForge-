@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "dev.codeforge.app"
-    // Flutter 3.47.9 resolves compileSdk=36, targetSdk=36, ndk=28.2.13676358.
+    // Flutter 3.50.0 resolves compileSdk=36, targetSdk=36, ndk=28.2.13676358.
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

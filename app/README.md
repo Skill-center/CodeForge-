@@ -7,16 +7,16 @@ is the Flutter package; repository-level docs live in `../docs/`.
 
 | Tool | Version | Source of truth |
 |---|---|---|
-| Flutter | 3.47.9 | `../.flutter-version` |
+| Flutter | 3.50.0 | `../.flutter-version` |
 | Dart | ships with Flutter | — |
 | JDK | Temurin 17 | CI `setup-java` |
-| Gradle | 9.3.1 | `android/gradle/wrapper/gradle-wrapper.properties` |
-| AGP | 9.1.0 | `android/settings.gradle.kts` |
-| Kotlin | 2.4.0 | `android/settings.gradle.kts` |
+| Gradle | 9.5.0 | `android/gradle/wrapper/gradle-wrapper.properties` |
+| AGP | 9.3.1 | `android/settings.gradle.kts` |
+| Kotlin | 2.4.20 | `android/settings.gradle.kts` |
 
 `android.builtInKotlin=false` is set deliberately: the Flutter Gradle plugin
 applies the classic Kotlin Android plugin itself (verified against the
-3.47.9 template sources). Do not add `kotlin-android` to the app plugins
+3.47.9 template sources; 3.50.0's template sets the same flags). Do not add `kotlin-android` to the app plugins
 block.
 
 ## Layout
