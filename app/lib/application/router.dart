@@ -44,7 +44,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'appearance',
-            pageBuilder: (context, state) => _page(state, const AppearanceScreen()),
+            pageBuilder: (context, state) =>
+                _page(state, const AppearanceScreen()),
           ),
           GoRoute(
             path: 'about',
@@ -53,20 +54,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (kDebugMode)
             GoRoute(
               path: 'gallery',
-              pageBuilder: (context, state) => _page(state, const DevGalleryScreen()),
+              pageBuilder: (context, state) =>
+                  _page(state, const DevGalleryScreen()),
             ),
           if (!kReleaseMode) ...[
             GoRoute(
               path: 'editor-benchmark',
-              pageBuilder: (context, state) => _page(state, const EditorBenchmarkScreen()),
+              pageBuilder: (context, state) =>
+                  _page(state, const EditorBenchmarkScreen()),
             ),
             GoRoute(
               path: 'frame-timing',
-              pageBuilder: (context, state) => _page(state, const FrameTimingScreen()),
+              pageBuilder: (context, state) =>
+                  _page(state, const FrameTimingScreen()),
             ),
             GoRoute(
               path: 'logs',
-              pageBuilder: (context, state) => _page(state, const LogViewerScreen()),
+              pageBuilder: (context, state) =>
+                  _page(state, const LogViewerScreen()),
             ),
           ],
         ],

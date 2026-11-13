@@ -18,9 +18,9 @@ import 'package:codeforge/features/settings/appearance_screen.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/features/workbench/panels/find_bar.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/memory_file_service.dart';
 import 'test_harness.dart';

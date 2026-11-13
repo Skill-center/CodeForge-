@@ -8,8 +8,8 @@ import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/features/settings/privacy_section.dart';
 import 'package:codeforge/services/platform/backup_channel.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/fake_backup_service.dart';
 import 'test_harness.dart';

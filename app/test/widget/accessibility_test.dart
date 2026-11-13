@@ -23,9 +23,9 @@ import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:codeforge/services/storage/session_store.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';

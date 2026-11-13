@@ -12,10 +12,10 @@ import 'package:codeforge/application/editor/find_controller.dart';
 import 'package:codeforge/design_system/components/buttons.dart';
 import 'package:codeforge/features/workbench/workbench_screen.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'test_harness.dart';
 

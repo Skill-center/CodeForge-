@@ -2,7 +2,7 @@
 /// (docs/UI_DESIGN_SYSTEM.md §2). Both fonts are bundled; nothing is fetched.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'colors.dart';
 

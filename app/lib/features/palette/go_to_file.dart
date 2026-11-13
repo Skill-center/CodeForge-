@@ -4,9 +4,9 @@
 /// palette. Hidden files follow the explorer's setting.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../application/file_index.dart';
 import '../../application/settings_controller.dart';

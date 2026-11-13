@@ -1,7 +1,7 @@
 /// Dialogs of the workbench's editing flows (editor_actions.dart).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/editor/line_target.dart';
 import '../../design_system/components/dialogs.dart';

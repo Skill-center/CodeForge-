@@ -1,7 +1,7 @@
 /// Dialogs of the workbench's file flows (features/workbench/file_actions.dart).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/files/workspace_path.dart';
 import '../../design_system/components/dialogs.dart';

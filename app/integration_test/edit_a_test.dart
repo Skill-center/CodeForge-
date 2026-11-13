@@ -15,10 +15,10 @@ import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
 import 'package:codeforge/services/storage/session_store.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'smoke_test.dart' show pumpRealApp, pumpUntil;

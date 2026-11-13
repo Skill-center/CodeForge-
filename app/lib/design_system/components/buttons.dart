@@ -1,7 +1,7 @@
 /// Buttons: primary (ember), tonal, ghost. All ≥48 dp touch targets.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';

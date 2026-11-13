@@ -13,9 +13,9 @@ import 'package:codeforge/features/settings/developer/frame_timing_screen.dart';
 import 'package:codeforge/services/perf/frame_stats.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/fake_bench_surface.dart';
 import 'test_harness.dart';

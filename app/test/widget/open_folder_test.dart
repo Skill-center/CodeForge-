@@ -7,8 +7,8 @@ library;
 
 import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/fake_storage_broker.dart';
 import 'test_harness.dart';

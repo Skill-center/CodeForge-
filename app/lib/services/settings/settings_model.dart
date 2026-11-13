@@ -1,7 +1,7 @@
 /// Persisted user settings (schema v1).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Which symbol-toolbar preset the workbench shows.
 enum ToolbarPreset { standard, compact, none }

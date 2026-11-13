@@ -6,8 +6,8 @@ library;
 import 'dart:math' as math;
 
 import 'package:codeforge/design_system/tokens/colors.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 double _channel(double c) {
   return c <= 0.04045

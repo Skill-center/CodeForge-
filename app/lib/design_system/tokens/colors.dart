@@ -5,7 +5,7 @@
 /// on every text/surface pair listed there.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Semantic color set for one brightness.
 @immutable

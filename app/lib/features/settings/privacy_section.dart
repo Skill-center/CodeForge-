@@ -2,8 +2,8 @@
 /// choice, off by default, with what it copies, where, and on what terms.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../application/backup_controller.dart';
 import '../../design_system/components/settings_tiles.dart';

@@ -3,7 +3,7 @@
 /// a reconnected folder replaces an entry.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../core/files/workspace_location.dart';
 import '../../design_system/components/dialogs.dart';

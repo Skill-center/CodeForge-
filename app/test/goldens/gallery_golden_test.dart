@@ -6,8 +6,8 @@ library;
 
 import 'package:codeforge/design_system/theme/theme.dart';
 import 'package:codeforge/features/settings/dev_gallery_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../widget/test_harness.dart';
 

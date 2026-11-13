@@ -12,11 +12,11 @@ import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
 import 'package:codeforge/design_system/tokens/icons.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'edit_a_test.dart' show editGateCursor, editGateText;

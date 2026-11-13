@@ -2,7 +2,7 @@
 /// Phase 2 W4 (features/workbench/panels/explorer_panel.dart).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/file_glyphs.dart';

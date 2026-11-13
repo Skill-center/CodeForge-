@@ -2,8 +2,8 @@
 /// mechanics. The xterm.js + runtime bridge lands in Phases 4–5.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../application/providers.dart';
 import '../../../design_system/tokens/colors.dart';

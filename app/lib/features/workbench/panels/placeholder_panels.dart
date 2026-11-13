@@ -4,7 +4,7 @@
 /// by the owner's decision of 2026-11-11).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/icons.dart';

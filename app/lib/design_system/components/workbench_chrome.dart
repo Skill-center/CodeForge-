@@ -2,7 +2,7 @@
 /// symbol toolbar. These are the signature Forge surfaces.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';

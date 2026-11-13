@@ -8,10 +8,10 @@ import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/features/workbench/panels/editor_surface_view.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/fake_editor_surface.dart';
 import 'test_harness.dart';

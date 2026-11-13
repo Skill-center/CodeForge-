@@ -9,8 +9,8 @@ import 'package:codeforge/application/logs.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/logging/logger.dart';
 import 'package:codeforge/features/settings/about_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/fake_storage_broker.dart';
 import 'test_harness.dart';

@@ -1,7 +1,7 @@
 /// Dialog components: an alert dialog that fits beside the soft keyboard.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../tokens/geometry.dart';
 

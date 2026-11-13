@@ -14,9 +14,9 @@ import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/features/workbench/editor_dialogs.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../widget/test_harness.dart';
 

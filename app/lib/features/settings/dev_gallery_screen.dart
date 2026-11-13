@@ -2,7 +2,7 @@
 /// Also the surface golden tests render (gate G3).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';

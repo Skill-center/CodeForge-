@@ -20,11 +20,11 @@ import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:codeforge/services/storage/session_store.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Riverpod 3 exports Override from misc.dart, not the main library.
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../support/fake_backup_service.dart';
 import '../support/fake_bench_surface.dart';

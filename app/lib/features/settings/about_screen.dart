@@ -1,10 +1,10 @@
 /// About page: version, license notices for bundled fonts, log viewer.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../application/logs.dart';
 import '../../application/providers.dart';

@@ -1,7 +1,7 @@
 /// ThemeData builders for the Forge design system.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';

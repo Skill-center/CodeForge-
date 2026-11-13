@@ -1,7 +1,7 @@
 /// Feedback components: banner, empty state, status chip.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../tokens/colors.dart';
 import '../tokens/geometry.dart';

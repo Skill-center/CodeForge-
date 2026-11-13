@@ -38,10 +38,10 @@ import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:codeforge/services/storage/drift_session_store.dart';
 import 'package:codeforge/services/storage/session_store.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'folder_fixture.dart';
