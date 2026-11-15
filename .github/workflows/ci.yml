@@ -909,8 +909,10 @@ jobs:
           exit $fail
 
   # Firebase Test Lab connection check (Phase 4, before W5's runtime gates).
-  # Runs only for a pushed commit whose message has [testlab], after the
-  # quality job: one Robo crawl of that run's debug APK (it carries
+  # Runs only for a pushed commit whose subject line (the message's first
+  # line) has [testlab], after the quality job; the tag in the body alone
+  # starts the job but stops it at its first step, so that a message which
+  # mentions the tag can't spend a test by accident. Then it runs one Robo crawl of that run's debug APK (it carries
   # arm64-v8a) on one physical arm64 phone, picked by
   # app/tool/ci/testlab_device.py. On the Spark plan that costs 1 of the 5
   # free physical-device tests a day. Needs the repository secret
@@ -934,10 +936,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Is Test Lab connected?
+      - name: Asked for in the subject line, and connected?
+        id: asked
         env:
           KEY_SET: ${{ secrets.FIREBASE_TEST_LAB_KEY != '' }}
+          MESSAGE: ${{ github.event.head_commit.message }}
         run: |
+          subject=$(printf '%s\n' "$MESSAGE" | head -n 1)
+          case "$subject" in
+            *"[testlab]"*) echo "asked=true" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "The tag is in the message's body, not its subject line: no check, no test used."
+              echo "asked=false" >> "$GITHUB_OUTPUT"
+              exit 0 ;;
+          esac
           rm -rf "$RESULTS" && mkdir -p "$RESULTS"
           missing=""
           [ -n "$PROJECT" ] || missing="$missing the variable FIREBASE_PROJECT_ID,"
@@ -950,22 +962,26 @@ jobs:
           python3 app/tool/ci/testlab_device.py --self-test
 
       - name: Download the debug APK
+        if: steps.asked.outputs.asked == 'true'
         uses: actions/download-artifact@v8
         with:
           name: codeforge-debug-apk
           path: testlab-apk
 
       - name: Authenticate to Google Cloud
+        if: steps.asked.outputs.asked == 'true'
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_TEST_LAB_KEY }}
 
       - uses: google-github-actions/setup-gcloud@v3
+        if: steps.asked.outputs.asked == 'true'
 
       # Listing the devices costs no quota, and fails first when the key,
       # its role or the two APIs are not right.
       - name: Pick a physical arm64 phone
         id: device
+        if: steps.asked.outputs.asked == 'true'
         run: |
           gcloud --quiet config set project "$PROJECT"
           status=0
@@ -983,6 +999,7 @@ jobs:
 
       - name: Robo crawl on the phone
         id: robo
+        if: steps.asked.outputs.asked == 'true'
         env:
           DEVICE: ${{ steps.device.outputs.device }}
         run: |
@@ -1019,7 +1036,7 @@ jobs:
       # the committed evidence names it $FIREBASE_PROJECT_ID; the job's log
       # keeps the console link.
       - name: Commit the check back
-        if: always()
+        if: always() && steps.asked.outputs.asked == 'true'
         run: |
           mkdir -p "$RESULTS"
           if [ -n "$PROJECT" ]; then

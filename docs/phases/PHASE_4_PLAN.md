@@ -357,7 +357,7 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
         - **Corrected on 2026-11-15:** Firebase's IAM reference requires Editor for tests that use Test Lab's default results bucket. The narrower pair this plan first named, *Firebase Test Lab Admin* and *Firebase Analytics Viewer*, works only with a bucket of one's own, and that needs billing.
         - The project holds nothing else and has no billing account, which bounds what the key can do.
      4. Store its JSON key as the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id as the repository variable `FIREBASE_PROJECT_ID`.
-     5. A commit tagged `[testlab]` checks the connection: CI's `testlab` job runs one Robo crawl on a physical arm64 phone (BUILD_AND_RELEASE §4).
+     5. A commit with `[testlab]` in its subject line checks the connection: CI's `testlab` job runs one Robo crawl on a physical arm64 phone (BUILD_AND_RELEASE §4).
 
      GitHub's OIDC token through Workload Identity Federation avoids a stored key, at the cost of a few more steps.
    - **The owner's phone** is usually available for manual tests (the owner, 2026-11-15): the phone sessions, and G6's fallback if Test Lab cannot run.

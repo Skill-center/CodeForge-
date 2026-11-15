@@ -5,7 +5,7 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 ## [Unreleased]
 
 ### Added — Firebase Test Lab connection check (2026-11-15)
-- The owner created CodeForge's Firebase project, on the no-cost plan. A commit tagged `[testlab]` now runs a crawl of the app on a real arm64 phone in Test Lab, picked for spare capacity and the newest supported Android version. It proves the CI connection before W5's runtime gates rely on it.
+- The owner created CodeForge's Firebase project, on the no-cost plan. A commit with `[testlab]` in its subject line now runs a crawl of the app on a real arm64 phone in Test Lab, picked for spare capacity and the newest supported Android version. It proves the CI connection before W5's runtime gates rely on it.
 - **Correction:** the service account needs the Editor role. Firebase requires it for tests that keep their results in Test Lab's own bucket, which is the only option without billing. The narrower pair of roles named before works only with a bucket of one's own.
 
 ### Added — Phase 4 W2, provenance, pins and the sealed-runtime kernel (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
