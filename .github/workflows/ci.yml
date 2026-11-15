@@ -907,3 +907,128 @@ jobs:
           done
           echo "payload (informative until W3): ${{ steps.payload.outcome }}"
           exit $fail
+
+  # Firebase Test Lab connection check (Phase 4, before W5's runtime gates).
+  # Runs only for a pushed commit whose message has [testlab], after the
+  # quality job: one Robo crawl of that run's debug APK (it carries
+  # arm64-v8a) on one physical arm64 phone, picked by
+  # app/tool/ci/testlab_device.py. On the Spark plan that costs 1 of the 5
+  # free physical-device tests a day. Needs the repository secret
+  # FIREBASE_TEST_LAB_KEY (a service account's JSON key; the account needs
+  # the Editor role, which Test Lab's default results bucket requires) and
+  # the repository variable FIREBASE_PROJECT_ID (BUILD_AND_RELEASE §4).
+  # The evidence goes to app/ci-results/testlab/, committed back.
+  testlab:
+    name: Firebase Test Lab check (physical arm64 phone)
+    needs: quality-and-build
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[testlab]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+      RESULTS: app/ci-results/testlab
+      # Never wait on a prompt: a missing API fails with gcloud's message.
+      CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Is Test Lab connected?
+        env:
+          KEY_SET: ${{ secrets.FIREBASE_TEST_LAB_KEY != '' }}
+        run: |
+          rm -rf "$RESULTS" && mkdir -p "$RESULTS"
+          missing=""
+          [ -n "$PROJECT" ] || missing="$missing the variable FIREBASE_PROJECT_ID,"
+          [ "$KEY_SET" = true ] || missing="$missing the secret FIREBASE_TEST_LAB_KEY,"
+          if [ -n "$missing" ]; then
+            echo "not connected: missing${missing%,}" > "$RESULTS/check.txt"
+            echo "::error title=Test Lab is not connected::Missing${missing%,} (repository Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          python3 app/tool/ci/testlab_device.py --self-test
+
+      - name: Download the debug APK
+        uses: actions/download-artifact@v8
+        with:
+          name: codeforge-debug-apk
+          path: testlab-apk
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_TEST_LAB_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      # Listing the devices costs no quota, and fails first when the key,
+      # its role or the two APIs are not right.
+      - name: Pick a physical arm64 phone
+        id: device
+        run: |
+          gcloud --quiet config set project "$PROJECT"
+          status=0
+          gcloud firebase test android models list --format=json \
+            > "$RUNNER_TEMP/models.json" 2> "$RUNNER_TEMP/models.log" || status=$?
+          if [ "$status" -ne 0 ]; then
+            { echo "models list: exit $status"; tail -n 20 "$RUNNER_TEMP/models.log"; } \
+              | tee "$RESULTS/check.txt"
+            exit "$status"
+          fi
+          device=$(python3 app/tool/ci/testlab_device.py "$RUNNER_TEMP/models.json" --list 5 \
+            2> "$RESULTS/device.txt") || { cat "$RESULTS/device.txt"; exit 1; }
+          cat "$RESULTS/device.txt"
+          echo "device=$device" >> "$GITHUB_OUTPUT"
+
+      - name: Robo crawl on the phone
+        id: robo
+        env:
+          DEVICE: ${{ steps.device.outputs.device }}
+        run: |
+          status=0
+          gcloud firebase test android run --type robo \
+            --app testlab-apk/app-debug.apk --device "$DEVICE" \
+            --timeout 3m --results-history-name codeforge-check \
+            --format=json > "$RUNNER_TEMP/robo.json" 2> "$RUNNER_TEMP/robo.log" || status=$?
+          case "$status" in
+            0) meaning="every test execution passed" ;;
+            1) meaning="a general failure (a file, the network, or a permission)" ;;
+            10) meaning="the test did not pass" ;;
+            15) meaning="Test Lab could not decide pass or fail" ;;
+            18) meaning="the device and version are not supported together" ;;
+            19) meaning="the test matrix was cancelled" ;;
+            20) meaning="a Test Lab infrastructure error" ;;
+            *) meaning="see the log" ;;
+          esac
+          {
+            echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ) run=${{ github.run_id }} sha=${GITHUB_SHA:0:7}"
+            echo "app=testlab-apk/app-debug.apk bytes=$(stat -c %s testlab-apk/app-debug.apk)"
+            echo "device=$DEVICE"
+            echo "gcloud_exit=$status ($meaning)"
+            echo "--- outcome"
+            cat "$RUNNER_TEMP/robo.json"
+            echo "--- gcloud's log (last 40 lines)"
+            tail -n 40 "$RUNNER_TEMP/robo.log"
+          } > "$RESULTS/check.txt"
+          cat "$RESULTS/check.txt"
+          echo "testlab: gcloud_exit=$status ($meaning) on $DEVICE" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      # The project id is not a credential, but the repository is public, so
+      # the committed evidence names it $FIREBASE_PROJECT_ID; the job's log
+      # keeps the console link.
+      - name: Commit the check back
+        if: always()
+        run: |
+          mkdir -p "$RESULTS"
+          if [ -n "$PROJECT" ]; then
+            find "$RESULTS" -type f -name '*.txt' -exec sed -i "s/$PROJECT/\$FIREBASE_PROJECT_ID/g" {} +
+          fi
+          git config user.name "codeforge-ci"
+          git config user.email "ci@codeforge.invalid"
+          git add -A -- "$RESULTS"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ci): Test Lab check [skip ci]"
+            bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
+          fi

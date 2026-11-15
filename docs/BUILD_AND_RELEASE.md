@@ -117,6 +117,16 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 ## 4. Device testing
 
 - **Emulators (CI-owned):** x86_64 API 34 & 36 — correctness gates (t1-proven).
+- **Connecting Test Lab** (since 2026-11-15; the owner's Firebase project, on the no-cost Spark plan):
+  - **The credential:** a service account with the **Editor** role. Its JSON key goes in the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id in the repository variable `FIREBASE_PROJECT_ID`.
+    - Firebase requires Editor for tests that use Test Lab's default results bucket (its IAM reference). The narrower pair, *Firebase Test Lab Admin* and *Firebase Analytics Viewer*, works only with a bucket of one's own, and that needs billing.
+    - The project holds nothing else and has no billing account, which bounds what the key can do.
+  - **Storage on Spark:** since 2026-02-03 a Spark project can't use its own Cloud Storage buckets. Test Lab's default results bucket, however, lives in a project Test Lab owns (the Tool Results API's `initializeSettings`), so runs should keep working without billing. The jobs never pass `--results-bucket`, and the first check confirms the rest.
+  - **The check** is `ci.yml`'s `testlab` job, run by a pushed commit tagged `[testlab]`:
+    - It runs one Robo crawl of that run's debug APK on a physical arm64 phone. `tool/ci/testlab_device.py` chooses the phone: the most spare capacity first, then the newest Android version from API 26 to 36, then a Pixel.
+    - It commits `ci-results/testlab/` back, with the project id replaced by `$FIREBASE_PROJECT_ID`.
+    - Listing the devices costs nothing. The crawl uses 1 of the Spark plan's 5 physical-device tests a day.
+    - W5's runtime gates build on it.
 - **arm64 hardware:** required for Phase 4 exit (sealed-on-arm64 gap R2), perf budgets, IME matrix, release sign-off. **Owner decision 2026-11-11 (ADR-0009 amendment):** Firebase Test Lab's physical devices run the tests that need no computer attached (the runtime's instrumentation tests, the in-app benchmark) from a CI job (`gcloud firebase test android run`), with one CI credential the owner adds by Phase 4. The host-driven checks (the folder picker, the key injector, `adb`-timed measurements) stay on the emulator, and the owner's phone sessions cover the rest: those produce a **manual-checklist artifact**, and the phase report records device + build hash + operator — never a silent skip. *(Superseded plan: a self-hosted GitHub Actions runner on a machine with the device attached, labeled `arm64-device`. GitHub advises against self-hosted runners on public repositories.)*
 
 ## 5. Versioning & artifacts

@@ -347,15 +347,19 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
 ## 10. Owner actions and decisions, in order
 
 1. **Decided on 2026-11-12: Apache-2.0** (ADR-0011's path B), recorded in ADR-0011 and ADR-0006, with CodeForge's `LICENSE`. The userland (bash, git, coreutils…) still ships as an aggregate, with its licence texts and a source offer (W2, W7).
-2. **Now, t1's LICENSE:** the Apache License 2.0 on t1's main. On GitHub: *Add file* → *Create new file*, name it `LICENSE`, *Choose a license template* → *Apache License 2.0*, and commit it to `main`. W2 vendors from that commit.
+2. **Done on 2026-11-13** (t1's main `d9789a2`, which W2 vendors from). **t1's LICENSE:** the Apache License 2.0 on t1's main. On GitHub: *Add file* → *Create new file*, name it `LICENSE`, *Choose a license template* → *Apache License 2.0*, and commit it to `main`. W2 vendors from that commit.
 3. **After W1, the next slice:**
    - **The exit phone session:** PHASE_3_PHONE_CHECKLIST, on W1's phone profile APK.
    - **Firebase:**
-     1. Create a new Firebase project on the no-cost Spark plan, without a billing account.
+     1. Create a new Firebase project on the no-cost Spark plan, without a billing account. **Done** (reported on 2026-11-15).
      2. In its Google Cloud console, enable the Cloud Testing API and the Cloud Tool Results API.
-     3. Create a service account with the roles *Firebase Test Lab Admin* (`roles/cloudtestservice.testAdmin`) and *Firebase Analytics Viewer* (`roles/firebase.analyticsViewer`).
+     3. Create a service account with the **Editor** role (`roles/editor`).
+        - **Corrected on 2026-11-15:** Firebase's IAM reference requires Editor for tests that use Test Lab's default results bucket. The narrower pair this plan first named, *Firebase Test Lab Admin* and *Firebase Analytics Viewer*, works only with a bucket of one's own, and that needs billing.
+        - The project holds nothing else and has no billing account, which bounds what the key can do.
      4. Store its JSON key as the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id as the repository variable `FIREBASE_PROJECT_ID`.
+     5. A commit tagged `[testlab]` checks the connection: CI's `testlab` job runs one Robo crawl on a physical arm64 phone (BUILD_AND_RELEASE §4).
 
      GitHub's OIDC token through Workload Identity Federation avoids a stored key, at the cost of a few more steps.
+   - **The owner's phone** is usually available for manual tests (the owner, 2026-11-15): the phone sessions, and G6's fallback if Test Lab cannot run.
 4. **During this phase, the Play Console:** the developer account and the upload key. The closed test's start is proposed in W7.
 5. **Later (ROADMAP's decision queue):** what runs the arm64 tests after Test Lab shuts down on 2027-09-30. The options are the Developer Device Platform (needs billing), the owner's phone sessions, or both.
