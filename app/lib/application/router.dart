@@ -17,6 +17,7 @@ import '../features/settings/dev_gallery_screen.dart';
 import '../features/settings/developer/editor_benchmark_screen.dart';
 import '../features/settings/developer/frame_timing_screen.dart';
 import '../features/settings/developer/log_viewer_screen.dart';
+import '../features/settings/runtime_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/workbench/workbench_screen.dart';
 import 'shell_controller.dart';
@@ -50,6 +51,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'about',
             pageBuilder: (context, state) => _page(state, const AboutScreen()),
+          ),
+          GoRoute(
+            path: 'runtime',
+            pageBuilder: (context, state) =>
+                _page(state, const RuntimeScreen()),
           ),
           if (kDebugMode)
             GoRoute(

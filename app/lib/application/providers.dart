@@ -19,6 +19,8 @@ import '../services/files/saf_file_service.dart';
 import '../services/files/storage_broker.dart';
 import '../services/platform/app_directories.dart';
 import '../services/platform/backup_channel.dart';
+import '../services/runtime/native/pigeon_runtime_service.dart';
+import '../services/runtime/runtime_service.dart';
 import '../services/settings/settings_store.dart';
 import '../services/shell/shell_state.dart';
 import '../services/storage/app_database.dart';
@@ -122,8 +124,14 @@ final terminalServiceProvider = Provider<TerminalService>((ref) {
   return FakeTerminalService();
 });
 
+/// The sealed runtime, through the Kotlin runtime host (Phase 4 W3,
+/// docs/RUNTIME_INTEGRATION.md §3). Without a host (`flutter test`) every
+/// call fails as unsupported; tests override this with a fake.
 final runtimeServiceProvider = Provider<RuntimeService>((ref) {
-  return FakeRuntimeService();
+  ref.keepAlive();
+  final service = PigeonRuntimeService();
+  ref.onDispose(() => unawaited(service.dispose()));
+  return service;
 });
 
 final gitServiceProvider = Provider<GitService>((ref) {

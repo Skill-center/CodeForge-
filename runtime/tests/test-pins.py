@@ -287,6 +287,42 @@ class PinsTest(unittest.TestCase):
         self.assertIn("size must be a positive integer", problems)
         self.assertIn("bootstrap.files must pin exactly aarch64, x86_64", problems)
 
+    # -------------------------------------------------------------------- info
+
+    def test_info_describes_the_payload_for_the_app(self):
+        self.resolve()
+        out = os.path.join(self.work, "assets", "runtime-info-x86_64.json")
+        code, _, err = run_pins("--pins", self.pins_path, "info", "--arch", "x86_64",
+                                "--out", out)
+        self.assertEqual(code, 0, err)
+        with open(out, encoding="utf-8") as handle:
+            described = json.load(handle)
+        self.assertEqual(described["abi"], "x86_64")
+        self.assertEqual(described["schema"], 1)
+        self.assertTrue(described["resolvedAt"].endswith("Z"))
+        # The bootstrap's bash, libbaz and libold, and the pinned app, tool,
+        # libfoo, libc++ and shell (libold is pinned over the bootstrap's).
+        self.assertEqual(described["packages"], 8)
+        self.assertEqual(described["core"], [{"package": "app", "version": "2.0"},
+                                             {"package": "tool", "version": "0.5"}])
+
+    def test_info_refuses_unresolved_pins(self):
+        out = os.path.join(self.work, "runtime-info.json")
+        code, _, err = run_pins("--pins", self.pins_path, "info", "--arch", "aarch64",
+                                "--out", out)
+        self.assertEqual(code, 1)
+        self.assertIn("do not pass", err)
+        self.assertFalse(os.path.exists(out))
+
+    def test_the_committed_pins_describe_both_payloads(self):
+        pins = pins_tool.read_pins(pins_tool.DEFAULT_PINS)
+        for arch, abi in (("aarch64", "arm64-v8a"), ("x86_64", "x86_64")):
+            described = pins_tool.info(pins, arch)
+            self.assertEqual(described["abi"], abi)
+            self.assertEqual(described["bootstrap"], "2026.02.12-r1+apt.android-7")
+            self.assertEqual([entry["package"] for entry in described["core"]],
+                             pins["requested"])
+
     # ---------------------------------------------------------- committed pins
 
     def test_the_committed_pins_pass_the_check(self):

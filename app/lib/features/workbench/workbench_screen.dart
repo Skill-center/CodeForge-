@@ -17,6 +17,7 @@ import '../../application/documents/document_controller.dart';
 import '../../application/editor/editor_providers.dart';
 import '../../application/editor/find_controller.dart';
 import '../../application/file_watch_controller.dart';
+import '../../application/runtime_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../application/workbench_intents.dart';
 import '../../application/workspace_controller.dart';
@@ -30,6 +31,7 @@ import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
 import '../../design_system/tokens/icons.dart';
 import '../../services/contracts.dart';
+import '../../services/runtime/runtime_service.dart';
 import '../../services/shell/shell_state.dart';
 import '../palette/command_palette.dart';
 import 'editor_actions.dart';
@@ -87,6 +89,9 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(shellControllerProvider.notifier).setLastRoute('/workspace');
       _ensureWorkspace();
+      // The runtime installs lazily, when a workspace opens (Phase 4 W3):
+      // off the UI thread, while the editor works on the files.
+      unawaited(ref.read(runtimeControllerProvider.notifier).ensureStarted());
     });
   }
 
@@ -643,15 +648,76 @@ class _StatusStripRow extends ConsumerWidget {
             ),
           ),
         ),
-        CfStatusChip(
-          icon: CfIcons.circle,
-          label: 'no runtime',
-          color: colors.textDisabled,
-          tooltip: 'Runtime installs in Phase 4',
-        ),
+        const _RuntimeChip(),
       ],
     );
   }
+}
+
+/// The runtime's state in the status strip (Phase 4 W3).
+class _RuntimeChip extends ConsumerWidget {
+  const _RuntimeChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = CfColors.of(context);
+    final status = ref.watch(runtimeControllerProvider);
+    final (label, color, tooltip) = runtimeChipFor(status, colors);
+    return CfStatusChip(
+      key: const ValueKey('status_runtime'),
+      icon: CfIcons.circle,
+      label: label,
+      color: color,
+      tooltip: tooltip,
+    );
+  }
+}
+
+/// The status strip's runtime chip: its label, color and tooltip.
+(String, Color, String) runtimeChipFor(RuntimeStatus status, CfColors colors) {
+  return switch (status.state) {
+    RuntimeState.unknown => ('runtime', colors.textDisabled, 'Runtime'),
+    RuntimeState.unavailable => (
+      'no runtime',
+      colors.textDisabled,
+      'This build carries no runtime for this device',
+    ),
+    RuntimeState.notInstalled || RuntimeState.installed => (
+      'runtime',
+      colors.textDisabled,
+      'The runtime starts when a workspace opens',
+    ),
+    RuntimeState.checking => (
+      'runtime…',
+      colors.textSecondary,
+      'Starting the runtime',
+    ),
+    RuntimeState.installing => (
+      switch (status.progress) {
+        final progress? => 'installing ${(progress * 100).floor()}%',
+        null => 'installing',
+      },
+      colors.info,
+      'Installing the runtime: ${status.done} of ${status.total} files',
+    ),
+    RuntimeState.ready => (
+      'runtime',
+      colors.success,
+      status.auditing
+          ? 'Runtime ready; checking that every program comes from the app'
+          : 'Runtime ready',
+    ),
+    RuntimeState.degraded => (
+      'runtime',
+      colors.warning,
+      'Runtime degraded: see Settings → Runtime',
+    ),
+    RuntimeState.failed => (
+      'runtime failed',
+      colors.danger,
+      'The runtime did not install: see Settings → Runtime',
+    ),
+  };
 }
 
 class _ActivityBody extends StatelessWidget {

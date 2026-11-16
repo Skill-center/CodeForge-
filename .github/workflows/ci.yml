@@ -206,7 +206,8 @@ jobs:
               && dart run drift_dev make-migrations \
               && dart run drift_dev schema generate drift_schemas/app/ \
                 test/drift/app/generated/ \
-              && dart run pigeon --input pigeons/storage_api.dart
+              && dart run pigeon --input pigeons/storage_api.dart \
+              && dart run pigeon --input pigeons/runtime_api.dart
           } > ci-results/codegen-bootstrap.txt 2>&1 || status=$?
           tail -40 ci-results/codegen-bootstrap.txt
           exit "$status"
@@ -298,6 +299,7 @@ jobs:
               && dart run drift_dev schema generate drift_schemas/app/ \
                 test/drift/app/generated/ \
               && dart run pigeon --input pigeons/storage_api.dart \
+              && dart run pigeon --input pigeons/runtime_api.dart \
               && dart format $(find lib -name '*.g.dart' -o -name '*.steps.dart') \
                 test/drift/app/generated
           } > ci-results/codegen.txt 2>&1 || status=$?
@@ -538,12 +540,24 @@ jobs:
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/sealed-digest.txt"
           echo "::warning title=Sealed runtime tests failed::$(cat "$RUNNER_TEMP/sealed-digest.txt")"
 
+      # The runtime's pinned files (Phase 4 W3), for the release build below:
+      # a build that targets one ABI carries that ABI's sealed payload, built
+      # from runtime/pins.json by native/runtime-core/build.gradle.kts. The
+      # runtime job keeps them under the pins' hash; without them the build
+      # fetches the pinned files itself, verified, and fails closed.
+      - name: Restore the runtime's pinned files
+        uses: actions/cache/restore@v6
+        with:
+          path: runtime/generated/cache
+          key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
+
       # The release build (Phase 4 W1): AOT-compiled Dart, R8 and the release
       # lint, none of which the debug build runs. Flutter 3.50.0's first gate
       # found both failing while every debug check passed: Dart 3.14.0's AOT
       # compiler crashed on one function (dart-lang/sdk#64917), and AGP
       # 9.3.1's lint crashed on JDK 17 (fixed in 9.3.2). One ABI, the
-      # emulator's, keeps it short; the phase gate builds the others.
+      # emulator's, keeps it short; the phase gate builds the others. Since
+      # Phase 4 W3 it carries the x86_64 runtime payload, the shipped shape.
       - name: Build release APK (x86_64)
         id: release_build
         continue-on-error: true
@@ -570,6 +584,34 @@ jobs:
           } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/release-digest.txt"
           echo "::warning title=Release build failed::$(cat "$RUNNER_TEMP/release-digest.txt")"
+
+      # What the APKs carry of the runtime (Phase 4 W3, G3;
+      # tool/ci/check_runtime_apk.py, which first shows itself catching each
+      # kind of drift): the release APK holds the x86_64 payload whole, the
+      # preload and the probe, one ABI, its native libraries compressed (so
+      # Android extracts them); the debug APK, built for two ABIs, holds no
+      # payload. The 16 KB page alignment of every native library is
+      # reported (runtime/check-page-alignment.py), and required of the
+      # libraries this repository builds.
+      - name: Runtime in the APKs
+        id: runtime_apk
+        if: steps.release_build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          status=0
+          {
+            python3 tool/ci/check_runtime_apk.py --self-test || status=1
+            python3 tool/ci/check_runtime_apk.py build/app/outputs/flutter-apk/app-release.apk \
+              --abi x86_64 || status=1
+            python3 tool/ci/check_runtime_apk.py build/app/outputs/flutter-apk/app-debug.apk \
+              --no-payload || status=1
+            python3 ../runtime/check-page-alignment.py build/app/outputs/flutter-apk/app-release.apk \
+              --report ci-results/page-alignment.txt --require-compliant || status=1
+          } > ci-results/runtime-apk.txt 2>&1
+          cat ci-results/runtime-apk.txt
+          grep -E '^runtime_apk_check=|^page alignment:' ci-results/runtime-apk.txt \
+            >> "$GITHUB_STEP_SUMMARY" || true
+          exit "$status"
 
       - name: Coverage summary
         if: always()
@@ -648,7 +690,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests sealed_runtime_tests release_build; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests sealed_runtime_tests release_build runtime_apk; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -663,6 +705,7 @@ jobs:
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
               sealed_runtime_tests) outcome="${{ steps.sealed_runtime_tests.outcome }}" ;;
               release_build) outcome="${{ steps.release_build.outcome }}" ;;
+              runtime_apk) outcome="${{ steps.runtime_apk.outcome }}" ;;
             esac
             echo "$gate: $outcome"
             [ "$outcome" = "success" ] || fail=1

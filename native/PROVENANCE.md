@@ -1,6 +1,6 @@
 # Provenance of the vendored runtime
 
-CodeForge vendors t1's sealed runtime: its kernel (`native/sealed-runtime/`) and its payload scripts (`runtime/`). This file is the record AGENTS.md requires: where every vendored file came from, the one change made to it, its licence, and how to re-vendor. CI runs `python3 runtime/provenance.py check` on every push, and the check fails if a file differs from this record.
+CodeForge vendors t1's sealed runtime: its kernel (`native/sealed-runtime/`), its payload scripts (`runtime/`), and its Android adapter and preload (`native/runtime-core/`). This file is the record AGENTS.md requires: where every vendored file came from, the one change made to it, its licence, and how to re-vendor. CI runs `python3 runtime/provenance.py check` on every push, and the check fails if a file differs from this record.
 
 ## Source
 
@@ -8,28 +8,37 @@ CodeForge vendors t1's sealed runtime: its kernel (`native/sealed-runtime/`) and
 - **Commit:** `d9789a26e441f5e1a1f2489eb88d7138d76c59ac` (`main`, 2026-11-13, "Add Apache License 2.0 to the project"). Its tree is the audited commit `0e26d7a` (docs/EXISTING_RUNTIME_AUDIT.md, merged to `main` by PR #229 as `7b496c3`) plus the LICENSE file.
 - **Licence:** Apache-2.0. t1's `LICENSE` (SHA-256 `c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`) is the Apache License 2.0 text; it differs from CodeForge's `LICENSE` only by a trailing blank line. t1 has no NOTICE file, and the vendored files carry no licence headers or attribution notices that would have to be kept.
 - **Copyright:** t1's owner (m-cyber12), who also owns CodeForge.
-- **Vendored:** 2026-11-13, Phase 4 W2.
+- **Vendored:** 2026-11-13, Phase 4 W2 (the kernel and the scripts); 2026-11-16, Phase 4 W3 (the runtime core).
 
 ## What was vendored, and what was not
 
-**Vendored (18 files):**
-- the sealed-runtime kernel, 8 classes and 3 JUnit test classes (t1's `sealed-runtime/`), into `native/sealed-runtime/`, with the package renamed;
-- the payload scripts and their tests (t1's `scripts/`), into `runtime/`, byte for byte.
+**Vendored (23 files):**
+- the sealed-runtime kernel, 8 classes and 3 JUnit test classes (t1's `sealed-runtime/`), into `native/sealed-runtime/`, with the package renamed (W2);
+- the payload scripts and their tests (t1's `scripts/`), into `runtime/`, byte for byte (W2);
+- the runtime core's Android adapter, `HarnessConfig`, `HarnessPaths` and `exec/SealedPayloadInstaller` (t1's `harness-core/`), into `native/runtime-core/`, with the packages renamed (W3);
+- the preload's two C files, `harness-exec.c` (the `LD_PRELOAD` path translator) and `harness-probe.c` (the exec probe), into `native/runtime-core/src/main/jni/`, byte for byte (W3). They sit in t1's `terminal-emulator/src/main/jni/`, but they are t1's own: its owner wrote them in t1 (commits `4f5b846` and `e80508b`), after the Termux copy of `4c3ed31` that brought `termux.c`.
 
 **Not vendored, by decision:**
 - **Termux-derived code** (`terminal-emulator`, `terminal-view`, `termux.c` and t1's `HarnessSession`). It is never vendored: CodeForge is Apache-2.0 (ADR-0011) and its terminal is xterm.js (ADR-0006). Phase 5 writes the PTY clean-room, or reuses `termux.c` only after a legal review confirms its Apache-2.0 jackpal lineage.
 - **The apt machinery** (`HarnessBootstrap`, `provision/*`, `AptPackInstaller`, `PackageCommands`). The apt shape does not ship (RUNTIME_INTEGRATION §5).
 - **Play Feature Delivery** (`feature-delivery`, `pack_buildtools`). It falls under the Play Core SDK's terms, and nothing needs it before the build-tools pack (PHASE_4_PLAN §2).
 - **`scripts/export-sealed-runtime.sh`.** It made the copy (below); the tree does not need it.
+- **What would have to be edited to compile** (W3). A vendored file is never edited here (below), so a t1 file that needs a change to work without what is left behind is not vendored; CodeForge writes its own code instead, or t1 changes first:
+  - `HarnessSizeReport` attributes sizes to the apt install tiers (`provision.PackageTier`). The runtime host counts the installed size itself (`SealedRuntime.kt`, unique inodes, as t1's report does).
+  - `packs/*` (`Pack`, `PackState`, `PackResult`, `PackInstaller`, `Packs`): `Pack` names an apt tier, the others need `Pack`, and `Packs` chooses between the apt installer and Play's. Nothing installs a pack before the build-tools pack, which brings the port with `PlayPackInstaller`, without an apt branch to delete.
+  - t1's `Android.mk` builds `libtermux` from `termux.c`. CodeForge's own `Android.mk` builds `harness-exec.c` alone, with t1's flags.
+- **The adapter's install path.** `SealedPayloadInstaller.install` takes no progress listener. The runtime host calls t1's kernel (`SealedInstaller`) itself, as `SealedPayloadInstaller`'s own comment says a host should, and uses the adapter's asset names and ABI choice.
 
 **Still to come:**
-- W3 adds the Android adapter (t1's `SealedPayloadInstaller`), the preload (`harness-exec.c`, `harness-probe.c` and `Android.mk`) and the runtime-core subset (`HarnessCommandRunner`, `HarnessEnvironment`, `Toolchain` and the rest).
-- W5 adds t1's `ExecModelTest` and `SealedShellTest`.
+- W4: `HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain`, with the commands that use them. `HarnessEnvironment.prepare` calls `HarnessBootstrap` and writes the apt configuration, so W4 decides between a change in t1 and CodeForge's own environment.
+- W5: t1's `ExecModelTest` and `SealedShellTest`.
 - Each joins this record when it is vendored.
 
 ## The one change: the package
 
-The Java package `io.mcyber12.sealed` became `dev.codeforge.runtime.sealed`. t1's own script made the change:
+Every vendored Java file differs from t1 in its package and nowhere else. The kernel's files have the change `package`; the runtime core's, the change `rename`.
+
+**The kernel (`package`).** The Java package `io.mcyber12.sealed` became `dev.codeforge.runtime.sealed`. t1's own script made the change:
 
 ```bash
 scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java --package dev.codeforge.runtime.sealed
@@ -37,7 +46,10 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 
 - **What the script changes:** it rewrites the `package` line (`sed "s/^package io\.mcyber12\.sealed;/package dev.codeforge.runtime.sealed;/"`) and nothing else, in the classes and in the tests. Nothing else in the files names the package.
 - **The tests:** t1's tests are changed only in that line (gate G2). `provenance.py check` proves it for every file: undoing the rename gives t1's SHA-256 exactly.
+**The runtime core (`rename`).** t1's two packages are renamed on the `package` and `import` lines, and nowhere else: `io.mcyber12.codingharness.core` becomes `dev.codeforge.runtime.core`, and `io.mcyber12.sealed` becomes `dev.codeforge.runtime.sealed`. t1 has no export script for `harness-core`, so `provenance.py copy` makes the copy. It refuses a file that names a t1 package anywhere else (a comment, a fully qualified name), since the rename would not reach it, and `check` requires that no `io.mcyber12` is left.
+
 - **The licence notice:** this statement of the change is the notice Apache-2.0 §4(b) asks for. Whether the renamed files should also carry a notice inside them is on W7's licence review list.
+- **The runtime core's tests:** t1's `harness-core` tests (`HarnessEnvironmentTest`, `PackCommandsTest`) test the apt shape and `HarnessEnvironment`, which were not vendored, so none of them applies to the three classes. The runtime host's JVM tests and its instrumented tests cover them (`app/android/app/src/test/` and `src/androidTest/`, `runtime` packages), and W5 brings t1's on-device gates.
 
 **The module's build script.** `native/sealed-runtime/build.gradle.kts` is t1's `sealed-runtime/build.gradle` translated to the Kotlin DSL, with the same settings (Java 17, JUnit 4.13.2), and it states `useJUnit()`.
 
@@ -46,6 +58,11 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 <!-- vendored:begin -->
 | CodeForge file | t1 file | Change | t1 SHA-256 | CodeForge SHA-256 |
 |---|---|---|---|---|
+| `native/runtime-core/src/main/java/dev/codeforge/runtime/core/HarnessConfig.java` | `harness-core/src/main/java/io/mcyber12/codingharness/core/HarnessConfig.java` | rename | `9811730f51f0269025a54dc20d002c7165af35e763a147154f921b0d92cbd8f6` | `c4377a47a0888b3711b10fe739bd27bb872c2ff29e819be4762231ab9323e10b` |
+| `native/runtime-core/src/main/java/dev/codeforge/runtime/core/HarnessPaths.java` | `harness-core/src/main/java/io/mcyber12/codingharness/core/HarnessPaths.java` | rename | `0e5a7f37aec11dfb59e142e10d3e80826bd2dee0265c5863bd242b7f30bf232f` | `25247998fcfa2fa86b76672085dfb8bb62c964a22a2954e5d8ecd5dd4444feaf` |
+| `native/runtime-core/src/main/java/dev/codeforge/runtime/core/exec/SealedPayloadInstaller.java` | `harness-core/src/main/java/io/mcyber12/codingharness/core/exec/SealedPayloadInstaller.java` | rename | `76c9569740dc1e53be078c731301d0948a8286f56eb20e5cb864d88921297802` | `5ee0a984061f98225c5d24f600d70bf9bbd7f42b79be18511c907a45bb53280e` |
+| `native/runtime-core/src/main/jni/harness-exec.c` | `terminal-emulator/src/main/jni/harness-exec.c` | none | `bcee745627dd11514e36420b75b738d034df97059a4e6b47b12e2bce02ea5ee8` | `bcee745627dd11514e36420b75b738d034df97059a4e6b47b12e2bce02ea5ee8` |
+| `native/runtime-core/src/main/jni/harness-probe.c` | `terminal-emulator/src/main/jni/harness-probe.c` | none | `8b880c1c145a64fa582c74f4d74f3b9af5ea587ad32fbe7371fc3dd85ab5bcd4` | `8b880c1c145a64fa582c74f4d74f3b9af5ea587ad32fbe7371fc3dd85ab5bcd4` |
 | `native/sealed-runtime/src/main/java/dev/codeforge/runtime/sealed/ExecAudit.java` | `sealed-runtime/src/main/java/io/mcyber12/sealed/ExecAudit.java` | package | `89e71ccc768c4653b40868d741796b76bd0481a5be4ff46b5a91ee886d03483a` | `eba69c580ce62e0743bf388886b9b4dbac11675d257b507bd4b0a068f0a5cac4` |
 | `native/sealed-runtime/src/main/java/dev/codeforge/runtime/sealed/ExecutableKind.java` | `sealed-runtime/src/main/java/io/mcyber12/sealed/ExecutableKind.java` | package | `8f36d332d3e454b990478b0e4b51ebf53d9022304b6a81a39974af8dc7093a3f` | `4a3e45d99d1e87c169e0a47dd2a92290c3a50eeb6c6a652f5f7dfa0f8a5b2e9e` |
 | `native/sealed-runtime/src/main/java/dev/codeforge/runtime/sealed/ExecutableProbe.java` | `sealed-runtime/src/main/java/io/mcyber12/sealed/ExecutableProbe.java` | package | `a070e1779401dcc0533596bd729b2922afef6fd52dee019d49563a53a9290018` | `b1923519bbb9ca4220d7faa84be34b1cc848c0e22fc88a1454017eea74d49abb` |
@@ -72,12 +89,15 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | CodeForge file | What it is |
 |---|---|
 | `native/PROVENANCE.md` | this record |
+| `native/runtime-core/build.gradle.kts` | the runtime core's build script (W3): the ABIs, ndk-build for the preload, the exec probe's compile task, and the payload task that builds one ABI's sealed payload from the pins |
+| `native/runtime-core/src/main/AndroidManifest.xml` | the runtime core's manifest, empty: the app decides how native libraries are packaged |
+| `native/runtime-core/src/main/jni/Android.mk` | ndk-build for `harness-exec.c` with t1's 16 KB flags; t1's own also builds `termux.c`, this one never does (ADR-0011) |
 | `native/sealed-runtime/build.gradle.kts` | the module's build script: t1's, in the Kotlin DSL |
 | `runtime/README.md` | how the supply chain fits together, and its commands |
 | `runtime/pins.json` | the pins: the bootstrap, the core set, and every resolved package with its SHA-256 |
-| `runtime/pins.py` | `check`, `fetch` (fails closed), `bootstrap`, `resolve` (re-pin) |
+| `runtime/pins.py` | `check`, `fetch` (fails closed), `bootstrap`, `resolve` (re-pin), `info` (what a payload holds, for the app) |
 | `runtime/notices.py` | drafts THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md from the pinned packages' licence files |
-| `runtime/provenance.py` | checks this record; `record` rewrites its hashes |
+| `runtime/provenance.py` | checks this record; `copy` writes the vendored files from t1 with their change; `record` rewrites the hashes |
 | `runtime/tests/fixtures.py` | synthetic Termux repositories for CodeForge's tests |
 | `runtime/tests/test-pins.py` | pins.py's tests, the fail-closed cases among them |
 | `runtime/tests/test-notices.py` | notices.py's tests |
@@ -88,10 +108,10 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 ## Re-vendoring
 
 1. **Choose the commit.** Pick the t1 commit and check that its LICENSE is still Apache-2.0. Read what changed in the vendored paths: `git diff <old>..<new> -- sealed-runtime scripts`.
-2. **Copy the files.** In a t1 checkout at that commit, run `scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java --package dev.codeforge.runtime.sealed`, then copy the listed scripts into `runtime/`.
+2. **Copy the files.** Run `python3 runtime/provenance.py copy --t1 <t1 checkout>`: it writes every listed file from t1 with its recorded change and t1's file mode, and refuses a checkout at another commit. (The kernel's copy is the same bytes t1's `scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java --package dev.codeforge.runtime.sealed` writes.)
 3. **Update the record.** Change the Commit line above. Add a row with `-` hashes for each new file, and remove the rows of files t1 dropped.
 4. **Record the hashes.** Run `python3 runtime/provenance.py record --t1 <t1 checkout>`. It refuses a checkout at another commit, and any file that is not t1's with the recorded change.
-5. **Test.** Run `python3 runtime/provenance.py check`, the script tests and `./gradlew :native:sealed-runtime:test` (from `app/android`). CI runs all three.
+5. **Test.** Run `python3 runtime/provenance.py check`, the script tests, `./gradlew :native:sealed-runtime:test` and `./gradlew :app:testDebugUnitTest` (from `app/android`), and the emulator gate's runtime group. CI runs them all.
 6. **Commit** it as one change ("vendor t1 <sha>"), and say what t1 changed.
 
 **Vendored files are never edited here.** A fix goes to t1 first, as an upstreamable patch, and is then re-vendored. A need that is CodeForge's own goes into a separate CodeForge file (REPOSITORY_STRUCTURE's boundary rule 3).

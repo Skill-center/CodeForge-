@@ -11,7 +11,13 @@ library's, and the build type's, as AGP merged them for the APK):
     Backup kept on (allowBackup), decided per user by CodeForgeBackupAgent
     (backupAgent, fullBackupOnly), with the rules files of Android 11 and
     lower (fullBackupContent) and of Android 12 and later
-    (dataExtractionRules).
+    (dataExtractionRules);
+  * keeps the native libraries inside the APK (extractNativeLibs="false").
+    The sealed runtime's executables ship as JNI libraries that Android must
+    extract into the native library directory, the one place an app
+    targeting API 29+ may execve() from (Phase 4 W3, invariant 1 of
+    docs/RUNTIME_INTEGRATION.md §2). The build packages them the legacy way
+    (useLegacyPackaging); without the attribute Android extracts too.
 
 Usage:
   check_manifest.py <build dir> [variant]   finds the merged manifest of
@@ -108,6 +114,11 @@ def check(xml_text):
             findings.append(f'{name} is {found.get(name)!r}, ADR-0012 says {value!r}')
     for name in sorted(set(found) - set(EXPECTED_BACKUP)):
         findings.append(f'{name}="{found[name]}" is not in ADR-0012')
+    extract = application.get(ANDROID + 'extractNativeLibs')
+    checked.append(f'extractNativeLibs: {extract if extract is not None else "absent (extracted)"}')
+    if extract not in (None, 'true'):
+        findings.append(f'extractNativeLibs="{extract}": the runtime\'s executables would '
+                        'stay inside the APK, where nothing can execve() them')
     return findings, checked
 
 
@@ -148,6 +159,7 @@ BAD = {
     'no backup agent': GOOD.replace(f'android:backupAgent="{APP_ID}.CodeForgeBackupAgent"', ''),
     'the old rules only': GOOD.replace('android:dataExtractionRules="@xml/data_extraction_rules"', ''),
     'an extra backup attribute': GOOD.replace('<application ', '<application android:backupInForeground="true" '),
+    'native libraries kept in the APK': GOOD.replace('<application ', '<application android:extractNativeLibs="false" '),
 }
 
 

@@ -4,6 +4,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// The ABIs this build targets (app/android/build.gradle.kts, Phase 4 W3).
+@Suppress("UNCHECKED_CAST")
+val codeforgeAbis = rootProject.extra["codeforgeAbis"] as List<String>
+
 android {
     namespace = "dev.codeforge.app"
     // Flutter 3.50.0 resolves compileSdk=36, targetSdk=36, ndk=28.2.13676358.
@@ -23,6 +27,41 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // CodeForge ships arm64-v8a and x86_64, nothing 32-bit (Phase 4 W3,
+        // PHASE_4_PLAN §2), and a build only the ABIs it targets: Flutter's plugin
+        // set all three of its own when it was applied, and a library's native
+        // code would otherwise bring an ABI the engine was not built for.
+        ndk {
+            abiFilters.clear()
+            abiFilters.addAll(codeforgeAbis)
+        }
+        // The runtime's instrumented tests (src/androidTest; the gate's runtime
+        // group runs them on the emulator).
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    packaging {
+        jniLibs {
+            // The runtime's executables ship as JNI libraries (lib*.so). Packaged
+            // the legacy way they are compressed in the APK, and Android extracts
+            // them at install as real files in nativeLibraryDir, the one place an
+            // app targeting API 29+ may execve() from: invariant 1 of
+            // docs/RUNTIME_INTEGRATION.md §2. The merged manifest's
+            // android:extractNativeLibs follows (tool/ci/check_manifest.py).
+            useLegacyPackaging = true
+            // The exec probe is an executable, not a library: never stripped.
+            keepDebugSymbols += "**/libharnessprobe.so"
+        }
+    }
+
+    androidResources {
+        // The runtime's userland zip is compressed already.
+        noCompress += "zip"
+    }
+
+    // An APK with the runtime is about 170 MB: give an emulator time to install it.
+    installation {
+        timeOutInMs = 10 * 60 * 1000
     }
 
     buildTypes {
@@ -46,7 +85,18 @@ flutter {
 }
 
 dependencies {
+    // The runtime core (Phase 4 W3): t1's adapter, the preload and the payload,
+    // with the kernel (:native:sealed-runtime) behind it.
+    implementation(project(":native:runtime-core"))
+
     // JVM unit tests of the host's own logic (src/test): the backup policy
-    // and its rules files since Phase 3 W1. CI runs :app:testDebugUnitTest.
+    // and its rules files since Phase 3 W1, the runtime host since Phase 4 W3.
+    // CI runs :app:testDebugUnitTest.
     testImplementation("junit:junit:4.13.2")
+
+    // The runtime's instrumented tests (src/androidTest), on a device.
+    androidTestImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }

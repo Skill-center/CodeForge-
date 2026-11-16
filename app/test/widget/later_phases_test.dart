@@ -1,6 +1,7 @@
 /// What the app says is still to come (Phase 3 W7): Settings' *Coming in
 /// later phases* and the workbench's placeholder panels name ROADMAP's
-/// phases, and nothing Phase 3 built is listed as coming.
+/// phases, and nothing built already (Phase 3's folders, Phase 4's
+/// runtime) is listed as coming.
 library;
 
 import 'package:codeforge/design_system/components/feedback.dart';
@@ -26,10 +27,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('COMING IN LATER PHASES'), findsOneWidget);
-    expect(find.text('Phase 4 — install and health'), findsOneWidget);
     expect(find.text('Phase 8 — curated catalog'), findsOneWidget);
     expect(find.text('Storage & folders'), findsNothing);
     expect(find.textContaining('Phase 3'), findsNothing);
+    // The runtime arrived in Phase 4 W3: its own section, no longer coming.
+    expect(find.text('Phase 4 — install and health'), findsNothing);
+    expect(find.text('RUNTIME'), findsOneWidget);
   });
 
   const panels = <(String, Widget, String)>[

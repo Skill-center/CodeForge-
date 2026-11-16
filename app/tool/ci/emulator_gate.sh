@@ -48,6 +48,13 @@
 #                                  vs Monaco; information for ADR-0004), from
 #                                  editor_bench_<engine>.txt + the DevTools
 #                                  driver's editor_bench_cdp.json|.txt
+#   runtime.txt / runtime_*.txt    Phase 4 W3 G3: the sealed runtime. The
+#                                  instrumented tests' output and their
+#                                  report (first install, warm start, a
+#                                  flipped byte, the audit, sizes on the
+#                                  device), and the pair through the app
+#                                  (runtime_a|b.txt: the install from opening
+#                                  a workspace, the warm start after a kill)
 set -uo pipefail
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
@@ -80,6 +87,13 @@ EMU_LOG="${RUNNER_TEMP:-/tmp}/codeforge-emulator.log"
 EMU_PID=""
 fail=0
 ACCEL="tcg"
+
+# Phase 4 W3: a build that targets one ABI carries that ABI's sealed runtime,
+# about 200 MB (app/android/build.gradle.kts). The groups before the runtime
+# group test the editor and the files, and build without it: installs stay
+# quick, and no install of 14,000 files runs under their measurements. The
+# runtime group sets it back (below).
+export ORG_GRADLE_PROJECT_codeforgePayload=none
 
 # Always leave a verdict + logcat tail, including on early exits.
 finish() {
@@ -201,6 +215,10 @@ export ANDROID_AVD_HOME="${ANDROID_AVD_HOME:-$HOME/.android/avd}"
 mkdir -p "$ANDROID_AVD_HOME"
 echo no | "$AVDMANAGER" create avd -n gate -k "$SYSTEM_IMAGE" -d pixel_6 \
   --force > "$RESULTS/avd.txt" 2>&1 || { tail -30 "$RESULTS/avd.txt"; exit 1; }
+# Room for the runtime group (Phase 4 W3): its APK with the payload, the
+# executables Android extracts from it, and up to three installs of the
+# runtime at once (about 300 MB each).
+printf 'disk.dataPartition.size=8G\n' >> "$ANDROID_AVD_HOME/gate.avd/config.ini"
 "$ADB" start-server >/dev/null 2>&1 || true
 # shellcheck disable=SC2086 # ACCEL_ARGS is intentionally word-split.
 "$EMU_BIN" -avd gate -no-window -gpu swiftshader_indirect -no-snapshot \
@@ -1387,6 +1405,105 @@ cat "$RESULTS/measure.txt" >> "$RESULTS/attempts.txt"
 "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
 "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
 [ "$measure_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Runtime (Phase 4 W3, G3: the first install, the warm start, a flipped byte, the exec audit, sizes)"
+# The sealed runtime, in builds that carry the x86_64 payload (every group
+# above ran without one). Two parts, each a complete proof on its own:
+#   * the instrumented tests (android/app/src/androidTest/kotlin/dev/codeforge/
+#     app/runtime/RuntimeInstallTest.kt), run with `am instrument`: the APK's
+#     own payload installed into roots of their own, the warm start timed five
+#     times against the 100 ms budget, a link pointed elsewhere and pointed
+#     back, a flipped byte in the payload and a wrong digest in its manifest
+#     each failing with a typed problem and nothing marked installed, the exec
+#     audit, and the sizes on the device (runtime_report.txt);
+#   * the pair through the real app (integration_test/runtime_a_test.dart, a
+#     process death, then runtime_b_test.dart): opening a workspace starts the
+#     install, which runs while the editor opens a file and ends audited; then
+#     the app starts it warm. `flutter test` installs part B's APK over part A's
+#     (keeping the data, like an update), so the warm start finds a new native
+#     library directory and points the executables' links at it.
+export ORG_GRADLE_PROJECT_codeforgePayload=x86_64
+RUNTIME_APK=build/app/outputs/apk/debug/app-debug.apk
+RUNTIME_TEST_APK=build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+runtime_instrumented() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  "$ADB" uninstall "$APP_ID.test" >/dev/null 2>&1 || true
+  ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebug \
+      :app:assembleDebugAndroidTest -Ptarget-platform=android-x64 --console=plain ) \
+    > "$RESULTS/runtime_build.txt" 2>&1 || { tail -n 40 "$RESULTS/runtime_build.txt"; return 1; }
+  grep -E 'sealed payload|exec probe|CodeForge ABIs' "$RESULTS/runtime_build.txt" | head -n 8
+  wait_for_framework runtime-install 300 || true
+  { "$ADB" install -r "$RUNTIME_APK" && "$ADB" install -r -t "$RUNTIME_TEST_APK"; } \
+    > "$RESULTS/runtime_install.txt" 2>&1 < /dev/null || { cat "$RESULTS/runtime_install.txt"; return 1; }
+  "$ADB" shell df -h /data < /dev/null >> "$RESULTS/runtime_install.txt" 2>&1
+  "$ADB" logcat -c < /dev/null
+  timeout --kill-after=30s 25m "$ADB" shell am instrument -w -r \
+    -e class dev.codeforge.app.runtime.RuntimeInstallTest \
+    "$APP_ID.test/androidx.test.runner.AndroidJUnitRunner" < /dev/null \
+    > "$RESULTS/runtime_instrumented.txt" 2>&1
+  "$ADB" shell run-as "$APP_ID" cat files/runtime-gate/report.txt < /dev/null \
+    > "$RESULTS/runtime_report.txt" 2>&1 || true
+  "$ADB" logcat -d -s CodeForgeRuntimeGate:I CodeForgeRuntime:I < /dev/null \
+    > "$RESULTS/runtime_logcat.txt" 2>&1 || true
+  tail -n 25 "$RESULTS/runtime_instrumented.txt"
+  grep -q '^OK (' "$RESULTS/runtime_instrumented.txt"
+}
+runtime_pair() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  "$ADB" uninstall "$APP_ID.test" >/dev/null 2>&1 || true
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=25m ITEST_ATTEMPTS=1 run_itest runtime_a integration_test/runtime_a_test.dart \
+    --no-uninstall || return 1
+  {
+    "$ADB" shell run-as "$APP_ID" cat files/coding-harness/codeforge/installed.properties
+    "$ADB" shell run-as "$APP_ID" du -sk files/coding-harness
+  } < /dev/null > "$RESULTS/runtime_after_a.txt" 2>&1 || true
+  "$ADB" logcat -d -s CodeForgeRuntime:I < /dev/null >> "$RESULTS/runtime_after_a.txt" 2>&1 || true
+  "$ADB" shell am force-stop "$APP_ID" < /dev/null
+  sleep 3
+  local pid
+  pid=$("$ADB" shell pidof "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
+  if [ -n "$pid" ]; then
+    echo "process still alive after force-stop (pid $pid)" | tee -a "$RESULTS/runtime_after_a.txt"
+    return 1
+  fi
+  echo "no $APP_ID process after am force-stop: process death confirmed" \
+    | tee -a "$RESULTS/runtime_after_a.txt"
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=15m ITEST_ATTEMPTS=1 run_itest runtime_b integration_test/runtime_b_test.dart || return 1
+  "$ADB" logcat -d -s CodeForgeRuntime:I < /dev/null > "$RESULTS/runtime_b_logcat.txt" 2>&1 || true
+}
+runtime_instrumented_ok=0
+runtime_instrumented && runtime_instrumented_ok=1
+runtime_pair_ok=0
+for pair in 1 2; do
+  INFRA_SEEN=0
+  if runtime_pair; then
+    runtime_pair_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "runtime pair attempt $pair hit infrastructure failures — re-running the whole pair" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+{
+  echo "runtime_group=$([ "$runtime_instrumented_ok$runtime_pair_ok" = "11" ] && echo pass || echo fail)"
+  echo "runtime_instrumented=$([ "$runtime_instrumented_ok" = "1" ] && echo pass || echo fail)" \
+    "$(grep -E '^OK \(|^Tests run' "$RESULTS/runtime_instrumented.txt" 2>/dev/null | head -n 1)"
+  echo "runtime_pair=$([ "$runtime_pair_ok" = "1" ] && echo pass || echo fail)"
+  sed 's/^/runtime_device_/' "$RESULTS/runtime_report.txt" 2>/dev/null
+  grep -ohE 'RUNTIME_UI .*' "$RESULTS/runtime_a.txt" "$RESULTS/runtime_b.txt" 2>/dev/null
+  echo "runtime_apk_debug_x64_bytes=$(stat -c %s "$RUNTIME_APK" 2>/dev/null || echo 0)"
+  echo "runtime_apk_release_x64_bytes=$(stat -c %s build/gate/app-release-x64.apk 2>/dev/null || echo 0)"
+  echo "runtime_apk_phone_arm64_bytes=$(stat -c %s build/gate/codeforge-phone-profile-arm64.apk 2>/dev/null || echo 0)"
+} | tee "$RESULTS/runtime.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/runtime.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no app, no test app.
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+"$ADB" uninstall "$APP_ID.test" >/dev/null 2>&1 || true
+[ "$runtime_instrumented_ok$runtime_pair_ok" = "11" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

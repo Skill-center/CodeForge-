@@ -30,6 +30,7 @@ import '../support/fake_backup_service.dart';
 import '../support/fake_bench_surface.dart';
 import '../support/fake_editor_surface.dart';
 import '../support/fake_hardware_keyboard.dart';
+import '../support/fake_runtime_service.dart';
 import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';
 import '../support/memory_project_storage.dart';
@@ -46,6 +47,7 @@ final class TestHarness {
     FakeBackupService? backup,
     this.broker,
     MemoryProjectStorage? projects,
+    FakeRuntimeService? runtime,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -54,7 +56,8 @@ final class TestHarness {
        sessionStore = sessionStore ?? MemorySessionStore(),
        hardwareKeyboard = hardwareKeyboard ?? FakeHardwareKeyboard(),
        backup = backup ?? FakeBackupService(),
-       projects = projects ?? MemoryProjectStorage();
+       projects = projects ?? MemoryProjectStorage(),
+       runtime = runtime ?? FakeRuntimeService();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -83,6 +86,10 @@ final class TestHarness {
   /// like [files] by every app this harness pumps.
   final MemoryProjectStorage projects;
 
+  /// The runtime host (Phase 4 W3): installed and not started unless a
+  /// test says otherwise, so opening a workspace makes it ready.
+  final FakeRuntimeService runtime;
+
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
 
@@ -110,6 +117,7 @@ final class TestHarness {
     sessionStoreProvider.overrideWithValue(sessionStore),
     hardwareKeyboardSourceProvider.overrideWithValue(hardwareKeyboard),
     backupServiceProvider.overrideWithValue(backup),
+    runtimeServiceProvider.overrideWithValue(runtime),
     // The fake clock never sees a background isolate finish (Phase 3 W6).
     textDigesterProvider.overrideWithValue(digestTextInline),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),

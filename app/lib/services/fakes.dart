@@ -1,7 +1,8 @@
 /// Honest fakes (docs/ARCHITECTURE.md §2.4) for the services whose phase
 /// has not come yet. Each reports its real availability instead of
 /// pretending. Files stopped being fake in Phase 2 W4
-/// (services/files/local_file_service.dart).
+/// (services/files/local_file_service.dart), and the runtime in Phase 4 W3
+/// (services/runtime/runtime_service.dart).
 library;
 
 import '../core/errors/failure.dart';
@@ -15,12 +16,6 @@ final class FakeTerminalService implements TerminalService {
   String get unavailableReason =>
       'The Linux runtime and terminal arrive in Phases 4–5. '
       'This pane is a preview of the real thing.';
-}
-
-final class FakeRuntimeService implements RuntimeService {
-  @override
-  Future<Result<RuntimeState>> state() async =>
-      const Ok(RuntimeState.notInstalled);
 }
 
 final class FakeGitService implements GitService {

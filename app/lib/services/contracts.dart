@@ -1,8 +1,9 @@
 /// Service interfaces (docs/ARCHITECTURE.md §2).
 ///
 /// Contracts never leak platform types. Files are real since Phase 2 W4
-/// (services/files/local_file_service.dart); the other services stay
-/// honest fakes until their phase, behind these exact contracts.
+/// (services/files/local_file_service.dart), and the sealed runtime since
+/// Phase 4 W3 (services/runtime/runtime_service.dart); the other services
+/// stay honest fakes until their phase, behind these exact contracts.
 library;
 
 import '../core/errors/failure.dart';
@@ -209,13 +210,6 @@ enum TerminalAvailability { unavailable, available }
 abstract interface class TerminalService {
   TerminalAvailability get availability;
   String get unavailableReason;
-}
-
-/// Sealed-runtime install state (docs/RUNTIME_ARCHITECTURE.md).
-enum RuntimeState { notInstalled, installing, ready, unhealthy }
-
-abstract interface class RuntimeService {
-  Future<Result<RuntimeState>> state();
 }
 
 /// Git status for the status strip. Phase 6 provides the real impl.

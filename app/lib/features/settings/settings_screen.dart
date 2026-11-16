@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../application/bench/large_test_files.dart';
+import '../../application/runtime_controller.dart';
 import '../../application/settings_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../core/editor/large_samples.dart';
@@ -18,6 +19,7 @@ import '../../design_system/components/settings_tiles.dart';
 import '../../design_system/tokens/geometry.dart';
 import '../../design_system/tokens/icons.dart';
 import 'privacy_section.dart';
+import 'runtime_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -53,6 +55,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsControllerProvider);
     final largeFiles = ref.watch(largeTestFilesProvider);
+    final runtime = ref.watch(runtimeControllerProvider);
     // Nothing beneath a go()-reached top-level route: system back returns
     // home, matching the app-bar back button (G2).
     return PopScope<Object?>(
@@ -96,14 +99,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     .setReducedMotion(!settings.reducedMotion),
               ),
               const PrivacySection(),
+              // The sealed runtime (Phase 4 W3).
+              const CfSectionHeader('Runtime'),
+              CfSettingsTile(
+                key: const ValueKey('settings_runtime'),
+                leading: const Icon(CfIcons.memory),
+                title: 'Linux runtime',
+                subtitle: runtimeStatusLine(runtime),
+                trailing: const Icon(CfIcons.chevronRight, size: 18),
+                onTap: () => context.go('/settings/runtime'),
+              ),
               // ROADMAP's phases. Folders, Phase 3's, open from Home.
               const CfSectionHeader('Coming in later phases'),
-              const CfSettingsTile(
-                leading: Icon(CfIcons.memory),
-                title: 'Linux runtime',
-                subtitle: 'Phase 4 — install and health',
-                onTap: null,
-              ),
               const CfSettingsTile(
                 leading: Icon(CfIcons.extension),
                 title: 'Extensions',

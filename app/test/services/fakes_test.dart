@@ -13,11 +13,6 @@ void main() {
       expect(terminal.unavailableReason, contains('Phases 4–5'));
     });
 
-    test('runtime reports notInstalled', () async {
-      final runtime = FakeRuntimeService();
-      expect((await runtime.state()).orThrow, RuntimeState.notInstalled);
-    });
-
     test('git summary is a labeled demo branch', () async {
       final git = FakeGitService();
       expect((await git.summary()).orThrow.branch, 'main');

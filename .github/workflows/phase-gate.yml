@@ -91,6 +91,7 @@ jobs:
         run: |
           dart run build_runner build
           dart run pigeon --input pigeons/storage_api.dart
+          dart run pigeon --input pigeons/runtime_api.dart
 
       # The Gradle distribution: cached between runs, and fetched with
       # retries when the cache has none, because services.gradle.org stalls
@@ -113,6 +114,16 @@ jobs:
         with:
           path: ~/.gradle/wrapper/dists
           key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      # The runtime's pinned files (Phase 4 W3): every build below that
+      # targets one ABI carries that ABI's sealed payload, built from them
+      # (native/runtime-core/build.gradle.kts). Without the cache the builds
+      # fetch the pinned files themselves, verified, and fail closed.
+      - name: Restore the runtime's pinned files
+        uses: actions/cache/restore@v6
+        with:
+          path: runtime/generated/cache
+          key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
 
       - name: Build debug APK
         run: |
@@ -181,6 +192,45 @@ jobs:
           cp build/app/outputs/flutter-apk/app-profile.apk build/gate/codeforge-phone-profile-arm64.apk
           sha256sum build/gate/codeforge-phone-profile-arm64.apk
 
+      # The store's shape (Phase 4 W3, G3: sizes recorded, never judged
+      # here): a release app bundle for arm64-v8a, the ABI Play serves, with
+      # its payload, measured per device against Play's 200 MB base-module
+      # limit by t1's runtime/check-bundle-size.py (t1 measured 136.0 MB).
+      # The bundle is not kept: it is unsigned for upload (ADR-0010).
+      - name: Build app bundle (arm64, per-device size)
+        continue-on-error: true
+        run: |
+          mkdir -p build/gate/logs
+          status=0
+          flutter build appbundle --release --target-platform android-arm64 \
+            > build/gate/logs/build-bundle-arm64.txt 2>&1 || status=$?
+          tail -n 15 build/gate/logs/build-bundle-arm64.txt
+          if [ "$status" -eq 0 ]; then
+            python3 ../runtime/check-bundle-size.py build/app/outputs/bundle/release/app-release.aab \
+              --json build/gate/logs/bundle-size.json \
+              --apk build/gate/codeforge-phone-profile-arm64.apk \
+              2>&1 | tee build/gate/logs/bundle-size.txt
+          fi
+          exit "$status"
+
+      # What each APK carries of the runtime (tool/ci/check_runtime_apk.py)
+      # and the 16 KB alignment of its native libraries: recorded here, and
+      # enforced on the x86_64 release APK by ci.yml's "Runtime in the APKs".
+      - name: Runtime in the gate's APKs
+        continue-on-error: true
+        run: |
+          mkdir -p build/gate/logs
+          {
+            for pair in app-release-x64.apk:x86_64 codeforge-phone-profile-arm64.apk:arm64-v8a; do
+              apk="build/gate/${pair%%:*}"
+              [ -f "$apk" ] || { echo "no $apk"; continue; }
+              python3 tool/ci/check_runtime_apk.py "$apk" --abi "${pair##*:}"
+              python3 ../runtime/check-page-alignment.py "$apk" | head -n 1
+            done
+            [ -f build/gate/app-plain-debug.apk ] \
+              && python3 tool/ci/check_runtime_apk.py build/gate/app-plain-debug.apk --no-payload
+          } 2>&1 | tee build/gate/logs/runtime-apks.txt
+
       - name: Run emulator gate
         id: gate
         continue-on-error: true
@@ -190,7 +240,7 @@ jobs:
         if: always()
         run: |
           mkdir -p ci-results/gate
-          cp build/gate/logs/*.txt ci-results/gate/ 2>/dev/null || true
+          cp build/gate/logs/*.txt build/gate/logs/*.json ci-results/gate/ 2>/dev/null || true
           ls build/gate/logs 2>/dev/null || echo "no build logs"
 
       # Key evidence also goes out as check-run annotations (readable via the
@@ -226,6 +276,9 @@ jobs:
             cat ci-results/gate/explorer.txt 2>/dev/null || true
             cat ci-results/gate/watch.txt 2>/dev/null || true
             cat ci-results/gate/measure.txt 2>/dev/null || true
+            cat ci-results/gate/runtime.txt 2>/dev/null || true
+            grep -E '^runtime_apk=|^runtime_apk_check=|^page alignment' ci-results/gate/runtime-apks.txt 2>/dev/null || true
+            grep -E 'base module|per device|MB' ci-results/gate/bundle-size.txt 2>/dev/null | head -n 6 || true
             cat ci-results/gate/gate-result.txt 2>/dev/null || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

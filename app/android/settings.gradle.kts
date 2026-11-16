@@ -39,7 +39,13 @@ rootProject.name = "codeforge"
 // The vendored sealed-runtime kernel (Phase 4 W2; native/PROVENANCE.md): a plain Java
 // library at the repository's root, tested on the JVM by `:native:sealed-runtime:test`.
 // The parent project points at the repository's native/ as well, so no directory is
-// assumed under app/android. Nothing depends on the module until W3's RuntimeHost.
+// assumed under app/android.
 include(":native:sealed-runtime")
 project(":native").projectDir = file("../../native")
 project(":native:sealed-runtime").projectDir = file("../../native/sealed-runtime")
+
+// The runtime core (Phase 4 W3): t1's Android adapter over the kernel, the preload,
+// and the sealed payload of the ABI a build targets (native/runtime-core/build.gradle.kts).
+// The app's RuntimeHost (src/main/kotlin/dev/codeforge/app/runtime/) uses it.
+include(":native:runtime-core")
+project(":native:runtime-core").projectDir = file("../../native/runtime-core")

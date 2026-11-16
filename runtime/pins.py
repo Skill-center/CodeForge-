@@ -37,7 +37,12 @@ Commands:
   bootstrap  the same for the pinned bootstrap zip;
   resolve    re-pin: resolve the core set against the live repository with
              t1's resolver and rewrite pins.json. Re-pinning is a deliberate
-             commit: CI runs this for a commit whose message has [repin].
+             commit: CI runs this for a commit whose message has [repin];
+  info       what a payload built from the pins holds, as JSON, for the app
+             (Phase 4 W3): the bootstrap's release, when the set was resolved,
+             how many packages the payload carries, and the version of every
+             package of the core set. The build writes it beside the payload
+             as assets/runtime-info-<abi>.json; Settings > Runtime shows it.
 
 Usage:
     pins.py check
@@ -46,6 +51,7 @@ Usage:
     pins.py bootstrap --arch x86_64 --cache runtime/generated/cache \\
         --out runtime/generated/bootstrap
     pins.py resolve --cache runtime/generated/cache
+    pins.py info --arch x86_64 --out runtime-info-x86_64.json
 
 Exit codes: 0 success, 1 the pins or the repository failed a check, 2 usage.
 """
@@ -572,6 +578,36 @@ def resolve(pins, cache, now=None):
     return resolved
 
 
+# --------------------------------------------------------------------------- #
+# info
+# --------------------------------------------------------------------------- #
+
+def info(pins, arch):
+    """What a payload built from the pins for arch holds (resolved pins only)."""
+    problems = check(pins)
+    if problems:
+        raise PinError("the pins do not pass `pins.py check`:\n  " + "\n  ".join(problems))
+    pinned = {entry["package"]: entry["version"] for entry in pins["packages"][arch]}
+    base = {name: entry["version"]
+            for name, entry in pins["bootstrap"]["packages"][arch].items()}
+    # The payload is the bootstrap with the pinned packages replacing its copies.
+    carried = dict(base)
+    carried.update(pinned)
+    missing = [name for name in pins["requested"] if name not in carried]
+    if missing:
+        raise PinError("the core set names packages the payload does not carry: "
+                       + ", ".join(missing))
+    return {
+        "schema": 1,
+        "abi": ABIS[arch],
+        "bootstrap": pins["bootstrap"]["version"],
+        "resolvedAt": pins.get("resolvedAt"),
+        "repository": pins["repository"]["url"],
+        "packages": len(carried),
+        "core": [{"package": name, "version": carried[name]} for name in pins["requested"]],
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--pins", default=DEFAULT_PINS, help="default: runtime/pins.json")
@@ -587,6 +623,10 @@ def main(argv=None):
         command.add_argument("--out", required=True)
     command = commands.add_parser("resolve", help="re-pin against the live repository")
     command.add_argument("--cache", required=True)
+    command = commands.add_parser("info", help="what the payload holds, as JSON, for the app")
+    command.add_argument("--arch", required=True, choices=sorted(ABIS),
+                         help="Termux architecture name (not the Android ABI name)")
+    command.add_argument("--out", required=True)
     arguments = parser.parse_args(argv)
 
     try:
@@ -616,6 +656,15 @@ def main(argv=None):
             write_pins(arguments.pins, resolved)
             print("wrote %s" % arguments.pins)
             print(summary(resolved))
+        elif arguments.command == "info":
+            described = info(pins, arguments.arch)
+            directory = os.path.dirname(os.path.abspath(arguments.out))
+            os.makedirs(directory, exist_ok=True)
+            write_atomically(arguments.out, (json.dumps(described, indent=2, sort_keys=True)
+                                             + "\n").encode("utf-8"))
+            print("info %s: bootstrap %s, %d packages" % (described["abi"],
+                                                          described["bootstrap"],
+                                                          described["packages"]))
     except PinError as error:
         log("pins: %s" % error)
         return 1

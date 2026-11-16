@@ -3,6 +3,8 @@ package dev.codeforge.app
 import android.app.backup.BackupManager
 import android.content.Intent
 import android.content.res.Configuration
+import dev.codeforge.app.runtime.RuntimeApi
+import dev.codeforge.app.runtime.RuntimeHost
 import dev.codeforge.app.storage.StorageApi
 import dev.codeforge.app.storage.StorageBroker
 import dev.codeforge.app.storage.StorageEvents
@@ -23,11 +25,13 @@ import io.flutter.plugin.common.MethodChannel
  * so. Folders from shared storage go through the storage broker (Phase 3
  * W2, storage/StorageBroker.kt), behind the typed Pigeon API of
  * pigeons/storage_api.dart; the folder picker answers here, in
- * [onActivityResult].
+ * [onActivityResult]. The sealed runtime (Phase 4 W3, runtime/RuntimeHost.kt)
+ * is behind the typed Pigeon API of pigeons/runtime_api.dart.
  */
 class MainActivity : FlutterActivity() {
     private var keyboardChannel: MethodChannel? = null
     private var storage: StorageBroker? = null
+    private var runtime: RuntimeHost? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -72,6 +76,7 @@ class MainActivity : FlutterActivity() {
             }
         }
         storage = StorageBroker(this, StorageEvents(messenger)).also { StorageApi.setUp(messenger, it) }
+        runtime = RuntimeHost(this, messenger).also { RuntimeApi.setUp(messenger, it) }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -80,6 +85,9 @@ class MainActivity : FlutterActivity() {
         StorageApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
         storage?.close()
         storage = null
+        RuntimeApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
+        runtime?.close()
+        runtime = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 
