@@ -43,11 +43,8 @@ final class PigeonRuntimeService implements RuntimeService {
   );
 
   @override
-  Future<Result<RuntimeStatus>> start() => _call(
-    'start',
-    _quick,
-    () async => runtimeStatusFrom(await _api.start()),
-  );
+  Future<Result<RuntimeStatus>> start() =>
+      _call('start', _quick, () async => runtimeStatusFrom(await _api.start()));
 
   @override
   Future<Result<RuntimeStatus>> reinstall() => _call(
@@ -57,11 +54,8 @@ final class PigeonRuntimeService implements RuntimeService {
   );
 
   @override
-  Future<Result<RuntimeStatus>> audit() => _call(
-    'audit',
-    _walk,
-    () async => runtimeStatusFrom(await _api.audit()),
-  );
+  Future<Result<RuntimeStatus>> audit() =>
+      _call('audit', _walk, () async => runtimeStatusFrom(await _api.audit()));
 
   @override
   Future<Result<RuntimeSize>> size() => _call('size', _walk, () async {

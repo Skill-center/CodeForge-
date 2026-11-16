@@ -106,7 +106,7 @@ final class FakeRuntimeService implements RuntimeService {
 
   Result<T> _answer<T>(T value) => answers
       ? Ok(value)
-      : Err(const RuntimeFailure('The runtime needs Android.'));
+      : const Err(RuntimeFailure('The runtime needs Android.'));
 
   @override
   Stream<RuntimeStatus> get changes => _changes.stream;

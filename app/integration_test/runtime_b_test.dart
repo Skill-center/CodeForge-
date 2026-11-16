@@ -20,9 +20,7 @@ import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('runtime B: a warm start after the process died', (
-    tester,
-  ) async {
+  testWidgets('runtime B: a warm start after the process died', (tester) async {
     // Part A's settings: the welcome is gone, and the workbench may come
     // back by itself.
     final prefs = await SharedPreferences.getInstance();

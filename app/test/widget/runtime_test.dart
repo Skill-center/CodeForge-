@@ -84,7 +84,10 @@ void main() {
     runtime.moveTo(RuntimeState.installing, done: 6946, total: 13892);
     await tester.pump();
     expect(_chip(tester).label, 'installing 50%');
-    expect(_chip(tester).tooltip, 'Installing the runtime: 6946 of 13892 files');
+    expect(
+      _chip(tester).tooltip,
+      'Installing the runtime: 6946 of 13892 files',
+    );
   });
 
   testWidgets('a build without a runtime says so', (tester) async {
@@ -112,7 +115,9 @@ void main() {
 
   testWidgets('Settings names the runtime and opens its page', (tester) async {
     setSurface(tester, 412, 915);
-    final harness = TestHarness(shell: const ShellState(lastRoute: '/settings'));
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/settings'),
+    );
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
     expect(
@@ -137,50 +142,56 @@ void main() {
     expect(find.byKey(const ValueKey('runtime_start')), findsOneWidget);
   });
 
-  testWidgets('Install now starts it; the audit, the size and the timing show', (
-    tester,
-  ) async {
-    setSurface(tester, 412, 915);
-    final harness = TestHarness(
-      shell: const ShellState(lastRoute: '/settings'),
-      runtime: FakeRuntimeService(state: RuntimeState.notInstalled),
-    );
-    await tester.pumpWidget(harness.app());
-    await tester.pumpAndSettle();
-    await _openRuntimePage(tester);
+  testWidgets(
+    'Install now starts it; the audit, the size and the timing show',
+    (tester) async {
+      setSurface(tester, 412, 915);
+      final harness = TestHarness(
+        shell: const ShellState(lastRoute: '/settings'),
+        runtime: FakeRuntimeService(state: RuntimeState.notInstalled),
+      );
+      await tester.pumpWidget(harness.app());
+      await tester.pumpAndSettle();
+      await _openRuntimePage(tester);
 
-    await tester.tap(find.byKey(const ValueKey('runtime_start')));
-    await tester.pumpAndSettle();
-    expect(harness.runtime.starts, 1);
-    expect(
-      _subtitle(tester, 'runtime_status'),
-      contains('Ready · every program comes from the app'),
-    );
-    expect(find.byKey(const ValueKey('runtime_reinstall')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('runtime_start')));
+      await tester.pumpAndSettle();
+      expect(harness.runtime.starts, 1);
+      expect(
+        _subtitle(tester, 'runtime_status'),
+        contains('Ready · every program comes from the app'),
+      );
+      expect(find.byKey(const ValueKey('runtime_reinstall')), findsOneWidget);
 
-    await _scrollTo(tester, 'runtime_install_time');
-    expect(_subtitle(tester, 'runtime_install_time'), contains('23.5 s'));
+      await _scrollTo(tester, 'runtime_install_time');
+      expect(_subtitle(tester, 'runtime_install_time'), contains('23.5 s'));
 
-    await _scrollTo(tester, 'runtime_measure');
-    await tester.tap(find.byKey(const ValueKey('runtime_measure')));
-    await tester.pumpAndSettle();
-    expect(harness.runtime.sizes, 1);
-    expect(_subtitle(tester, 'runtime_size'), contains('583.0 MB in all'));
-    expect(_subtitle(tester, 'runtime_size'), contains('13892 files'));
+      await _scrollTo(tester, 'runtime_measure');
+      await tester.tap(find.byKey(const ValueKey('runtime_measure')));
+      await tester.pumpAndSettle();
+      expect(harness.runtime.sizes, 1);
+      expect(_subtitle(tester, 'runtime_size'), contains('583.0 MB in all'));
+      expect(_subtitle(tester, 'runtime_size'), contains('13892 files'));
 
-    await _scrollTo(tester, 'runtime_audit');
-    expect(_subtitle(tester, 'runtime_audit'), contains('0 programs outside'));
-    expect(_subtitle(tester, 'runtime_audit'), contains('534 programs from'));
-    await tester.tap(find.byKey(const ValueKey('runtime_audit_again')));
-    await tester.pumpAndSettle();
-    expect(harness.runtime.audits, 1);
-  });
+      await _scrollTo(tester, 'runtime_audit');
+      expect(
+        _subtitle(tester, 'runtime_audit'),
+        contains('0 programs outside'),
+      );
+      expect(_subtitle(tester, 'runtime_audit'), contains('534 programs from'));
+      await tester.tap(find.byKey(const ValueKey('runtime_audit_again')));
+      await tester.pumpAndSettle();
+      expect(harness.runtime.audits, 1);
+    },
+  );
 
   testWidgets('Reinstall asks first, and installs again only when told to', (
     tester,
   ) async {
     setSurface(tester, 412, 915);
-    final harness = TestHarness(shell: const ShellState(lastRoute: '/settings'));
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/settings'),
+    );
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
     await _openRuntimePage(tester);
@@ -273,7 +284,9 @@ void main() {
     addTearDown(
       () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
     );
-    final harness = TestHarness(shell: const ShellState(lastRoute: '/settings'));
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/settings'),
+    );
     await tester.pumpWidget(harness.app());
     await tester.pumpAndSettle();
     await _openRuntimePage(tester);
@@ -298,11 +311,7 @@ void main() {
     expect(runtimeStatusLine(failed), contains('Free some space'));
     expect(
       runtimeStatusLine(
-        const RuntimeStatus(
-          state: RuntimeState.installing,
-          done: 1,
-          total: 4,
-        ),
+        const RuntimeStatus(state: RuntimeState.installing, done: 1, total: 4),
       ),
       'Installing… 25% (1 of 4 files)',
     );

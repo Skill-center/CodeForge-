@@ -175,8 +175,7 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
     final canStart =
         status.state == RuntimeState.notInstalled ||
         status.state == RuntimeState.installed;
-    final canReinstall =
-        status.usable || status.state == RuntimeState.failed;
+    final canReinstall = status.usable || status.state == RuntimeState.failed;
     final stateColor = switch (status.state) {
       RuntimeState.ready => colors.success,
       RuntimeState.degraded => colors.warning,
