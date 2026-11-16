@@ -37,20 +37,63 @@ explorer_disk_checks=19 explorer_listings=3
 watch_itest attempt=1 exit=0
 watch_group=pass
 watch_picker_picked=1 watch_outside_changes=12 watch_backgrounded=2
-watch_reload project 784 ms (device clock)
-watch_resume project 0 ms (from coming back)
-watch_reload folder 782 ms (device clock)
-watch_resume folder 230 ms (from coming back)
+watch_reload project 720 ms (device clock)
+watch_resume project 318 ms (from coming back)
+watch_reload folder 810 ms (device clock)
+watch_resume folder 203 ms (from coming back)
 measure_itest attempt=1 exit=0
 measure_group=pass
 measure_picker_picked=1
-measure: project of 10000 files written in 2997 ms (setup)
-measure: project opened in 247 ms (root listed)
-measure: Go to File's index of 10000 files in 142 ms (median of 3: 227, 142, 119)
-measure: dart:io 1048614 chars: write 18 ms, read 8 ms (medians of 3)
-measure: dart:io 10485681 chars: write 82 ms, read 63 ms (medians of 3)
-measure: digest of 10 MiB on the UI isolate: 206 ms, 0 frames, longest without one 206 ms
-measure: digest of 10 MiB on a background isolate: 531 ms, 11 frames, longest without one 111 ms
-measure: listing 1000 entries through the broker: 326 ms (median of 3: 326, 691, 294)
-measure: broker 1048614 chars: write 54 ms, read 45 ms (medians of 3)
-measure: broker 10485681 chars: write 104 ms, read 75 ms (medians of 3)
+measure: project of 10000 files written in 3384 ms (setup)
+measure: project opened in 343 ms (root listed)
+measure: Go to File's index of 10000 files in 160 ms (median of 3: 185, 160, 126)
+measure: dart:io 1048614 chars: write 26 ms, read 26 ms (medians of 3)
+measure: dart:io 10485681 chars: write 54 ms, read 44 ms (medians of 3)
+measure: digest of 10 MiB on the UI isolate: 157 ms, 0 frames, longest without one 157 ms
+measure: digest of 10 MiB on a background isolate: 521 ms, 12 frames, longest without one 85 ms
+measure: listing 1000 entries through the broker: 399 ms (median of 3: 399, 531, 210)
+measure: broker 1048614 chars: write 55 ms, read 37 ms (medians of 3)
+measure: broker 10485681 chars: write 107 ms, read 69 ms (medians of 3)
+runtime_a attempt=1 exit=0
+runtime_b attempt=1 exit=0
+runtime_group=pass
+runtime_instrumented=pass OK (6 tests)
+runtime_pair=pass
+runtime_device_abi=x86_64
+runtime_device_payload=3dc2163786c5abef
+runtime_device_apk_bytes=211620884
+runtime_device_exec_manifest_entries=535
+runtime_device_first_install_ms=3476
+runtime_device_first_install_files=13894
+runtime_device_first_install_verified=13894
+runtime_device_first_install_bytes=274844694
+runtime_device_first_install_executables=535
+runtime_device_first_install_links=1169
+runtime_device_audit_outside_apk=0
+runtime_device_audit_outside_scripts=24
+runtime_device_audit_shipped=535
+runtime_device_audit_scanned=7611
+runtime_device_audit_truncated=false
+runtime_device_audit_ms=319
+runtime_device_prefix_bytes=274844694
+runtime_device_prefix_files=13894
+runtime_device_native_library_bytes=139975096
+runtime_device_installed_total_bytes=626440674
+runtime_device_warm_start_ms_samples=20,18,18,18,17
+runtime_device_warm_start_ms_median=18
+runtime_device_warm_start_budget_ms=100
+runtime_device_warm_audit_outside_apk=0
+runtime_device_warm_audit_ms=293
+runtime_device_relinked_after_move=1
+runtime_device_flipped_byte_offset=33554432
+runtime_device_flipped_byte_problem=corrupt
+runtime_device_flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
+runtime_device_digest_problem=corrupt
+runtime_device_digest_detail=digest differs: bin/am
+RUNTIME_UI before_open state=unknown
+RUNTIME_UI editor_open state=installing done=0 total=0
+RUNTIME_UI first_install state=ready abi=x86_64 payload=3dc2163786c5abef install_ms=6556 open_to_audited_ms=7685 progress_frames=44 problem=null outside_apk=0 shipped=535 audit_ms=397 detail=null
+RUNTIME_UI warm_start state=ready warm_start_ms=48 relinked=535 install_ms=6556 outside_apk=0 shipped=535 audit_ms=1386 problem=null detail=null
+runtime_apk_debug_x64_bytes=243361912
+runtime_apk_release_x64_bytes=149388971
+runtime_apk_phone_arm64_bytes=164154418
