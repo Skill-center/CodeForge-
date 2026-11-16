@@ -1407,22 +1407,28 @@ cat "$RESULTS/measure.txt" >> "$RESULTS/attempts.txt"
 [ "$measure_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
-echo "::group::Runtime (Phase 4 W3, G3: the first install, the warm start, a flipped byte, the exec audit, sizes)"
+echo "::group::Runtime (Phase 4 W3-W4, G3: install, warm start, flipped byte, audit, sizes; G4: commands, tools, no child left)"
 # The sealed runtime, in builds that carry the x86_64 payload (every group
 # above ran without one). Two parts, each a complete proof on its own:
 #   * the instrumented tests (android/app/src/androidTest/kotlin/dev/codeforge/
-#     app/runtime/RuntimeInstallTest.kt), run with `am instrument`: the APK's
-#     own payload installed into roots of their own, the warm start timed five
-#     times against the 100 ms budget, a link pointed elsewhere and pointed
-#     back, a flipped byte in the payload and a wrong digest in its manifest
-#     each failing with a typed problem and nothing marked installed, the exec
-#     audit, and the sizes on the device (runtime_report.txt);
+#     app/runtime/), run with `am instrument`. RuntimeInstallTest (W3): the
+#     APK's own payload installed into roots of their own, the warm start
+#     timed five times against the 100 ms budget, a link pointed elsewhere and
+#     pointed back, a flipped byte in the payload and a wrong digest in its
+#     manifest each failing with a typed problem and nothing marked installed,
+#     the exec audit, and the sizes on the device. RuntimeCommandsTest (W4):
+#     the seven tools their pinned versions, a command's environment exactly
+#     the runtime's own, npm through the preload, typed results, and no child
+#     left after a session ends by request, by its time limit or by itself
+#     (all figures in runtime_report.txt);
 #   * the pair through the real app (integration_test/runtime_a_test.dart, a
 #     process death, then runtime_b_test.dart): opening a workspace starts the
 #     install, which runs while the editor opens a file and ends audited; then
 #     the app starts it warm. `flutter test` installs part B's APK over part A's
 #     (keeping the data, like an update), so the warm start finds a new native
-#     library directory and points the executables' links at it.
+#     library directory and points the executables' links at it. Part B then
+#     opens Settings > Linux runtime, where the tools' versions arrive through
+#     RuntimeHost (G4), and runs one command end to end.
 export ORG_GRADLE_PROJECT_codeforgePayload=x86_64
 RUNTIME_APK=build/app/outputs/apk/debug/app-debug.apk
 RUNTIME_TEST_APK=build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk
@@ -1439,7 +1445,7 @@ runtime_instrumented() {
   "$ADB" shell df -h /data < /dev/null >> "$RESULTS/runtime_install.txt" 2>&1
   "$ADB" logcat -c < /dev/null
   timeout --kill-after=30s 25m "$ADB" shell am instrument -w -r \
-    -e class dev.codeforge.app.runtime.RuntimeInstallTest \
+    -e class dev.codeforge.app.runtime.RuntimeInstallTest,dev.codeforge.app.runtime.RuntimeCommandsTest \
     "$APP_ID.test/androidx.test.runner.AndroidJUnitRunner" < /dev/null \
     > "$RESULTS/runtime_instrumented.txt" 2>&1
   "$ADB" shell run-as "$APP_ID" cat files/runtime-gate/report.txt < /dev/null \
@@ -1471,7 +1477,7 @@ runtime_pair() {
   echo "no $APP_ID process after am force-stop: process death confirmed" \
     | tee -a "$RESULTS/runtime_after_a.txt"
   "$ADB" logcat -c < /dev/null
-  ITEST_LIMIT=15m ITEST_ATTEMPTS=1 run_itest runtime_b integration_test/runtime_b_test.dart || return 1
+  ITEST_LIMIT=20m ITEST_ATTEMPTS=1 run_itest runtime_b integration_test/runtime_b_test.dart || return 1
   "$ADB" logcat -d -s CodeForgeRuntime:I < /dev/null > "$RESULTS/runtime_b_logcat.txt" 2>&1 || true
 }
 runtime_instrumented_ok=0

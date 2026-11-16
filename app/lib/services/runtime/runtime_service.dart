@@ -1,7 +1,8 @@
 /// The sealed runtime as the app sees it (Phase 4 W3,
 /// docs/RUNTIME_INTEGRATION.md §3): the Linux userland the APK carries,
 /// installed into the app's storage when the first workspace opens, started
-/// warm after that, and audited at every start. Only Kotlin can reach it
+/// warm after that, and audited at every start. Since W4 it runs one-shot
+/// commands and probes its tools. Only Kotlin can reach it
 /// (android/…/runtime/RuntimeHost.kt): the Pigeon client implements this
 /// contract (native/pigeon_runtime_service.dart), and tests use a fake.
 library;
@@ -300,6 +301,170 @@ final class RuntimeSize {
   int get totalBytes => prefixBytes + nativeLibraryBytes + apkBytes;
 }
 
+/// Why a command has no ordinary result (CommandRunner.kt's
+/// CommandFailure).
+enum ExecFailure {
+  /// The runtime is not installed and started, or is being installed.
+  notReady,
+
+  /// Not a program name, a folder outside the runtime, a NUL byte.
+  badRequest,
+
+  /// No such program in the runtime.
+  notFound,
+
+  /// The program is there and could not be executed.
+  cannotExecute,
+
+  /// It ran past its time limit and was ended, with everything it started.
+  timedOut,
+
+  /// The app ended it, with everything it started.
+  ended,
+
+  /// A signal ended it by itself.
+  signaled,
+
+  /// The runtime could not start it.
+  launchFailed;
+
+  static ExecFailure? fromCode(String? code) => switch (code) {
+    null => null,
+    'not_ready' => notReady,
+    'bad_request' => badRequest,
+    'not_found' => notFound,
+    'cannot_execute' => cannotExecute,
+    'timed_out' => timedOut,
+    'ended' => ended,
+    'signaled' => signaled,
+    _ => launchFailed,
+  };
+}
+
+/// What became of one command (Phase 4 W4).
+final class ExecResult {
+  const ExecResult({
+    this.exitCode,
+    this.signal,
+    this.stdout = '',
+    this.stderr = '',
+    this.stdoutBytes = 0,
+    this.stderrBytes = 0,
+    this.stdoutTruncated = false,
+    this.stderrTruncated = false,
+    this.durationMs = 0,
+    this.failure,
+    this.detail,
+    this.leftovers = 0,
+    this.remaining = 0,
+  });
+
+  /// The exit code; null when the command did not exit by itself.
+  final int? exitCode;
+
+  /// The signal that ended it, when one did.
+  final int? signal;
+
+  /// What it wrote, as much as was kept of each.
+  final String stdout;
+  final String stderr;
+
+  /// Every byte it wrote to each, kept or not.
+  final int stdoutBytes;
+  final int stderrBytes;
+  final bool stdoutTruncated;
+  final bool stderrTruncated;
+
+  final int durationMs;
+
+  /// Null when it ran and exited, whatever its exit code.
+  final ExecFailure? failure;
+  final String? detail;
+
+  /// Processes ended after it: what it left running, or its whole tree
+  /// when it was stopped.
+  final int leftovers;
+
+  /// Processes that could not be ended: 0 unless the kernel refused.
+  final int remaining;
+
+  bool get succeeded => failure == null && exitCode == 0;
+}
+
+/// How one of the runtime's tools is (Toolchain.kt's ToolHealth).
+enum ToolHealth {
+  /// It ran, its libraries loaded, and it is the pinned version.
+  ok,
+
+  /// It ran, and it is not the pinned version.
+  mismatch,
+
+  /// It did not run, failed, or said no version.
+  failed,
+
+  /// The runtime has no such program.
+  missing,
+
+  /// Not probed: the runtime is not ready.
+  unavailable;
+
+  static ToolHealth fromCode(String code) => switch (code) {
+    'ok' => ok,
+    'mismatch' => mismatch,
+    'failed' => failed,
+    'missing' => missing,
+    _ => unavailable,
+  };
+}
+
+/// One tool's probe (Phase 4 W4, gate G4).
+final class RuntimeTool {
+  const RuntimeTool({
+    required this.tool,
+    required this.packageName,
+    required this.health,
+    this.version,
+    this.pinned,
+    this.detail,
+    this.millis = 0,
+  });
+
+  /// 'node', 'python', 'git', 'bash', 'perl', 'ruby' or 'rg'.
+  final String tool;
+
+  /// The package that carries it.
+  final String packageName;
+
+  /// What the tool says its version is.
+  final String? version;
+
+  /// Its package's pinned version, as the payload records it.
+  final String? pinned;
+
+  final ToolHealth health;
+
+  /// The probe's first line of output, or why it failed.
+  final String? detail;
+
+  final int millis;
+}
+
+/// Every tool's probe.
+final class RuntimeTools {
+  const RuntimeTools({required this.tools, this.millis = 0, this.failure});
+
+  final List<RuntimeTool> tools;
+  final int millis;
+
+  /// Why nothing was probed, or null.
+  final String? failure;
+
+  /// Tools that ran and are their pinned version.
+  int get okCount => tools.where((tool) => tool.health == ToolHealth.ok).length;
+
+  bool get allOk => tools.isNotEmpty && okCount == tools.length;
+}
+
 /// The sealed runtime, behind a contract so that tests can fake it.
 abstract interface class RuntimeService {
   /// Every change from now on: the state, the progress, the audit.
@@ -322,4 +487,23 @@ abstract interface class RuntimeService {
 
   /// Measures what the runtime occupies.
   Future<Result<RuntimeSize>> size();
+
+  /// Runs one command in the runtime (Phase 4 W4): [program] is a name in
+  /// the runtime's bin, never a path. It runs in the runtime's home, or in
+  /// [directory] when that is inside its home or workspace, with stdin
+  /// closed. [timeout] (60 s by default) ends it with everything it
+  /// started; [outputLimit] bytes of stdout and of stderr are kept. A
+  /// result that is not ready, not found or timed out is an [Ok] with its
+  /// [ExecResult.failure]; an [Err] means the host did not answer.
+  Future<Result<ExecResult>> exec(
+    String program,
+    List<String> arguments, {
+    String? directory,
+    Duration? timeout,
+    int? outputLimit,
+  });
+
+  /// Probes node, python, git, bash, perl, ruby and rg: each version, and
+  /// whether it is its package's pinned one (Phase 4 W4, gate G4).
+  Future<Result<RuntimeTools>> tools();
 }

@@ -1,14 +1,21 @@
 /// The sealed runtime in the app (Phase 4 W3, gate G3): opening a
 /// workspace starts it, the status strip shows where it is, and Settings →
 /// Linux runtime shows its payload, its timing, its size and its audit, and
-/// reinstalls it.
+/// reinstalls it. Since W4 (gate G4) the page also probes the tools, each
+/// against its pin, and says which languages the runtime can execute.
 library;
 
+import 'package:codeforge/app.dart';
+import 'package:codeforge/application/runtime_controller.dart';
+import 'package:codeforge/core/editor/capabilities.dart';
+import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/design_system/components/feedback.dart';
 import 'package:codeforge/features/settings/runtime_screen.dart';
+import 'package:codeforge/features/workbench/workbench_screen.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -302,6 +309,207 @@ void main() {
     expect(copied.single, contains('payload: 0123456789abcdef'));
     expect(copied.single, contains('warm start: 12 ms'));
     expect(copied.single, contains('--- exec audit (412 ms)'));
+  });
+
+  testWidgets('the tools are probed once it is ready, each against its pin', (
+    tester,
+  ) async {
+    setSurface(tester, 412, 915);
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/settings'),
+      runtime: FakeRuntimeService(state: RuntimeState.notInstalled),
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    await _openRuntimePage(tester);
+
+    // Nothing to probe yet, and nothing executable yet.
+    await _scrollTo(tester, 'runtime_languages');
+    expect(harness.runtime.toolProbes, 0);
+    expect(
+      _subtitle(tester, 'runtime_tools'),
+      contains('Checked once it is ready'),
+    );
+    expect(
+      _subtitle(tester, 'runtime_languages'),
+      'JavaScript, Python and shell scripts\n'
+      'Executable once the runtime is ready. Running them from the editor '
+      'arrives in Phase 5',
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('runtime_start')),
+      -200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('runtime_start')));
+    await tester.pumpAndSettle();
+    expect(harness.runtime.current.state, RuntimeState.ready);
+    expect(harness.runtime.toolProbes, 1, reason: 'probed once it is ready');
+
+    await _scrollTo(tester, 'runtime_tools');
+    expect(
+      _subtitle(tester, 'runtime_tools'),
+      contains('All 7 tools are their pinned versions'),
+    );
+    for (final tool in FakeRuntimeService.pinnedTools) {
+      await _scrollTo(tester, 'runtime_tool_${tool.tool}');
+    }
+    expect(
+      _subtitle(tester, 'runtime_tool_node'),
+      'node 26.13.1\nnodejs 26.13.1, as pinned',
+    );
+    // perl's package revision is not part of the version perl reports.
+    expect(
+      _subtitle(tester, 'runtime_tool_perl'),
+      'perl 5.44.0\nperl 5.44.0-1, as pinned',
+    );
+    expect(
+      _subtitle(tester, 'runtime_tool_rg'),
+      'rg 15.2.0\nripgrep 15.2.0, as pinned',
+    );
+    await _scrollTo(tester, 'runtime_languages');
+    expect(
+      _subtitle(tester, 'runtime_languages'),
+      'JavaScript, Python and shell scripts\n'
+      'Executable here, with node, python, bash. Running them from the '
+      'editor arrives in Phase 5',
+    );
+  });
+
+  testWidgets('a tool that is not its pinned version, or fails, says so', (
+    tester,
+  ) async {
+    setSurface(tester, 412, 915);
+    final runtime = FakeRuntimeService(state: RuntimeState.ready)
+      ..toolAnswers = [
+        for (final tool in FakeRuntimeService.pinnedTools)
+          switch (tool.tool) {
+            'python' => const RuntimeTool(
+              tool: 'python',
+              packageName: 'python',
+              version: '3.13.0',
+              pinned: '3.14.10',
+              health: ToolHealth.mismatch,
+            ),
+            'ruby' => const RuntimeTool(
+              tool: 'ruby',
+              packageName: 'ruby',
+              pinned: '4.0.9',
+              health: ToolHealth.failed,
+              detail: 'exit 1: cannot load such file -- rubygems',
+            ),
+            _ => tool,
+          },
+      ];
+    final harness = TestHarness(
+      shell: const ShellState(lastRoute: '/settings'),
+      runtime: runtime,
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    await _openRuntimePage(tester);
+    expect(runtime.toolProbes, 1);
+
+    await _scrollTo(tester, 'runtime_tools');
+    expect(
+      _subtitle(tester, 'runtime_tools'),
+      contains('5 of 7 tools are their pinned versions'),
+    );
+    await _scrollTo(tester, 'runtime_tool_python');
+    expect(
+      _subtitle(tester, 'runtime_tool_python'),
+      'python 3.13.0\nPinned python 3.14.10, found 3.13.0',
+    );
+    await _scrollTo(tester, 'runtime_tool_ruby');
+    expect(
+      _subtitle(tester, 'runtime_tool_ruby'),
+      'ruby\nFailed: exit 1: cannot load such file -- rubygems',
+    );
+
+    // Check again: the tools are probed again.
+    await _scrollTo(tester, 'runtime_tools');
+    await tester.tap(find.byKey(const ValueKey('runtime_tools_check')));
+    await tester.pumpAndSettle();
+    expect(runtime.toolProbes, 2);
+  });
+
+  testWidgets('commands wait for the runtime, then run', (tester) async {
+    setSurface(tester, 1280, 800);
+    final runtime = FakeRuntimeService()
+      ..onExec = (program, arguments) => ExecResult(
+        exitCode: 0,
+        stdout: '$program ${arguments.join(' ')}\n',
+        stdoutBytes: 12,
+      );
+    final harness = TestHarness(runtime: runtime);
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(CodeForgeApp)),
+      listen: false,
+    );
+    final controller = container.read(runtimeControllerProvider.notifier);
+
+    final early = await controller.exec('node', ['-v']);
+    expect((early as Ok<ExecResult>).value.failure, ExecFailure.notReady);
+
+    await openDemoWorkspace(tester);
+    final result = await controller.exec('node', ['-v']);
+    final value = (result as Ok<ExecResult>).value;
+    expect(value.succeeded, isTrue);
+    expect(value.stdout, 'node -v\n');
+    expect(runtime.commands, hasLength(2));
+  });
+
+  test('the language chip says what the runtime can do with a language', () {
+    expect(
+      languageCapabilityTooltip(capabilitiesOf('python', runtimeReady: true)),
+      'Python: executable in the Linux runtime (python). Run arrives in '
+      'Phase 5',
+    );
+    expect(
+      languageCapabilityTooltip(
+        capabilitiesOf(shellLanguage, runtimeReady: false),
+      ),
+      'Shell scripts: executable once the Linux runtime is ready',
+    );
+    expect(
+      languageCapabilityTooltip(capabilitiesOf('markdown', runtimeReady: true)),
+      isNull,
+    );
+    expect(languageCapabilityTooltip(null), isNull);
+  });
+
+  test('the tools in the report, and their lines', () {
+    const tools = RuntimeTools(
+      tools: FakeRuntimeService.pinnedTools,
+      millis: 455,
+    );
+    final report = runtimeReport(
+      const RuntimeStatus(state: RuntimeState.ready),
+      tools: tools,
+    );
+    expect(report, contains('--- tools (455 ms)'));
+    expect(report, contains('perl: 5.44.0 (pinned 5.44.0-1) ok'));
+    expect(tools.allOk, isTrue);
+    expect(
+      runtimeToolLine(
+        const RuntimeTool(
+          tool: 'git',
+          packageName: 'git',
+          health: ToolHealth.missing,
+        ),
+      ),
+      'Not in this runtime',
+    );
+    expect(runtimeLanguagesLine(), 'JavaScript, Python and shell scripts');
+    expect(ToolHealth.fromCode('mismatch'), ToolHealth.mismatch);
+    expect(ToolHealth.fromCode('later'), ToolHealth.unavailable);
+    expect(ExecFailure.fromCode('timed_out'), ExecFailure.timedOut);
+    expect(ExecFailure.fromCode(null), isNull);
+    expect(ExecFailure.fromCode('who knows'), ExecFailure.launchFailed);
   });
 
   test('the status lines and the report follow the host', () {

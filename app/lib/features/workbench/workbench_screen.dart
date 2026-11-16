@@ -21,7 +21,9 @@ import '../../application/runtime_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../application/workbench_intents.dart';
 import '../../application/workspace_controller.dart';
+import '../../core/editor/capabilities.dart';
 import '../../core/errors/failure.dart';
+import '../../core/files/text_codec.dart';
 import '../../core/files/workspace_location.dart';
 import '../../core/platform/breakpoints.dart';
 import '../../design_system/components/buttons.dart';
@@ -596,6 +598,26 @@ class _StatusStripRow extends ConsumerWidget {
     final activeDoc = ref.watch(
       documentControllerProvider.select((s) => s.active),
     );
+    final runtimeReady = ref.watch(
+      runtimeControllerProvider.select((s) => s.state == RuntimeState.ready),
+    );
+    // What the runtime can do with the document's language (Phase 4 W4):
+    // shell scripts, which the editor shows as plain text, included.
+    final capabilities = activeDoc == null
+        ? null
+        : capabilitiesOf(
+            capabilityLanguageFor(
+              activeDoc.path,
+              // The head only: a long file without a line break is not
+              // scanned on every rebuild.
+              firstLine: firstLineOf(
+                activeDoc.savedText.length > 512
+                    ? activeDoc.savedText.substring(0, 512)
+                    : activeDoc.savedText,
+              ),
+            ),
+            runtimeReady: runtimeReady,
+          );
     return CfStatusStrip(
       children: [
         const CfStatusChip(
@@ -618,11 +640,15 @@ class _StatusStripRow extends ConsumerWidget {
                   if (activeDoc != null) ...[
                     CfStatusChip(
                       key: const ValueKey('status_language'),
-                      label: activeDoc.language,
+                      label:
+                          !activeDoc.largeFile &&
+                              capabilities?.language == shellLanguage
+                          ? shellLanguage
+                          : activeDoc.language,
                       color: activeDoc.largeFile ? colors.warning : null,
                       tooltip: activeDoc.largeFile
                           ? 'Large file: opened as plain text'
-                          : null,
+                          : languageCapabilityTooltip(capabilities),
                     ),
                     CfStatusChip(
                       key: const ValueKey('status_eol'),
@@ -652,6 +678,22 @@ class _StatusStripRow extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// The language chip's tooltip: what the runtime can do with the language
+/// (Phase 4 W4); null for a language it cannot run.
+String? languageCapabilityTooltip(LanguageCapabilities? capabilities) {
+  final interpreter = capabilities?.interpreter;
+  if (capabilities == null || interpreter == null) {
+    return null;
+  }
+  final name =
+      runtimeLanguageNames[capabilities.language] ?? capabilities.language;
+  final title = '${name[0].toUpperCase()}${name.substring(1)}';
+  return capabilities.executable
+      ? '$title: executable in the Linux runtime ($interpreter). '
+            'Run arrives in Phase 5'
+      : '$title: executable once the Linux runtime is ready';
 }
 
 /// The runtime's state in the status strip (Phase 4 W3).

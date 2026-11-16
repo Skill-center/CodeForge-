@@ -3,11 +3,17 @@
 /// process. Here the app comes back over the same files, the workbench
 /// starts the runtime, and nothing is extracted: the install marker
 /// matches this APK's payload, the executables' links are checked, and the
-/// audit runs again. app/tool/ci/emulator_gate.sh reads the RUNTIME_UI line.
+/// audit runs again. Then gate G4 (Phase 4 W4): Settings → Linux runtime
+/// probes the tools through RuntimeHost, each its pinned version, and a
+/// command runs end to end. app/tool/ci/emulator_gate.sh reads the
+/// RUNTIME_UI lines.
 library;
 
 import 'package:codeforge/app.dart';
+import 'package:codeforge/application/router.dart';
 import 'package:codeforge/application/runtime_controller.dart';
+import 'package:codeforge/core/errors/failure.dart';
+import 'package:codeforge/features/settings/runtime_screen.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -80,5 +86,81 @@ void main() {
     expect(audit, isNotNull);
     expect(audit!.outsideApk, 0, reason: audit.report);
     expect(audit.truncated, isFalse);
-  }, timeout: const Timeout(Duration(minutes: 10)));
+
+    // G4: the tools reach the Flutter UI through RuntimeHost, each its
+    // package's pinned version.
+    container.read(routerProvider).go('/settings/runtime');
+    await tester.pumpAndSettle();
+    expect(find.byType(RuntimeScreen), findsOneWidget);
+    await pumpUntil(
+      tester,
+      () {
+        final tools = container.read(runtimeToolsProvider);
+        return tools.tools != null && !tools.probing;
+      },
+      what: 'the tool probes',
+      timeout: const Duration(minutes: 4),
+    );
+    final probes = container.read(runtimeToolsProvider).tools!;
+    final versions = probes.tools
+        .map((tool) => '${tool.tool}=${tool.version}/${tool.health.name}')
+        .join(' ');
+    debugPrint(
+      'RUNTIME_UI tools ok=${probes.okCount} of=${probes.tools.length} '
+      'ms=${probes.millis} $versions',
+    );
+    for (final tool in probes.tools) {
+      debugPrint('RUNTIME_UI tool ${tool.tool} detail=${tool.detail}');
+    }
+    expect(probes.failure, isNull);
+    expect(probes.tools.map((tool) => tool.tool), [
+      'node',
+      'python',
+      'git',
+      'bash',
+      'perl',
+      'ruby',
+      'rg',
+    ]);
+    for (final tool in probes.tools) {
+      expect(tool.health, ToolHealth.ok, reason: '${tool.tool}: ${tool.detail}');
+    }
+    // What the page shows: the summary, then each tool with its version.
+    final list = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('runtime_tools')),
+      200,
+      scrollable: list,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('All 7 tools are their pinned versions'),
+      findsOneWidget,
+    );
+    for (final tool in probes.tools) {
+      final row = find.byKey(ValueKey('runtime_tool_${tool.tool}'));
+      await tester.scrollUntilVisible(row, 200, scrollable: list);
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.text('${tool.tool} ${tool.version}'),
+        ),
+        findsOneWidget,
+      );
+    }
+
+    // A command end to end: Dart, Pigeon, RuntimeHost, the launcher, node.
+    final result = await container
+        .read(runtimeControllerProvider.notifier)
+        .exec('node', ['-e', 'console.log(6 * 7)']);
+    final value = (result as Ok<ExecResult>).value;
+    debugPrint(
+      'RUNTIME_UI exec failure=${value.failure?.name} exit=${value.exitCode} '
+      'stdout=${value.stdout.trim()} ms=${value.durationMs} '
+      'detail=${value.detail}',
+    );
+    expect(value.failure, isNull, reason: value.detail);
+    expect(value.exitCode, 0, reason: value.stderr);
+    expect(value.stdout, '42\n');
+  }, timeout: const Timeout(Duration(minutes: 14)));
 }

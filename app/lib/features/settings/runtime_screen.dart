@@ -1,6 +1,8 @@
 /// Settings → Linux runtime (Phase 4 W3, docs/RUNTIME_INTEGRATION.md §3):
 /// where the sealed runtime is, what this build's payload holds, how long it
-/// took, what it occupies, its exec audit, and Reinstall.
+/// took, what it occupies, its exec audit, and Reinstall. Since W4 also its
+/// tools, each version against its pin (gate G4), and the languages it can
+/// execute.
 library;
 
 import 'dart:async';
@@ -11,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../application/runtime_controller.dart';
+import '../../core/editor/capabilities.dart';
 import '../../core/errors/failure.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/dialogs.dart';
@@ -75,8 +78,60 @@ String runtimePrograms(int count) =>
 String runtimeMegabytes(int bytes) =>
     '${(bytes / 1000000).toStringAsFixed(1)} MB';
 
+/// A tool's row: what it is, against its pin.
+String runtimeToolLine(RuntimeTool tool) {
+  return switch (tool.health) {
+    ToolHealth.ok => '${tool.packageName} ${tool.pinned}, as pinned',
+    ToolHealth.mismatch =>
+      tool.pinned == null
+          ? 'No pinned version to compare with'
+          : 'Pinned ${tool.packageName} ${tool.pinned}, '
+                'found ${tool.version ?? 'no version'}',
+    ToolHealth.failed => 'Failed: ${tool.detail ?? 'no output'}',
+    ToolHealth.missing => 'Not in this runtime',
+    ToolHealth.unavailable => 'Not checked: the runtime is not ready',
+  };
+}
+
+/// "JavaScript, Python and shell scripts": what the runtime can execute.
+String runtimeLanguagesLine() {
+  final names = [
+    for (final language in runtimeInterpreters.keys)
+      runtimeLanguageNames[language] ?? language,
+  ];
+  return names.length < 2
+      ? names.join()
+      : '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}';
+}
+
+/// A tool in the copied report: its version, its pin, its health.
+String runtimeToolReportLine(RuntimeTool tool) {
+  final detail = tool.detail == null ? '' : ' · ${tool.detail}';
+  final version = tool.version ?? '-';
+  final pinned = tool.pinned ?? '-';
+  return '${tool.tool}: $version (pinned $pinned) ${tool.health.name}$detail';
+}
+
+/// The tools' summary line.
+String runtimeToolsTitle(RuntimeToolsState state, RuntimeStatus status) {
+  final tools = state.tools;
+  if (state.probing && tools == null) {
+    return 'Checking the tools…';
+  }
+  if (tools == null) {
+    return status.usable ? 'Not checked yet' : 'Checked once it is ready';
+  }
+  if (tools.failure != null) {
+    return 'Not checked: ${tools.failure}';
+  }
+  final count = tools.tools.length;
+  return tools.allOk
+      ? 'All $count tools are their pinned versions'
+      : '${tools.okCount} of $count tools are their pinned versions';
+}
+
 /// Everything the page shows, as text the user can copy into a report.
-String runtimeReport(RuntimeStatus status) {
+String runtimeReport(RuntimeStatus status, {RuntimeTools? tools}) {
   final info = status.info;
   final audit = status.audit;
   final lines = <String>[
@@ -94,6 +149,10 @@ String runtimeReport(RuntimeStatus status) {
     if (status.relinked != null) 'relinked: ${status.relinked}',
     if (status.problem != null) 'problem: ${status.problem!.name}',
     if (status.detail != null) 'detail: ${status.detail}',
+    if (tools != null) ...[
+      '--- tools (${tools.millis} ms)',
+      for (final tool in tools.tools) runtimeToolReportLine(tool),
+    ],
     if (audit != null) ...['--- exec audit (${audit.millis} ms)', audit.report],
   ];
   return '${lines.join('\n')}\n';
@@ -114,7 +173,19 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(ref.read(runtimeControllerProvider.notifier).refresh());
+      _probeIfReady(ref.read(runtimeControllerProvider));
     });
+  }
+
+  /// The tools are probed once the runtime is usable, unless an answer is
+  /// already in.
+  void _probeIfReady(RuntimeStatus status) {
+    final tools = ref.read(runtimeToolsProvider);
+    final last = tools.tools;
+    final answered = last != null && last.failure == null;
+    if (status.usable && !answered && !tools.probing) {
+      unawaited(ref.read(runtimeToolsProvider.notifier).probe());
+    }
   }
 
   void _measure() {
@@ -156,7 +227,10 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
   }
 
   Future<void> _copyReport(RuntimeStatus status) async {
-    await Clipboard.setData(ClipboardData(text: runtimeReport(status)));
+    final tools = ref.read(runtimeToolsProvider).tools;
+    await Clipboard.setData(
+      ClipboardData(text: runtimeReport(status, tools: tools)),
+    );
     if (!mounted) {
       return;
     }
@@ -170,6 +244,14 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
     final colors = CfColors.of(context);
     final status = ref.watch(runtimeControllerProvider);
     final controller = ref.read(runtimeControllerProvider.notifier);
+    final toolsState = ref.watch(runtimeToolsProvider);
+    final probes = toolsState.tools;
+    ref.listen<RuntimeStatus>(runtimeControllerProvider, (before, after) {
+      if (!(before?.usable ?? false) && after.usable) {
+        _probeIfReady(after);
+      }
+    });
+    final ready = status.state == RuntimeState.ready;
     final info = status.info;
     final audit = status.audit;
     final canStart =
@@ -290,6 +372,77 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
                       '${(status.relinked ?? 0) > 0 ? ' (${status.relinked} programs relinked)' : ''}',
                 ),
             ],
+            const CfSectionHeader('Tools'),
+            CfSettingsTile(
+              key: const ValueKey('runtime_tools'),
+              leading: Icon(
+                probes == null
+                    ? CfIcons.terminal
+                    : probes.allOk
+                    ? CfIcons.check
+                    : CfIcons.warning,
+                color: probes == null
+                    ? colors.textDisabled
+                    : probes.allOk
+                    ? colors.success
+                    : colors.warning,
+              ),
+              title: runtimeToolsTitle(toolsState, status),
+              subtitle: toolsState.error != null
+                  ? 'Could not check: ${toolsState.error}'
+                  : toolsState.probing
+                  ? 'Running node, python, git, bash, perl, ruby and rg…'
+                  : probes == null
+                  ? 'node, python, git, bash, perl, ruby and rg, each run '
+                        'once and compared with its pinned package'
+                  : 'Each run once in ${probes.millis} ms',
+              trailing: status.usable && !toolsState.probing
+                  ? CfIconButton(
+                      key: const ValueKey('runtime_tools_check'),
+                      icon: CfIcons.restartAlt,
+                      tooltip: 'Check the tools again',
+                      onPressed: () => unawaited(
+                        ref.read(runtimeToolsProvider.notifier).probe(),
+                      ),
+                    )
+                  : null,
+            ),
+            if (probes != null && probes.failure == null)
+              for (final tool in probes.tools)
+                CfSettingsTile(
+                  key: ValueKey('runtime_tool_${tool.tool}'),
+                  leading: Icon(
+                    switch (tool.health) {
+                      ToolHealth.ok => CfIcons.check,
+                      ToolHealth.mismatch => CfIcons.warning,
+                      ToolHealth.failed || ToolHealth.missing => CfIcons.error,
+                      ToolHealth.unavailable => CfIcons.circle,
+                    },
+                    color: switch (tool.health) {
+                      ToolHealth.ok => colors.success,
+                      ToolHealth.mismatch => colors.warning,
+                      ToolHealth.failed || ToolHealth.missing => colors.danger,
+                      ToolHealth.unavailable => colors.textDisabled,
+                    },
+                  ),
+                  title: '${tool.tool} ${tool.version ?? ''}'.trim(),
+                  subtitle: runtimeToolLine(tool),
+                ),
+            const CfSectionHeader('Languages'),
+            CfSettingsTile(
+              key: const ValueKey('runtime_languages'),
+              leading: Icon(
+                CfIcons.playArrow,
+                color: ready ? colors.success : colors.textDisabled,
+              ),
+              title: runtimeLanguagesLine(),
+              subtitle: ready
+                  ? 'Executable here, with '
+                        '${runtimeInterpreters.values.join(', ')}. Running '
+                        'them from the editor arrives in Phase 5'
+                  : 'Executable once the runtime is ready. Running them '
+                        'from the editor arrives in Phase 5',
+            ),
             const CfSectionHeader('Storage'),
             _SizeTile(size: _size, onMeasure: status.usable ? _measure : null),
             const CfSectionHeader('Program check'),

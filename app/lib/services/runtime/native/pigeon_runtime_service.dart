@@ -29,6 +29,13 @@ final class PigeonRuntimeService implements RuntimeService {
   static const Duration _quick = Duration(seconds: 15);
   static const Duration _walk = Duration(seconds: 150);
 
+  // A command answers when it ends: at its own time limit at the latest,
+  // plus the host's grace and kill phase. The tool probes run seven
+  // commands of at most 30 s each, one after another.
+  static const Duration _commandDefault = Duration(seconds: 60);
+  static const Duration _commandMargin = Duration(seconds: 15);
+  static const Duration _probes = Duration(seconds: 240);
+
   @override
   Stream<RuntimeStatus> get changes {
     _hear();
@@ -67,6 +74,36 @@ final class PigeonRuntimeService implements RuntimeService {
       apkBytes: size.apkBytes,
     );
   });
+
+  @override
+  Future<Result<ExecResult>> exec(
+    String program,
+    List<String> arguments, {
+    String? directory,
+    Duration? timeout,
+    int? outputLimit,
+  }) {
+    final limit = timeout ?? _commandDefault;
+    return _call('exec', limit + _commandMargin, () async {
+      final result = await _api.exec(
+        ExecRequestMessage(
+          program: program,
+          arguments: arguments,
+          directory: directory,
+          timeoutMs: limit.inMilliseconds,
+          outputLimit: outputLimit,
+        ),
+      );
+      return execResultFrom(result);
+    });
+  }
+
+  @override
+  Future<Result<RuntimeTools>> tools() => _call(
+    'tools',
+    _probes,
+    () async => runtimeToolsFrom(await _api.tools()),
+  );
 
   /// Stops hearing the host and closes [changes].
   Future<void> dispose() async {
@@ -152,6 +189,41 @@ RuntimeStatus runtimeStatusFrom(RuntimeStatusMessage message) {
     auditing: message.auditing,
   );
 }
+
+/// A host's command result as the app's.
+ExecResult execResultFrom(ExecResultMessage message) => ExecResult(
+  exitCode: message.exitCode,
+  signal: message.signal,
+  stdout: message.stdout,
+  stderr: message.stderr,
+  stdoutBytes: message.stdoutBytes,
+  stderrBytes: message.stderrBytes,
+  stdoutTruncated: message.stdoutTruncated,
+  stderrTruncated: message.stderrTruncated,
+  durationMs: message.durationMs,
+  failure: ExecFailure.fromCode(message.failure),
+  detail: message.detail,
+  leftovers: message.leftovers,
+  remaining: message.remaining,
+);
+
+/// The host's tool probes as the app's.
+RuntimeTools runtimeToolsFrom(ToolsMessage message) => RuntimeTools(
+  tools: [
+    for (final tool in message.tools)
+      RuntimeTool(
+        tool: tool.tool,
+        packageName: tool.packageName,
+        version: tool.version,
+        pinned: tool.pinned,
+        health: ToolHealth.fromCode(tool.health),
+        detail: tool.detail,
+        millis: tool.millis,
+      ),
+  ],
+  millis: message.millis,
+  failure: message.failure,
+);
 
 /// The failure for a host's error, or for Pigeon's own when no host
 /// answered.

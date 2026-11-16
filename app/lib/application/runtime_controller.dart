@@ -2,7 +2,8 @@
 /// §3): what the host last said, the newest snapshot winning, and the
 /// requests the workbench and Settings → Runtime make. The install is lazy:
 /// the workbench starts the runtime when a workspace opens, and the editor
-/// works on its files meanwhile.
+/// works on its files meanwhile. Since W4 it also runs one-shot commands,
+/// and [RuntimeToolsController] keeps the tool probes.
 library;
 
 import 'dart:async';
@@ -62,6 +63,23 @@ final class RuntimeController extends Notifier<RuntimeStatus> {
   Future<Result<RuntimeSize>> measure() =>
       ref.read(runtimeServiceProvider).size();
 
+  /// Runs one command in the runtime (Phase 4 W4; RuntimeService.exec).
+  Future<Result<ExecResult>> exec(
+    String program,
+    List<String> arguments, {
+    String? directory,
+    Duration? timeout,
+    int? outputLimit,
+  }) => ref
+      .read(runtimeServiceProvider)
+      .exec(
+        program,
+        arguments,
+        directory: directory,
+        timeout: timeout,
+        outputLimit: outputLimit,
+      );
+
   void _answer(String op, Result<RuntimeStatus> result) {
     if (!ref.mounted) {
       return;
@@ -120,3 +138,61 @@ final class RuntimeController extends Notifier<RuntimeStatus> {
 
 final runtimeControllerProvider =
     NotifierProvider<RuntimeController, RuntimeStatus>(RuntimeController.new);
+
+/// The last tool probes, and whether one is running.
+final class RuntimeToolsState {
+  const RuntimeToolsState({this.tools, this.probing = false, this.error});
+
+  /// The last probes' answer; null before one finished.
+  final RuntimeTools? tools;
+  final bool probing;
+
+  /// Why the last request got no answer.
+  final String? error;
+}
+
+/// The tool probes for Settings → Runtime (Phase 4 W4, gate G4): node,
+/// python, git, bash, perl, ruby and rg, each version against its pin.
+/// They run on request; the page asks once the runtime is ready.
+final class RuntimeToolsController extends Notifier<RuntimeToolsState> {
+  @override
+  RuntimeToolsState build() => const RuntimeToolsState();
+
+  Future<void> probe() async {
+    if (state.probing) {
+      return;
+    }
+    state = RuntimeToolsState(tools: state.tools, probing: true);
+    final result = await ref.read(runtimeServiceProvider).tools();
+    if (!ref.mounted) {
+      return;
+    }
+    switch (result) {
+      case Ok<RuntimeTools>(:final value):
+        state = RuntimeToolsState(tools: value);
+        appLogger.info(
+          'runtime',
+          'tools',
+          fields: {
+            'ok': value.okCount,
+            'of': value.tools.length,
+            'ms': value.millis,
+            for (final tool in value.tools)
+              tool.tool: '${tool.version ?? '-'}/${tool.health.name}',
+          },
+        );
+      case Err<RuntimeTools>(:final failure):
+        appLogger.warn(
+          'runtime',
+          'tools_failed',
+          fields: {'error': failure.message},
+        );
+        state = RuntimeToolsState(tools: state.tools, error: failure.message);
+    }
+  }
+}
+
+final runtimeToolsProvider =
+    NotifierProvider<RuntimeToolsController, RuntimeToolsState>(
+      RuntimeToolsController.new,
+    );

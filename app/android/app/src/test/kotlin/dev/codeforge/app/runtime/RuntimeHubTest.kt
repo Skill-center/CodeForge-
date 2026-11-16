@@ -16,7 +16,8 @@ import org.junit.rules.TemporaryFolder
  * The runtime hub's states (Phase 4 W3, gate G3): the install is lazy, a
  * start is a warm start or an install and then the audit, READY never
  * follows a failed install, and a new process finds the install it left.
- * The worker and the main thread are the test's own thread here.
+ * Since W4 (gate G4): commands and the tool probes wait for a ready
+ * runtime. The worker and the main thread are the test's own thread here.
  */
 class RuntimeHubTest {
     @get:Rule
@@ -237,5 +238,82 @@ class RuntimeHubTest {
         hub.sizes { sizes = it }
         assertEquals(TestPayload().bytes, sizes!!.prefixBytes)
         assertEquals(42L, sizes.apkBytes)
+    }
+
+    /** The command side over this test's runtime, with the probes' commands answered by [answer]. */
+    private fun commandsFor(answer: (CommandRequest) -> CommandResult): RuntimeCommands {
+        val environment = RuntimeEnvironment(TestPayload.configFor(root, libraries), emptyMap())
+        val sessions = SessionRegistry(killGroup = {})
+        // No launcher here: a command that reaches the runner fails to launch.
+        val runner = CommandRunner(environment, File(root, "no-launcher"), sessions, File(root, "codeforge/sessions"))
+        return RuntimeCommands(environment, sessions, runner, Toolchain(run = answer, present = { true }))
+    }
+
+    @Test
+    fun commandsAndProbesWaitForAReadyRuntime() {
+        var made = 0
+        val asked = mutableListOf<String>()
+        val source = TestPayload().source()
+        val hub = RuntimeHub(
+            runtimeFactory = { SealedRuntime(source, TestPayload.configFor(root, libraries)) },
+            worker = direct,
+            deliver = { task -> task.run() },
+            apkBytes = { 42L },
+            commandsFactory = {
+                made++
+                commandsFor { request ->
+                    asked.add(request.program)
+                    // Each in its tool's shape, at a version no pin names.
+                    val text = when (request.program) {
+                        "git" -> "git version 1.0.0\n"
+                        "rg" -> "ripgrep 1.0.0\n"
+                        else -> "1.0.0\n"
+                    }
+                    CommandResult(0, null, CommandOutput(text, text.length.toLong(), false), CommandOutput.EMPTY, 5L, null, null, 0, 0)
+                }
+            },
+            commandExecutor = direct,
+        )
+
+        var result: CommandResult? = null
+        hub.exec(CommandRequest("sh")) { result = it }
+        assertEquals(CommandFailure.NOT_READY, result!!.failure)
+        var tools: ToolsReport? = null
+        hub.tools { tools = it }
+        assertTrue(tools!!.tools.all { it.health == ToolHealth.UNAVAILABLE })
+        assertNotNull(tools!!.failure)
+        assertEquals("nothing is made before the runtime is ready", 0, made)
+
+        hub.start { }
+        assertEquals(RuntimeState.READY, hub.snapshot().state)
+        hub.tools { tools = it }
+        assertNull(tools!!.failure)
+        assertEquals(listOf("node", "python", "git", "bash", "perl", "ruby", "rg"), asked)
+        // This payload's info has no tools' pins: no version is taken for the pinned one.
+        assertTrue(tools!!.tools.all { it.health == ToolHealth.MISMATCH })
+
+        hub.exec(CommandRequest("sh")) { result = it }
+        assertEquals("the command reached the runner", CommandFailure.LAUNCH_FAILED, result!!.failure)
+        assertEquals(1, made)
+        assertNotNull(hub.currentCommands())
+    }
+
+    @Test
+    fun aFailedInstallTakesNoCommands() {
+        val payload = TestPayload(wrongDigestFor = "etc/profile")
+        val hub = RuntimeHub(
+            runtimeFactory = { SealedRuntime(payload.source(), TestPayload.configFor(root, libraries)) },
+            worker = direct,
+            deliver = { task -> task.run() },
+            apkBytes = { 42L },
+            commandsFactory = { commandsFor { CommandResult.failed(CommandFailure.LAUNCH_FAILED, "unused") } },
+            commandExecutor = direct,
+        )
+        hub.start { }
+        assertEquals(RuntimeState.FAILED, hub.snapshot().state)
+        var result: CommandResult? = null
+        hub.exec(CommandRequest("sh")) { result = it }
+        assertEquals(CommandFailure.NOT_READY, result!!.failure)
+        assertTrue(result!!.detail!!.contains("failed"))
     }
 }

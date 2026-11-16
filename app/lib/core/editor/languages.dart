@@ -85,6 +85,13 @@ String languageForPath(String path, {String? firstLine}) {
 /// `#!/usr/bin/env node`, `#!/usr/bin/python3 -u`,
 /// `#!/usr/bin/env -S deno run`.
 String? languageForShebang(String line) {
+  final interpreter = shebangInterpreter(line);
+  return interpreter == null ? null : editorLanguageByInterpreter[interpreter];
+}
+
+/// The interpreter a `#!` line names, lower case and without version
+/// digits (`node`, `python`, `sh`), or null when the line names none.
+String? shebangInterpreter(String line) {
   if (!line.startsWith('#!')) {
     return null;
   }
@@ -106,5 +113,5 @@ String? languageForShebang(String line) {
     program = words[index].split('/').last;
   }
   final interpreter = program.toLowerCase().replaceFirst(_versionSuffix, '');
-  return editorLanguageByInterpreter[interpreter];
+  return interpreter.isEmpty ? null : interpreter;
 }

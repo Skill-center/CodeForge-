@@ -1,7 +1,10 @@
 /// A runtime host in memory (Phase 4 W3): it answers at once and moves
 /// through the host's states synchronously, as RuntimeHub.kt does when its
 /// worker is free. Installed and not started unless a test says otherwise,
-/// so opening a workspace makes it ready by a warm start.
+/// so opening a workspace makes it ready by a warm start. Since W4 it runs
+/// commands through [onExec] and answers the tool probes with [toolAnswers]
+/// (every tool its pinned version unless a test says otherwise), refusing
+/// both until it is ready, as the host does.
 library;
 
 import 'dart:async';
@@ -37,6 +40,76 @@ final class FakeRuntimeService implements RuntimeService {
   int reinstalls = 0;
   int audits = 0;
   int sizes = 0;
+  int toolProbes = 0;
+
+  /// Every command asked for, in order.
+  final List<(String, List<String>)> commands = [];
+
+  /// The answer to a command once the runtime is ready; exit 0 when null.
+  ExecResult Function(String program, List<String> arguments)? onExec;
+
+  /// The tool probes' answer once the runtime is ready.
+  List<RuntimeTool> toolAnswers = pinnedTools;
+
+  /// The seven probed tools, each its package's pinned version.
+  static const List<RuntimeTool> pinnedTools = [
+    RuntimeTool(
+      tool: 'node',
+      packageName: 'nodejs',
+      version: '26.13.1',
+      pinned: '26.13.1',
+      health: ToolHealth.ok,
+      millis: 140,
+    ),
+    RuntimeTool(
+      tool: 'python',
+      packageName: 'python',
+      version: '3.14.10',
+      pinned: '3.14.10',
+      health: ToolHealth.ok,
+      millis: 95,
+    ),
+    RuntimeTool(
+      tool: 'git',
+      packageName: 'git',
+      version: '2.56.1',
+      pinned: '2.56.1',
+      health: ToolHealth.ok,
+      millis: 12,
+    ),
+    RuntimeTool(
+      tool: 'bash',
+      packageName: 'bash',
+      version: '5.3.9',
+      pinned: '5.3.9',
+      health: ToolHealth.ok,
+      millis: 9,
+    ),
+    RuntimeTool(
+      tool: 'perl',
+      packageName: 'perl',
+      version: '5.44.0',
+      pinned: '5.44.0-1',
+      health: ToolHealth.ok,
+      millis: 31,
+    ),
+    RuntimeTool(
+      tool: 'ruby',
+      packageName: 'ruby',
+      version: '4.0.9',
+      pinned: '4.0.9',
+      health: ToolHealth.ok,
+      millis: 160,
+    ),
+    RuntimeTool(
+      tool: 'rg',
+      packageName: 'ripgrep',
+      version: '15.2.0',
+      pinned: '15.2.0',
+      health: ToolHealth.ok,
+      millis: 8,
+    ),
+  ];
 
   RuntimeStatus get current => _status;
 
@@ -172,6 +245,50 @@ final class FakeRuntimeService implements RuntimeService {
   Future<Result<RuntimeSize>> size() async {
     sizes++;
     return _answer(size14);
+  }
+
+  @override
+  Future<Result<ExecResult>> exec(
+    String program,
+    List<String> arguments, {
+    String? directory,
+    Duration? timeout,
+    int? outputLimit,
+  }) async {
+    commands.add((program, arguments));
+    if (!_status.usable) {
+      return _answer(
+        ExecResult(
+          failure: ExecFailure.notReady,
+          detail: 'the runtime is ${_status.state.name}',
+        ),
+      );
+    }
+    final handler = onExec;
+    return _answer(
+      handler == null ? const ExecResult(exitCode: 0) : handler(program, arguments),
+    );
+  }
+
+  @override
+  Future<Result<RuntimeTools>> tools() async {
+    toolProbes++;
+    if (!_status.usable) {
+      return _answer(
+        RuntimeTools(
+          tools: [
+            for (final tool in pinnedTools)
+              RuntimeTool(
+                tool: tool.tool,
+                packageName: tool.packageName,
+                health: ToolHealth.unavailable,
+              ),
+          ],
+          failure: 'the runtime is ${_status.state.name}',
+        ),
+      );
+    }
+    return _answer(RuntimeTools(tools: toolAnswers, millis: 455));
   }
 
   /// Sets the host to [state], with its usual fields, and tells the app.

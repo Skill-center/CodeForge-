@@ -2,6 +2,7 @@ package dev.codeforge.app.runtime
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executor
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /** Where the runtime is. Each code travels to Dart. */
 enum class RuntimeState(val code: String) {
@@ -71,6 +72,12 @@ data class RuntimeStatus(
  * after it, at every start. READY comes only from a verified install or a
  * verified layout, never from a failed one. A failed install stays failed
  * until [reinstall]: the same payload would fail the same way.
+ *
+ * Commands and the tool probes (Phase 4 W4) run on [commandExecutor], not
+ * on the worker, so a long command never holds up a status or an audit. They
+ * run only while the runtime is READY or DEGRADED, and never during an
+ * install: an install first ends every session (SessionRegistry.endAll) and
+ * holds the prefix's write lock, while each command holds its read lock.
  */
 class RuntimeHub(
     private val runtimeFactory: () -> SealedRuntime,
@@ -78,6 +85,8 @@ class RuntimeHub(
     private val deliver: (Runnable) -> Unit,
     private val apkBytes: () -> Long,
     private val clock: () -> Long = System::nanoTime,
+    private val commandsFactory: (() -> RuntimeCommands)? = null,
+    private val commandExecutor: Executor = worker,
 ) {
     private val lock = Any()
     private var current = RuntimeStatus()
@@ -86,6 +95,13 @@ class RuntimeHub(
     // The worker's own.
     private var runtime: SealedRuntime? = null
     private var lastProgressAt = Long.MIN_VALUE
+
+    // The command side, made by the first command or probe.
+    private val commandsLock = Any()
+    private var commands: RuntimeCommands? = null
+
+    /** Commands hold it shared; an install holds it alone. */
+    private val prefixLock = ReentrantReadWriteLock()
 
     fun snapshot(): RuntimeStatus = synchronized(lock) { current }
 
@@ -164,6 +180,72 @@ class RuntimeHub(
             deliver(Runnable { answer(sizes) })
         }
     }
+
+    /**
+     * Runs one command (Phase 4 W4) and answers with its result: NOT_READY
+     * at once unless the runtime is READY or DEGRADED.
+     */
+    fun exec(request: CommandRequest, answer: (CommandResult) -> Unit) {
+        val state = snapshot().state
+        if (!usable(state) || commandsFactory == null) {
+            deliver(Runnable { answer(CommandResult.failed(CommandFailure.NOT_READY, "the runtime is ${state.code}")) })
+            return
+        }
+        commandExecutor.execute {
+            val result = try {
+                withPrefix { commands -> commands.runner.run(request) }
+                    ?: CommandResult.failed(CommandFailure.NOT_READY, "the runtime is ${snapshot().state.code}")
+            } catch (failure: Exception) {
+                CommandResult.failed(CommandFailure.LAUNCH_FAILED, failure.toString())
+            }
+            deliver(Runnable { answer(result) })
+        }
+    }
+
+    /**
+     * Probes the runtime's tools (Phase 4 W4, gate G4) and answers with each
+     * one's version and health; every tool UNAVAILABLE unless the runtime is
+     * READY or DEGRADED.
+     */
+    fun tools(answer: (ToolsReport) -> Unit) {
+        val state = snapshot().state
+        if (!usable(state) || commandsFactory == null) {
+            deliver(Runnable { answer(Toolchain.unavailable("the runtime is ${state.code}")) })
+            return
+        }
+        commandExecutor.execute {
+            val report = try {
+                withPrefix { commands -> commands.toolchain.inspect(Toolchain.pinsFrom(snapshot().info)) }
+                    ?: Toolchain.unavailable("the runtime is ${snapshot().state.code}")
+            } catch (failure: Exception) {
+                Toolchain.unavailable(failure.toString())
+            }
+            deliver(Runnable { answer(report) })
+        }
+    }
+
+    /** The command side, when a command or probe has made it. */
+    fun currentCommands(): RuntimeCommands? = synchronized(commandsLock) { commands }
+
+    private fun commands(): RuntimeCommands? {
+        val factory = commandsFactory ?: return null
+        return synchronized(commandsLock) { commands ?: factory().also { commands = it } }
+    }
+
+    /** [block] while no install can touch the prefix, if the runtime is usable; null otherwise. */
+    private fun <T> withPrefix(block: (RuntimeCommands) -> T): T? {
+        if (!prefixLock.readLock().tryLock()) return null
+        try {
+            if (!usable(snapshot().state)) return null
+            val commands = commands() ?: return null
+            return block(commands)
+        } finally {
+            prefixLock.readLock().unlock()
+        }
+    }
+
+    private fun usable(state: RuntimeState): Boolean =
+        state == RuntimeState.READY || state == RuntimeState.DEGRADED
 
     // ── The worker's side ──────────────────────────────────────────────
 
@@ -252,6 +334,11 @@ class RuntimeHub(
             )
         }
         lastProgressAt = Long.MIN_VALUE
+        // No command may run while the prefix is replaced: every session is
+        // ended (and new ones refused), then the install holds the prefix alone.
+        val sessions = currentCommands()?.sessions
+        sessions?.endAll(EndReason.ENDED)
+        prefixLock.writeLock().lock()
         try {
             val result = runtime().install { done, total -> progress(done, total) }
             update {
@@ -265,6 +352,9 @@ class RuntimeHub(
         } catch (failure: Exception) {
             fail(failure)
             return
+        } finally {
+            prefixLock.writeLock().unlock()
+            sessions?.reopen()
         }
         auditNow()
     }

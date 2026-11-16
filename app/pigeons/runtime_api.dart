@@ -1,6 +1,7 @@
 // The typed boundary to the runtime host (Phase 4 W3,
 // docs/RUNTIME_INTEGRATION.md §3): the sealed runtime's status, its install,
-// its warm start, its exec audit and its size.
+// its warm start, its exec audit and its size; since W4 also one-shot
+// commands (`exec`) and the tool probes (`tools`).
 //
 // Pigeon generates the Dart client and the Kotlin interface from this file,
 // as for pigeons/storage_api.dart: CI's [bootstrap] mode runs
@@ -145,6 +146,129 @@ class RuntimeSizeMessage {
   int apkBytes;
 }
 
+/// One command for the runtime: a program in its bin, run once (Phase 4 W4).
+class ExecRequestMessage {
+  ExecRequestMessage({
+    required this.program,
+    required this.arguments,
+    this.directory,
+    this.timeoutMs,
+    this.outputLimit,
+  });
+
+  /// A name in the runtime's bin (`node`, `git`); never a path.
+  String program;
+
+  List<String> arguments;
+
+  /// The runtime's home when null; otherwise a folder inside its home or
+  /// workspace.
+  String? directory;
+
+  /// The time limit (60 s when null, at most 10 minutes).
+  int? timeoutMs;
+
+  /// Bytes kept of each of stdout and stderr (256 KiB when null, 1 KiB to
+  /// 1 MiB).
+  int? outputLimit;
+}
+
+/// What became of a command.
+class ExecResultMessage {
+  ExecResultMessage({
+    required this.stdout,
+    required this.stderr,
+    required this.stdoutBytes,
+    required this.stderrBytes,
+    required this.stdoutTruncated,
+    required this.stderrTruncated,
+    required this.durationMs,
+    required this.leftovers,
+    required this.remaining,
+    this.exitCode,
+    this.signal,
+    this.failure,
+    this.detail,
+  });
+
+  /// The command's exit code; null when it did not exit by itself.
+  int? exitCode;
+
+  /// The signal that ended it, when one did.
+  int? signal;
+
+  String stdout;
+  String stderr;
+
+  /// Every byte written to each, kept or not.
+  int stdoutBytes;
+  int stderrBytes;
+
+  bool stdoutTruncated;
+  bool stderrTruncated;
+
+  int durationMs;
+
+  /// Why it has no ordinary result: 'not_ready', 'bad_request',
+  /// 'not_found', 'cannot_execute', 'timed_out', 'ended', 'signaled' or
+  /// 'launch_failed' (CommandRunner.kt); null when it ran and exited.
+  String? failure;
+
+  String? detail;
+
+  /// Processes ended after it: what it left running, or its whole tree when
+  /// it was stopped.
+  int leftovers;
+
+  /// Processes that could not be ended: 0 unless the kernel refused.
+  int remaining;
+}
+
+/// One tool's probe (Toolchain.kt).
+class ToolMessage {
+  ToolMessage({
+    required this.tool,
+    required this.packageName,
+    required this.health,
+    required this.millis,
+    this.version,
+    this.pinned,
+    this.detail,
+  });
+
+  /// 'node', 'python', 'git', 'bash', 'perl', 'ruby' or 'rg'.
+  String tool;
+
+  /// The Termux package that carries it.
+  String packageName;
+
+  /// What the tool says its version is.
+  String? version;
+
+  /// Its package's pinned version.
+  String? pinned;
+
+  /// 'ok', 'mismatch', 'failed', 'missing' or 'unavailable'.
+  String health;
+
+  /// The probe's first line of output, or why it failed.
+  String? detail;
+
+  int millis;
+}
+
+/// Every tool's probe.
+class ToolsMessage {
+  ToolsMessage({required this.tools, required this.millis, this.failure});
+
+  List<ToolMessage> tools;
+
+  int millis;
+
+  /// Why nothing was probed (the runtime is not ready), or null.
+  String? failure;
+}
+
 @HostApi()
 abstract class RuntimeApi {
   /// The status. The first call in a process looks whether this APK carries
@@ -169,6 +293,16 @@ abstract class RuntimeApi {
   /// Measures what the runtime occupies.
   @asyncCallback
   RuntimeSizeMessage size();
+
+  /// Runs one command in the runtime and answers with its result (Phase 4
+  /// W4). Refused with 'not_ready' unless the runtime is ready or degraded.
+  @asyncCallback
+  ExecResultMessage exec(ExecRequestMessage request);
+
+  /// Probes node, python, git, bash, perl, ruby and rg: each version, and
+  /// whether it is the pinned one (Phase 4 W4, gate G4).
+  @asyncCallback
+  ToolsMessage tools();
 }
 
 /// What the runtime host tells Dart unasked.
