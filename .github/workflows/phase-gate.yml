@@ -24,7 +24,11 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.head_commit.message, '[phase-gate]')
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    # About 30 minutes until Phase 4 W3. W3 puts a payload into three builds
+    # and adds two parts: the arm64 bundle, and the runtime group (an x86_64
+    # payload build, its instrumented tests and an integration pair). The limit
+    # leaves room for a slow emulator.
+    timeout-minutes: 100
     defaults:
       run:
         working-directory: app
