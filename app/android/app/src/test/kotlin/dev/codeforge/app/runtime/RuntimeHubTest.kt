@@ -63,9 +63,9 @@ class RuntimeHubTest {
         var answer: RuntimeStatus? = null
         hub.status { answer = it }
         assertEquals(RuntimeState.NOT_INSTALLED, answer!!.state)
-        assertEquals("x86_64", answer!!.abi)
-        assertEquals("0123456789abcdef", answer!!.payloadId)
-        assertNotNull(answer!!.info)
+        assertEquals("x86_64", answer.abi)
+        assertEquals("0123456789abcdef", answer.payloadId)
+        assertNotNull(answer.info)
         assertFalse(seen.any { it.state == RuntimeState.INSTALLING })
     }
 
@@ -196,13 +196,13 @@ class RuntimeHubTest {
         var answer: RuntimeStatus? = null
         hub.audit { answer = it }
         assertEquals(RuntimeState.DEGRADED, answer!!.state)
-        assertEquals(RuntimeProblem.OUTSIDE_APK, answer!!.problem)
-        assertEquals(1, answer!!.audit!!.outsideApk)
+        assertEquals(RuntimeProblem.OUTSIDE_APK, answer.problem)
+        assertEquals(1, answer.audit!!.outsideApk)
         // Clean again once it is gone.
         rogue.delete()
         hub.audit { answer = it }
-        assertEquals(RuntimeState.READY, answer!!.state)
-        assertNull(answer!!.problem)
+        assertEquals(RuntimeState.READY, answer.state)
+        assertNull(answer.problem)
     }
 
     @Test
@@ -236,6 +236,6 @@ class RuntimeHubTest {
         var sizes: RuntimeSizes? = null
         hub.sizes { sizes = it }
         assertEquals(TestPayload().bytes, sizes!!.prefixBytes)
-        assertEquals(42L, sizes!!.apkBytes)
+        assertEquals(42L, sizes.apkBytes)
     }
 }

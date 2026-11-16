@@ -94,9 +94,14 @@ dependencies {
     // CI runs :app:testDebugUnitTest.
     testImplementation("junit:junit:4.13.2")
 
-    // The runtime's instrumented tests (src/androidTest), on a device.
-    androidTestImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:core:1.6.1")
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    // The runtime's instrumented tests (src/androidTest), on a device. Their
+    // APK runs in the app's process, and AGP leaves out of it whatever the
+    // debug app already contains, resolving it to the app's versions. Flutter's
+    // integration_test plugin (a dev dependency, which only release builds leave
+    // out) puts the androidx.test 1.3.0 train into the debug app: runner 1.3.0
+    // with junit 4.12. So these stay on that train; a newer one fails to resolve
+    // (CI 43804216240).
+    androidTestImplementation("junit:junit:4.12")
+    androidTestImplementation("androidx.test:runner:1.3.0")
+    androidTestImplementation("androidx.test.ext:junit:1.1.2")
 }
