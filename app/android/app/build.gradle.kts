@@ -100,8 +100,10 @@ dependencies {
     // integration_test plugin (a dev dependency, which only release builds leave
     // out) puts the androidx.test 1.3.0 train into the debug app: runner 1.3.0
     // with junit 4.12. So these stay on that train; a newer one fails to resolve
-    // (CI 43804216240).
+    // (CI 43804216240). That train's androidx.test.ext:junit brings core 1.3.0,
+    // whose activities lack android:exported, which fails the manifest merge
+    // for apps that target Android 12 or later (CI 43805853809). So the tests
+    // are plain JUnit4 classes, which AndroidJUnitRunner runs without it.
     androidTestImplementation("junit:junit:4.12")
     androidTestImplementation("androidx.test:runner:1.3.0")
-    androidTestImplementation("androidx.test.ext:junit:1.1.2")
 }

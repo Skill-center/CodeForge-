@@ -2,7 +2,6 @@ package dev.codeforge.app.runtime
 
 import android.content.Context
 import android.util.Log
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.codeforge.runtime.core.HarnessConfig
 import dev.codeforge.runtime.core.exec.SealedPayloadInstaller
@@ -18,7 +17,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.FixMethodOrder
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
 
 /**
@@ -30,8 +28,10 @@ import org.junit.runners.MethodSorters
  * Every figure goes to the device log (RUNTIME_GATE key=value) and to
  * files/runtime-gate/report.txt, which the gate copies out. The installs go
  * to their own roots under files/runtime-gate, never the app's runtime.
+ *
+ * A plain JUnit4 class: AndroidJUnitRunner runs those itself, so the tests
+ * need no androidx.test.ext.junit (see the dependencies in build.gradle.kts).
  */
-@RunWith(AndroidJUnit4::class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class RuntimeInstallTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
