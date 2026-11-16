@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -21,7 +22,8 @@ import org.junit.rules.TemporaryFolder
  * runner, the session registry and the launcher together, on the machine
  * that runs the tests. The launcher is compiled here from
  * native/runtime-core/src/main/jni/codeforge-spawn.c with the machine's C
- * compiler (the tests are skipped without one); the programs are the
+ * compiler (the tests are skipped without one, except on CI, where that
+ * fails); the programs are the
  * machine's /bin/sh and sleep, linked into a runtime's bin. The emulator
  * gate runs the same on Android (RuntimeCommandsTest).
  *
@@ -39,6 +41,8 @@ class CommandRunnerTest {
 
     @Before
     fun setUp() {
+        // On CI a missing compiler is a failure, so these tests never pass by being skipped.
+        if (System.getenv("CI") == "true") assertNotNull("no C compiler on CI for the launcher", launcher)
         assumeTrue("no C compiler here for the launcher", launcher != null)
         root = temp.newFolder("harness")
         val libraries = temp.newFolder("lib")
@@ -131,7 +135,7 @@ class CommandRunnerTest {
         plain.setExecutable(false)
         val notExecutable = runner.run(CommandRequest("plain"))
         assertEquals(CommandFailure.CANNOT_EXECUTE, notExecutable.failure)
-        assertTrue(notExecutable.detail!!, notExecutable.detail!!.contains("EACCES"))
+        assertTrue(notExecutable.detail!!, notExecutable.detail.contains("EACCES"))
 
         File(environment.bin, "orphan").apply {
             writeText("#!/nonexistent/interpreter\n")
@@ -153,7 +157,7 @@ class CommandRunnerTest {
     fun aCommandPastItsTimeLimitIsEndedWithEverythingItStarted() {
         val result = sh("sleep $marker & sleep $marker & sleep $marker", timeoutMs = 400L)
         assertEquals(CommandFailure.TIMED_OUT, result.failure)
-        assertTrue(result.detail!!, result.detail!!.contains("time limit"))
+        assertTrue(result.detail!!, result.detail.contains("time limit"))
         // The shell and its three sleeps (dash may run the last in its own place).
         assertTrue("ended ${result.leftovers}", result.leftovers >= 3)
         assertEquals(0, result.remaining)
@@ -195,7 +199,7 @@ class CommandRunnerTest {
         val result = sh("kill -SEGV \$\$")
         assertEquals(CommandFailure.SIGNALED, result.failure)
         assertEquals(11, result.signal)
-        assertTrue(result.detail!!, result.detail!!.contains("SIGSEGV"))
+        assertTrue(result.detail!!, result.detail.contains("SIGSEGV"))
     }
 
     @Test
@@ -228,7 +232,7 @@ class CommandRunnerTest {
         @BeforeClass
         @JvmStatic
         fun compileTheLauncher() {
-            val source = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+            val source = generateSequence(File(System.getProperty("user.dir") ?: ".").absoluteFile) { it.parentFile }
                 .map { File(it, "native/runtime-core/src/main/jni/codeforge-spawn.c") }
                 .firstOrNull { it.isFile } ?: return
             val compiler = listOf("cc", "gcc", "clang").firstOrNull { name ->

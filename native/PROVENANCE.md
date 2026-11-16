@@ -27,10 +27,15 @@ CodeForge vendors t1's sealed runtime: its kernel (`native/sealed-runtime/`), it
   - `HarnessSizeReport` attributes sizes to the apt install tiers (`provision.PackageTier`). The runtime host counts the installed size itself (`SealedRuntime.kt`, unique inodes, as t1's report does).
   - `packs/*` (`Pack`, `PackState`, `PackResult`, `PackInstaller`, `Packs`): `Pack` names an apt tier, the others need `Pack`, and `Packs` chooses between the apt installer and Play's. Nothing installs a pack before the build-tools pack, which brings the port with `PlayPackInstaller`, without an apt branch to delete.
   - t1's `Android.mk` builds `libtermux` from `termux.c`. CodeForge's own `Android.mk` builds `harness-exec.c` alone, with t1's flags.
+  - **`HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain` (W4).** CodeForge writes its own exec model instead: `RuntimeEnvironment`, `SessionRegistry`, `CommandRunner` and `Toolchain` in `app/android/app/src/main/kotlin/dev/codeforge/app/runtime/`, and the launcher `native/runtime-core/src/main/jni/codeforge-spawn.c` (docs/SECURITY.md §2):
+    - `HarnessEnvironment.prepare` calls `HarnessBootstrap` and writes apt's configuration. Its `create` starts from every variable of the app's process, and it preloads Termux's `termux-exec` beside `harness-exec`; `termux-exec` can run an ELF file from the app's storage through the system linker, which the sealed model rules out. `RuntimeEnvironment` keeps t1's layout and the variables `harness-exec.c` reads, and builds everything else from nothing.
+    - `HarnessCommandRunner` merges stderr into stdout through one shared log file, prepares apt at every call and ends only its direct child. CodeForge's runner reads the two streams apart, each capped, and starts every command through the launcher, which leads a process group of its own and ends it whole. The launcher's own `execv` goes through the preload, so `harness-exec` translates a script's official `#!` line, where t1's runner did that in Java.
+    - `Toolchain.inspect` looks only whether each program is there. CodeForge's probes run each tool once and compare its version with its package's pin.
+
+    None of this changes a t1 file, so nothing waits on t1 (AGENTS §4).
 - **The adapter's install path.** `SealedPayloadInstaller.install` takes no progress listener. The runtime host calls t1's kernel (`SealedInstaller`) itself, as `SealedPayloadInstaller`'s own comment says a host should, and uses the adapter's asset names and ABI choice.
 
 **Still to come:**
-- W4: `HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain`, with the commands that use them. `HarnessEnvironment.prepare` calls `HarnessBootstrap` and writes the apt configuration, so W4 decides between a change in t1 and CodeForge's own environment.
 - W5: t1's `ExecModelTest` and `SealedShellTest`.
 - Each joins this record when it is vendored.
 

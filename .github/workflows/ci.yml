@@ -469,18 +469,20 @@ jobs:
           ( cd android && timeout --kill-after=30s 15m \
               ./gradlew :app:testDebugUnitTest :app:assembleDebugAndroidTest --console=plain ) \
             > ci-results/kotlin-tests.txt 2>&1 || status=$?
-          tests=0; failures=0; errors=0
+          tests=0; failures=0; errors=0; skipped=0
           for f in build/app/test-results/testDebugUnitTest/TEST-*.xml; do
             [ -f "$f" ] || continue
             head=$(grep -o '<testsuite [^>]*>' "$f" | head -n 1)
             t=$(printf '%s' "$head" | sed -n 's/.* tests="\([0-9]*\)".*/\1/p')
             fl=$(printf '%s' "$head" | sed -n 's/.* failures="\([0-9]*\)".*/\1/p')
             e=$(printf '%s' "$head" | sed -n 's/.* errors="\([0-9]*\)".*/\1/p')
+            sk=$(printf '%s' "$head" | sed -n 's/.* skipped="\([0-9]*\)".*/\1/p')
             tests=$((tests + ${t:-0}))
             failures=$((failures + ${fl:-0}))
             errors=$((errors + ${e:-0}))
+            skipped=$((skipped + ${sk:-0}))
           done
-          summary="kotlin_tests=$tests failures=$failures errors=$errors gradle_exit=$status"
+          summary="kotlin_tests=$tests failures=$failures errors=$errors skipped=$skipped gradle_exit=$status"
           echo "$summary" | tee -a ci-results/kotlin-tests.txt >> "$GITHUB_STEP_SUMMARY"
           [ "$status" -eq 0 ] && [ "$tests" -gt 0 ] \
             && [ "$failures" -eq 0 ] && [ "$errors" -eq 0 ]

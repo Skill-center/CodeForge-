@@ -281,19 +281,19 @@ class RuntimeHubTest {
         var tools: ToolsReport? = null
         hub.tools { tools = it }
         assertTrue(tools!!.tools.all { it.health == ToolHealth.UNAVAILABLE })
-        assertNotNull(tools!!.failure)
+        assertNotNull(tools.failure)
         assertEquals("nothing is made before the runtime is ready", 0, made)
 
         hub.start { }
         assertEquals(RuntimeState.READY, hub.snapshot().state)
         hub.tools { tools = it }
-        assertNull(tools!!.failure)
+        assertNull(tools.failure)
         assertEquals(listOf("node", "python", "git", "bash", "perl", "ruby", "rg"), asked)
         // This payload's info has no tools' pins: no version is taken for the pinned one.
-        assertTrue(tools!!.tools.all { it.health == ToolHealth.MISMATCH })
+        assertTrue(tools.tools.all { it.health == ToolHealth.MISMATCH })
 
         hub.exec(CommandRequest("sh")) { result = it }
-        assertEquals("the command reached the runner", CommandFailure.LAUNCH_FAILED, result!!.failure)
+        assertEquals("the command reached the runner", CommandFailure.LAUNCH_FAILED, result.failure)
         assertEquals(1, made)
         assertNotNull(hub.currentCommands())
     }
@@ -314,6 +314,6 @@ class RuntimeHubTest {
         var result: CommandResult? = null
         hub.exec(CommandRequest("sh")) { result = it }
         assertEquals(CommandFailure.NOT_READY, result!!.failure)
-        assertTrue(result!!.detail!!.contains("failed"))
+        assertTrue(result.detail!!.contains("failed"))
     }
 }

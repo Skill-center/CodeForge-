@@ -131,7 +131,7 @@ class ToolchainTest {
         val python = toolchain.inspect(Toolchain.pinsFrom(info)).tools.single { it.tool == "python" }
         assertEquals(ToolHealth.MISMATCH, python.health)
         assertEquals("3.13.0", python.version)
-        assertTrue(python.detail!!, python.detail!!.startsWith("pinned 3.14.10"))
+        assertTrue(python.detail!!, python.detail.startsWith("pinned 3.14.10"))
     }
 
     @Test
