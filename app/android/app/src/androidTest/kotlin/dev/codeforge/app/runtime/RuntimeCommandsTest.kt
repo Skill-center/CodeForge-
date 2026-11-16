@@ -170,7 +170,7 @@ class RuntimeCommandsTest {
         record("end", "failure=${result?.failure?.code} ended=${result?.leftovers} remaining=${result?.remaining} ms=$endMs " +
             "left=${left.size} in_group=${inGroup(group).size} processes_before=${before.size} processes_after=${after.size}")
         assertEquals(CommandFailure.ENDED, result!!.failure)
-        assertEquals(0, result!!.remaining)
+        assertEquals(0, result.remaining)
         assertEquals("processes of the tree remain: $left", emptyList<Int>(), left)
         assertEquals("processes of its group remain", emptyList<Int>(), inGroup(group))
         assertTrue("new processes remain: ${after - before}", (after - before).isEmpty())
