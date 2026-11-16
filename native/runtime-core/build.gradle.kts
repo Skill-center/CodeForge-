@@ -19,6 +19,8 @@
 // A Flutter host's library subproject like this one gets the Kotlin plugin from
 // Flutter's Gradle plugin (android.builtInKotlin=false); it has no Kotlin source.
 
+import com.android.build.api.dsl.LibraryExtension
+import java.nio.file.Files
 import javax.inject.Inject
 
 plugins {
@@ -36,7 +38,9 @@ val payloadAbis = rootProject.extra["codeforgePayloadAbis"] as List<String>
 // block below would otherwise see instead.)
 val repoDir: File = projectDir.resolve("../..").canonicalFile
 
-android {
+// AGP 9's own DSL type: its legacy `android {}` accessor for a library is an
+// error-level deprecation (the app's still builds through Flutter's).
+configure<LibraryExtension> {
     namespace = "dev.codeforge.runtime.core"
     // Flutter 3.50.0's values, which the app reads from Flutter itself
     // (app/android/app/build.gradle.kts); a library cannot.
@@ -237,7 +241,8 @@ abstract class SealedPayloadTask : DefaultTask() {
         }
         to.deleteRecursively()
         to.parentFile.mkdirs()
-        java.nio.file.Files.move(from.toPath(), to.toPath())
+        // Imported: in a build script `java` alone would be the Java extension.
+        Files.move(from.toPath(), to.toPath())
     }
 }
 

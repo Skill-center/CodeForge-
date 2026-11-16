@@ -252,7 +252,7 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
             const CfSectionHeader('Payload'),
             CfSettingsTile(
               key: const ValueKey('runtime_payload'),
-              leading: const Icon(CfIcons.inventory),
+              leading: const Icon(CfIcons.inventory2),
               title: info == null ? 'No payload' : 'Termux ${info.bootstrap}',
               subtitle: info == null
                   ? 'This build carries no runtime for this device'
