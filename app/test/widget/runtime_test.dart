@@ -82,7 +82,8 @@ void main() {
     expect(_chip(tester).tooltip, contains('Settings → Runtime'));
 
     runtime.moveTo(RuntimeState.installing, done: 6946, total: 13892);
-    await tester.pump();
+    // The event, then the chip's rebuild in the frame after it.
+    await tester.pumpAndSettle();
     expect(_chip(tester).label, 'installing 50%');
     expect(
       _chip(tester).tooltip,

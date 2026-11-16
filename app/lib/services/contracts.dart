@@ -204,7 +204,8 @@ abstract interface class FileService {
   Future<Result<void>> delete(String path);
 }
 
-/// Terminal session state. Phases 4–5 provide the real runtime-backed impl.
+/// Terminal session state. Phase 5 provides the real one, on the runtime
+/// Phase 4 installs.
 enum TerminalAvailability { unavailable, available }
 
 abstract interface class TerminalService {

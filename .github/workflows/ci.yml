@@ -455,17 +455,19 @@ jobs:
           exit "$status"
 
       # The host's Kotlin unit tests (src/test; Phase 3 W1: the backup
-      # policy and its rules files). After the APK build, which wrote
-      # android/local.properties and fetched what Gradle needs. The JUnit
-      # counts go to ci-results and the summary, so no log download is
-      # needed, and a run that found no tests fails.
+      # policy and its rules files; Phase 4 W3: the runtime host). After the
+      # APK build, which wrote android/local.properties and fetched what
+      # Gradle needs. The JUnit counts go to ci-results and the summary, so
+      # no log download is needed, and a run that found no tests fails. The
+      # runtime's instrumented tests (src/androidTest) run in the phase
+      # gate; their APK is built here, so a compile error shows on every push.
       - name: Kotlin unit tests
         id: kotlin_tests
         continue-on-error: true
         run: |
           status=0
           ( cd android && timeout --kill-after=30s 15m \
-              ./gradlew :app:testDebugUnitTest --console=plain ) \
+              ./gradlew :app:testDebugUnitTest :app:assembleDebugAndroidTest --console=plain ) \
             > ci-results/kotlin-tests.txt 2>&1 || status=$?
           tests=0; failures=0; errors=0
           for f in build/app/test-results/testDebugUnitTest/TEST-*.xml; do

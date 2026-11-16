@@ -10,7 +10,7 @@ void main() {
     test('terminal reports unavailable with a phase-accurate reason', () {
       final terminal = FakeTerminalService();
       expect(terminal.availability, TerminalAvailability.unavailable);
-      expect(terminal.unavailableReason, contains('Phases 4–5'));
+      expect(terminal.unavailableReason, contains('Phase 5'));
     });
 
     test('git summary is a labeled demo branch', () async {

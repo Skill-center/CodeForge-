@@ -14,7 +14,7 @@ final class FakeTerminalService implements TerminalService {
 
   @override
   String get unavailableReason =>
-      'The Linux runtime and terminal arrive in Phases 4–5. '
+      'The terminal arrives in Phase 5, on the Linux runtime. '
       'This pane is a preview of the real thing.';
 }
 
