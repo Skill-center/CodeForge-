@@ -4,6 +4,17 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 4 W4, commands, tools and versions in the UI (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
+- **The runtime runs commands.** The host runs a program of the runtime through a small launcher of CodeForge's own (`libcodeforge-spawn.so`). The answer is typed: the exit code or signal, stdout and stderr apart (each capped, with its full size), the time taken, and why it failed if it did. The app uses it only for its own checks for now; running your code comes with Phase 5.
+- **Every command ends with its whole process tree.** That includes a child left running, a process that left the group and a double-forked daemon, whether the command exits, runs past its time limit or is stopped. The emulator gate found none left.
+- **A command's environment is built from nothing:** up to six of Android's system locations, and the runtime's own variables, with HOME, TMPDIR and XDG in the runtime's folder. Nothing else of the app's process reaches it. The interpreters' homes are set explicitly, and the only preload is CodeForge's.
+- **Settings → Linux runtime → Tools** runs node, python, git, bash, perl, ruby and rg once each, and compares each version with its pinned package. On the emulator all seven matched: node 26.13.1, python 3.14.10, git 2.56.1, bash 5.3.9, perl 5.44.0, ruby 4.0.9 and rg 15.2.0. A **Languages** section names what the runtime can execute.
+- **The capability model:** JavaScript, Python and shell scripts are *executable* once the runtime is ready. Only the flag changes, and the language chip says so in its tooltip; shell scripts are recognised by extension or `#!` line.
+- **CodeForge writes its own environment, runner and probes** instead of vendoring t1's, which need its apt shape, preload `termux-exec`, and end only a command's first process ([native/PROVENANCE.md](../native/PROVENANCE.md)).
+- **The security review of the new boundary** is in [SECURITY.md §2.1](SECURITY.md): eight threats with their mitigations and proofs, and the limits that come before Phase 5 runs your code.
+- **CI** now fails, rather than skips, the runner's real-process tests when it lacks a C compiler, and counts skipped Kotlin tests (none).
+- Verified by CI 43830252596, 43833197358 and 43835601536 (`+866: All tests passed!`; 101 Kotlin tests, 30 of them new, none skipped; 22 kernel tests; 16 launcher tests), and phase gate 43837693816 (every group on its first attempt; 12 instrumented runtime tests; the seven tools *ok* in Settings; `node` through `exec` printing 42). The gate's cold start was 1,250 ms, within the 1,500 ms budget but above W3's 847 ms; the emulator was slower throughout that run (PHASE_4_PLAN *As built (W4)*).
+
 ### Added — Phase 4 W3, the runtime installs, starts warm and audits (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
 - **The app carries the sealed runtime.** A build for one ABI carries that ABI's payload: Termux's bootstrap with the pinned packages, 13,894 files for x86_64. Its 535 programs, 251 distinct executables, ship as native libraries, so they run from the app's own library folder, never from its data.
 - **It installs when a workspace opens,** off the UI thread, while the editor works, with progress in the status strip. Every file is verified while it is written. A damaged payload fails with a typed reason, and nothing is marked installed. On the CI emulator the install took 3.5 s, and 6.6 s through the app.

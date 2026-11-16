@@ -1,6 +1,6 @@
 # Phase 4 Implementation Plan — Runtime Integration
 
-**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*); **W2 done on 2026-11-13** (CI 43401882656 and 43403453442, see *As built (W2)*); **W3 done on 2026-11-16** (CI 43807290310, 43808489952 and 43815154032, phase gate 43808489945; see *As built (W3)*, whose vendoring differs from the plan). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. t1 carries the same licence since 2026-11-13 (main `d9789a2`), and CodeForge vendors from that commit.
+**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*); **W2 done on 2026-11-13** (CI 43401882656 and 43403453442, see *As built (W2)*); **W3 done on 2026-11-16** (CI 43807290310, 43808489952 and 43815154032, phase gate 43808489945; see *As built (W3)*, whose vendoring differs from the plan); **W4 done on 2026-11-16** (CI 43830252596, 43833197358 and 43835601536, phase gate 43837693816; see *As built (W4)*: CodeForge's own exec model, not t1's). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. t1 carries the same licence since 2026-11-13 (main `d9789a2`), and CodeForge vendors from that commit.
 **Spec reference:** §8 Phase 4 (runtime integration), §2 (reuse existing assets), §6.4–6.5 (the terminal connects to the existing environment; the capability model), §7 (security) · **Architecture:** [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [EXISTING_RUNTIME_AUDIT.md](../EXISTING_RUNTIME_AUDIT.md), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0006](../adr/0006-terminal-frontend.md), [ADR-0007](../adr/0007-min-sdk.md), [ADR-0009](../adr/0009-ci-github-actions.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Source:** `m-cyber12/t1` main @ `d9789a2` (2026-11-13): the audited tree `0e26d7a` (merged as `7b496c3`) plus its Apache-2.0 LICENSE
 
 ---
@@ -307,6 +307,56 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 
 **Security review at the new boundary:** SECURITY §2 is written up as built (the exec model, the environment, process hygiene, resource limits where bionic has them), like Phase 3's storage review.
 
+**As built (W4):**
+- **CodeForge's own exec model, not t1's.** `HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain` are not vendored ([native/PROVENANCE.md](../../native/PROVENANCE.md)), and nothing waits on t1:
+  - `HarnessEnvironment.prepare` needs `HarnessBootstrap` and apt. Its `create` starts from every variable of the app's process, and it preloads Termux's `termux-exec`, which can run an ELF file from the app's storage.
+  - `HarnessCommandRunner` merges stderr into stdout and ends only its direct child.
+  - `Toolchain` checks only that each program is there.
+- **The launcher** (`native/runtime-core/src/main/jni/codeforge-spawn.c`, built as `libcodeforge-spawn.so`, a PIE executable named like a library, so Android extracts it with the payload's programs):
+  - It leads a session and a process group of its own, becomes a child subreaper, puts every signal back to its default, and sets `RLIMIT_CORE` to 0. Then it runs the program, learning `execv`'s error through a pipe.
+  - When the program exits, or the launcher gets `SIGTERM`, `SIGINT` or `SIGHUP`, it ends the whole tree: its group and every descendant it finds in `/proc`, `SIGTERM` and `SIGCONT`, then `SIGKILL` after the grace period.
+  - Its exit status and a status file say how it went.
+  - `runtime/tests/test-spawn.py` (16) runs it in CI's runtime job. Five broken copies of it (no kill, no `setsid`, no signal reset, no `SIGKILL`, no subreaper) each fail some of the tests.
+  - PROVENANCE records it, now 17 files of CodeForge's own.
+- **The host** (`app/android/app/src/main/kotlin/dev/codeforge/app/runtime/`):
+  - `RuntimeEnvironment` builds the environment from nothing. `CommandRunner` runs a program of the runtime's `bin` through the launcher, with a typed result. `SessionRegistry` owns every process, enforces its deadline, and ends its whole tree. `Toolchain` probes the seven tools against their pins. `RuntimeCommands` puts them together.
+  - `RuntimeHub` takes `exec` and `tools` only while the runtime is ready or degraded, under a read lock on the prefix, and ends every session before an install takes the write lock.
+  - `RuntimeHost` answers them over Pigeon on threads of their own. A launcher that outlives its own kill gets its group killed through `Os.kill`.
+- **The boundary:** `pigeons/runtime_api.dart` gains `exec` and `tools`, both asynchronous, with their messages.
+- **In the app:**
+  - **Settings → Linux runtime** has two new sections. **Tools** lists each tool's version against its pin, with its health and *Check the tools again*; the probes run once the runtime is usable. **Languages** names what the runtime can execute.
+  - The copied report includes the tools.
+  - **The capability model** is in `core/editor/capabilities.dart` (RUNTIME_INTEGRATION §3). The status strip's language chip names shell scripts *shell*, and its tooltip says whether the runtime can run the file.
+  - Nothing in the app runs a command the user wrote: *Run* is Phase 5's.
+- **The security review:** SECURITY §2.1, eight threats with their mitigations and proofs, and the limits not built yet, which come before Phase 5 runs the user's code.
+- **Tests:**
+  - **JVM:** 30 new Kotlin tests: `RuntimeEnvironmentTest` 7, `CommandRunnerTest` 13, `ToolchainTest` 8, and 2 more in `RuntimeHubTest`. That makes 101 in all.
+    - `CommandRunnerTest` compiles the launcher with the machine's C compiler and runs real processes.
+    - On CI a missing compiler fails it rather than skipping it, and CI's summary now counts skipped tests (none).
+  - **Instrumented:** `RuntimeCommandsTest`, six tests (a–f): the tools at their pins, the environment exactly the runtime's, npm through the preload, typed results, and no child left after an end, a time limit or an exit.
+  - **Flutter:** 5 more in `test/widget/runtime_test.dart` (17) and `test/core/capabilities_test.dart` (4), so 866 in all. Runtime B's G4 part reads the tools in Settings and runs node through `exec`.
+  - **Goldens:** none changed.
+- **Found on the way:**
+  - **CI** compiled the slice on its first push.
+  - **The gate:** the runner takes the instrumented classes in name order. So `RuntimeCommandsTest` ran first, and `RuntimeInstallTest`, which starts the shared report afresh, dropped its figures from `runtime.txt`. The device log kept them. The class now writes a report of its own, which the gate copies (`runtime_commands_report.txt`).
+- **G4, measured in phase gate 43837693816** (API 36 x86_64 emulator; the debug APK with the x86_64 payload):
+
+  | G4 criterion | Measured |
+  |---|---|
+  | The seven versions reach the Flutter UI through RuntimeHost | Settings → Linux runtime, in runtime B: `ok=7 of=7` in 1,161 ms. node 26.13.1, python 3.14.10, git 2.56.1, bash 5.3.9, perl 5.44.0, ruby 4.0.9, rg 15.2.0 |
+  | … and match the pinned packages | each against its package's pin in the payload's info, all *ok*. Instrumented too: 693 ms for the seven. perl's pin is `5.44.0-1`, its Termux revision, and the version compared is 5.44.0 |
+  | Ending a process leaves no child | five `sleep`s: two in the group, a subshell's orphan, one in a session of its own, and the one bash waited for. All ended in 100 ms, with 0 left in the group or out of it, and the app's processes as before (1 and 1). A time limit (3 ended, 0 left) and an exit (1 ended, 0 left) leave none either |
+  | `exec` end to end | `node -e 'console.log(6 * 7)'` from Dart: `42`, exit 0, 175 ms. npm's script, with Termux's official `#!` line, ran through the preload: 12.2.2 in 332 ms. A command's environment was exactly the 29 variables built |
+
+- **The rest of the gate:** every group passed on its first attempt, in 45.2 minutes.
+  - **The cold start was 1,250 ms,** against 847 ms in W3; the budget is 1,500 ms.
+  - **This run's emulator was slower throughout.** Timings that W4 doesn't touch grew by about as much: the engine path's typing p95 was 155 ms (103 in W3), Go to File's index of 10,000 files 273 ms (160), and the runtime's first install 5.0 s (3.5).
+  - **W4 adds nothing to the app's start** except an idle thread pool. The next gates will show whether the figure comes back down.
+- **Still open for G4:** the arm64 figures, with W5's Test Lab runs, which include `RuntimeCommandsTest`.
+- **Evidence:**
+  - **CI:** 43830252596 (the launcher, `b6b2a18`); 43833197358 (the slice, `95efcd2`: `+866: All tests passed!`, `kotlin_tests=101`); 43835601536 (`a956423`: `kotlin_tests=101 failures=0 errors=0 skipped=0`, `sealed_runtime_tests=22`, and `+866: All tests passed!` again).
+  - **Phase gate 43837693816:** `gate_result=pass`, with `runtime_instrumented=pass OK (12 tests)`, `runtime_pair=pass`, and `RUNTIME_UI tools ok=7 of=7` and the `exec` line in `app/ci-results/gate/runtime.txt`. `RuntimeCommandsTest`'s figures are in `runtime_logcat.txt` (`RUNTIME_GATE commands_*`).
+
 ### W5 — The runtime gates: emulators, minSdk, arm64 in Test Lab (2 sessions) → G5, G6, G7
 
 **The tests:**
@@ -371,7 +421,7 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 | **G1 Toolchain** | CI builds with Flutter 3.50.0, AGP 9.3.3 (planned as 9.3.1; see *As built (W1)*), KGP 2.4.20 and Gradle 9.5.0. Analysis is clean and formatting unchanged, every test passes, and every changed golden has been looked at. The Kotlin tests pass. Every phase-gate group passes, and the cold start is recorded with Impeller and with Skia | CI and gate run ids |
 | **G2 Kernel** | `:native:sealed-runtime:test` passes with t1's tests changed only in their package. The `runtime/` script tests pass. PROVENANCE is complete. A missing pinned package fails the build closed | CI |
 | **G3 Install** | The first install runs off the UI thread with progress, within 60 s on a mid-range phone (emulator and Test Lab figures recorded). A warm start takes 100 ms or less. A flipped byte gives a typed failure and the runtime is never marked ready. `ExecAudit` = 0 at every start. APK and per-device sizes recorded | the gate's runtime group, instrumented tests. **W3:** met on the x86_64 emulator, phase gate 43808489945 (*As built (W3)*); the arm64 install time waits for Test Lab (W5) |
-| **G4 Versions** | node, python, git, bash, perl, ruby and rg versions reach the Flutter UI through RuntimeHost and match the pinned packages. Ending a process leaves no child | instrumented, widget and gate tests |
+| **G4 Versions** | node, python, git, bash, perl, ruby and rg versions reach the Flutter UI through RuntimeHost and match the pinned packages. Ending a process leaves no child | instrumented, widget and gate tests. **W4:** met on the x86_64 emulator, phase gate 43837693816 (*As built (W4)*); W5 adds arm64 in Test Lab |
 | **G5 Emulators** | `ExecModelTest` and `SealedShellTest` pass on API 34 and 36 x86_64 | runtime-gates run |
 | **G6 arm64** | The same tests pass on a physical arm64 phone in Test Lab. FULL against NORMAL is measured there and ADR-0008 updated | Test Lab runs |
 | **G7 minSdk** | The API 26–28 legs pass and ADR-0007 is Accepted at 26, or the owner signs off a raise to 29 | runtime-gates run |

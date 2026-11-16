@@ -47,16 +47,19 @@ RuntimeHost
 │                           streams InstallProgress → Dart EventChannel
 ├── audit()               → ExecAudit at every startup; non-zero = degraded mode + report
 ├── environment()         → HarnessEnvironment.create (preload order, prefix vars)
+│                           as built (W4): CodeForge's RuntimeEnvironment
 ├── exec(request)         → one-shot command (HarnessCommandRunner), typed result
+│                           as built (W4): CommandRunner through libcodeforge-spawn.so
 ├── session(spec)         → PTY session (CodeForge's own, Phase 5), registered in SessionRegistry
 ├── tools()               → Toolchain discovery: path, version, health per tool
+│                           as built (W4): CodeForge's Toolchain, versions against the pins
 └── packs()               → PlayPackInstaller (Play) / bundled full variant (GitHub)
 ```
 
 - **Lazy initialization:** runtime install/verify happens on first workspace open, off the UI thread, with progress events; app shell is usable before runtime is ready (editor works on files without runtime).
-- **Capability model (spec §6.5):** each language advertises `{editable, analyzable, compilable, executable}` separately. Phase 1: all languages editable-only. Phase 4 flips executable for JS/Python/shell; Phase 6 flips analyzable per LSP; build-tools pack flips compilable for C/C++.
-- **Sessions:** `SessionRegistry` owns every child process; foreground service while any session lives; process-group termination on close; exit codes + typed failures surfaced; no zombie processes (instrumented test asserts).
-- **Working directories:** sessions start in the workspace root (SAF-backed or app-private); `HOME`, `TMPDIR`, XDG dirs live in the runtime root, never in the user's project.
+- **Capability model (spec §6.5):** each language advertises `{editable, analyzable, compilable, executable}` separately. Phase 1: all languages editable-only. Phase 4 flips executable for JS/Python/shell; Phase 6 flips analyzable per LSP; build-tools pack flips compilable for C/C++. **As built in Phase 4 W4:** `app/lib/core/editor/capabilities.dart`. JavaScript (node), Python (python) and shell scripts (bash) are executable once the runtime is ready, and only that flag changes; *Run* comes in Phase 5. A file is a shell script by its extension (`.sh`, `.bash`) or its `#!` line (`sh`, `bash`, `dash`), and the status strip's language chip names it *shell* and says in its tooltip whether the runtime can run it.
+- **Sessions:** `SessionRegistry` owns every child process; foreground service while any session lives; process-group termination on close; exit codes + typed failures surfaced; no zombie processes (instrumented test asserts). **As built in Phase 4 W4:** one-shot commands only, each a session of the registry, which ends its whole process tree (SECURITY §2.1); the foreground service comes with Phase 5's terminal sessions.
+- **Working directories:** sessions start in the workspace root (SAF-backed or app-private); `HOME`, `TMPDIR`, XDG dirs live in the runtime root, never in the user's project. **As built in Phase 4 W4:** a command runs in the runtime's home, or in a folder inside the runtime's home or its workspace (t1's layout). How a project in `files/workspaces/` or a folder from shared storage reaches the runtime is Phase 5's, with *Run*.
 
 **As built in Phase 4 W3** (`app/android/app/src/main/kotlin/dev/codeforge/app/runtime/`; PHASE_4_PLAN *As built (W3)*):
 - **`install`, `audit`, the status and the sizes** exist, behind the Pigeon API `pigeons/runtime_api.dart`: `status`, `start`, `reinstall`, `audit` and `size`. Every change of state reaches Dart through `RuntimeEvents.changed`, the install's progress included.
@@ -65,7 +68,16 @@ RuntimeHost
 - **A warm start** extracts nothing. It re-applies t1's layout and points every executable's link at the current `nativeLibraryDir`, which changes when the app is updated. In gate 43808489945 it took 18 ms. It took 48 ms through the app after the gate had installed the app again, which moved the libraries: all 535 links were repointed.
 - **The audit** runs at every start, after the install or the warm start. Any binary outside the APK makes the runtime degraded, with a report the user can copy. Scripts are listed apart: they run through the preload.
 - **Lazy, as designed:** the install starts when a workspace opens, never at app start.
-- **Still to come:** `environment`, `exec` and `tools` in W4; sessions in Phase 5; packs with the build-tools pack.
+- **Still to come:** sessions in Phase 5; packs with the build-tools pack. `environment`, `exec` and `tools` came in W4 (below).
+
+**As built in Phase 4 W4** (the same folder; PHASE_4_PLAN *As built (W4)*; SECURITY §2.1):
+- **CodeForge's own exec model,** not t1's `HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain` ([native/PROVENANCE.md](../native/PROVENANCE.md) says why).
+  - `RuntimeEnvironment` builds every command's environment from nothing: up to six of Android's system locations from the app's process, and the rest the runtime's own, with the interpreters' homes set explicitly (`PYTHONHOME`, `NODE_PATH`, `GEM_HOME`, `RUBYLIB`, `PERL5LIB`) and CodeForge's `harness-exec` as the only preload.
+  - `CommandRunner` runs a program from the runtime's `bin` through the launcher `libcodeforge-spawn.so` (`native/runtime-core/src/main/jni/codeforge-spawn.c`), in the runtime's home or a folder inside its home or workspace, with a time limit and capped output.
+  - `SessionRegistry` owns each command's process, enforces its deadline, and ends its whole tree; before an install it ends them all.
+- **`exec` and `tools` over Pigeon** (`pigeons/runtime_api.dart`), answered on threads of their own, only while the runtime is ready or degraded, never during an install. `exec` answers with the typed result (exit code or signal, stdout and stderr apart with their byte counts, duration, failure kind).
+- **The tools:** node, python, git, bash, perl, ruby and rg. Each probe runs the tool once, and the interpreters load some of their libraries too (node finds npm's package; python imports `ssl`, `json` and `sqlite3`; perl loads `strict` and `List::Util`; ruby requires `rubygems` and `securerandom`). The version it reports is compared with its package's pin from the payload's info. Settings → Linux runtime lists them, each with its health (*ok*, *mismatch*, *failed* or *missing*), and checks them again on request. In phase gate 43837693816 all seven were their pinned versions, instrumented (693 ms for the seven) and in the app's Settings (1,161 ms): node 26.13.1, python 3.14.10, git 2.56.1, bash 5.3.9, perl 5.44.0, ruby 4.0.9 and rg 15.2.0.
+- **What runs:** in W4 only the app's own commands, the probes and the tests. Nothing the user writes runs before Phase 5, which also brings the limits SECURITY §2.1 lists as not yet built.
 
 ## 4. Storage model
 
@@ -94,8 +106,8 @@ Both shapes run the identical sealed execution model; `check-bundle-size.py` + e
 - [x] `:native:sealed-runtime:test` green (JVM, unchanged upstream tests): 22 tests, Phase 4 W2 (CI 43401882656)
 - [ ] `ExecModelTest` + `SealedShellTest` green on API 34 & 36 x86_64 emulators **and arm64 device**
 - [ ] ExecAudit = 0 at startup on all gate devices · 0 on the x86_64 emulator at the first start and the warm start, Phase 4 W3 (gate 43808489945); arm64 and API 26–28 in W5
-- [ ] node/python/git/bash/perl/ruby/rg version probes reported correctly through RuntimeService → Flutter UI
+- [x] node/python/git/bash/perl/ruby/rg version probes reported correctly through RuntimeService → Flutter UI: all seven at their pinned versions on the x86_64 emulator, Phase 4 W4 (gate 43837693816, `RUNTIME_UI tools ok=7 of=7`); W5 repeats them on arm64
 - [x] Second launch skips re-extract (t1 measured 11 ms; CodeForge budget ≤ 100 ms): 18 ms median on the x86_64 emulator, Phase 4 W3 (gate 43808489945); the arm64 figure comes with W5
-- [ ] Process termination leaves zero children (instrumented assertion)
+- [x] Process termination leaves zero children (instrumented assertion): `RuntimeCommandsTest` e and f on the x86_64 emulator, Phase 4 W4 (gate 43837693816): nothing left after an end, a time limit or an exit; W5 repeats them on arm64
 - [x] Payload corruption test: flipped byte → install fails with typed error, no partial runtime marked ready: `corrupt`, for a flipped byte and for a file that differs from its manifest, Phase 4 W3 (`RuntimeInstallTest` e and f, gate 43808489945)
 - [ ] minSdk gate (ADR-0007): API 26–28 emulator run OR owner-approved raise to 29

@@ -14,7 +14,7 @@
 > - Its first package moved CodeForge to Flutter 3.50.0.
 > - Its second vendored t1's sealed-runtime kernel and pinned every input of the runtime.
 > - Its third puts the runtime in the app, so far on the CI emulator. It installs when a workspace opens, verifying every file, while the editor works. It starts again in about 18 ms, and it checks at every start that every program comes from the app. Settings → Runtime shows all of it.
-> - Nothing runs commands yet: that comes with Phase 4's next package and Phase 5.
+> - Its fourth runs the runtime's tools: Settings → Linux runtime checks node, python, git, bash, perl, ruby and rg, each against its pinned version, and every command ends with all the processes it started. For now the app runs only those checks: running your own code comes with Phase 5.
 >
 > Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
 

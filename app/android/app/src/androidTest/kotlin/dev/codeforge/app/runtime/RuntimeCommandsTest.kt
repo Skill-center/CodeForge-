@@ -19,7 +19,7 @@ import org.junit.runners.MethodSorters
  * Gate G4 on a device (Phase 4 W4): the runtime's commands, its environment,
  * its tools and its process hygiene, over the APK's own payload installed
  * into a root of the gate's own (files/runtime-gate/commands). The emulator
- * gate's runtime group runs it after RuntimeInstallTest
+ * gate's runtime group runs it with RuntimeInstallTest, in either order
  * (app/tool/ci/emulator_gate.sh); Phase 4 W5 runs it on an arm64 phone.
  *
  *   * The seven probed tools run, load their libraries, and are their
@@ -37,7 +37,11 @@ import org.junit.runners.MethodSorters
  *     or out of it, and no process of the app beyond the ones before.
  *
  * Every figure goes to the device log (RUNTIME_GATE key=value) and to
- * files/runtime-gate/report.txt, which the gate copies out.
+ * files/runtime-gate/commands-report.txt, which the gate copies out. A file
+ * of its own: the runner orders the classes by name, so this one runs first,
+ * and RuntimeInstallTest starts its report.txt afresh (phase gate
+ * 43837693816 lost these figures from runtime.txt that way; the device log
+ * kept them).
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class RuntimeCommandsTest {
@@ -48,7 +52,7 @@ class RuntimeCommandsTest {
         val line = "commands_$key=$value"
         Log.i(TAG, "RUNTIME_GATE $line")
         gate.mkdirs()
-        File(gate, "report.txt").appendText(line + "\n")
+        File(gate, REPORT).appendText(line + "\n")
     }
 
     private fun run(program: String, vararg arguments: String, timeoutMs: Long = 60_000L, outputLimit: Int = 64 * 1024) =
@@ -56,6 +60,7 @@ class RuntimeCommandsTest {
 
     @Test
     fun a_theToolsAreTheirPinnedVersions() {
+        File(gate, REPORT).delete()
         val payload = commands()
         val pins = Toolchain.pinsFrom(info)
         assertEquals("the payload's info names every probed tool", 7, pins.size)
@@ -244,6 +249,7 @@ class RuntimeCommandsTest {
 
     private companion object {
         const val TAG = "CodeForgeRuntimeGate"
+        const val REPORT = "commands-report.txt"
         const val CANARY = "CODEFORGE_CANARY_TOKEN"
 
         private var installed: RuntimeCommands? = null

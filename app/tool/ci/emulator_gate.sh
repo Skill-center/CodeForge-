@@ -1420,7 +1420,8 @@ echo "::group::Runtime (Phase 4 W3-W4, G3: install, warm start, flipped byte, au
 #     the seven tools their pinned versions, a command's environment exactly
 #     the runtime's own, npm through the preload, typed results, and no child
 #     left after a session ends by request, by its time limit or by itself
-#     (all figures in runtime_report.txt);
+#     (the figures in runtime_report.txt and runtime_commands_report.txt, one
+#     file per class, since the runner orders the classes by name);
 #   * the pair through the real app (integration_test/runtime_a_test.dart, a
 #     process death, then runtime_b_test.dart): opening a workspace starts the
 #     install, which runs while the editor opens a file and ends audited; then
@@ -1450,6 +1451,8 @@ runtime_instrumented() {
     > "$RESULTS/runtime_instrumented.txt" 2>&1
   "$ADB" shell run-as "$APP_ID" cat files/runtime-gate/report.txt < /dev/null \
     > "$RESULTS/runtime_report.txt" 2>&1 || true
+  "$ADB" shell run-as "$APP_ID" cat files/runtime-gate/commands-report.txt < /dev/null \
+    > "$RESULTS/runtime_commands_report.txt" 2>&1 || true
   "$ADB" logcat -d -s CodeForgeRuntimeGate:I CodeForgeRuntime:I < /dev/null \
     > "$RESULTS/runtime_logcat.txt" 2>&1 || true
   tail -n 25 "$RESULTS/runtime_instrumented.txt"
@@ -1499,6 +1502,7 @@ done
     "$(grep -E '^OK \(|^Tests run' "$RESULTS/runtime_instrumented.txt" 2>/dev/null | head -n 1)"
   echo "runtime_pair=$([ "$runtime_pair_ok" = "1" ] && echo pass || echo fail)"
   sed 's/^/runtime_device_/' "$RESULTS/runtime_report.txt" 2>/dev/null
+  sed 's/^/runtime_device_/' "$RESULTS/runtime_commands_report.txt" 2>/dev/null
   grep -ohE 'RUNTIME_UI .*' "$RESULTS/runtime_a.txt" "$RESULTS/runtime_b.txt" 2>/dev/null
   echo "runtime_apk_debug_x64_bytes=$(stat -c %s "$RUNTIME_APK" 2>/dev/null || echo 0)"
   echo "runtime_apk_release_x64_bytes=$(stat -c %s build/gate/app-release-x64.apk 2>/dev/null || echo 0)"
