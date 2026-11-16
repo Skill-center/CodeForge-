@@ -7,6 +7,10 @@ Thumbs.db
 app/.dart_tool/
 app/.flutter-plugins*
 app/build/
+# Gradle's own output for the Android build, such as its problems report: the
+# projects build under app/build/, but Gradle still writes here. CI's bootstrap
+# commit-back stages everything, and committed the report once (a124b0b).
+app/android/build/
 app/.pub-cache/
 app/.pub/
 app/coverage/
