@@ -89,9 +89,10 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | CodeForge file | What it is |
 |---|---|
 | `native/PROVENANCE.md` | this record |
-| `native/runtime-core/build.gradle.kts` | the runtime core's build script (W3): the ABIs, ndk-build for the preload, the exec probe's compile task, and the payload task that builds one ABI's sealed payload from the pins |
+| `native/runtime-core/build.gradle.kts` | the runtime core's build script (W3): the ABIs, ndk-build for the preload, the compile task for the exec probe and (W4) the launcher, and the payload task that builds one ABI's sealed payload from the pins |
 | `native/runtime-core/src/main/AndroidManifest.xml` | the runtime core's manifest, empty: the app decides how native libraries are packaged |
 | `native/runtime-core/src/main/jni/Android.mk` | ndk-build for `harness-exec.c` with t1's 16 KB flags; t1's own also builds `termux.c`, this one never does (ADR-0011) |
+| `native/runtime-core/src/main/jni/codeforge-spawn.c` | the launcher every runtime command starts through (W4), built as `libcodeforge-spawn.so`: a session and process group of its own, a child subreaper, default signals, no core files; it ends the whole group and every descendant when the command exits or when it is stopped, and writes what happened to a status file (docs/SECURITY.md §2) |
 | `native/sealed-runtime/build.gradle.kts` | the module's build script: t1's, in the Kotlin DSL |
 | `runtime/README.md` | how the supply chain fits together, and its commands |
 | `runtime/pins.json` | the pins: the bootstrap, the core set, and every resolved package with its SHA-256 |
@@ -102,6 +103,7 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | `runtime/tests/test-pins.py` | pins.py's tests, the fail-closed cases among them |
 | `runtime/tests/test-notices.py` | notices.py's tests |
 | `runtime/tests/test-provenance.py` | provenance.py's tests |
+| `runtime/tests/test-spawn.py` | the launcher's tests (W4), on the host's C compiler: output and exit status, its own session and group, clean signals, a child left behind, a tree stopped whole, processes that left the group, exec failures, and nothing left behind |
 | `runtime/tests/live-fail-closed.py` | CI's check that a missing pinned package fails closed against the real repository |
 <!-- own:end -->
 

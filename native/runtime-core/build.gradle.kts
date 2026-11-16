@@ -1,13 +1,17 @@
 // CodeForge's own build script for the runtime core (Phase 4 W3;
 // docs/RUNTIME_INTEGRATION.md §2, native/PROVENANCE.md).
 //
-// An Android library, `dev.codeforge.runtime.core`, holding three things:
+// An Android library, `dev.codeforge.runtime.core`, holding four things:
 //   * t1's Android adapter over the sealed kernel (HarnessConfig, HarnessPaths
 //     and exec/SealedPayloadInstaller), vendored with the packages renamed;
 //   * the preload: t1's harness-exec.c (the LD_PRELOAD path translator), built
 //     by ndk-build (src/main/jni/Android.mk), and t1's harness-probe.c (the exec
 //     probe), built below as a PIE executable named libharnessprobe.so, both
 //     with 16 KB page alignment;
+//   * CodeForge's launcher, codeforge-spawn.c (Phase 4 W4): every runtime
+//     command starts through it, in a process group of its own that it ends
+//     whole (docs/SECURITY.md §2). Built below like the probe, as
+//     libcodeforge-spawn.so;
 //   * the sealed payload of one ABI, built from runtime/pins.json at build time:
 //     the userland zip and its manifests become generated assets, and the
 //     executables generated jniLibs. The app packages native libraries the
@@ -83,19 +87,33 @@ dependencies {
 }
 
 /**
- * The exec probe: t1's harness-probe.c as a PIE executable named
- * libharnessprobe.so, one per ABI. ndk-build's executables have no `lib*.so`
- * name, so AGP would not package them; this is t1's own way
- * (terminal-emulator/build.gradle, buildExecProbe). Phase 4 W5's ExecModelTest
- * runs it from nativeLibraryDir, through a prefix symlink and from a `#!` line.
+ * One C program as a PIE executable named lib<name>.so, one per ABI.
+ * ndk-build's executables have no `lib*.so` name, so AGP would not package
+ * them; this is t1's own way (terminal-emulator/build.gradle,
+ * buildExecProbe). Android extracts them into nativeLibraryDir, the one place
+ * the app may execute from. Two programs are built this way:
+ *   * t1's exec probe, harness-probe.c → libharnessprobe.so: Phase 4 W5's
+ *     ExecModelTest runs it from nativeLibraryDir, through a prefix symlink
+ *     and from a `#!` line;
+ *   * CodeForge's launcher, codeforge-spawn.c → libcodeforge-spawn.so (W4):
+ *     the runtime host starts every command through it (SessionRegistry.kt).
+ *     Its warnings are reported, not fatal, as for t1's files; on every CI
+ *     run runtime/tests/test-spawn.py compiles it with -Werror and tests it.
  */
-abstract class ExecProbeTask : DefaultTask() {
+abstract class NativeExecutableTask : DefaultTask() {
     @get:Inject
     abstract val execOperations: ExecOperations
 
     @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val source: RegularFileProperty
+
+    /** The file name in the APK: lib<name>.so. */
+    @get:Input
+    abstract val outputName: Property<String>
+
+    @get:Input
+    abstract val extraFlags: ListProperty<String>
 
     @get:Input
     abstract val abis: ListProperty<String>
@@ -131,20 +149,22 @@ abstract class ExecProbeTask : DefaultTask() {
             if (!compiler.isFile) {
                 throw GradleException("Missing NDK compiler $compiler")
             }
-            val output = out.resolve("$abi/libharnessprobe.so")
+            val name = outputName.get()
+            val output = out.resolve("$abi/$name")
             output.parentFile.mkdirs()
             execOperations.exec {
                 commandLine(
-                    compiler.absolutePath, "-O2", "-fPIE", "-pie",
-                    // 16 KB pages (Play, API 35+), as t1 builds it.
-                    "-Wl,-z,max-page-size=16384", "-Wl,-z,common-page-size=16384",
-                    "-o", output.absolutePath, source.get().asFile.absolutePath,
+                    listOf(compiler.absolutePath, "-O2", "-fPIE", "-pie") + extraFlags.get() + listOf(
+                        // 16 KB pages (Play, API 35+), as t1 builds it.
+                        "-Wl,-z,max-page-size=16384", "-Wl,-z,common-page-size=16384",
+                        "-o", output.absolutePath, source.get().asFile.absolutePath,
+                    ),
                 )
             }
             if (!output.isFile) {
-                throw GradleException("The exec probe was not produced: $output")
+                throw GradleException("$name was not produced: $output")
             }
-            logger.lifecycle("exec probe: $abi/libharnessprobe.so (${output.length()} bytes)")
+            logger.lifecycle("native executable: $abi/$name (${output.length()} bytes)")
         }
     }
 }
@@ -252,13 +272,24 @@ fun taskSuffix(value: String): String =
 androidComponents {
     onVariants { variant ->
         val name = taskSuffix(variant.name)
-        val probe = tasks.register<ExecProbeTask>("execProbe$name") {
+        val probe = tasks.register<NativeExecutableTask>("execProbe$name") {
             source.set(layout.projectDirectory.file("src/main/jni/harness-probe.c"))
+            outputName.set("libharnessprobe.so")
+            extraFlags.set(emptyList())
             abis.set(codeforgeAbis)
             minSdk.set(26)
             ndkDirectory.set(sdkComponents.ndkDirectory)
         }
-        variant.sources.jniLibs?.addGeneratedSourceDirectory(probe, ExecProbeTask::outputDirectory)
+        variant.sources.jniLibs?.addGeneratedSourceDirectory(probe, NativeExecutableTask::outputDirectory)
+        val spawn = tasks.register<NativeExecutableTask>("spawnLauncher$name") {
+            source.set(layout.projectDirectory.file("src/main/jni/codeforge-spawn.c"))
+            outputName.set("libcodeforge-spawn.so")
+            extraFlags.set(listOf("-std=gnu11", "-Wall", "-Wextra"))
+            abis.set(codeforgeAbis)
+            minSdk.set(26)
+            ndkDirectory.set(sdkComponents.ndkDirectory)
+        }
+        variant.sources.jniLibs?.addGeneratedSourceDirectory(spawn, NativeExecutableTask::outputDirectory)
         for (abi in payloadAbis) {
             val payload = tasks.register<SealedPayloadTask>("sealedPayload$name${taskSuffix(abi)}") {
                 this.abi.set(abi)

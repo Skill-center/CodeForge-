@@ -305,6 +305,9 @@ class PinsTest(unittest.TestCase):
         self.assertEqual(described["packages"], 8)
         self.assertEqual(described["core"], [{"package": "app", "version": "2.0"},
                                              {"package": "tool", "version": "0.5"}])
+        # Of the probed tools, these pins carry only the bootstrap's bash.
+        self.assertEqual([entry["tool"] for entry in described["tools"]], ["bash"])
+        self.assertEqual(described["tools"][0]["package"], "bash")
 
     def test_info_refuses_unresolved_pins(self):
         out = os.path.join(self.work, "runtime-info.json")
@@ -322,6 +325,14 @@ class PinsTest(unittest.TestCase):
             self.assertEqual(described["bootstrap"], "2026.02.12-r1+apt.android-7")
             self.assertEqual([entry["package"] for entry in described["core"]],
                              pins["requested"])
+            # Every tool Settings > Runtime probes, at its package's version.
+            self.assertEqual([(entry["tool"], entry["package"]) for entry in described["tools"]],
+                             list(pins_tool.TOOLS))
+            versions = {entry["package"]: entry["version"] for entry in described["core"]}
+            for entry in described["tools"]:
+                self.assertTrue(entry["version"])
+                if entry["package"] in versions:
+                    self.assertEqual(entry["version"], versions[entry["package"]])
 
     # ---------------------------------------------------------- committed pins
 

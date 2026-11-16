@@ -9,7 +9,8 @@ native/runtime-core/build.gradle.kts puts it there:
     symlink lists, its identity, and runtime-info-<abi>.json, with the zip
     stored as it is (it is compressed already);
   * every library the exec manifest names, as lib/<abi>/<library>, and the
-    preload (libharness-exec.so) and the exec probe (libharnessprobe.so);
+    preload (libharness-exec.so), the exec probe (libharnessprobe.so) and,
+    since Phase 4 W4, the command launcher (libcodeforge-spawn.so);
   * native libraries for that ABI only: no APK carries two;
   * native libraries compressed in the APK (legacy packaging), which is what
     makes Android extract them into nativeLibraryDir as real files.
@@ -32,7 +33,7 @@ import sys
 import zipfile
 
 ABIS = ("arm64-v8a", "x86_64")
-OURS = ("libharness-exec.so", "libharnessprobe.so")
+OURS = ("libharness-exec.so", "libharnessprobe.so", "libcodeforge-spawn.so")
 
 
 def payload_assets(abi):

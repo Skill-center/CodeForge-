@@ -582,6 +582,21 @@ def resolve(pins, cache, now=None):
 # info
 # --------------------------------------------------------------------------- #
 
+# The tools Settings > Runtime probes (Phase 4 W4, gate G4), each with the
+# package that carries it: the app compares the version each one reports
+# with its package's pinned version (Toolchain.kt). bash comes from the
+# bootstrap, the others from the core set.
+TOOLS = (
+    ("node", "nodejs"),
+    ("python", "python"),
+    ("git", "git"),
+    ("bash", "bash"),
+    ("perl", "perl"),
+    ("ruby", "ruby"),
+    ("rg", "ripgrep"),
+)
+
+
 def info(pins, arch):
     """What a payload built from the pins for arch holds (resolved pins only)."""
     problems = check(pins)
@@ -605,6 +620,10 @@ def info(pins, arch):
         "repository": pins["repository"]["url"],
         "packages": len(carried),
         "core": [{"package": name, "version": carried[name]} for name in pins["requested"]],
+        # Only the tools whose package the payload carries: the app reports a
+        # tool without a pin as unverified.
+        "tools": [{"tool": tool, "package": package, "version": carried[package]}
+                  for tool, package in TOOLS if package in carried],
     }
 
 

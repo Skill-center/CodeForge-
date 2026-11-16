@@ -1432,7 +1432,7 @@ runtime_instrumented() {
   ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebug \
       :app:assembleDebugAndroidTest -Ptarget-platform=android-x64 --console=plain ) \
     > "$RESULTS/runtime_build.txt" 2>&1 || { tail -n 40 "$RESULTS/runtime_build.txt"; return 1; }
-  grep -E 'sealed payload|exec probe|CodeForge ABIs' "$RESULTS/runtime_build.txt" | head -n 8
+  grep -E 'sealed payload|native executable|CodeForge ABIs' "$RESULTS/runtime_build.txt" | head -n 8
   wait_for_framework runtime-install 300 || true
   { "$ADB" install -r "$RUNTIME_APK" && "$ADB" install -r -t "$RUNTIME_TEST_APK"; } \
     > "$RESULTS/runtime_install.txt" 2>&1 < /dev/null || { cat "$RESULTS/runtime_install.txt"; return 1; }
