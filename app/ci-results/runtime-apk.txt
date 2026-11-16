@@ -1,25 +1,25 @@
 self-test: a payload APK -> pass
 self-test: a build without a runtime -> pass
-self-test: stored native libraries -> caught: 5 native libraries are stored, not compressed: the build does not package them the legacy way (first: lib/x86_64/libapp.so)
+self-test: stored native libraries -> caught: 6 native libraries are stored, not compressed: the build does not package them the legacy way (first: lib/x86_64/libapp.so)
 self-test: two ABIs -> caught: native libraries for arm64-v8a too: an APK carries one ABI
 self-test: no exec manifest -> caught: missing assets/sealed-exec-x86_64.txt
 self-test: the zip compressed again -> caught: assets/userland-x86_64.zip is compressed again in the APK
 self-test: a payload where none belongs -> caught: a build without a runtime carries assets/runtime-info-x86_64.json, assets/sealed-exec-x86_64.txt, assets/sealed-manifest-x86_64.txt, assets/sealed-payload-id-x86_64.txt, assets/sealed-symlinks-x86_64.txt, assets/userland-x86_64.zip
 self-test: the wrong ABI's payload -> caught: missing assets/userland-arm64-v8a.zip
-runtime_apk=build/app/outputs/flutter-apk/app-release.apk abi=x86_64 bytes=149389019
+runtime_apk=build/app/outputs/flutter-apk/app-release.apk abi=x86_64 bytes=149425849
 runtime_apk_native_abis=x86_64
-runtime_apk_native_libraries=258
+runtime_apk_native_libraries=259
 runtime_apk_native_stored=0
 runtime_apk_userland_bytes=97953717
 runtime_apk_executables=251
-runtime_apk_library_bytes=121561528
-runtime_apk_library_compressed_bytes=48618640
+runtime_apk_library_bytes=121574464
+runtime_apk_library_compressed_bytes=48636087
 runtime_apk_check=pass findings=0
-runtime_apk=build/app/outputs/flutter-apk/app-debug.apk abi=none bytes=83641168
+runtime_apk=build/app/outputs/flutter-apk/app-debug.apk abi=none bytes=83737615
 runtime_apk_native_abis=arm64-v8a,x86_64
-runtime_apk_native_libraries=13
+runtime_apk_native_libraries=15
 runtime_apk_native_stored=0
 runtime_apk_payload=none
 runtime_apk_check=pass findings=0
-page alignment: 256/256 shipped userland objects are 16 KB aligned; 3 object(s) built here, 0 non-compliant
+page alignment: 257/257 shipped userland objects are 16 KB aligned; 3 object(s) built here, 0 non-compliant
 all objects 16 KB aligned
