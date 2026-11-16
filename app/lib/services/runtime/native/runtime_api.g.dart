@@ -411,6 +411,346 @@ class RuntimeSizeMessage {
   }
 }
 
+/// One command for the runtime: a program in its bin, run once (Phase 4 W4).
+class ExecRequestMessage {
+  ExecRequestMessage({
+    required this.program,
+    required this.arguments,
+    this.directory,
+    this.timeoutMs,
+    this.outputLimit,
+  });
+
+  /// A name in the runtime's bin (`node`, `git`); never a path.
+  String program;
+
+  List<String> arguments;
+
+  /// The runtime's home when null; otherwise a folder inside its home or
+  /// workspace.
+  String? directory;
+
+  /// The time limit (60 s when null, at most 10 minutes).
+  int? timeoutMs;
+
+  /// Bytes kept of each of stdout and stderr (256 KiB when null, 1 KiB to
+  /// 1 MiB).
+  int? outputLimit;
+
+  List<Object?> _toList() {
+    return <Object?>[program, arguments, directory, timeoutMs, outputLimit];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static ExecRequestMessage decode(Object result) {
+    result as List<Object?>;
+    return ExecRequestMessage(
+      program: result[0]! as String,
+      arguments: (result[1]! as List<Object?>).cast<String>(),
+      directory: result[2] as String?,
+      timeoutMs: result[3] as int?,
+      outputLimit: result[4] as int?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! ExecRequestMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(program, other.program) &&
+        _deepEquals(arguments, other.arguments) &&
+        _deepEquals(directory, other.directory) &&
+        _deepEquals(timeoutMs, other.timeoutMs) &&
+        _deepEquals(outputLimit, other.outputLimit);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'ExecRequestMessage(program: $program, arguments: $arguments, directory: $directory, timeoutMs: $timeoutMs, outputLimit: $outputLimit)';
+  }
+}
+
+/// What became of a command.
+class ExecResultMessage {
+  ExecResultMessage({
+    this.exitCode,
+    this.signal,
+    required this.stdout,
+    required this.stderr,
+    required this.stdoutBytes,
+    required this.stderrBytes,
+    required this.stdoutTruncated,
+    required this.stderrTruncated,
+    required this.durationMs,
+    this.failure,
+    this.detail,
+    required this.leftovers,
+    required this.remaining,
+  });
+
+  /// The command's exit code; null when it did not exit by itself.
+  int? exitCode;
+
+  /// The signal that ended it, when one did.
+  int? signal;
+
+  String stdout;
+
+  String stderr;
+
+  /// Every byte written to each, kept or not.
+  int stdoutBytes;
+
+  int stderrBytes;
+
+  bool stdoutTruncated;
+
+  bool stderrTruncated;
+
+  int durationMs;
+
+  /// Why it has no ordinary result: 'not_ready', 'bad_request',
+  /// 'not_found', 'cannot_execute', 'timed_out', 'ended', 'signaled' or
+  /// 'launch_failed' (CommandRunner.kt); null when it ran and exited.
+  String? failure;
+
+  String? detail;
+
+  /// Processes ended after it: what it left running, or its whole tree when
+  /// it was stopped.
+  int leftovers;
+
+  /// Processes that could not be ended: 0 unless the kernel refused.
+  int remaining;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      exitCode,
+      signal,
+      stdout,
+      stderr,
+      stdoutBytes,
+      stderrBytes,
+      stdoutTruncated,
+      stderrTruncated,
+      durationMs,
+      failure,
+      detail,
+      leftovers,
+      remaining,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static ExecResultMessage decode(Object result) {
+    result as List<Object?>;
+    return ExecResultMessage(
+      exitCode: result[0] as int?,
+      signal: result[1] as int?,
+      stdout: result[2]! as String,
+      stderr: result[3]! as String,
+      stdoutBytes: result[4]! as int,
+      stderrBytes: result[5]! as int,
+      stdoutTruncated: result[6]! as bool,
+      stderrTruncated: result[7]! as bool,
+      durationMs: result[8]! as int,
+      failure: result[9] as String?,
+      detail: result[10] as String?,
+      leftovers: result[11]! as int,
+      remaining: result[12]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! ExecResultMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(exitCode, other.exitCode) &&
+        _deepEquals(signal, other.signal) &&
+        _deepEquals(stdout, other.stdout) &&
+        _deepEquals(stderr, other.stderr) &&
+        _deepEquals(stdoutBytes, other.stdoutBytes) &&
+        _deepEquals(stderrBytes, other.stderrBytes) &&
+        _deepEquals(stdoutTruncated, other.stdoutTruncated) &&
+        _deepEquals(stderrTruncated, other.stderrTruncated) &&
+        _deepEquals(durationMs, other.durationMs) &&
+        _deepEquals(failure, other.failure) &&
+        _deepEquals(detail, other.detail) &&
+        _deepEquals(leftovers, other.leftovers) &&
+        _deepEquals(remaining, other.remaining);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'ExecResultMessage(exitCode: $exitCode, signal: $signal, stdout: $stdout, stderr: $stderr, stdoutBytes: $stdoutBytes, stderrBytes: $stderrBytes, stdoutTruncated: $stdoutTruncated, stderrTruncated: $stderrTruncated, durationMs: $durationMs, failure: $failure, detail: $detail, leftovers: $leftovers, remaining: $remaining)';
+  }
+}
+
+/// One tool's probe (Toolchain.kt).
+class ToolMessage {
+  ToolMessage({
+    required this.tool,
+    required this.packageName,
+    this.version,
+    this.pinned,
+    required this.health,
+    this.detail,
+    required this.millis,
+  });
+
+  /// 'node', 'python', 'git', 'bash', 'perl', 'ruby' or 'rg'.
+  String tool;
+
+  /// The Termux package that carries it.
+  String packageName;
+
+  /// What the tool says its version is.
+  String? version;
+
+  /// Its package's pinned version.
+  String? pinned;
+
+  /// 'ok', 'mismatch', 'failed', 'missing' or 'unavailable'.
+  String health;
+
+  /// The probe's first line of output, or why it failed.
+  String? detail;
+
+  int millis;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      tool,
+      packageName,
+      version,
+      pinned,
+      health,
+      detail,
+      millis,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static ToolMessage decode(Object result) {
+    result as List<Object?>;
+    return ToolMessage(
+      tool: result[0]! as String,
+      packageName: result[1]! as String,
+      version: result[2] as String?,
+      pinned: result[3] as String?,
+      health: result[4]! as String,
+      detail: result[5] as String?,
+      millis: result[6]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! ToolMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(tool, other.tool) &&
+        _deepEquals(packageName, other.packageName) &&
+        _deepEquals(version, other.version) &&
+        _deepEquals(pinned, other.pinned) &&
+        _deepEquals(health, other.health) &&
+        _deepEquals(detail, other.detail) &&
+        _deepEquals(millis, other.millis);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'ToolMessage(tool: $tool, packageName: $packageName, version: $version, pinned: $pinned, health: $health, detail: $detail, millis: $millis)';
+  }
+}
+
+/// Every tool's probe.
+class ToolsMessage {
+  ToolsMessage({required this.tools, required this.millis, this.failure});
+
+  List<ToolMessage> tools;
+
+  int millis;
+
+  /// Why nothing was probed (the runtime is not ready), or null.
+  String? failure;
+
+  List<Object?> _toList() {
+    return <Object?>[tools, millis, failure];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static ToolsMessage decode(Object result) {
+    result as List<Object?>;
+    return ToolsMessage(
+      tools: (result[0]! as List<Object?>).cast<ToolMessage>(),
+      millis: result[1]! as int,
+      failure: result[2] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! ToolsMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(tools, other.tools) &&
+        _deepEquals(millis, other.millis) &&
+        _deepEquals(failure, other.failure);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'ToolsMessage(tools: $tools, millis: $millis, failure: $failure)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -427,6 +767,18 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is RuntimeSizeMessage) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
+    } else if (value is ExecRequestMessage) {
+      buffer.putUint8(132);
+      writeValue(buffer, value.encode());
+    } else if (value is ExecResultMessage) {
+      buffer.putUint8(133);
+      writeValue(buffer, value.encode());
+    } else if (value is ToolMessage) {
+      buffer.putUint8(134);
+      writeValue(buffer, value.encode());
+    } else if (value is ToolsMessage) {
+      buffer.putUint8(135);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -441,6 +793,14 @@ class _PigeonCodec extends StandardMessageCodec {
         return RuntimeStatusMessage.decode(readValue(buffer)!);
       case 131:
         return RuntimeSizeMessage.decode(readValue(buffer)!);
+      case 132:
+        return ExecRequestMessage.decode(readValue(buffer)!);
+      case 133:
+        return ExecResultMessage.decode(readValue(buffer)!);
+      case 134:
+        return ToolMessage.decode(readValue(buffer)!);
+      case 135:
+        return ToolsMessage.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -560,6 +920,48 @@ class RuntimeApi {
       isNullValid: false,
     );
     return pigeonVar_replyValue! as RuntimeSizeMessage;
+  }
+
+  /// Runs one command in the runtime and answers with its result (Phase 4
+  /// W4). Refused with 'not_ready' unless the runtime is ready or degraded.
+  Future<ExecResultMessage> exec(ExecRequestMessage request) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.RuntimeApi.exec$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[request],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as ExecResultMessage;
+  }
+
+  /// Probes node, python, git, bash, perl, ruby and rg: each version, and
+  /// whether it is the pinned one (Phase 4 W4, gate G4).
+  Future<ToolsMessage> tools() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.RuntimeApi.tools$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as ToolsMessage;
   }
 }
 

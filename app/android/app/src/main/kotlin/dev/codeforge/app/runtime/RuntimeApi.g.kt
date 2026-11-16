@@ -441,6 +441,296 @@ data class RuntimeSizeMessage (
     return "RuntimeSizeMessage(prefixBytes=$prefixBytes, prefixFiles=$prefixFiles, nativeLibraryBytes=$nativeLibraryBytes, apkBytes=$apkBytes)"
   }
 }
+
+/**
+ * One command for the runtime: a program in its bin, run once (Phase 4 W4).
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class ExecRequestMessage (
+  /** A name in the runtime's bin (`node`, `git`); never a path. */
+  val program: String,
+  val arguments: List<String>,
+  /**
+   * The runtime's home when null; otherwise a folder inside its home or
+   * workspace.
+   */
+  val directory: String? = null,
+  /** The time limit (60 s when null, at most 10 minutes). */
+  val timeoutMs: Long? = null,
+  /**
+   * Bytes kept of each of stdout and stderr (256 KiB when null, 1 KiB to
+   * 1 MiB).
+   */
+  val outputLimit: Long? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ExecRequestMessage {
+      val program = pigeonVar_list[0] as String
+      val arguments = pigeonVar_list[1] as List<String>
+      val directory = pigeonVar_list[2] as String?
+      val timeoutMs = pigeonVar_list[3] as Long?
+      val outputLimit = pigeonVar_list[4] as Long?
+      return ExecRequestMessage(program, arguments, directory, timeoutMs, outputLimit)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      program,
+      arguments,
+      directory,
+      timeoutMs,
+      outputLimit,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as ExecRequestMessage
+    return RuntimeApiPigeonUtils.deepEquals(this.program, other.program) && RuntimeApiPigeonUtils.deepEquals(this.arguments, other.arguments) && RuntimeApiPigeonUtils.deepEquals(this.directory, other.directory) && RuntimeApiPigeonUtils.deepEquals(this.timeoutMs, other.timeoutMs) && RuntimeApiPigeonUtils.deepEquals(this.outputLimit, other.outputLimit)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.program)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.arguments)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.directory)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.timeoutMs)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.outputLimit)
+    return result
+  }
+  override fun toString(): String {
+    return "ExecRequestMessage(program=$program, arguments=$arguments, directory=$directory, timeoutMs=$timeoutMs, outputLimit=$outputLimit)"
+  }
+}
+
+/**
+ * What became of a command.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class ExecResultMessage (
+  /** The command's exit code; null when it did not exit by itself. */
+  val exitCode: Long? = null,
+  /** The signal that ended it, when one did. */
+  val signal: Long? = null,
+  val stdout: String,
+  val stderr: String,
+  /** Every byte written to each, kept or not. */
+  val stdoutBytes: Long,
+  val stderrBytes: Long,
+  val stdoutTruncated: Boolean,
+  val stderrTruncated: Boolean,
+  val durationMs: Long,
+  /**
+   * Why it has no ordinary result: 'not_ready', 'bad_request',
+   * 'not_found', 'cannot_execute', 'timed_out', 'ended', 'signaled' or
+   * 'launch_failed' (CommandRunner.kt); null when it ran and exited.
+   */
+  val failure: String? = null,
+  val detail: String? = null,
+  /**
+   * Processes ended after it: what it left running, or its whole tree when
+   * it was stopped.
+   */
+  val leftovers: Long,
+  /** Processes that could not be ended: 0 unless the kernel refused. */
+  val remaining: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ExecResultMessage {
+      val exitCode = pigeonVar_list[0] as Long?
+      val signal = pigeonVar_list[1] as Long?
+      val stdout = pigeonVar_list[2] as String
+      val stderr = pigeonVar_list[3] as String
+      val stdoutBytes = pigeonVar_list[4] as Long
+      val stderrBytes = pigeonVar_list[5] as Long
+      val stdoutTruncated = pigeonVar_list[6] as Boolean
+      val stderrTruncated = pigeonVar_list[7] as Boolean
+      val durationMs = pigeonVar_list[8] as Long
+      val failure = pigeonVar_list[9] as String?
+      val detail = pigeonVar_list[10] as String?
+      val leftovers = pigeonVar_list[11] as Long
+      val remaining = pigeonVar_list[12] as Long
+      return ExecResultMessage(exitCode, signal, stdout, stderr, stdoutBytes, stderrBytes, stdoutTruncated, stderrTruncated, durationMs, failure, detail, leftovers, remaining)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      exitCode,
+      signal,
+      stdout,
+      stderr,
+      stdoutBytes,
+      stderrBytes,
+      stdoutTruncated,
+      stderrTruncated,
+      durationMs,
+      failure,
+      detail,
+      leftovers,
+      remaining,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as ExecResultMessage
+    return RuntimeApiPigeonUtils.deepEquals(this.exitCode, other.exitCode) && RuntimeApiPigeonUtils.deepEquals(this.signal, other.signal) && RuntimeApiPigeonUtils.deepEquals(this.stdout, other.stdout) && RuntimeApiPigeonUtils.deepEquals(this.stderr, other.stderr) && RuntimeApiPigeonUtils.deepEquals(this.stdoutBytes, other.stdoutBytes) && RuntimeApiPigeonUtils.deepEquals(this.stderrBytes, other.stderrBytes) && RuntimeApiPigeonUtils.deepEquals(this.stdoutTruncated, other.stdoutTruncated) && RuntimeApiPigeonUtils.deepEquals(this.stderrTruncated, other.stderrTruncated) && RuntimeApiPigeonUtils.deepEquals(this.durationMs, other.durationMs) && RuntimeApiPigeonUtils.deepEquals(this.failure, other.failure) && RuntimeApiPigeonUtils.deepEquals(this.detail, other.detail) && RuntimeApiPigeonUtils.deepEquals(this.leftovers, other.leftovers) && RuntimeApiPigeonUtils.deepEquals(this.remaining, other.remaining)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.exitCode)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.signal)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.stdout)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.stderr)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.stdoutBytes)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.stderrBytes)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.stdoutTruncated)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.stderrTruncated)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.durationMs)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.failure)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.detail)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.leftovers)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.remaining)
+    return result
+  }
+  override fun toString(): String {
+    return "ExecResultMessage(exitCode=$exitCode, signal=$signal, stdout=$stdout, stderr=$stderr, stdoutBytes=$stdoutBytes, stderrBytes=$stderrBytes, stdoutTruncated=$stdoutTruncated, stderrTruncated=$stderrTruncated, durationMs=$durationMs, failure=$failure, detail=$detail, leftovers=$leftovers, remaining=$remaining)"
+  }
+}
+
+/**
+ * One tool's probe (Toolchain.kt).
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class ToolMessage (
+  /** 'node', 'python', 'git', 'bash', 'perl', 'ruby' or 'rg'. */
+  val tool: String,
+  /** The Termux package that carries it. */
+  val packageName: String,
+  /** What the tool says its version is. */
+  val version: String? = null,
+  /** Its package's pinned version. */
+  val pinned: String? = null,
+  /** 'ok', 'mismatch', 'failed', 'missing' or 'unavailable'. */
+  val health: String,
+  /** The probe's first line of output, or why it failed. */
+  val detail: String? = null,
+  val millis: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ToolMessage {
+      val tool = pigeonVar_list[0] as String
+      val packageName = pigeonVar_list[1] as String
+      val version = pigeonVar_list[2] as String?
+      val pinned = pigeonVar_list[3] as String?
+      val health = pigeonVar_list[4] as String
+      val detail = pigeonVar_list[5] as String?
+      val millis = pigeonVar_list[6] as Long
+      return ToolMessage(tool, packageName, version, pinned, health, detail, millis)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      tool,
+      packageName,
+      version,
+      pinned,
+      health,
+      detail,
+      millis,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as ToolMessage
+    return RuntimeApiPigeonUtils.deepEquals(this.tool, other.tool) && RuntimeApiPigeonUtils.deepEquals(this.packageName, other.packageName) && RuntimeApiPigeonUtils.deepEquals(this.version, other.version) && RuntimeApiPigeonUtils.deepEquals(this.pinned, other.pinned) && RuntimeApiPigeonUtils.deepEquals(this.health, other.health) && RuntimeApiPigeonUtils.deepEquals(this.detail, other.detail) && RuntimeApiPigeonUtils.deepEquals(this.millis, other.millis)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.tool)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.packageName)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.version)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.pinned)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.health)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.detail)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.millis)
+    return result
+  }
+  override fun toString(): String {
+    return "ToolMessage(tool=$tool, packageName=$packageName, version=$version, pinned=$pinned, health=$health, detail=$detail, millis=$millis)"
+  }
+}
+
+/**
+ * Every tool's probe.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class ToolsMessage (
+  val tools: List<ToolMessage>,
+  val millis: Long,
+  /** Why nothing was probed (the runtime is not ready), or null. */
+  val failure: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ToolsMessage {
+      val tools = pigeonVar_list[0] as List<ToolMessage>
+      val millis = pigeonVar_list[1] as Long
+      val failure = pigeonVar_list[2] as String?
+      return ToolsMessage(tools, millis, failure)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      tools,
+      millis,
+      failure,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as ToolsMessage
+    return RuntimeApiPigeonUtils.deepEquals(this.tools, other.tools) && RuntimeApiPigeonUtils.deepEquals(this.millis, other.millis) && RuntimeApiPigeonUtils.deepEquals(this.failure, other.failure)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.tools)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.millis)
+    result = 31 * result + RuntimeApiPigeonUtils.deepHash(this.failure)
+    return result
+  }
+  override fun toString(): String {
+    return "ToolsMessage(tools=$tools, millis=$millis, failure=$failure)"
+  }
+}
 private open class RuntimeApiPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -459,6 +749,26 @@ private open class RuntimeApiPigeonCodec : StandardMessageCodec() {
           RuntimeSizeMessage.fromList(it)
         }
       }
+      132.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          ExecRequestMessage.fromList(it)
+        }
+      }
+      133.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          ExecResultMessage.fromList(it)
+        }
+      }
+      134.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          ToolMessage.fromList(it)
+        }
+      }
+      135.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          ToolsMessage.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -474,6 +784,22 @@ private open class RuntimeApiPigeonCodec : StandardMessageCodec() {
       }
       is RuntimeSizeMessage -> {
         stream.write(131)
+        writeValue(stream, value.toList())
+      }
+      is ExecRequestMessage -> {
+        stream.write(132)
+        writeValue(stream, value.toList())
+      }
+      is ExecResultMessage -> {
+        stream.write(133)
+        writeValue(stream, value.toList())
+      }
+      is ToolMessage -> {
+        stream.write(134)
+        writeValue(stream, value.toList())
+      }
+      is ToolsMessage -> {
+        stream.write(135)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -501,6 +827,16 @@ interface RuntimeApi {
   fun audit(callback: (Result<RuntimeStatusMessage>) -> Unit)
   /** Measures what the runtime occupies. */
   fun size(callback: (Result<RuntimeSizeMessage>) -> Unit)
+  /**
+   * Runs one command in the runtime and answers with its result (Phase 4
+   * W4). Refused with 'not_ready' unless the runtime is ready or degraded.
+   */
+  fun exec(request: ExecRequestMessage, callback: (Result<ExecResultMessage>) -> Unit)
+  /**
+   * Probes node, python, git, bash, perl, ruby and rg: each version, and
+   * whether it is the pinned one (Phase 4 W4, gate G4).
+   */
+  fun tools(callback: (Result<ToolsMessage>) -> Unit)
 
   companion object {
     /** The codec used by RuntimeApi. */
@@ -588,6 +924,44 @@ interface RuntimeApi {
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             api.size{ result: Result<RuntimeSizeMessage> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(RuntimeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(RuntimeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.RuntimeApi.exec$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val requestArg = args[0] as ExecRequestMessage
+            api.exec(requestArg) { result: Result<ExecResultMessage> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(RuntimeApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(RuntimeApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.RuntimeApi.tools$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.tools{ result: Result<ToolsMessage> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(RuntimeApiPigeonUtils.wrapError(error))

@@ -266,7 +266,9 @@ final class FakeRuntimeService implements RuntimeService {
     }
     final handler = onExec;
     return _answer(
-      handler == null ? const ExecResult(exitCode: 0) : handler(program, arguments),
+      handler == null
+          ? const ExecResult(exitCode: 0)
+          : handler(program, arguments),
     );
   }
 

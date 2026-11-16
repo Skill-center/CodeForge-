@@ -99,11 +99,8 @@ final class PigeonRuntimeService implements RuntimeService {
   }
 
   @override
-  Future<Result<RuntimeTools>> tools() => _call(
-    'tools',
-    _probes,
-    () async => runtimeToolsFrom(await _api.tools()),
-  );
+  Future<Result<RuntimeTools>> tools() =>
+      _call('tools', _probes, () async => runtimeToolsFrom(await _api.tools()));
 
   /// Stops hearing the host and closes [changes].
   Future<void> dispose() async {

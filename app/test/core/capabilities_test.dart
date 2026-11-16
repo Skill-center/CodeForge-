@@ -62,9 +62,15 @@ void main() {
       expect(after.analyzable, isFalse);
       expect(after.compilable, isFalse);
     }
-    expect(capabilitiesOf('javascript', runtimeReady: true).interpreter, 'node');
+    expect(
+      capabilitiesOf('javascript', runtimeReady: true).interpreter,
+      'node',
+    );
     expect(capabilitiesOf('python', runtimeReady: true).interpreter, 'python');
-    expect(capabilitiesOf(shellLanguage, runtimeReady: true).interpreter, 'bash');
+    expect(
+      capabilitiesOf(shellLanguage, runtimeReady: true).interpreter,
+      'bash',
+    );
   });
 
   test('every other language stays editable only', () {

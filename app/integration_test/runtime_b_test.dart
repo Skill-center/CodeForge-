@@ -123,7 +123,11 @@ void main() {
       'rg',
     ]);
     for (final tool in probes.tools) {
-      expect(tool.health, ToolHealth.ok, reason: '${tool.tool}: ${tool.detail}');
+      expect(
+        tool.health,
+        ToolHealth.ok,
+        reason: '${tool.tool}: ${tool.detail}',
+      );
     }
     // What the page shows: the summary, then each tool with its version.
     final list = find.byType(Scrollable).first;
