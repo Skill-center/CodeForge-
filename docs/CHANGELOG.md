@@ -4,6 +4,18 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 4 W3, the runtime installs, starts warm and audits (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
+- **The app carries the sealed runtime.** A build for one ABI carries that ABI's payload: Termux's bootstrap with the pinned packages, 13,894 files for x86_64. Its 535 programs, 251 distinct executables, ship as native libraries, so they run from the app's own library folder, never from its data.
+- **It installs when a workspace opens,** off the UI thread, while the editor works, with progress in the status strip. Every file is verified while it is written. A damaged payload fails with a typed reason, and nothing is marked installed. On the CI emulator the install took 3.5 s, and 6.6 s through the app.
+- **Later starts extract nothing:** 18 ms on the emulator, within the 100 ms budget. When an app update moves the libraries, the links follow them.
+- **Every start checks that every program comes from the app** (t1's exec audit). The gate found none outside it. A program outside it would mark the runtime degraded, and the app says so.
+- **Settings → Runtime** shows the state, the payload with its pinned tool versions, the install and start times, the space used and the program check. It offers *Install now*, *Reinstall* and a report to copy. The status strip shows the runtime's state.
+- **Less of t1 is vendored than planned:** `HarnessConfig`, `HarnessPaths` and the payload installer, with their packages renamed, and the preload's two C files unchanged. The other classes the plan listed would need edits to drop t1's apt shape, and vendored files are never edited, so the host is CodeForge's own code. Three classes move to W4 ([native/PROVENANCE.md](../native/PROVENANCE.md)).
+- **Sizes:** the release x86_64 APK is 149.4 MB (24.6 MB before) and the arm64 phone APK 164.2 MB. An arm64 device downloads 147.3 MB of the app bundle, 73.7% of Play's 200 MB limit. The 32-bit ARM build is dropped.
+- **CI checks what each APK carries,** and builds the instrumented tests on every run. The phase gate has a runtime group, and its time limit is 100 minutes.
+- **Gradle's own report** in `app/android/build/` is ignored, after a bootstrap run had committed it.
+- Verified by CI 43807290310, 43808489952 and 43815154032 (`+857: All tests passed!`; 71 Kotlin tests, 27 of them new; 22 kernel tests), and phase gate 43808489945 (every group on its first attempt; the runtime's 6 instrumented tests and the pair through the app).
+
 ### Added — Firebase Test Lab connection check (2026-11-15)
 - The owner created CodeForge's Firebase project, on the no-cost plan. A commit with `[testlab]` in its subject line now runs a crawl of the app on a real arm64 phone in Test Lab, picked for spare capacity and the newest supported Android version. It proves the CI connection before W5's runtime gates rely on it.
 - **Correction:** the service account needs the Editor role. Firebase requires it for tests that keep their results in Test Lab's own bucket, which is the only option without billing. The narrower pair of roles named before works only with a bucket of one's own.

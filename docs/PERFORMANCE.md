@@ -8,9 +8,9 @@
 
 | Metric | Baseline (t1 measured) | CodeForge budget | Gate |
 |---|---|---|---|
-| Sealed base AAB per device (arm64) | 136.0 MB | ≤ 180 MB incl. Flutter engine + editor assets (Play cap 200) | `check-bundle-size.py` every release build |
-| GitHub "full" APK (core + build-tools) | ~250 MB est. (136 + ~110 pack compressed) | ≤ 300 MB; measured at Phase 4 | release gate |
-| Installed core userland | 360–380 MB on-device | unchanged (reuse, no duplication) | RuntimeService size report |
+| Sealed base AAB per device (arm64) | 136.0 MB | ≤ 180 MB incl. Flutter engine + editor assets (Play cap 200) · **Phase 4 W3: 147.3 MB** (phase gate 43808489945) | `check-bundle-size.py` every release build; in the phase gate since Phase 4 W3 |
+| GitHub "full" APK (core + build-tools) | ~250 MB est. (136 + ~110 pack compressed) | ≤ 300 MB; measured at Phase 4 · **W3, without build-tools:** 164.2 MB (arm64, the phone's profile build), 149.4 MB (release x86_64) | release gate |
+| Installed core userland | 360–380 MB on-device | unchanged (reuse, no duplication) · **Phase 4 W3, emulator:** the prefix holds 274.8 MB in 13,894 files, each counted once; its folder takes 397.3 MB on disk (`du -sk`), beside 140.0 MB of libraries Android extracted | RuntimeService size report (Settings → Runtime) |
 | Editor bundle (gz) | — | ≤ 1.5 MB | editor build gate |
 | Flutter UI assets (fonts/icons) | — | ≤ 3 MB | build gate |
 
@@ -21,8 +21,8 @@ Rule carried from t1: **unique-inode bytes are storage truth** (hardlinks make n
 | Metric | Budget | Measured how |
 |---|---|---|
 | Cold start → interactive shell UI (no runtime) | ≤ 1.5 s mid-range | `adb shell am start -W` + frame trace, 10-run median |
-| Runtime first install (payload extract+verify) | ≤ 60 s mid-range (t1: 13,858 files verified) | instrumented timing event |
-| Runtime warm start (re-verify skip) | ≤ 100 ms (t1 measured 11 ms) | startup trace |
+| Runtime first install (payload extract+verify) | ≤ 60 s mid-range (t1: 13,858 files verified) · **Phase 4 W3, emulator:** 3.5 s for 13,894 files, 6.6 s through the app (phase gate 43808489945); the phone figure in W5 | instrumented timing event |
+| Runtime warm start (re-verify skip) | ≤ 100 ms (t1 measured 11 ms) · **Phase 4 W3, emulator:** 18 ms, the median of five (phase gate 43808489945) | instrumented timing (`RuntimeInstallTest` c) |
 | Editor keystroke→glyph p95 | ≤ 32 ms | CM6 perf marks + systrace |
 | Terminal input→echo p95 | ≤ 50 ms | timestamped probe loop |
 | Terminal flood (10 MB) | UI stays responsive; ≤ 5% frames > 32 ms | frame metrics during flood test |

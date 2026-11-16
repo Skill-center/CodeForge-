@@ -17,7 +17,8 @@ CodeForge-/
 │   │   │                         #   platform/: the app's files folder (one channel);
 │   │   │                         #   editor/: WebView surface, page verification;
 │   │   │                         #   editor/bench/: benchmark pages + their WebView;
-│   │   │                         #   perf/: frame timing recorder
+│   │   │                         #   perf/: frame timing recorder;
+│   │   │                         #   runtime/: the runtime's state + its Pigeon client (Ph. 4)
 │   │   ├── application/          # controllers + providers; editor/: the editor host;
 │   │   │                         #   documents/: open documents and tabs;
 │   │   │                         #   bench/: the engine benchmark runner
@@ -28,7 +29,10 @@ CodeForge-/
 │   │   │       ├── application/
 │   │   │       └── domain/
 │   │   └── routing/
-│   ├── android/                  # Kotlin host (MainActivity; W4: the paths channel)
+│   ├── android/                  # Kotlin host (MainActivity; W4: the paths channel);
+│   │                             #   app/src/main/…/runtime/: RuntimeHost and the sealed
+│   │                             #   runtime's install and audit (Phase 4 W3); app/src/
+│   │                             #   androidTest/: the instrumented runtime tests
 │   ├── assets/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
 │   │   ├── editor_bench/         # benchmark pages (gitignored except README; the phase
@@ -60,9 +64,10 @@ CodeForge-/
 ├── native/                       # vendored runtime modules (Phase 4, from t1 @ d9789a2)
 │   ├── PROVENANCE.md             # source repo + commit, licence, every file's SHA-256 (W2)
 │   ├── sealed-runtime/           # t1's kernel, whole: plain Java, 22 JVM tests (W2)
-│   ├── runtime-core/             # (W3) t1's harness-core subset: config/paths/env/runner/size +
-│   │                             #   exec adapter (no apt machinery) + harness-exec/probe JNI;
-│   │                             #   no Termux terminal modules (ADR-0011: Apache-2.0)
+│   ├── runtime-core/             # (W3) t1's HarnessConfig, HarnessPaths, exec adapter, renamed;
+│   │                             #   harness-exec.c/harness-probe.c unchanged, built by its own
+│   │                             #   Android.mk and Gradle tasks, which also build the payload
+│   │                             #   into the APK; no Termux terminal modules (ADR-0011)
 │   └── pack_buildtools/          # (later) Play Feature Delivery module
 │
 ├── runtime/                      # runtime supply chain (Phase 4 W2): t1's scripts/ + CodeForge's
@@ -72,9 +77,11 @@ CodeForge-/
 │   ├── check-page-alignment.py   # t1
 │   ├── check-sealed-manifest.sh  # t1
 │   ├── pins.json                 # every input pinned: bootstrap per ABI, packages, SHA-256
-│   ├── pins.py                   # check · fetch (fails closed) · bootstrap · resolve ([repin])
+│   ├── pins.py                   # check · fetch (fails closed) · bootstrap · resolve ([repin]) ·
+│   │                             #   info (the payload's JSON for the app, W3)
 │   ├── notices.py                # drafts THIRD_PARTY_NOTICES / SOURCE_OFFER from the pins
-│   ├── provenance.py             # checks native/PROVENANCE.md against the vendored files
+│   ├── provenance.py             # checks native/PROVENANCE.md against the vendored files;
+│   │                             #   copy re-vendors them from a t1 checkout (W3)
 │   ├── README.md                 # how the supply chain fits together
 │   ├── ci-results/               # the runtime job's evidence (committed back)
 │   └── tests/                    # t1's 2 script tests, CodeForge's 3 + fixtures, live check

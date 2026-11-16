@@ -1,6 +1,6 @@
 # Phase 4 Implementation Plan — Runtime Integration
 
-**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*); **W2 done on 2026-11-13** (CI 43401882656 and 43403453442, see *As built (W2)*). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. t1 carries the same licence since 2026-11-13 (main `d9789a2`), and CodeForge vendors from that commit.
+**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*); **W2 done on 2026-11-13** (CI 43401882656 and 43403453442, see *As built (W2)*); **W3 done on 2026-11-16** (CI 43807290310, 43808489952 and 43815154032, phase gate 43808489945; see *As built (W3)*, whose vendoring differs from the plan). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. t1 carries the same licence since 2026-11-13 (main `d9789a2`), and CodeForge vendors from that commit.
 **Spec reference:** §8 Phase 4 (runtime integration), §2 (reuse existing assets), §6.4–6.5 (the terminal connects to the existing environment; the capability model), §7 (security) · **Architecture:** [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [EXISTING_RUNTIME_AUDIT.md](../EXISTING_RUNTIME_AUDIT.md), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0006](../adr/0006-terminal-frontend.md), [ADR-0007](../adr/0007-min-sdk.md), [ADR-0009](../adr/0009-ci-github-actions.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Source:** `m-cyber12/t1` main @ `d9789a2` (2026-11-13): the audited tree `0e26d7a` (merged as `7b496c3`) plus its Apache-2.0 LICENSE
 
 ---
@@ -222,7 +222,77 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 - The per-device size of an AAB, with `check-bundle-size.py` (Play's limit is 200 MB per device; t1 measured 136.0 MB).
 - The first install's time (budget 60 s on a mid-range phone; emulator figures now, Test Lab's in W5).
 
+**As built (W3):**
+- **What is vendored differs from the plan.** From t1 `d9789a2`, `native/runtime-core/` holds:
+  - `HarnessConfig`, `HarnessPaths` and `exec/SealedPayloadInstaller`, each differing from t1 only in its package and import lines (PROVENANCE's new change kind, `rename`);
+  - `harness-exec.c` and `harness-probe.c`, byte for byte.
+  - **Not vendored, though listed above:**
+    - `HarnessSizeReport` attributes sizes to the apt tiers (`provision.PackageTier`). `Pack` names an apt tier, the other `packs/*` classes need `Pack`, and `Packs` chooses between the apt installer and Play's. Each would need an edit, and AGENTS §4 forbids editing a vendored file.
+    - t1's `Android.mk` also builds `libtermux` (ADR-0011).
+    - CodeForge has its own code instead: the host measures the sizes, its own `Android.mk` keeps t1's 16 KB flags, and there are no packs until the build-tools pack.
+  - **Moved to W4:** `HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain`, which serve W4's `exec()` and `tools()`. `HarnessEnvironment.prepare` calls `HarnessBootstrap` and writes the apt configuration, so W4 settles how it comes in.
+  - t1's harness-core tests exercise classes that aren't vendored; the host's own tests cover what is.
+  - **PROVENANCE** records 23 vendored files (14 with the package renamed, 9 byte for byte) and 15 of CodeForge's own. `runtime/provenance.py copy` re-vendors them from a t1 checkout.
+- **The module** (`native/runtime-core/`, an Android library on the kernel):
+  - **The preload:** ndk-build builds `libharness-exec.so`. The exec probe is compiled as a PIE executable named `libharnessprobe.so`, so that Android extracts it with the libraries.
+  - **The payload:** for each payload ABI, a Gradle task fetches the pinned bootstrap and packages (`pins.py`, cached in `runtime/generated/cache`), runs t1's `build-sealed-payload.py`, and writes what `pins.py info` reports.
+    - The results are generated assets and JNI libraries: `userland-<abi>.zip` with its manifest, exec, symlink, payload-id and info files, and the executables as `lib*.so`.
+    - Nothing generated is committed.
+- **ABIs and payloads** (BUILD_AND_RELEASE §3):
+  - arm64-v8a and x86_64; armeabi-v7a is dropped.
+  - A build for one ABI carries that ABI's payload, and a build for both carries none. The `codeforgePayload` property overrides either way.
+  - The gate's groups run on builds without a payload, and its runtime group on one with x86_64's.
+- **The host** (`app/android/app/src/main/kotlin/dev/codeforge/app/runtime/`):
+  - **`SealedRuntime.kt`:**
+    - installs with t1's installer, verified while written, and writes its marker (`codeforge/installed.properties`) only after a verified install;
+    - starts warm: t1's layout is re-applied and every link pointed at the current `nativeLibraryDir`;
+    - removes a previous install exactly (`SealedUninstaller`), audits and measures.
+  - **The other classes:** `RuntimeHub.kt` runs all of it on one background thread and publishes each state. `RuntimeHost.kt` is the Pigeon end, and `PayloadSource.kt` reads the APK's payload.
+  - **States:** unknown, unavailable, not installed, installed, checking, installing, ready, degraded, failed.
+  - **Typed problems:** `no_payload`, `corrupt`, `incomplete`, `storage`, `missing_executables`, `outside_apk`, `audit_incomplete`, `unexpected`.
+  - **The audit runs at every start,** after the install or the warm start. A single executable outside the APK makes the runtime degraded. Scripts are listed apart: they run through the preload, never exec'd.
+  - **The install is lazy:** it starts when a workspace opens, never at app start, and the editor works meanwhile.
+- **The boundary:** `pigeons/runtime_api.dart` has `status`, `start`, `reinstall`, `audit` and `size`. The host calls `RuntimeEvents.changed` with every new state, progress included.
+- **In the app:**
+  - **Settings → Runtime** (`/settings/runtime`):
+    - the state, with *Install now* and *Reinstall* (confirmed first);
+    - the payload: Termux's bootstrap, the package count, the pin date and the payload id;
+    - the pinned versions of the core tools (W4's probes ask the tools themselves);
+    - the install and start times, the space used, and the program check with *Check again*;
+    - a report to copy.
+  - **The status strip's runtime chip** shows the state: "runtime" in grey until it starts, "installing N%", "runtime" in green when ready or amber when degraded, "runtime failed", or "no runtime" in a build without a payload.
+- **Tests:**
+  - **JVM:** 27 new Kotlin tests on synthetic payloads (`SealedRuntimeTest` 14, `RuntimeHubTest` 13), 71 in all.
+  - **Instrumented:** `RuntimeInstallTest`, six tests (a–f) on the APK's own payload, installed into roots of their own.
+  - **Flutter:** `test/widget/runtime_test.dart` (12 tests), and the pair `integration_test/runtime_a_test.dart` and `runtime_b_test.dart`.
+  - **Goldens:** 15 changed, and each was looked at: the strip's chip, Settings' Runtime section, and the terminal pane's text, which now names Phase 5.
+  - **Scripts:** the provenance (12) and pins (21) tests cover `rename`, `copy` and `info`.
+- **Found by CI:**
+  - **The instrumented tests' dependencies** must match the debug app's androidx.test versions, because the test APK runs in the app's process. Flutter's `integration_test` puts runner 1.3.0 and junit 4.12 into debug builds (CI 43804216240).
+  - That train's `androidx.test.ext:junit` brings an activity without `android:exported`, so the tests are plain JUnit4 classes (CI 43805853809).
+  - CI's Kotlin step now also assembles the test APK, which is how both showed up in CI rather than in the gate.
+  - A bootstrap commit-back had committed Gradle's own report from `app/android/build/`, which is now ignored.
+- **G3, measured in phase gate 43808489945** (API 36 x86_64 emulator; the debug APK with the x86_64 payload):
+
+  | G3 criterion | Measured | Budget |
+  |---|---|---|
+  | First install, off the UI thread, with progress | **3.5 s** for 13,894 files, each verified (instrumented). **6.6 s** through the app, while the editor opened a file; the progress reached the app (44 of the test's polls saw it) | 60 s on a mid-range phone; Test Lab's figure in W5 |
+  | Warm start | **17–20 ms** over five starts, median 18. **48 ms** through the app, in a new process after the gate installed the app again: the libraries had moved, so all 535 programs were relinked | ≤ 100 ms |
+  | A flipped byte | typed `corrupt` ("the payload archive is damaged"). A file that differs from its manifest: typed `corrupt` too ("digest differs: bin/am"). In both cases nothing is marked installed | a typed failure, never ready |
+  | `ExecAudit` | **0** outside the APK at the first start and at the warm start, instrumented and through the app: 535 programs shipped, 7,611 files scanned in 319 ms | 0 |
+  | Sizes | **APKs:** release x86_64 149.4 MB (24.6 MB before W3), phone arm64 164.2 MB. **AAB:** 147.3 MB per arm64 device, 73.7% of Play's 200 MB. **On the device:** the runtime's folder holds the prefix's 274.8 MB in 13,894 files (397.3 MB on disk, by `du -sk`), beside 140.0 MB of extracted native libraries (debug build) | recorded; PERFORMANCE's 300 MB for the full APK |
+
+- **The rest of the gate:** every group passed on its first attempt, in 35.6 minutes. The cold start was 847 ms (879 ms in W1; 815 ms with Skia), now on a release APK that carries the payload.
+- **Still open for G3:** the first install on an arm64 phone in Test Lab (W5).
+- **W5's runtime group** in the gate is built, because G3's evidence needed it. W5 adds the runtime-gates legs.
+- **Evidence:**
+  - **The CI rounds:** 43801163150 (an icon's name; the module's build script on AGP 9's DSL), 43802582748 (one widget test), and 43804216240 and 43805853809 (the test APK). Then green: 43807290310, 43808489952, and 43815154032, run to commit the counts back.
+  - **Test counts** (CI 43815154032, on an empty `[bootstrap]` commit, so that the results were committed back): `+857: All tests passed!`, `kotlin_tests=71` and `sealed_runtime_tests=22`, with no failures.
+  - **Phase gate 43808489945:** `gate_result=pass`, with `runtime_instrumented=pass OK (6 tests)` and `runtime_pair=pass` (`app/ci-results/gate/runtime.txt`).
+
 ### W4 — Commands, tools and versions in the UI (1–2 sessions) → G4
+
+**From W3:** `HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain` come in here, not in W3 (*As built (W3)*). `HarnessEnvironment.prepare` calls `HarnessBootstrap` and writes the apt configuration, so it can't be vendored unedited: the change goes to t1 first (AGENTS §4), or CodeForge writes its own.
 
 **`exec()`** runs one-shot commands through `HarnessCommandRunner`.
 - It returns a typed result: exit code, capped stdout and stderr, duration, and a failure kind.
@@ -257,7 +327,7 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 
 **The minSdk rule:** if API 26–28 pass, ADR-0007 becomes Accepted at 26. Failures with fixes of a week or less are fixed. A structural failure goes to the owner, whose sign-off a raise to 29 needs.
 
-**The existing gate gains a runtime group:** the install's time, the warm start and the audit, end to end through the app. Its other groups keep running.
+**The existing gate gains a runtime group:** the install's time, the warm start and the audit, end to end through the app. Its other groups keep running. **Built in W3,** because G3's evidence needed it (*As built (W3)*).
 
 **Carried:** a JVM test for `FolderWatches.kt`, if its seams allow one without Robolectric.
 
@@ -300,7 +370,7 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 |---|---|---|
 | **G1 Toolchain** | CI builds with Flutter 3.50.0, AGP 9.3.3 (planned as 9.3.1; see *As built (W1)*), KGP 2.4.20 and Gradle 9.5.0. Analysis is clean and formatting unchanged, every test passes, and every changed golden has been looked at. The Kotlin tests pass. Every phase-gate group passes, and the cold start is recorded with Impeller and with Skia | CI and gate run ids |
 | **G2 Kernel** | `:native:sealed-runtime:test` passes with t1's tests changed only in their package. The `runtime/` script tests pass. PROVENANCE is complete. A missing pinned package fails the build closed | CI |
-| **G3 Install** | The first install runs off the UI thread with progress, within 60 s on a mid-range phone (emulator and Test Lab figures recorded). A warm start takes 100 ms or less. A flipped byte gives a typed failure and the runtime is never marked ready. `ExecAudit` = 0 at every start. APK and per-device sizes recorded | the gate's runtime group, instrumented tests |
+| **G3 Install** | The first install runs off the UI thread with progress, within 60 s on a mid-range phone (emulator and Test Lab figures recorded). A warm start takes 100 ms or less. A flipped byte gives a typed failure and the runtime is never marked ready. `ExecAudit` = 0 at every start. APK and per-device sizes recorded | the gate's runtime group, instrumented tests. **W3:** met on the x86_64 emulator, phase gate 43808489945 (*As built (W3)*); the arm64 install time waits for Test Lab (W5) |
 | **G4 Versions** | node, python, git, bash, perl, ruby and rg versions reach the Flutter UI through RuntimeHost and match the pinned packages. Ending a process leaves no child | instrumented, widget and gate tests |
 | **G5 Emulators** | `ExecModelTest` and `SealedShellTest` pass on API 34 and 36 x86_64 | runtime-gates run |
 | **G6 arm64** | The same tests pass on a physical arm64 phone in Test Lab. FULL against NORMAL is measured there and ADR-0008 updated | Test Lab runs |

@@ -1,19 +1,19 @@
 # runtime/: the sealed runtime's supply chain
 
-The scripts that turn pinned Termux packages into the sealed payload the app ships, and the pins themselves (Phase 4 W2). Vendored from t1 byte for byte, plus CodeForge's own pinning, notices and provenance tools; native/PROVENANCE.md says which file is which. W3 wires them into the Gradle build, the way t1 does: generated assets, verified while written, never committed.
+The scripts that turn pinned Termux packages into the sealed payload the app ships, and the pins themselves (Phase 4 W2). Vendored from t1 byte for byte, plus CodeForge's own pinning, notices and provenance tools; native/PROVENANCE.md says which file is which. Since W3 the Gradle build runs them the way t1 does: for each payload ABI, `native/runtime-core`'s tasks fetch the pinned files, build the payload and put it into the APK as generated assets and JNI libraries, never committed. The app verifies every file while it writes it.
 
 ## The pieces
 
 | File | Origin | Does |
 |---|---|---|
 | `pins.json` | CodeForge | Pins every input: the bootstrap for each ABI (URL, SHA-256), the core set asked for, and every resolved package (version, file, size, SHA-256) in install order |
-| `pins.py` | CodeForge | `check` the pins offline · `fetch` exactly the pinned packages (fails closed) · `bootstrap` · `resolve` (re-pin) |
+| `pins.py` | CodeForge | `check` the pins offline · `fetch` exactly the pinned packages (fails closed) · `bootstrap` · `resolve` (re-pin) · `info`, the payload's description for the app (`runtime-info-<abi>.json`: Termux's bootstrap, the package count, the pin date and the core packages' versions) |
 | `fetch-core-debs.py` | t1 | Termux's index, the dependency resolver, downloads. `pins.py` imports it |
 | `build-sealed-payload.py` | t1 | Splits the bootstrap and the `.deb`s into the payload: `userland-<abi>.zip`, the manifests, `jniLibs/<abi>/lib*.so` |
 | `check-sealed-manifest.sh` | t1 | Checks that a payload tree is sealed |
 | `check-bundle-size.py`, `check-page-alignment.py` | t1 | Play's 200 MB base-module limit, 16 KB page alignment |
 | `notices.py` | CodeForge | Drafts THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md from the pinned packages' licence files |
-| `provenance.py` | CodeForge | Checks native/PROVENANCE.md against the vendored files |
+| `provenance.py` | CodeForge | `check`s native/PROVENANCE.md against the vendored files · `copy` re-vendors them from a t1 checkout with their recorded change · `record` writes the hashes |
 | `tests/` | both | t1's two script tests; CodeForge's pins, notices and provenance tests; the live fail-closed check |
 
 ## Commands
@@ -25,7 +25,9 @@ python3 runtime/pins.py fetch --arch x86_64 --cache runtime/generated/cache --ou
 python3 runtime/build-sealed-payload.py --bootstrap runtime/generated/bootstrap/bootstrap-x86_64.zip \
     --abi x86_64 --deb-dir runtime/generated/debs/x86_64 --out runtime/generated/payload
 python3 runtime/notices.py --cache runtime/generated/cache [--check]
+python3 runtime/pins.py info --arch x86_64 --out runtime/generated/payload/assets/runtime-info-x86_64.json
 python3 runtime/provenance.py check
+python3 runtime/provenance.py copy --t1 /path/to/t1   # at PROVENANCE's commit; then record
 for t in runtime/tests/test-*.py; do python3 "$t" || echo "FAILED: $t"; done
 ```
 

@@ -16,8 +16,8 @@
 
 | Workflow | Trigger | Jobs | Gate? |
 |---|---|---|---|
-| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (since Phase 3 W1) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check · the release x86_64 APK (Ph. 4 W1) · the sealed-runtime JVM tests and the runtime supply-chain job (Ph. 4 W2, §2.4) | PR merge blocker |
-| `phase-gate.yml` | `[phase-gate]` in the head commit message (manual dispatch once on `main`) | emulator integration tests on API 36 x86_64 `google_apis` (KVM) incl. the process-death restore pair · cold-start measurement on a release x86_64 APK · size report (`perf.json`) | phase exit blocker |
+| `ci.yml` | every PR + push to main/arena branches | Dart analyze/format/test (unit+widget+goldens, with coverage) · import-boundary lint · Kotlin/JVM tests (since Phase 3 W1) · editor JS build+vitest (from Ph. 2) · `flutter build apk --debug` + SHA-256/size · license check · lockfile drift check · the release x86_64 APK (Ph. 4 W1) · the sealed-runtime JVM tests and the runtime supply-chain job (Ph. 4 W2, §2.4) · the runtime in the APKs, and the instrumented tests' APK (Ph. 4 W3) | PR merge blocker |
+| `phase-gate.yml` | `[phase-gate]` in the head commit message (manual dispatch once on `main`) | emulator integration tests on API 36 x86_64 `google_apis` (KVM) incl. the process-death restore pair · the runtime group (Ph. 4 W3: install, warm start, a flipped byte, the exec audit) · cold-start measurement on a release x86_64 APK · size report (`perf.json`) · the arm64 bundle's size per device (Ph. 4 W3) | phase exit blocker |
 | `runtime-gates.yml` | changes under native/, runtime/ (Ph. 4+; no nightly run, ADR-0009 amendment) | payload build (pins verified) · `ExecModelTest` + `SealedShellTest` on 34/36 · `ExecAudit`=0 · page-alignment check · bundle-size check · arm64 device leg (Firebase Test Lab, see §4) | release blocker |
 | `release.yml` | version tag `v*` | build GitHub "full" APK (arm64 + x86_64) · build Play AAB (arm64 base + PFD pack) · sign (secrets) · hashes + pins manifest · GitHub Release draft · Play upload to internal track (manual promote) | — |
 | `deps.yml` | monthly cron | dependency update PR (pub/npm/gradle) with full ci.yml | — |
@@ -97,12 +97,34 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   7. the notices, checked current.
 
   A `[repin]` commit first re-resolves the pins against the live repository. Its evidence goes to `runtime/ci-results/`, which `[bootstrap]` and `[repin]` runs commit back, along with the pins and the regenerated notices. It takes about 3½ minutes.
+- **The runtime in the build** (`ci.yml`, since W3, gate G3):
+  - *Generated code check* covers the runtime's Pigeon API (`pigeons/runtime_api.dart`).
+  - **The Kotlin step** also runs `:app:assembleDebugAndroidTest`. The instrumented tests then compile on every run, and their APK's dependencies and manifest are checked in CI rather than first in the gate, which is where W3 found both problems.
+  - *Restore the runtime's pinned files* restores the runtime job's cache before the release build, which carries the x86_64 payload since W3.
+  - **Runtime in the APKs** (`tool/ci/check_runtime_apk.py`; `runtime_apk` in *Enforce quality gates*):
+    - the release APK carries one ABI's payload and that ABI's libraries only;
+    - its userland zip is stored, not compressed again;
+    - every library its exec manifest names is in the APK, beside the preload and the exec probe;
+    - the native libraries are compressed (legacy packaging), so Android extracts them as real files;
+    - the debug APK, built for two ABIs, carries no payload.
+
+    `check-page-alignment.py` then requires every shipped object to be 16 KB aligned. The checker first tests itself on 8 cases.
+  - `check_manifest.py` also requires `android:extractNativeLibs="true"`.
+- **The phase gate since W3:**
+  - **Payloads:** its groups run on builds without one (`ORG_GRADLE_PROJECT_codeforgePayload=none`). The release x86_64 APK and the phone's arm64 APK carry theirs.
+  - **The emulator** has an 8 GB data partition.
+  - **Sizes:** it builds an arm64 app bundle and measures its size per device with `check-bundle-size.py` (`bundle-size.txt`; Play's limit is 200 MB per device). It runs the runtime APK checks on its own APKs (`runtime-apks.txt`).
+  - **The runtime group** runs before the cold start, in three steps. Its figures go to `runtime.txt`.
+    1. A debug build with the x86_64 payload, and its test APK.
+    2. The instrumented tests, with `am instrument`. They pass when the output has a line `OK (n tests)`.
+    3. The A/B pair through the app, across a process death.
+  - **The limit:** the job may take 100 minutes. W3's gate took 35.6.
 
 ## 3. Toolchain pins in CI
 
 - Flutter: `.flutter-version` (**3.50.0** since Phase 4 W1; 3.47.9 before). Both workflows read the file and pass the version to `subosito/flutter-action`; the next step records the Flutter installed (`ci-results/flutter.txt`, and a notice on the run) and fails if it is another.
   - **Until 2026-11-11 the pin was not enforced.** The workflows handed the action the file itself, which it reads only as a pubspec (`environment: flutter:`) or an FVM file. It found no version in `.flutter-version` and installed the latest stable release. That was 3.47.9 until Flutter 3.50.0 reached the stable channel. 3.50.0 refuses an Android Gradle Plugin below 9.1.1, so the debug build failed on the runners that got it (CI 43082992891 attempt 1, 43084317447, 43086757260). A run whose debug build passed had 3.47.9, the only other release that was the latest stable since the pin was set. CI 43088413162 and phase gate 43088413208 ran on the enforced pin.
-- Java: Temurin 17; Android SDK 36 (runner image); NDK **28.2.13676358** (resolved by the Flutter Gradle plugin); Gradle wrapper **9.5.0** + AGP **9.3.3** and Kotlin's Gradle plugin **2.4.20** (committed since Phase 4 W1: the pins of Flutter 3.50.0's template, except AGP, which is the 9.3 line's latest patch; before, 3.47.9's 9.3.1 + 9.1.0 + 2.4.0); Node: `.nvmrc` (24 LTS) for the editor workspace from Phase 2.
+- Java: Temurin 17; Android SDK 36 (runner image); NDK **28.2.13676358** (resolved by the Flutter Gradle plugin; since Phase 4 W3 it also builds the runtime's preload, with ndk-build); Gradle wrapper **9.5.0** + AGP **9.3.3** and Kotlin's Gradle plugin **2.4.20** (committed since Phase 4 W1: the pins of Flutter 3.50.0's template, except AGP, which is the 9.3 line's latest patch; before, 3.47.9's 9.3.1 + 9.1.0 + 2.4.0); Node: `.nvmrc` (24 LTS) for the editor workspace from Phase 2.
   - **AGP 9.3.3, not the template's 9.3.1:** 9.3.0 and 9.3.1 bundle a lint that crashes on JDK 17 (`NoSuchMethodError: java.util.List.removeLast()`, Google issue 522845800), which failed every release build in W1's first gate (43375227077); 9.3.2 fixes it, and 9.3.3 adds D8/R8 fixes, among them dex files that fail verification. AGP 9.3 needs JDK 17 and Gradle 9.5.0, as before.
   - **Release builds in CI (since Phase 4 W1):** every CI run also builds the x86_64 release APK (`ci-results/build-release.txt`; its size goes to `apk.txt`), because AOT-compiled Dart, R8 and the release lint run in no debug build. That gate's first run on Flutter 3.50.0 passed every debug check while all three AOT builds failed.
   - **Dart 3.14.0's AOT compiler** (Flutter 3.50.0) crashes on one shape of code: a `final` local assigned in one case of a switch whose other cases return, then captured by a closure ([dart-lang/sdk#64917](https://github.com/dart-lang/sdk/issues/64917), P0, open on 2026-11-13). Home's folder reconnect had it and was restructured; a scan of `lib/` and of the main dependencies found no other. The release build in CI catches a new one.
@@ -111,6 +133,14 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - **Fetching:** CI fetches exactly those files and caches them under the hash of `pins.json` (`actions/cache`, about 208 MB).
   - **Failing closed:** when a pinned file is gone, the build fails and names the package. Termux keeps only the latest versions, and GitHub evicts a cache that goes unused for 7 days.
   - **Re-pinning** is a `[repin]` commit (runtime/README.md).
+- **ABIs** (since Phase 4 W3): arm64-v8a and x86_64 only; armeabi-v7a is dropped (PHASE_4_PLAN §2). Flutter's `target-platform` property decides which a build targets (`codeforgeAbis` in `android/build.gradle.kts`).
+  - **The payload rule:** a build for one ABI carries that ABI's payload. A build for both, like the plain debug build, carries none, so no APK carries two payloads.
+  - **`codeforgePayload` overrides the rule:** `none`, or a comma-separated list of ABIs the build targets. Set it with `-PcodeforgePayload=…` or `ORG_GRADLE_PROJECT_codeforgePayload`. An ABI the build doesn't target fails the build.
+  - **What the payload costs:** the release x86_64 APK grew from 24.6 MB to 149.4 MB, and the arm64 phone APK is 164.2 MB. An arm64 device downloads 147.3 MB of the bundle (gate 43808489945).
+- **The instrumented tests' dependencies** (`androidTestImplementation` in `android/app/build.gradle.kts`, since Phase 4 W3) stay on the androidx.test train that Flutter's `integration_test` plugin puts into debug builds: runner 1.3.0 with junit 4.12.
+  - **Why:** the test APK runs in the app's process, so AGP resolves its dependencies to the debug app's versions, and a newer train fails to resolve (CI 43804216240). `integration_test` is a dev dependency, which only release builds leave out.
+  - **No `androidx.test.ext:junit`:** that train's version brings activities without `android:exported`, which fails the manifest merge for apps that target Android 12 or later (CI 43805853809). So the tests are plain JUnit4 classes, which `AndroidJUnitRunner` runs as they are.
+  - **When Flutter's plugin moves to a newer train,** these follow it. The JVM unit tests are not affected; they keep junit 4.13.2.
 - Actions: the Node 24 majors since Phase 4 W1 (TECH_STACK §6): `actions/checkout` v7, `setup-java` v6, `cache` v6, `upload-artifact` v7, `download-artifact` v8, `setup-node` v7, and `subosito/flutter-action@v2`.
 - Caches: pub, gradle, npm keyed by lockfiles. The Gradle distribution is cached by the wrapper properties and fetched with retries when the cache has none (`app/tool/ci/fetch_gradle.sh`), because services.gradle.org stalls now and then (phase gates 42477797842 and 42478331067). Emulators: GitHub's Linux runners **do** expose KVM to public repositories once a udev rule is applied — Phase 1's first six gate runs silently fell back to software emulation (the KVM probe raced the asynchronous `udevadm trigger`), with 4.5–15.6 min boots and system_server watchdog restarts. The gate now settles udev before probing, records the acceleration it actually used, and waits for a *stable* framework (three consecutive package/settings/activity-manager probes), not just `sys.boot_completed`.
 - Secrets (release only): `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`, `PLAY_SERVICE_ACCOUNT_JSON`. Never available to fork PRs. `GITHUB_TOKEN` least privilege per job.
