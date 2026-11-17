@@ -1,11 +1,38 @@
-models list: exit 1
-ERROR: (gcloud.firebase.test.android.models.list) Unable to access the test environment catalog: ResponseError 403: Not authorized for project $FIREBASE_PROJECT_ID
---- diagnosis (listing failed, so no test was used)
-project_id_format=ok
-key_type=service_account
-key_project_matches_FIREBASE_PROJECT_ID=yes
-account=firebase-adminsdk-fbsvc@... (from the key)
-active_account_is_the_key=yes
-roles_on_project=unreadable (ERROR: (gcloud.projects.get-iam-policy) [firebase-adminsdk-fbsvc@$FIREBASE_PROJECT_ID.iam.gserviceaccount.com] does not have permission to access projects instance [$FIREBASE_PROJECT_ID:getIamPolicy] (or it may not exist): The caller does not have permission. This command is authenticated as firebase-adminsdk-fbsvc@$FIREBASE_PROJECT_ID.iam.gserviceaccount.com using the credentials in /home/runner/work/CodeForge-/CodeForge-/gha-creds-bf9ed29a02d9134f.json, specified by the [auth/credential_file_override] property)
-apis=unreadable (reason: AUTH_PERMISSION_DENIED)
-hint=Give the service account the Editor role on the project itself: Google Cloud console > IAM & Admin > IAM > Grant access, New principals = the account's email (the key's client_email), Role = Basic > Editor, Save. A role given on the service account's own page does not count.
+date=2026-11-17T20:34:52Z run=44167128978 sha=825cbf1
+app=testlab-apk/app-debug.apk bytes=83737615
+device=model=frankel,version=36
+gcloud_exit=0 (every test execution passed)
+--- outcome
+[
+  {
+    "axis_value": "frankel-36-en-portrait",
+    "outcome": "Passed",
+    "test_details": "--"
+  }
+]
+--- gcloud's log (last 40 lines)
+
+Have questions, feedback, or issues? Get support by visiting:
+  https://firebase.google.com/support/
+
+Uploading [testlab-apk/app-debug.apk] to Firebase Test Lab...
+Raw results will be stored in your GCS bucket at [https://console.developers.google.com/storage/browser/test-lab-b9bby9it5h6ma-nvh1t45pwwfpu/2026-11-17_20:27:39.980457_nUbE/]
+
+Test [matrix-3k6ydjgpo5k4q] has been created in the Google Cloud.
+Creating individual test executions...
+..............................................................done.
+Firebase Test Lab will execute your robo test on 1 device(s). More devices may be added later if flaky test attempts are specified.
+
+Test results will be streamed to [ https://console.firebase.google.com/project/$FIREBASE_PROJECT_ID/testlab/histories/bh.b0cfbcb8913592ed/matrices/7265127922464201113 ].
+20:28:00 Test is Pending
+20:30:01 Firebase Test Lab is deprecated and will be fully shut down on September 30, 2027. To maintain your testing workflows, you can migrate to the Developer Device Platform on Google Cloud. See the Developer Device Platform Migration Guide (https://docs.cloud.google.com/developer-device-platform/device-run/migrate) and FAQ (https://docs.cloud.google.com/developer-device-platform/troubleshooting) for more details.
+20:30:01 Starting attempt 1.
+20:30:01 Test is Running
+20:34:27 Done. Test time = 192 (secs)
+20:34:27 Starting results processing. Attempt: 1
+20:34:51 Completed results processing. Time taken = 19 (secs)
+20:34:51 Test is Finished
+
+Robo testing complete.
+
+More details are available at [ https://console.firebase.google.com/project/$FIREBASE_PROJECT_ID/testlab/histories/bh.b0cfbcb8913592ed/matrices/7265127922464201113 ].
