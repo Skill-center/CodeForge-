@@ -454,6 +454,20 @@ jobs:
           cat ci-results/manifest.txt
           exit "$status"
 
+      # The testlab job's two scripts prove themselves on every push, so that a
+      # change to them is green in plain CI before a commit spends a Test Lab
+      # run on it (the owner's rule, 2026-11-17; BUILD_AND_RELEASE §4).
+      - name: Test Lab scripts
+        id: testlab_scripts
+        continue-on-error: true
+        run: |
+          status=0
+          { python3 tool/ci/testlab_device.py --self-test \
+              && python3 tool/ci/testlab_diagnose.py --self-test; } \
+            > ci-results/testlab-scripts.txt 2>&1 || status=$?
+          cat ci-results/testlab-scripts.txt
+          exit "$status"
+
       # The host's Kotlin unit tests (src/test; Phase 3 W1: the backup
       # policy and its rules files; Phase 4 W3: the runtime host). After the
       # APK build, which wrote android/local.properties and fetched what
@@ -694,7 +708,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest kotlin_tests sealed_runtime_tests release_build runtime_apk; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts kotlin_tests sealed_runtime_tests release_build runtime_apk; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -706,6 +720,7 @@ jobs:
               tests) outcome="${{ steps.tests.outcome }}" ;;
               build) outcome="${{ steps.build.outcome }}" ;;
               manifest) outcome="${{ steps.manifest.outcome }}" ;;
+              testlab_scripts) outcome="${{ steps.testlab_scripts.outcome }}" ;;
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
               sealed_runtime_tests) outcome="${{ steps.sealed_runtime_tests.outcome }}" ;;
               release_build) outcome="${{ steps.release_build.outcome }}" ;;
