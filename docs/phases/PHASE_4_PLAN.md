@@ -472,12 +472,13 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
    - **The exit phone session:** PHASE_3_PHONE_CHECKLIST, on W1's phone profile APK.
    - **Firebase:**
      1. Create a new Firebase project on the no-cost Spark plan, without a billing account. **Done** (reported on 2026-11-15).
-     2. In its Google Cloud console, enable the Cloud Testing API and the Cloud Tool Results API.
+     2. In its Google Cloud console, enable the Cloud Testing API and the Cloud Tool Results API. **Done 2026-11-17.**
      3. Create a service account with the **Editor** role (`roles/editor`).
         - **Corrected on 2026-11-15:** Firebase's IAM reference requires Editor for tests that use Test Lab's default results bucket. The narrower pair this plan first named, *Firebase Test Lab Admin* and *Firebase Analytics Viewer*, works only with a bucket of one's own, and that needs billing.
         - The project holds nothing else and has no billing account, which bounds what the key can do.
+        - **Done 2026-11-17:** the key is the Firebase Admin SDK account's (`firebase-adminsdk-fbsvc`), given Editor on the project's IAM page. Before that, Test Lab refused it (403, CI 44144982229 and 44153536306).
      4. Store its JSON key as the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id as `FIREBASE_PROJECT_ID`, a repository variable or secret (CI reads either). **Done 2026-11-17,** both as secrets.
-     5. A commit with `[testlab]` in its subject line checks the connection: CI's `testlab` job runs one Robo crawl on a physical arm64 phone (BUILD_AND_RELEASE §4).
+     5. A commit with `[testlab]` in its subject line checks the connection: CI's `testlab` job runs one Robo crawl on a physical arm64 phone (BUILD_AND_RELEASE §4). **Done 2026-11-17:** CI 44167128978, a crawl that passed on a Google Pixel 10 (API 36) in 192 s, its results kept in Test Lab's own bucket without billing.
 
      GitHub's OIDC token through Workload Identity Federation avoids a stored key, at the cost of a few more steps.
    - **The owner's phone** is usually available for manual tests (the owner, 2026-11-15): the phone sessions, and G6's fallback if Test Lab cannot run.

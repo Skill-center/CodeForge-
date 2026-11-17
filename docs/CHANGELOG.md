@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Firebase Test Lab connected (2026-11-17)
+- **CI reaches Test Lab's real phones.** A Robo crawl of the debug APK passed on a Google Pixel 10 (API 36) in 192 s (CI 44167128978). Its results went to Test Lab's own bucket, on the no-cost plan without billing, as expected. W5's arm64 gates build on this.
+- **The key's account needed the Editor role on the project itself.** The owner's key is the Firebase Admin SDK account's, which on its own can't use Test Lab, so listing the phones was refused (403) until the owner added the role and enabled the two APIs.
+- **A refused key now explains itself at no cost:** when listing fails, `app/tool/ci/testlab_diagnose.py` reports the key's account, its roles on the project and the two APIs, with one hint, and prints no id. Plain CI runs the self-tests of both Test Lab scripts on every push.
+- `FIREBASE_PROJECT_ID` can be a repository variable or a secret.
+- **Spending Test Lab runs** (the owner's rule): a change passes plain CI first, and only a separate commit after it uses Test Lab ([BUILD_AND_RELEASE.md §4](BUILD_AND_RELEASE.md)). Today's runs used 1 of the 5 free physical-device tests; the two refused checks used none.
+
 ### Added — Phase 4 W4, commands, tools and versions in the UI (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
 - **The runtime runs commands.** The host runs a program of the runtime through a small launcher of CodeForge's own (`libcodeforge-spawn.so`). The answer is typed: the exit code or signal, stdout and stderr apart (each capped, with its full size), the time taken, and why it failed if it did. The app uses it only for its own checks for now; running your code comes with Phase 5.
 - **Every command ends with its whole process tree.** That includes a child left running, a process that left the group and a double-forked daemon, whether the command exits, runs past its time limit or is stopped. The emulator gate found none left.
