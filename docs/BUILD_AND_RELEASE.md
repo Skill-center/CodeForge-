@@ -149,7 +149,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 
 - **Emulators (CI-owned):** x86_64 API 34 & 36 — correctness gates (t1-proven).
 - **Connecting Test Lab** (since 2026-11-15; the owner's Firebase project, on the no-cost Spark plan):
-  - **The credential:** a service account with the **Editor** role. Its JSON key goes in the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id in the repository variable `FIREBASE_PROJECT_ID`.
+  - **The credential:** a service account with the **Editor** role. Its JSON key goes in the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id in `FIREBASE_PROJECT_ID`, a repository variable or a repository secret (the variable wins when both are set; as a secret, the job's log masks it). The owner stored both as secrets on 2026-11-17.
     - Firebase requires Editor for tests that use Test Lab's default results bucket (its IAM reference). The narrower pair, *Firebase Test Lab Admin* and *Firebase Analytics Viewer*, works only with a bucket of one's own, and that needs billing.
     - The project holds nothing else and has no billing account, which bounds what the key can do.
   - **Storage on Spark:** since 2026-02-03 a Spark project can't use its own Cloud Storage buckets. Test Lab's default results bucket, however, lives in a project Test Lab owns (the Tool Results API's `initializeSettings`), so runs should keep working without billing. The jobs never pass `--results-bucket`, and the first check confirms the rest.

@@ -965,7 +965,8 @@ jobs:
   # free physical-device tests a day. Needs the repository secret
   # FIREBASE_TEST_LAB_KEY (a service account's JSON key; the account needs
   # the Editor role, which Test Lab's default results bucket requires) and
-  # the repository variable FIREBASE_PROJECT_ID (BUILD_AND_RELEASE §4).
+  # FIREBASE_PROJECT_ID, as a repository variable or a repository secret
+  # (BUILD_AND_RELEASE §4; the variable wins when both are set).
   # The evidence goes to app/ci-results/testlab/, committed back.
   testlab:
     name: Firebase Test Lab check (physical arm64 phone)
@@ -974,7 +975,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+      PROJECT: ${{ vars.FIREBASE_PROJECT_ID || secrets.FIREBASE_PROJECT_ID }}
       RESULTS: app/ci-results/testlab
       # Never wait on a prompt: a missing API fails with gcloud's message.
       CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
@@ -999,7 +1000,7 @@ jobs:
           esac
           rm -rf "$RESULTS" && mkdir -p "$RESULTS"
           missing=""
-          [ -n "$PROJECT" ] || missing="$missing the variable FIREBASE_PROJECT_ID,"
+          [ -n "$PROJECT" ] || missing="$missing FIREBASE_PROJECT_ID (a variable or a secret),"
           [ "$KEY_SET" = true ] || missing="$missing the secret FIREBASE_TEST_LAB_KEY,"
           if [ -n "$missing" ]; then
             echo "not connected: missing${missing%,}" > "$RESULTS/check.txt"
@@ -1081,7 +1082,7 @@ jobs:
 
       # The project id is not a credential, but the repository is public, so
       # the committed evidence names it $FIREBASE_PROJECT_ID; the job's log
-      # keeps the console link.
+      # keeps the console link (with the id masked when it is a secret).
       - name: Commit the check back
         if: always() && steps.asked.outputs.asked == 'true'
         run: |
