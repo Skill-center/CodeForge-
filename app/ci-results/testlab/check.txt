@@ -1,2 +1,11 @@
 models list: exit 1
 ERROR: (gcloud.firebase.test.android.models.list) Unable to access the test environment catalog: ResponseError 403: Not authorized for project $FIREBASE_PROJECT_ID
+--- diagnosis (listing failed, so no test was used)
+project_id_format=ok
+key_type=service_account
+key_project_matches_FIREBASE_PROJECT_ID=yes
+account=firebase-adminsdk-fbsvc@... (from the key)
+active_account_is_the_key=yes
+roles_on_project=unreadable (ERROR: (gcloud.projects.get-iam-policy) [firebase-adminsdk-fbsvc@$FIREBASE_PROJECT_ID.iam.gserviceaccount.com] does not have permission to access projects instance [$FIREBASE_PROJECT_ID:getIamPolicy] (or it may not exist): The caller does not have permission. This command is authenticated as firebase-adminsdk-fbsvc@$FIREBASE_PROJECT_ID.iam.gserviceaccount.com using the credentials in /home/runner/work/CodeForge-/CodeForge-/gha-creds-bf9ed29a02d9134f.json, specified by the [auth/credential_file_override] property)
+apis=unreadable (reason: AUTH_PERMISSION_DENIED)
+hint=Give the service account the Editor role on the project itself: Google Cloud console > IAM & Admin > IAM > Grant access, New principals = the account's email (the key's client_email), Role = Basic > Editor, Save. A role given on the service account's own page does not count.
