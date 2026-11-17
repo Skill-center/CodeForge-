@@ -1008,6 +1008,7 @@ jobs:
             exit 1
           fi
           python3 app/tool/ci/testlab_device.py --self-test
+          python3 app/tool/ci/testlab_diagnose.py --self-test
 
       - name: Download the debug APK
         if: steps.asked.outputs.asked == 'true'
@@ -1044,6 +1045,15 @@ jobs:
             2> "$RESULTS/device.txt") || { cat "$RESULTS/device.txt"; exit 1; }
           cat "$RESULTS/device.txt"
           echo "device=$device" >> "$GITHUB_OUTPUT"
+
+      # When listing fails: what the key can see, at no cost (no test runs),
+      # so that the fix is plain: the key, its account's roles on the project
+      # and the two APIs. It prints yes or no for the ids, never the ids.
+      - name: Diagnose the connection
+        if: failure() && steps.device.outcome == 'failure'
+        run: |
+          python3 app/tool/ci/testlab_diagnose.py 2>&1 | tee -a "$RESULTS/check.txt"
+          echo "testlab: $(grep '^hint=' "$RESULTS/check.txt" | tail -n 1)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Robo crawl on the phone
         id: robo
