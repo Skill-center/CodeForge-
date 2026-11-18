@@ -23,6 +23,9 @@ Rule carried from t1: **unique-inode bytes are storage truth** (hardlinks make n
 | Cold start → interactive shell UI (no runtime) | ≤ 1.5 s mid-range | `adb shell am start -W` + frame trace, 10-run median |
 | Runtime first install (payload extract+verify) | ≤ 60 s mid-range (t1: 13,858 files verified) · **Phase 4 W3, emulator:** 3.5 s for 13,894 files, 6.6 s through the app (phase gate 43808489945); the phone figure in W5 | instrumented timing event |
 | Runtime warm start (re-verify skip) | ≤ 100 ms (t1 measured 11 ms) · **Phase 4 W3, emulator:** 18 ms, the median of five (phase gate 43808489945) | instrumented timing (`RuntimeInstallTest` c) |
+| Search a project (ripgrep), 10,000 files | **Proposed in Phase 4 W6:** the first result ≤ 0.5 s and all ≤ 2 s on a mid-range phone · **measured:** a Pixel 8a 61 ms / 118 ms, medians of three, debug build (Test Lab, CI 44275357542); the emulator 58 / 146 ms (phase gate 44275357542). The first search after a start: 159 / 267 ms on the phone | the gate's `search` group; Test Lab's phone search |
+| Search a folder from shared storage (the scan), 1,000 files | **Proposed in Phase 4 W6:** all ≤ 6 s on a mid-range phone, each result shown as soon as its file is read · **measured, emulator only:** 4.6 s for the gate folder's 1,007 files, four read at a time (phase gate 44275357542); 5.1 s one at a time (phase gate 44264577788). Each file is an open the documents provider answers | the gate's `search` group (Test Lab can't answer the folder picker; a phone session can) |
+| Stop a search | **Proposed in Phase 4 W6:** ≤ 250 ms from Stop to its summary, with nothing left running · **measured:** 85 ms and 67 ms on the emulator, no `rg` left | the gate's `search` group |
 | Editor keystroke→glyph p95 | ≤ 32 ms | CM6 perf marks + systrace |
 | Terminal input→echo p95 | ≤ 50 ms | timestamped probe loop |
 | Terminal flood (10 MB) | UI stays responsive; ≤ 5% frames > 32 ms | frame metrics during flood test |
@@ -55,6 +58,10 @@ As built in Phase 3, the gate adds two timed groups:
 - **The `measure` group** (W6, `app/integration_test/measure_test.dart`): a project of 10,000 files opened and Go to File's index built; 1 and 10 MiB written and read through `dart:io` in a project and through the storage broker in a folder; a folder of 1,000 entries listed; and frames counted while 10 MiB is digested on the UI isolate and on a background one. It writes `measure.json` and `measure.txt`, recorded and never judged on the emulator.
 
 Since W6 the cold-start group times the shipped APK, which renders with Impeller, then the same build with Skia, then the shipped one again (`cold_start_skia` and `cold_start_again` in `perf.json`; only the first block is held to the budget). The Phase 3 numbers are in [PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md) §7.
+
+As built in Phase 4 W6, search adds two timed runs:
+- **The gate's `search` group** (`app/integration_test/search_test.dart`, on the build with the x86_64 payload): ripgrep on a project of 10,000 files the test writes, three timed runs and six more searches with exact counts; a stop at the first result; a result opened from the panel; the gate folder (1,000 small files in `many/`) scanned three times through Android's picker and provider; and the folder copied into the app's storage for ADR-0013. It writes `search.json` and `search.txt`, recorded and never judged on the emulator. Times are taken twice: in the controller, as the user sees them, and in the host.
+- **Test Lab's phone search** (`app/integration_test/phone_search_test.dart`, in the Test Lab job's entrypoint since W6): the same project on the phone, searched by ripgrep, with the times in the run's evidence as `CODEFORGE_SEARCH_JSON`. The folder scan needs the picker, so it is timed on the emulator alone.
 
 ## 5. Regression policy
 

@@ -161,6 +161,14 @@ app/lib/
 - **Backup** (ADR-0012): Settings → Privacy has one switch, off by default. The host's backup agent copies the app's data only while it is on, and never the logs (§3).
 - **Persistence:** schema v2 (ADR-0008) adds each workspace's kind and place and its explorer view, with a migration from v1 tested from a fixture. Since W6 the journal's digest is taken on a background isolate from 64 KiB (`core/editor/journal.dart`).
 
+### 2.9 As built in Phase 4 W6 (search across files)
+
+- **The model** (`lib/core/search/search_models.dart`): a query with match case, whole word, regular expression and include and exclude globs; results as files of matching lines, each with its line, column, a preview cut around the first match and the matches' ranges; a summary with the outcome (done, stopped at a cap, cancelled, failed), the engine and the counts.
+- **The service** (`services/search/search_service.dart`, implemented by the Pigeon client in `services/search/native/`): `start` returns a run, whose updates are batches of files and then one summary; `cancel` asks the host to stop, and the summary still comes. One search runs at a time.
+- **The controller** (`application/search/search_controller.dart`) keeps the last query, the files found so far and the summary. It times the first result and the end as the user sees them, and drops everything when the workspace switches.
+- **The panel** (`features/workbench/panels/search_panel.dart`) shares the find bar's toggles and field, now in the design system (`design_system/components/inputs.dart`). A tap opens the file through `DocumentController` and moves the editor's cursor with `cmd.gotoLine`. It focuses the editor only when a hardware keyboard is attached.
+- **The host** (§3) picks the engine: the runtime's ripgrep for a project while the runtime is ready, CodeForge's own scan otherwise and for folders from shared storage.
+
 ## 3. Android host structure
 
 ```

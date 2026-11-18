@@ -4,6 +4,15 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 4 W6, search across files (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
+- **The Search panel works.** Type a query, choose match case, whole word or regular expression, and narrow it to files to include or exclude (`src, *.js`). Results arrive grouped by file as they are found, and a tap opens the file with the cursor on the match. Stop keeps what was found.
+- **Projects are searched by the runtime's ripgrep.** A 10,000-file project took about 120 ms on a Pixel 8a (110 to 150 ms on the emulator), with the first result after about 60 ms. `.gitignore` counts even without git, `.git`, `node_modules` and binary files stay out, and so does a file the editor would refuse. Stopping a search ends ripgrep at once, with nothing left running.
+- **Folders from shared storage are searched too,** by CodeForge's own scan through the folder's grant, by the editor's rules for text and lines, and the same glob rules. It reads several files at a time; 1,000 small files took about 4.6 s on the emulator, where each file is a round trip to Android's storage provider. While the runtime installs, a project is searched the same way.
+- **A budget for search** ([PERFORMANCE.md](PERFORMANCE.md)): on a mid-range phone, a project's first result within 0.5 s and all of 10,000 files within 2 s; a folder of 1,000 files within 6 s; a stop within 250 ms.
+- **How a folder will run code** is decided ([ADR-0013](adr/0013-folders-and-the-runtime.md)): Phase 5 runs it in an incremental, one-way copy in the app's storage, with *Import as project* beside it. Copying the gate's 1,008-file folder through today's broker took 6 to 10 s on the emulator.
+- **Found before the gate:** ripgrep reads its globs from the folder it runs in, so an include with a slash matched nothing. It now runs in the project. A local check against real ripgrep 13 and 14 caught it, and the gate test covers it.
+- Verified by CI 44262330746, 44264577788, 44273190097 and 44275357542 (`+885: All tests passed!`; 142 Kotlin tests, 37 of them new, none skipped), phase gates 44264577788 and 44275357542 (the new `search` group and every other group passed), and Test Lab in CI 44275357542 (18 of 18 tests on the Pixel 8a, 2 of the day's 5).
+
 ### Changed — W5's three decisions, and CI in one workflow (2026-11-18)
 The owner left W5's open decisions to the agent and asked for CI and the phase gate in one workflow.
 - **The session store now syncs every change to storage** (`synchronous = FULL`, [ADR-0008](adr/0008-persistence.md)). Typing saved before an operating-system crash or a power cut is no longer lost. The phone measured the cost at about 0.1 ms per change.

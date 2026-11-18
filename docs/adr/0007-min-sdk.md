@@ -15,7 +15,7 @@ Owner selected minSdk 26 (Android 8.0, ~98% reach) before the audit revealed t1 
 
 ## Result (Phase 4 W5, 2026-11-18)
 
-**The gate:** phase-gate.yml's runtime gates (PHASE_4_PLAN *As built (W5)*). One build of the debug APK, which carries the x86_64 payload and targets API 36, then one x86_64 emulator per API level, each running four instrumented classes:
+**The gate:** the phase gate's runtime gates (PHASE_4_PLAN *As built (W5)*; jobs of `phase-gate.yml` then, of `ci.yml` since W6). One build of the debug APK, which carries the x86_64 payload and targets API 36, then one x86_64 emulator per API level, each running four instrumented classes:
 - t1's `ExecModelTest` and `SealedShellTest`, ported (native/PROVENANCE.md);
 - W3's `RuntimeInstallTest` and W4's `RuntimeCommandsTest`.
 
