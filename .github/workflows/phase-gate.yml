@@ -396,19 +396,24 @@ jobs:
           key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
 
       # The build the main gate's runtime group makes: one ABI, so the
-      # x86_64 payload goes in (android/build.gradle.kts). Flutter builds the
-      # app (and writes what Gradle needs), Gradle the test APK.
+      # x86_64 payload goes in (android/build.gradle.kts). Flutter's build
+      # writes what Gradle needs; then one Gradle run makes the app and its
+      # test APK, so one debug key signs both (two runs signed them with two
+      # keys in the first run of these gates, 44235180242), which
+      # same_signer.sh checks before any leg starts.
       - name: Build the APKs
         run: |
           mkdir -p build/runtime-gates
           flutter build apk --debug --target-platform android-x64 > build/runtime-gates/build.txt 2>&1 \
             || { tail -n 40 build/runtime-gates/build.txt; exit 1; }
+          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebug \
+              :app:assembleDebugAndroidTest -Ptarget-platform=android-x64 --console=plain ) \
+            >> build/runtime-gates/build.txt 2>&1 || { tail -n 40 build/runtime-gates/build.txt; exit 1; }
           grep -E 'sealed payload|CodeForge ABIs|Built ' build/runtime-gates/build.txt || true
-          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebugAndroidTest \
-              -Ptarget-platform=android-x64 --console=plain ) >> build/runtime-gates/build.txt 2>&1 \
-            || { tail -n 40 build/runtime-gates/build.txt; exit 1; }
-          cp build/app/outputs/flutter-apk/app-debug.apk build/runtime-gates/app-debug.apk
+          cp build/app/outputs/apk/debug/app-debug.apk build/runtime-gates/app-debug.apk
           cp build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk build/runtime-gates/
+          bash tool/ci/same_signer.sh build/runtime-gates/app-debug.apk \
+            build/runtime-gates/app-debug-androidTest.apk
           python3 tool/ci/check_runtime_apk.py build/runtime-gates/app-debug.apk --abi x86_64
           ls -l build/runtime-gates
 

@@ -1126,20 +1126,27 @@ jobs:
           path: runtime/generated/cache
           key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
 
+      # Flutter's build writes what Gradle needs; then one Gradle run makes
+      # the app (-Ptarget: the Dart entrypoint, as Flutter documents for Test
+      # Lab) and its test APK, so one debug key signs both, which
+      # same_signer.sh checks before a test is spent (two runs signed them
+      # with two keys in the runtime gates' first run, 44235180242).
       - name: Build the arm64 APKs
         if: steps.asked.outputs.asked == 'true'
         working-directory: app
         run: |
           mkdir -p ../testlab-apk build/testlab
-          flutter build apk --debug --target-platform android-arm64 \
-            -t integration_test/sync_modes_test.dart > build/testlab/build.txt 2>&1 \
+          entry="$GITHUB_WORKSPACE/app/integration_test/sync_modes_test.dart"
+          flutter build apk --debug --target-platform android-arm64 -t "$entry" \
+            > build/testlab/build.txt 2>&1 || { tail -n 40 build/testlab/build.txt; exit 1; }
+          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebug \
+              :app:assembleDebugAndroidTest -Ptarget-platform=android-arm64 -Ptarget="$entry" \
+              --console=plain ) >> build/testlab/build.txt 2>&1 \
             || { tail -n 40 build/testlab/build.txt; exit 1; }
           grep -E 'sealed payload|CodeForge ABIs|Built ' build/testlab/build.txt || true
-          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebugAndroidTest \
-              -Ptarget-platform=android-arm64 --console=plain ) >> build/testlab/build.txt 2>&1 \
-            || { tail -n 40 build/testlab/build.txt; exit 1; }
-          cp build/app/outputs/flutter-apk/app-debug.apk ../testlab-apk/app-debug.apk
+          cp build/app/outputs/apk/debug/app-debug.apk ../testlab-apk/app-debug.apk
           cp build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk ../testlab-apk/
+          bash tool/ci/same_signer.sh ../testlab-apk/app-debug.apk ../testlab-apk/app-debug-androidTest.apk
           python3 tool/ci/check_runtime_apk.py ../testlab-apk/app-debug.apk --abi arm64-v8a
           ls -l ../testlab-apk
 
