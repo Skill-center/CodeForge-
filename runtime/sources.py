@@ -12,7 +12,8 @@ This script writes that archive, one tar, from:
 * **the recipes:** a clone of https://github.com/termux/termux-packages. A
   blobless one will do: the blobs needed are fetched in batches, and a
   commit-graph with changed-path filters is written if the clone has none;
-* **the upstream files:** downloaded with curl from the recipe's own URLs,
+* **the upstream files:** downloaded with curl from the recipe's own URLs
+  or, when a host fails, from the same path on a mirror of it (MIRRORS),
   each verified against the recipe's SHA-256 and kept in a cache by it.
 
 **Which commit built a version.** A pinned package was resolved from Termux's
@@ -87,6 +88,43 @@ FILTERS = ("basename", "cut", "dirname", "expr", "grep", "head", "sed", "seq", "
            "tr", "uniq")
 DOWNLOAD_ATTEMPTS = 3
 TIMEOUT = 300                 # seconds, per download attempt
+
+# Hosts that serve the same files, by URL prefix (added after the first dry
+# run, CI 44389009942, where mirrors.kernel.org never answered the runner; 36
+# of the 69 upstream files name it). When a download fails, the same path is
+# tried under the group's other prefixes, in order. A file counts only with
+# the recipe's SHA-256, wherever it came from, and the manifest names the
+# recipe's URL, so the archive is the same whichever host answered. A prefix
+# that failed goes after the others for the rest of the run, so a host that
+# is down costs its retries once.
+MIRRORS = (
+    # GNU's tree: kernel.org's copy, GNU's own server, and GNU's redirector to
+    # a mirror near the client.
+    ("https://mirrors.kernel.org/gnu/", "https://ftp.gnu.org/gnu/", "https://ftpmirror.gnu.org/"),
+    # kernel.org's own files.
+    ("https://mirrors.kernel.org/pub/", "https://www.kernel.org/pub/", "https://cdn.kernel.org/pub/",
+     "https://mirrors.edge.kernel.org/pub/"),
+    # Savannah's releases, and its main mirror.
+    ("http://download.savannah.gnu.org/releases/", "https://download.savannah.gnu.org/releases/",
+     "https://download-mirror.savannah.gnu.org/releases/"),
+    # GnuPG's releases, and a mirror gnupg.org lists.
+    ("https://www.gnupg.org/ftp/gcrypt/", "https://gnupg.org/ftp/gcrypt/",
+     "https://mirrors.dotsrc.org/gcrypt/"),
+    # nano's latest/ holds its newest release only (8.7.1 is pinned, and 9.3 was
+    # the newest on 2026-11-18); every 8.x stays under v8/, and GNU has them.
+    ("https://nano-editor.org/dist/latest/", "https://nano-editor.org/dist/v8/",
+     "https://ftp.gnu.org/gnu/nano/"),
+    # Thomas Dickey's archives, and their mirror.
+    ("https://invisible-island.net/archives/", "https://invisible-mirror.net/archives/"),
+    # fossies.org moves a superseded version to old/.
+    ("https://fossies.org/linux/misc/", "https://fossies.org/linux/misc/old/"),
+    # SourceForge's project pages, and its download host.
+    ("https://sourceforge.net/projects/net-tools/files/",
+     "https://downloads.sourceforge.net/project/net-tools/"),
+    ("https://sourceforge.net/projects/procps-ng/files/",
+     "https://downloads.sourceforge.net/project/procps-ng/"),
+)
+FAILED_MIRRORS = set()        # the prefixes a download failed from, in this run
 
 # Downloads inside a recipe's build steps, reviewed in Phase 5 W1 (2026-11-18):
 # (recipe folder, function) -> None if the files are source (they go into the
@@ -549,8 +587,44 @@ def file_name(url):
     return re.sub(r"[^A-Za-z0-9._+~-]", "_", name)
 
 
+def download_urls(url):
+    """[(mirror prefix or None, URL)]: the recipe's URL, then the same path
+    under the other prefixes of the MIRRORS group whose prefix it starts with
+    (the longest, where prefixes nest); a prefix that failed earlier in the
+    run goes last."""
+    matches = [(prefix, group) for group in MIRRORS for prefix in group if url.startswith(prefix)]
+    if not matches:
+        return [(None, url)]
+    prefix, group = max(matches, key=lambda match: len(match[0]))
+    rest = url[len(prefix):]
+    ordered = [prefix] + [other for other in group if other != prefix]
+    ordered.sort(key=lambda candidate: candidate in FAILED_MIRRORS)
+    return [(candidate, candidate + rest) for candidate in ordered]
+
+
+def download(curl, url, partial):
+    """Downloads url to partial with retries; None, or the last error."""
+    error = ""
+    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+        result = subprocess.run(
+            [curl, "--fail", "--location", "--silent", "--show-error", "--proto",
+             "=https,http,ftp,file", "--connect-timeout", "30", "--max-time", str(TIMEOUT),
+             "--user-agent", "CodeForge-sources/1 (+%s)" % CODEFORGE_REPOSITORY,
+             "--output", partial, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode == 0:
+            return None
+        error = result.stderr.decode("utf-8", "replace").strip() or "curl exit %d" % (
+            result.returncode)
+        if os.path.exists(partial):
+            os.remove(partial)
+        if attempt < DOWNLOAD_ATTEMPTS:
+            time.sleep(5 * attempt)
+    return error
+
+
 def fetch(url, checksum, cache, label):
-    """The verified file for (url, SHA-256), from the cache or with curl."""
+    """The verified file for (url, SHA-256): from the cache, or downloaded
+    with curl from the URL or, when that fails, from its mirrors."""
     os.makedirs(cache, exist_ok=True)
     path = os.path.join(cache, checksum)
     if os.path.isfile(path):
@@ -561,28 +635,33 @@ def fetch(url, checksum, cache, label):
     if not curl:
         raise SourceError("downloading the sources needs curl")
     partial = path + ".part"
-    error = ""
-    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
-        result = subprocess.run(
-            [curl, "--fail", "--location", "--silent", "--show-error", "--proto",
-             "=https,http,ftp,file", "--connect-timeout", "30", "--max-time", str(TIMEOUT),
-             "--user-agent", "CodeForge-sources/1 (+%s)" % CODEFORGE_REPOSITORY,
-             "--output", partial, url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if result.returncode == 0:
+    failures = []
+    for prefix, candidate in download_urls(url):
+        error = download(curl, candidate, partial)
+        if error is None:
             got = sha256_file(partial)
             if got == checksum:
                 os.replace(partial, path)
+                if candidate != url:
+                    print("  mirror: %s: %s from %s" % (label, file_name(url), candidate),
+                          file=sys.stderr)
                 return path
             os.remove(partial)
-            raise SourceError("%s: %s has SHA-256 %s, but its recipe says %s"
-                              % (label, url, got, checksum))
-        error = result.stderr.decode("utf-8", "replace").strip() or "curl exit %d" % (
-            result.returncode)
-        if os.path.exists(partial):
-            os.remove(partial)
-        if attempt < DOWNLOAD_ATTEMPTS:
-            time.sleep(5 * attempt)
-    raise SourceError("%s: %s could not be downloaded (%s)" % (label, url, error))
+            error = "SHA-256 %s" % got
+        failures.append((candidate, error))
+        if prefix is not None and prefix not in FAILED_MIRRORS:
+            FAILED_MIRRORS.add(prefix)
+            print("  mirror: %s failed (%s); its group's other hosts go first from now on"
+                  % (prefix, error), file=sys.stderr)
+    if len(failures) == 1:
+        candidate, error = failures[0]
+        if error.startswith("SHA-256 "):
+            raise SourceError("%s: %s has %s, but its recipe says %s"
+                              % (label, url, error, checksum))
+        raise SourceError("%s: %s could not be downloaded (%s)" % (label, url, error))
+    raise SourceError("%s: %s could not be downloaded with its recipe's SHA-256 %s, from it or "
+                      "its mirrors: %s" % (label, url, checksum, "; ".join(
+                          "%s (%s)" % failure for failure in failures)))
 
 
 def git_source(url, ref, cache, label):

@@ -13,6 +13,9 @@ upstream, pins and a source offer for them, and checks that:
   * the archive holds the recipes, the build system at every commit, the
     verified upstream files and a manifest, with repeated files hard-linked,
     and is the same bytes when built again;
+  * a file its host can't give comes from a mirror in its group, only with the
+    recipe's SHA-256, and the archive is the same bytes; a host that failed
+    goes last for the rest of the run;
   * it fails closed, naming the package: a wrong checksum, a version no commit
     gives, a missing recipe, a row the pins don't have, an unreviewed download,
     a missing bootstrap tag; and it writes nothing then;
@@ -231,6 +234,9 @@ class SourcesTest(unittest.TestCase):
     def setUp(self):
         self.patch = mock.patch.dict(sources.STEP_DOWNLOADS, REVIEWED, clear=True)
         self.patch.start()
+        # The hosts a download failed from: state of one run, so of one test.
+        sources.FAILED_MIRRORS.clear()
+        self.addCleanup(sources.FAILED_MIRRORS.clear)
         self.work = tempfile.mkdtemp(dir=self.tmp)
 
     def tearDown(self):
@@ -376,6 +382,100 @@ class SourcesTest(unittest.TestCase):
             write(os.path.join(self.fixture.upstream, "hello11-001"), b"--- a\n+++ b\n@@ first patch\n")
         with open(first, "rb") as one, open(second, "rb") as two:
             self.assertEqual(one.read(), two.read())
+
+    # --- mirrors --------------------------------------------------------------------------------
+
+    def mirror(self, *names):
+        """A folder holding copies of these upstream files, as a mirror would."""
+        folder = os.path.join(self.work, "mirror")
+        os.makedirs(folder, exist_ok=True)
+        for name in names:
+            shutil.copy(os.path.join(self.fixture.upstream, name), os.path.join(folder, name))
+        return folder
+
+    def test_download_urls_try_the_recipes_host_then_its_group(self):
+        url = "https://mirrors.kernel.org/gnu/bash/bash-5.3-patches/bash53-001"
+        self.assertEqual([candidate for _, candidate in sources.download_urls(url)],
+                         [url, "https://ftp.gnu.org/gnu/bash/bash-5.3-patches/bash53-001",
+                          "https://ftpmirror.gnu.org/bash/bash-5.3-patches/bash53-001"])
+        sources.FAILED_MIRRORS.add("https://mirrors.kernel.org/gnu/")
+        self.assertEqual([candidate for _, candidate in sources.download_urls(url)],
+                         ["https://ftp.gnu.org/gnu/bash/bash-5.3-patches/bash53-001",
+                          "https://ftpmirror.gnu.org/bash/bash-5.3-patches/bash53-001", url])
+        node = "https://nodejs.org/dist/v26.13.1/node-v26.13.1.tar.xz"
+        self.assertEqual(sources.download_urls(node), [(None, node)])
+        # Where prefixes nest, the longest decides.
+        old = "https://fossies.org/linux/misc/old/psmisc-23.7.tar.xz"
+        self.assertEqual([candidate for _, candidate in sources.download_urls(old)],
+                         [old, "https://fossies.org/linux/misc/psmisc-23.7.tar.xz"])
+        nano = "https://nano-editor.org/dist/latest/nano-8.7.1.tar.xz"
+        self.assertEqual([candidate for _, candidate in sources.download_urls(nano)],
+                         [nano, "https://nano-editor.org/dist/v8/nano-8.7.1.tar.xz",
+                          "https://ftp.gnu.org/gnu/nano/nano-8.7.1.tar.xz"])
+        # Each prefix is a folder, and in one group only.
+        prefixes = [prefix for group in sources.MIRRORS for prefix in group]
+        self.assertTrue(all(prefix.endswith("/") for prefix in prefixes))
+        self.assertEqual(len(prefixes), len(set(prefixes)))
+
+    def test_a_file_its_host_lacks_comes_from_a_mirror_and_the_archive_is_unchanged(self):
+        first, _ = self.build(name="first.tar")
+        # A mirror holds every file; the host loses one.
+        mirror = self.mirror(*self.fixture.files)
+        group = ("file://%s/" % self.fixture.upstream, "file://%s/" % mirror)
+        moved = os.path.join(self.work, "moved")
+        os.rename(os.path.join(self.fixture.upstream, "hello11-001"), moved)
+        try:
+            with mock.patch.object(sources, "MIRRORS", (group,)), \
+                    mock.patch.object(sources.time, "sleep"), \
+                    contextlib.redirect_stderr(io.StringIO()) as notes:
+                second, manifest = self.build(cache=os.path.join(self.work, "cold"),
+                                              name="second.tar")
+        finally:
+            os.rename(moved, os.path.join(self.fixture.upstream, "hello11-001"))
+        # The same file, so the same archive; the manifest names the recipe's URL.
+        with open(first, "rb") as one, open(second, "rb") as two:
+            self.assertEqual(one.read(), two.read())
+        urls = [source["url"] for package in manifest["packages"]
+                for recipe in package["recipes"] for source in recipe["sources"]]
+        self.assertIn(self.fixture.url("hello11-001"), urls)
+        self.assertIn("mirror: hello 1.1-2: hello11-001 from file://%s/hello11-001" % mirror,
+                      notes.getvalue())
+        self.assertEqual(sources.FAILED_MIRRORS, {group[0]})
+
+    def test_a_host_that_failed_costs_its_retries_once(self):
+        cache = os.path.join(self.work, "cache")
+        mirror = self.mirror("hello-1.0.tar.gz", "hello-1.1.tar.gz")
+        dead = os.path.join(self.work, "dead")
+        group = ("file://%s/" % dead, "file://%s/" % mirror)
+        with mock.patch.object(sources, "MIRRORS", (group,)), \
+                mock.patch.object(sources.time, "sleep") as sleep, \
+                contextlib.redirect_stderr(io.StringIO()) as notes:
+            for name in ("hello-1.0.tar.gz", "hello-1.1.tar.gz"):
+                path = sources.fetch("file://%s/%s" % (dead, name), self.fixture.files[name],
+                                     cache, "hello")
+                self.assertEqual(sources.sha256_file(path), self.fixture.files[name])
+                # The dead host's retries, for the first file only.
+                self.assertEqual(sleep.call_count, sources.DOWNLOAD_ATTEMPTS - 1)
+        self.assertEqual(notes.getvalue().count(" failed ("), 1)
+
+    def test_a_mirror_must_serve_the_recipes_checksum(self):
+        mirror = self.mirror()
+        write(os.path.join(mirror, "hello-1.0.tar.gz"), b"not hello\n")
+        dead = os.path.join(self.work, "dead")
+        group = ("file://%s/" % dead, "file://%s/" % mirror)
+        cache = os.path.join(self.work, "cache")
+        with mock.patch.object(sources, "MIRRORS", (group,)), \
+                mock.patch.object(sources.time, "sleep"), \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertFails(lambda: sources.fetch("file://%s/hello-1.0.tar.gz" % dead,
+                                                   self.fixture.files["hello-1.0.tar.gz"], cache,
+                                                   "hello 1.0"),
+                             "hello 1.0", "from it or its mirrors",
+                             "file://%s/hello-1.0.tar.gz (curl" % dead,
+                             "file://%s/hello-1.0.tar.gz (SHA-256 %s)" % (mirror,
+                                                                         sha(b"not hello\n")),
+                             self.fixture.files["hello-1.0.tar.gz"])
+        self.assertEqual(os.listdir(cache), [])
 
     # --- it fails closed ------------------------------------------------------------------------
 
