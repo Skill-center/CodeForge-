@@ -177,6 +177,7 @@ void main() {
       File('$root/bin/blob.dat')
         ..createSync(recursive: true)
         ..writeAsBytesSync([...utf8.encode('needle\n'), 0, 1, 2]);
+      fill.stop();
       _say(
         'project of $_projectFiles files written in '
         '${fill.elapsedMilliseconds} ms (setup)',
