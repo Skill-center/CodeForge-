@@ -7,6 +7,9 @@ self-test: no backup agent -> caught: backupAgent is None, ADR-0012 says 'dev.co
 self-test: the old rules only -> caught: dataExtractionRules is None, ADR-0012 says '@xml/data_extraction_rules'
 self-test: an extra backup attribute -> caught: backupInForeground="true" is not in ADR-0012
 self-test: native libraries kept in the APK -> caught: extractNativeLibs="false": the runtime's executables would stay inside the APK, where nothing can execve() them
+self-test: good release manifest -> pass
+self-test: a network-state permission in a release build -> caught: android.permission.ACCESS_NETWORK_STATE in the release build: the listing and the Data safety answers name INTERNET alone (docs/store/)
+self-test: another permission in a release build -> caught: android.permission.POST_NOTIFICATIONS in the release build: the listing and the Data safety answers name INTERNET alone (docs/store/)
 manifest: build/app/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml
 permissions: android.permission.INTERNET, dev.codeforge.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 backup: allowBackup=true, backupAgent=dev.codeforge.app.CodeForgeBackupAgent, dataExtractionRules=@xml/data_extraction_rules, fullBackupContent=@xml/backup_rules, fullBackupOnly=true
