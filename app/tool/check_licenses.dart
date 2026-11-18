@@ -167,8 +167,8 @@ String? _notices(Map<String, String> licenceTexts, {required bool write}) {
   }
   final json = jsonDecode(output.substring(start)) as Map<String, Object?>;
   final packages = <String, Map<String, Object?>>{
-    for (final entry in (json['packages']! as List<Object?>)
-        .cast<Map<String, Object?>>())
+    for (final entry
+        in (json['packages']! as List<Object?>).cast<Map<String, Object?>>())
       entry['name']! as String: entry,
   };
   final roots = packages[json['root']! as String]!['directDependencies'];
@@ -206,14 +206,14 @@ String? _notices(Map<String, String> licenceTexts, {required bool write}) {
   for (final (_, _, licence) in rows) {
     tally[licence] = (tally[licence] ?? 0) + 1;
   }
-  final counts = (tally.entries.toList()
-        ..sort(
-          (a, b) => b.value != a.value
-              ? b.value.compareTo(a.value)
-              : a.key.compareTo(b.key),
-        ))
-      .map((e) => '${e.key} ${e.value}')
-      .join(', ');
+  final counts =
+      (tally.entries.toList()..sort(
+            (a, b) => b.value != a.value
+                ? b.value.compareTo(a.value)
+                : a.key.compareTo(b.key),
+          ))
+          .map((e) => '${e.key} ${e.value}')
+          .join(', ');
   final section = [
     _dartBegin,
     "<!-- Written by app/tool/check_licenses.dart from the app's resolved "
@@ -223,7 +223,8 @@ String? _notices(Map<String, String> licenceTexts, {required bool write}) {
     '',
     '| Package | Version | Licence |',
     '|---|---|---|',
-    for (final (name, version, licence) in rows) '| $name | $version | $licence |',
+    for (final (name, version, licence) in rows)
+      '| $name | $version | $licence |',
     '',
     _dartEnd,
   ].join('\n');
