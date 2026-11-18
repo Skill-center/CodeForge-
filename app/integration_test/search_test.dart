@@ -30,6 +30,7 @@ import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/application/runtime_controller.dart';
 import 'package:codeforge/application/search/search_controller.dart';
 import 'package:codeforge/application/workspace_switcher.dart';
+import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/core/search/search_models.dart';
 import 'package:codeforge/services/platform/app_directories.dart';

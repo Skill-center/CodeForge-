@@ -38,10 +38,11 @@ final class PigeonSearchService implements SearchService {
     _hear();
     _nextId += 1;
     final id = _nextId;
-    final controller = StreamController<SearchUpdate>();
-    _runs[id] = controller;
+    // Kept in [_runs] until its summary comes, and closed then (_finish), or
+    // by [dispose].
+    final updates = (_runs[id] = StreamController<SearchUpdate>()).stream;
     unawaited(_start(id, workspace, query, maxResults));
-    return _PigeonSearchRun(this, id, controller.stream);
+    return _PigeonSearchRun(this, id, updates);
   }
 
   /// Stops hearing the host, and ends every run still open.
@@ -129,11 +130,10 @@ final class PigeonSearchService implements SearchService {
   }
 
   void _found(int id, List<SearchFileMessage> files) {
-    final controller = _runs[id];
-    if (controller == null || controller.isClosed) {
+    if (_runs[id]?.isClosed ?? true) {
       return;
     }
-    controller.add(SearchFound([for (final file in files) fileFrom(file)]));
+    _runs[id]!.add(SearchFound([for (final file in files) fileFrom(file)]));
   }
 
   void _finish(int id, SearchSummary summary) {
