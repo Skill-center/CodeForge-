@@ -77,6 +77,13 @@ jobs:
             echo "::error title=Release label::'$label' is not a usable version label."
             exit 1
           fi
+          # About → Source code names codeforge-<the app's version>-sources.tar
+          # (app/lib/core/legal/source_offer.dart): a release's tag must be
+          # that version, or the offer would name an archive it does not have.
+          if [ "$publish" = true ] && [ "$label" != "$version" ]; then
+            echo "::error title=Release tag::The tag v$label is not app/pubspec.yaml's version $version."
+            exit 1
+          fi
           {
             echo "asked=$asked"
             echo "label=$label"
