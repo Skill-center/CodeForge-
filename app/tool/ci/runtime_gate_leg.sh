@@ -14,7 +14,7 @@
 #   RuntimeCommandsTest  W4: the tools at their pinned versions, the
 #                        environment, no child left;
 #   RuntimeInstallTest   W3: the install, the warm start, a flipped byte, the
-#                        audit;
+#                        audit; W5: the kernel's manifest stream needs API 33;
 #   SealedShellTest      t1's, ported: bash, sed and the core tools from the
 #                        APK's payload, the app's own startup path twice, dpkg.
 # Evidence (ci-results/runtime-gates/api-<api>/, judged by gate_results.py):
@@ -39,7 +39,10 @@ RESULTS="ci-results/runtime-gates/api-$API"
 EMU_LOG="${RUNNER_TEMP:-/tmp}/runtime-gate-emulator-$API.log"
 CLASSES="dev.codeforge.app.runtime.ExecModelTest,dev.codeforge.app.runtime.RuntimeCommandsTest"
 CLASSES="$CLASSES,dev.codeforge.app.runtime.RuntimeInstallTest,dev.codeforge.app.runtime.SealedShellTest"
-rm -rf "$RESULTS"
+# The checkout carries the last run's committed evidence for every leg; this
+# leg's artifact must hold its own folder alone (the first run's evidence job
+# merged five artifacts that each held all five, stale ones included).
+rm -rf ci-results/runtime-gates
 mkdir -p "$RESULTS"
 : > "$EMU_LOG"
 EMU_PID=""
@@ -205,7 +208,7 @@ python3 tool/ci/gate_results.py \
   --figures "$RESULTS/exec-model-report.txt" --figures "$RESULTS/sealed-shell-report.txt" \
   --expect dev.codeforge.app.runtime.ExecModelTest:1 \
   --expect dev.codeforge.app.runtime.SealedShellTest:2 \
-  --expect dev.codeforge.app.runtime.RuntimeInstallTest:6 \
+  --expect dev.codeforge.app.runtime.RuntimeInstallTest:7 \
   --expect dev.codeforge.app.runtime.RuntimeCommandsTest:6 \
   --require exec_model_audit_outside_apk=0 \
   --require audit_outside_apk=0 \

@@ -1,10 +1,12 @@
 package dev.codeforge.app.runtime
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.codeforge.runtime.core.HarnessConfig
 import dev.codeforge.runtime.core.exec.SealedPayloadInstaller
+import dev.codeforge.runtime.sealed.RuntimeManifest
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FilterInputStream
@@ -208,6 +210,31 @@ class RuntimeInstallTest {
         assertFalse(File(gate, "digest/codeforge/installed.properties").exists())
         assertNull(runtime("digest").installed())
         File(gate, "digest").deleteRecursively()
+    }
+
+    /**
+     * Why the host installs through PayloadInstall (Phase 4 W5): t1's kernel
+     * reads a manifest stream with `InputStream.readAllBytes()`, which Android
+     * has only from API 33 (D8 does not backport it). Below API 33 the
+     * kernel's own entry point cannot run; from it, the stream reads as the
+     * bytes the host parses itself. The runtime gates' legs run this on
+     * API 26 to 36, so the reason is measured, not assumed.
+     */
+    @Test
+    fun g_theKernelsManifestStreamNeedsApi33() {
+        // A digest of 64 zeros, for a file of 0 bytes: one entry.
+        val line = "0000000000000000000000000000000000000000000000000000000000000000\t0\tetc/empty\n"
+        val outcome = try {
+            "read " + RuntimeManifest.read(ByteArrayInputStream(line.toByteArray(Charsets.UTF_8))).size()
+        } catch (missing: NoSuchMethodError) {
+            "NoSuchMethodError"
+        }
+        record("kernel_manifest_stream", "$outcome sdk=${Build.VERSION.SDK_INT}")
+        if (Build.VERSION.SDK_INT >= 33) {
+            assertEquals("read 1", outcome)
+        } else {
+            assertEquals("NoSuchMethodError", outcome)
+        }
     }
 
     /** The payload, with one byte of the userland zip inverted. */

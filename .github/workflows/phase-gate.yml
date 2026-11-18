@@ -471,17 +471,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      # One folder per artifact: each leg's own evidence is taken from its
+      # own artifact, never from another's copy.
       - uses: actions/download-artifact@v8
         with:
           pattern: runtime-gate-api-*
           path: legs
-          merge-multiple: true
 
       - name: Summary
         run: |
           dir=app/ci-results/runtime-gates
           rm -rf "$dir" && mkdir -p "$dir"
-          cp -a legs/. "$dir/" 2>/dev/null || true
+          for api in 26 27 28 34 36; do
+            src="legs/runtime-gate-api-$api/api-$api"
+            [ -d "$src" ] && cp -a "$src" "$dir/api-$api"
+          done
           {
             echo "run=${{ github.run_id }} sha=${GITHUB_SHA:0:7} date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             for api in 26 27 28 34 36; do
