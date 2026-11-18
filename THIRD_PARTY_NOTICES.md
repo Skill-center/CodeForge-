@@ -157,6 +157,8 @@ Licences, counted per package version: GPL-3.0 24, GPL-2.0 23, MIT 18, BSD-3-Cla
 
 A licence with an asterisk was identified from its text's wording; one with a dagger (†) by Phase 4 W7's review, from the licence the package's Termux recipe declares (runtime/notices.py, `REVIEWED`); the others are named by Termux's link to `share/LICENSES/<id>.txt`, exactly as Termux names them. The texts ship in the payload at the paths shown (prefix-relative); a subpackage's is its parent's.
 
+A text with a double dagger (‡) is not in the payload under the name the link gives: Termux renamed it after the bootstrap was built, and the bootstrap's termux-licenses carries the same text under its old name, the last path shown (runtime/notices.py, `RENAMED_TEXTS`).
+
 | Package | Version | ABIs | Licence | Licence text in the payload | Homepage |
 |---|---|---|---|---|---|
 | apt | 2.8.1-2 | arm64-v8a, x86_64 | GPL-2.0 | `share/doc/apt/copyright` → `share/LICENSES/GPL-2.0.txt` | https://packages.debian.org/apt |
@@ -201,7 +203,7 @@ A licence with an asterisk was identified from its text's wording; one with a da
 | libcap-ng | 2:0.9 | arm64-v8a, x86_64 | LGPL-2.1 | `share/doc/libcap-ng/copyright` → `share/LICENSES/LGPL-2.1.txt` | https://people.redhat.com/sgrubb/libcap-ng/ |
 | libcrypt | 0.2-6 | arm64-v8a, x86_64 | BSD-2-Clause\* | `share/doc/libcrypt/copyright` | http://michael.dipperstein.com/crypt/ |
 | libcurl | 8.23.0 | arm64-v8a, x86_64 | curl\* | `share/doc/libcurl/copyright` | https://curl.se/ |
-| libdb | 18.1.40-6 | arm64-v8a, x86_64 | AGPL-3.0-only | `share/doc/libdb/copyright` → `share/LICENSES/AGPL-3.0-only.txt` | https://www.oracle.com/database/berkeley-db |
+| libdb | 18.1.40-6 | arm64-v8a, x86_64 | AGPL-3.0-only | `share/doc/libdb/copyright` → `share/LICENSES/AGPL-3.0-only.txt`‡ → `share/LICENSES/AGPL-V3.txt` | https://www.oracle.com/database/berkeley-db |
 | libedit | 20260512-3.1-0 | arm64-v8a, x86_64 | BSD-3-Clause\* | `share/doc/libedit/copyright` | https://thrysoee.dk/editline/ |
 | libevent | 2.1.12-3 | arm64-v8a, x86_64 | MIT\*, BSD-2-Clause\* | `share/doc/libevent/copyright` | https://libevent.org/ |
 | libexpat | 2.10.0 | arm64-v8a, x86_64 | MIT\* | `share/doc/libexpat/copyright` | https://libexpat.github.io/ |
