@@ -322,7 +322,10 @@ jobs:
           } | tee "$OUT/release-checks.txt"
           cat "$OUT/release-checks.txt" >> "$GITHUB_STEP_SUMMARY"
           echo "failed=$failed" >> "$GITHUB_OUTPUT"
-          [ -z "$failed" ]
+          if [ -n "$failed" ]; then
+            echo "::error title=Release checks::Failed:$failed (each one's output: check-<name>.txt in the app artifact)."
+            exit 1
+          fi
 
       - name: Keep the App Bundle and the APK
         if: always()
@@ -363,15 +366,26 @@ jobs:
           key: runtime-sources-v1-${{ hashFiles('runtime/pins.json', 'SOURCE_OFFER.md') }}
           restore-keys: runtime-sources-v1-
 
+      # A failure's reason becomes an annotation, readable without the log.
+      # A file its recipe's host can't give comes from a mirror (sources.py,
+      # MIRRORS); those lines start with "  mirror:".
       - name: Build the source archive
         run: |
           mkdir -p dist "$CACHE"
           ls "$CACHE" | sort > "$RUNNER_TEMP/cache-before.txt"
-          set -o pipefail
+          set +e
           timeout --kill-after=30s 45m python3 runtime/sources.py build \
             --termux "$RUNNER_TEMP/termux-packages" --cache "$CACHE" \
             --out "dist/codeforge-$LABEL-sources.tar" --label "$LABEL" 2>&1 | tee dist/sources.txt
-          grep '^sources:' dist/sources.txt >> "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
+          grep -E '^(sources:|  mirror:)' dist/sources.txt >> "$GITHUB_STEP_SUMMARY" || true
+          if [ "$status" -ne 0 ]; then
+            reason=$(grep -m 1 '^sources: FAILED' dist/sources.txt \
+              || echo "sources.py ended with status $status (124 is the time limit)")
+            echo "::error title=Source archive::$(printf '%s' "$reason" | sed 's/%/%25/g')"
+            exit "$status"
+          fi
 
       # Saved when something new was downloaded, even by a run that failed
       # later, under a new key: a cache entry can't be overwritten.
