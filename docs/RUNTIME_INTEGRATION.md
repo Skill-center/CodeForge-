@@ -79,6 +79,11 @@ RuntimeHost
 - **The tools:** node, python, git, bash, perl, ruby and rg. Each probe runs the tool once, and the interpreters load some of their libraries too (node finds npm's package; python imports `ssl`, `json` and `sqlite3`; perl loads `strict` and `List::Util`; ruby requires `rubygems` and `securerandom`). The version it reports is compared with its package's pin from the payload's info. Settings → Linux runtime lists them, each with its health (*ok*, *mismatch*, *failed* or *missing*), and checks them again on request. In phase gate 43837693816 all seven were their pinned versions, instrumented (693 ms for the seven) and in the app's Settings (1,161 ms): node 26.13.1, python 3.14.10, git 2.56.1, bash 5.3.9, perl 5.44.0, ruby 4.0.9 and rg 15.2.0.
 - **What runs:** in W4 only the app's own commands, the probes and the tests. Nothing the user writes runs before Phase 5, which also brings the limits SECURITY §2.1 lists as not yet built.
 
+**As built in Phase 4 W5** (PHASE_4_PLAN *As built (W5)*):
+- **The install goes through `PayloadInstall.kt`,** not the kernel's `SealedInstaller.install`. The kernel reads its manifest stream with `InputStream.readAllBytes()`, which Android has only from API 33. `PayloadInstall` makes the entry point's calls itself, in its order, from the manifest the host has read: `RuntimeManifest.parse`, `PayloadExtractor`, the data links, `SealedLayout`. So the verification, the paths' safety checks and the layout are still t1's code. JVM tests compare it with the kernel's entry point on the same payloads (`PayloadInstallTest`).
+- **The runtime gates** run the host on x86_64 emulators at API 26, 27, 28, 34 and 36, in every phase gate, and on a physical arm64 phone in Firebase Test Lab, on a `[testlab]` commit. Both run t1's ported `ExecModelTest` and `SealedShellTest`, W3's and W4's instrumented tests, and §6's criteria (all met).
+- **CI's API floor check** (`app/tool/ci/check_api_floor.py`) holds the app's dex to minSdk 26 on every push.
+
 ## 4. Storage model
 
 | Location | Contents | Access |
@@ -104,10 +109,10 @@ Both shapes run the identical sealed execution model; `check-bundle-size.py` + e
 ## 6. Phase 4 acceptance (measurable)
 
 - [x] `:native:sealed-runtime:test` green (JVM, unchanged upstream tests): 22 tests, Phase 4 W2 (CI 43401882656)
-- [ ] `ExecModelTest` + `SealedShellTest` green on API 34 & 36 x86_64 emulators **and arm64 device**
-- [ ] ExecAudit = 0 at startup on all gate devices · 0 on the x86_64 emulator at the first start and the warm start, Phase 4 W3 (gate 43808489945); arm64 and API 26–28 in W5
-- [x] node/python/git/bash/perl/ruby/rg version probes reported correctly through RuntimeService → Flutter UI: all seven at their pinned versions on the x86_64 emulator, Phase 4 W4 (gate 43837693816, `RUNTIME_UI tools ok=7 of=7`); W5 repeats them on arm64
-- [x] Second launch skips re-extract (t1 measured 11 ms; CodeForge budget ≤ 100 ms): 18 ms median on the x86_64 emulator, Phase 4 W3 (gate 43808489945); the arm64 figure comes with W5
-- [x] Process termination leaves zero children (instrumented assertion): `RuntimeCommandsTest` e and f on the x86_64 emulator, Phase 4 W4 (gate 43837693816): nothing left after an end, a time limit or an exit; W5 repeats them on arm64
+- [x] `ExecModelTest` + `SealedShellTest` green on API 34 & 36 x86_64 emulators **and arm64 device**: t1's two tests, ported (native/PROVENANCE.md), green on API 34 and 36 x86_64 in the runtime gates (phase gate 44239443885), and on a physical arm64 phone, a Google Pixel 8a with Android 14, in Firebase Test Lab (CI 44240926191), Phase 4 W5. The legs also run them on API 26 to 28
+- [x] ExecAudit = 0 at startup on all gate devices · 0 on the x86_64 emulator at the first start and the warm start, Phase 4 W3 (gate 43808489945); W5: 0 at every first start and warm start, through the installer and through the app's startup path, on API 26, 27, 28, 34 and 36 (phase gate 44239443885) and on the arm64 phone (CI 44240926191)
+- [x] node/python/git/bash/perl/ruby/rg version probes reported correctly through RuntimeService → Flutter UI: all seven at their pinned versions on the x86_64 emulator, Phase 4 W4 (gate 43837693816, `RUNTIME_UI tools ok=7 of=7`); W5: all seven at their pins on API 26 to 36 and on the arm64 phone (instrumented, 1,014 ms for the seven there)
+- [x] Second launch skips re-extract (t1 measured 11 ms; CodeForge budget ≤ 100 ms): 18 ms median on the x86_64 emulator, Phase 4 W3 (gate 43808489945); W5: 73 ms median on the arm64 phone (samples 64 to 79 ms), and 12 to 37 ms on the emulator legs
+- [x] Process termination leaves zero children (instrumented assertion): `RuntimeCommandsTest` e and f on the x86_64 emulator, Phase 4 W4 (gate 43837693816): nothing left after an end, a time limit or an exit; W5: the same on API 26 to 36 and on the arm64 phone
 - [x] Payload corruption test: flipped byte → install fails with typed error, no partial runtime marked ready: `corrupt`, for a flipped byte and for a file that differs from its manifest, Phase 4 W3 (`RuntimeInstallTest` e and f, gate 43808489945)
-- [ ] minSdk gate (ADR-0007): API 26–28 emulator run OR owner-approved raise to 29
+- [x] minSdk gate (ADR-0007): API 26–28 emulator run OR owner-approved raise to 29: the API 26, 27 and 28 legs passed (phase gate 44239443885), so ADR-0007 is Accepted at 26, Phase 4 W5. They found one failure class, in t1's kernel rather than in Android: `InputStream.readAllBytes()` is API 33, so the kernel's install entry point cannot run below it. It is measured on the legs (`NoSuchMethodError` on 26 to 28), avoided by the host (`PayloadInstall.kt`), and kept out by CI's API floor check

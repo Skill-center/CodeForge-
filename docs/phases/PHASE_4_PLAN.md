@@ -1,6 +1,6 @@
 # Phase 4 Implementation Plan — Runtime Integration
 
-**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*); **W2 done on 2026-11-13** (CI 43401882656 and 43403453442, see *As built (W2)*); **W3 done on 2026-11-16** (CI 43807290310, 43808489952 and 43815154032, phase gate 43808489945; see *As built (W3)*, whose vendoring differs from the plan); **W4 done on 2026-11-16** (CI 43830252596, 43833197358 and 43835601536, phase gate 43837693816; see *As built (W4)*: CodeForge's own exec model, not t1's). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. t1 carries the same licence since 2026-11-13 (main `d9789a2`), and CodeForge vendors from that commit.
+**Status:** **In progress.** Proposed on 2026-11-12; **W1 done on 2026-11-13** (CI 43373527631, 43375227087, 43379964388 and 43384226740; phase gates 43375227077, 43379964330 and 43384226759, see *As built (W1)*); **W2 done on 2026-11-13** (CI 43401882656 and 43403453442, see *As built (W2)*); **W3 done on 2026-11-16** (CI 43807290310, 43808489952 and 43815154032, phase gate 43808489945; see *As built (W3)*, whose vendoring differs from the plan); **W4 done on 2026-11-16** (CI 43830252596, 43833197358 and 43835601536, phase gate 43837693816; see *As built (W4)*: CodeForge's own exec model, not t1's); **W5 done on 2026-11-18** (CI 44233761227, 44239443972 and 44244875981, phase gate 44239443885, Test Lab in CI 44240926191; see *As built (W5)*: G5, G6 and G7 met, ADR-0007 Accepted at 26). **The licence is decided: Apache-2.0** (the owner, 2026-11-12; [ADR-0011](../adr/0011-license.md) Accepted), so by ADR-0006's rule the terminal is xterm.js and no Termux code is vendored. t1 carries the same licence since 2026-11-13 (main `d9789a2`), and CodeForge vendors from that commit.
 **Spec reference:** §8 Phase 4 (runtime integration), §2 (reuse existing assets), §6.4–6.5 (the terminal connects to the existing environment; the capability model), §7 (security) · **Architecture:** [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [EXISTING_RUNTIME_AUDIT.md](../EXISTING_RUNTIME_AUDIT.md), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0006](../adr/0006-terminal-frontend.md), [ADR-0007](../adr/0007-min-sdk.md), [ADR-0009](../adr/0009-ci-github-actions.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Source:** `m-cyber12/t1` main @ `d9789a2` (2026-11-13): the audited tree `0e26d7a` (merged as `7b496c3`) plus its Apache-2.0 LICENSE
 
 ---
@@ -381,6 +381,69 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 
 **Carried:** a JVM test for `FolderWatches.kt`, if its seams allow one without Robolectric.
 
+**As built (W5):**
+- **The API floor, found before the legs ran.** t1's kernel reads its manifest stream with `InputStream.readAllBytes()` (`RuntimeManifest.read(InputStream)`), which Android has only from API 33. D8 does not backport it, so every runtime install through the kernel's entry point, `SealedInstaller.install`, failed on Android 8.0 to 12L (API 26 to 32). t1's own floor is 29, and it ran only on API 34 and 36.
+  - **Fixed without editing the vendored file:** the runtime host makes the entry point's calls itself (`PayloadInstall.kt`): `RuntimeManifest.parse`, `PayloadExtractor`, the data links and `SealedLayout`, in the kernel's order. `PayloadInstallTest` (4, JVM) installs the same payloads through both entry points and compares the prefixes, counts and problems.
+  - **Measured on the legs:** `RuntimeInstallTest` g calls the method itself, with `NoSuchMethodError` on API 26, 27 and 28 and a normal read on 34 and 36.
+  - **Kept out for good:** CI's *API floor (minSdk 26)* step (`tool/ci/check_api_floor.py`) checks every method, field and class CodeForge's own and vendored code refers to in the debug APK's dex against compileSdk 36's API database. A newer one passes only behind a version check, or in vendored code the app never calls, and a call into that code fails the check. The result: 1,817 methods and 4,653 framework references, 0 violations. `CodeForgeBackupAgent`'s transport flags (API 28) sit behind a version check, and four vendored methods are never called: the kernel's and the adapter's entry points.
+  - **The fix belongs in t1.** `RuntimeManifest.read` can read the stream in a loop; a re-vendor after that can retire `PayloadInstall`.
+- **t1's gates, ported** (native/PROVENANCE.md; not vendored, since they need classes that were not):
+  - **`ExecModelTest`** (Java) keeps t1's text. Five things change, each listed in its class comment. One of them is about Android, not CodeForge: a denial of exec from app data is expected only where Android denies it, on API 29 and later for a target of 29 or later. On API 26 to 28 nothing denies it, and t1 never ran there.
+  - **`SealedShellTest`** (Kotlin) keeps t1's assertions on CodeForge's host: the runtime host's install, CodeForge's runner, and the app's startup path (`RuntimeHubs`, twice) instead of `HarnessBootstrap`. t1's pack test waits for a pack.
+- **The runtime gates** are jobs of `phase-gate.yml`, in the same run as the emulator gate:
+  - one build of the debug APK with the x86_64 payload, and its test APK;
+  - a leg per API level, 26, 27, 28, 34 and 36 (`tool/ci/runtime_gate_leg.sh`), each running `ExecModelTest`, `RuntimeCommandsTest`, `RuntimeInstallTest` and `SealedShellTest`: 16 tests;
+  - an evidence job that commits `app/ci-results/runtime-gates/` back, with a summary.
+  - `tool/ci/gate_results.py` judges every leg by t1's rule: each expected class ran, none failed, none skipped. It also requires every audit's figure to be 0.
+  - Each leg records its image and the image's WebView (ADR-0007's third unknown).
+- **The arm64 leg** is `ci.yml`'s `testlab` job, on a commit with `[testlab]` in its subject line after plain CI passed (BUILD_AND_RELEASE §4):
+  - It builds the arm64 payload APK with `integration_test/sync_modes_test.dart` as its Dart entrypoint, and runs the same four classes and `SyncModesTest` on one phone.
+  - `SyncModesTest` times the session store with the large-file test's own code (`storeTimings`, now public) through integration_test's FlutterTestRunner. The gate's large-file test needs a computer attached; this one does not.
+  - `testlab_device.py --runtime` requires Android 14 or later and prefers a mid-range phone with capacity, for G3's budget.
+  - The JUnit report and the device log come back from Test Lab's results bucket.
+- **Found on the way:**
+  - **Signing:** the gates' first run (44235180242) lost all five legs before a test ran. The app came from `flutter build` and the test APK from a second Gradle run, signed with another debug key, so Android refused the instrumentation. One Gradle run now builds both, and `tool/ci/same_signer.sh` checks their certificates before an emulator or a phone is spent. Its first version read nothing with build-tools 37's apksigner on Java 17 (44236831476); it now uses the newest apksigner that works.
+  - **Evidence:** in the second run (44237799081) all five legs passed, but four legs' committed evidence was the first run's. Each leg's checkout carried every leg's last committed folder, and the evidence job merged five artifacts that each held all five. A leg now uploads its own folder alone, and the evidence job takes each from its own artifact.
+  - **The Test Lab job** would have hit the same signing mismatch. The emulator legs found it first, and no physical test was spent on it.
+- **Not done:** the JVM test for `FolderWatches.kt` carried into W5. Its seams don't allow one without Robolectric: the class makes its own `HandlerThread`, `Handler`s and `ContentObserver`, which `android.jar`'s stubs do not run. It needs a refactor that injects the scheduling, in a later work package.
+- **G5 and G7, measured in phase gate 44239443885** (`c4b2577`; `app/ci-results/runtime-gates/`). Every leg passed, 16 of 16:
+
+  | | API 26 | API 27 | API 28 | API 34 | API 36 |
+  |---|---|---|---|---|---|
+  | Android, image | 8.0.0, google_apis | 8.1.0, AOSP default | 9, google_apis | 14, google_apis | 16, google_apis |
+  | `ExecModelTest`: exec from app data | allowed | allowed | allowed | denied | denied |
+  | The kernel reading a manifest stream | `NoSuchMethodError` | `NoSuchMethodError` | `NoSuchMethodError` | read | read |
+  | First install (instrumented) | 8,114 ms | 7,980 ms | 5,978 ms | 9,082 ms | 6,001 ms |
+  | First start through the app's startup path | 9,089 ms | 8,472 ms | 8,426 ms | 15,704 ms | 23,850 ms |
+  | Second start (a new hub, warm) | 15 ms | 19 ms | 13 ms | 43 ms | 31 ms |
+  | Warm start, median of 5 | 13 ms | 15 ms | 12 ms | 37 ms | 25 ms |
+  | Audits outside the APK | 0 | 0 | 0 | 0 | 0 |
+  | The seven tools at their pins | 355 ms | 406 ms | 532 ms | 548 ms | 592 ms |
+  | WebView of the image | Chrome 69 | 61 | Chrome 69 | 113 | 133 |
+
+  - **The first start through the app's startup path** was slower on API 34 and 36. The hub's worker runs below normal priority, to keep the editor smooth, and in these runs no activity is in front. Recorded only; through the app with the editor open, gate 44239443885's runtime pair measured 11,872 ms on API 36.
+  - The legs ran in 2.7 to 3.9 minutes each, beside the emulator gate, after a 5.7-minute build.
+- **G6, with G3's and G4's arm64 figures, in Test Lab** (CI 44240926191, `6ecdda4`; `app/ci-results/testlab/`). The phone was a Google Pixel 8a (`akita`), Android 14, a mid-range phone, the picker's first choice among 162 qualifying pairs. It waited 1 minute in the queue, and the 17 tests passed in 90 s of its time (`17 test cases passed`):
+
+  | Criterion | Measured on the Pixel 8a |
+  |---|---|
+  | `ExecModelTest`, `SealedShellTest` (G6) | passed. Exec from app data and a direct script were denied, as Android 14 requires; the native library directory, a prefix link and a shebang through the preload ran. bash 5.3.9, sed and the six core tools ran from the APK's payload, and dpkg agrees |
+  | First install, within 60 s on a mid-range phone (G3) | 13,553 ms instrumented: 13,892 files verified, 534 executables, 1,169 links. 17,588 ms through the app's startup path |
+  | Warm start, 100 ms or less (G3) | 73 ms median (64 to 79). A second hub started warm in 82 ms |
+  | `ExecAudit` = 0 (G3) | 0 at the first start and the warm start, through the installer and the startup path. The audit took 1.4 to 1.8 s |
+  | Versions at their pins, no child left (G4) | the seven at their pins, 1,014 ms for all seven. npm 12.2.2 in 614 ms. An end left 0 of 5, a time limit and an exit 0 |
+  | FULL against NORMAL (G6, ADR-0008) | one change: 0.58 ms against 0.49 ms at the median. Snapshots: no measurable difference (10 MiB: 279 / 242 / 116 against 260 / 304 / 117 ms) |
+
+- **The main gate in the same run:** every group passed on its first attempt, in 45.6 minutes.
+  - `runtime_instrumented=pass OK (13 tests)`, with `RuntimeInstallTest` g's read on API 36.
+  - W4's report fix works: the `runtime_device_commands_*` lines are in `runtime.txt` for the first time.
+  - **The cold start was 1,267 ms** (W4 1,250, W3 847; the budget is 1,500 ms). W5 changes nothing in the app's start, and the figure matches W4's. Skia measured 1,062 ms in the same run.
+- **Tests:** JVM `kotlin_tests=105 failures=0 errors=0 skipped=0` (`PayloadInstallTest` 4 more). Instrumented: `RuntimeInstallTest` 7 (g), `ExecModelTest` 1, `SealedShellTest` 2, `SyncModesTest` 1. Flutter `+866: All tests passed!`, unchanged. No golden changed.
+- **Evidence:**
+  - **CI:** 44233761227 (the work package, `e9507df`: the API floor's first run). 44239443972 (`c4b2577`, before the Test Lab run). 44244875981 (`1e48d27`, the bootstrap run: `+866: All tests passed!`, `kotlin_tests=105 failures=0 errors=0 skipped=0`, `sealed_runtime_tests=22`, `api_floor=pass`).
+  - **Phase gate 44239443885:** `gate_result=pass`, and the runtime gates' `summary.txt`: five legs, `verdict=pass`.
+  - **Test Lab:** CI 44240926191, `verdict=pass` in `app/ci-results/testlab/runtime.txt`.
+
 ### W6 — Search across files (1–2 sessions) → G8
 
 - **Projects:** `rg --json` through `exec()`. Results stream in, the search can be cancelled, the matches are capped, `.gitignore` is respected and binary files are skipped.
@@ -420,11 +483,11 @@ The template's Android files are otherwise the same in 3.47.9 and 3.50.0 (`gradl
 |---|---|---|
 | **G1 Toolchain** | CI builds with Flutter 3.50.0, AGP 9.3.3 (planned as 9.3.1; see *As built (W1)*), KGP 2.4.20 and Gradle 9.5.0. Analysis is clean and formatting unchanged, every test passes, and every changed golden has been looked at. The Kotlin tests pass. Every phase-gate group passes, and the cold start is recorded with Impeller and with Skia | CI and gate run ids |
 | **G2 Kernel** | `:native:sealed-runtime:test` passes with t1's tests changed only in their package. The `runtime/` script tests pass. PROVENANCE is complete. A missing pinned package fails the build closed | CI |
-| **G3 Install** | The first install runs off the UI thread with progress, within 60 s on a mid-range phone (emulator and Test Lab figures recorded). A warm start takes 100 ms or less. A flipped byte gives a typed failure and the runtime is never marked ready. `ExecAudit` = 0 at every start. APK and per-device sizes recorded | the gate's runtime group, instrumented tests. **W3:** met on the x86_64 emulator, phase gate 43808489945 (*As built (W3)*); the arm64 install time waits for Test Lab (W5) |
-| **G4 Versions** | node, python, git, bash, perl, ruby and rg versions reach the Flutter UI through RuntimeHost and match the pinned packages. Ending a process leaves no child | instrumented, widget and gate tests. **W4:** met on the x86_64 emulator, phase gate 43837693816 (*As built (W4)*); W5 adds arm64 in Test Lab |
-| **G5 Emulators** | `ExecModelTest` and `SealedShellTest` pass on API 34 and 36 x86_64 | runtime-gates run |
-| **G6 arm64** | The same tests pass on a physical arm64 phone in Test Lab. FULL against NORMAL is measured there and ADR-0008 updated | Test Lab runs |
-| **G7 minSdk** | The API 26–28 legs pass and ADR-0007 is Accepted at 26, or the owner signs off a raise to 29 | runtime-gates run |
+| **G3 Install** | The first install runs off the UI thread with progress, within 60 s on a mid-range phone (emulator and Test Lab figures recorded). A warm start takes 100 ms or less. A flipped byte gives a typed failure and the runtime is never marked ready. `ExecAudit` = 0 at every start. APK and per-device sizes recorded | the gate's runtime group, instrumented tests. **W3:** met on the x86_64 emulator, phase gate 43808489945 (*As built (W3)*). **W5:** met on arm64, a Pixel 8a in Test Lab (CI 44240926191): 13.6 s instrumented, 17.6 s through the app's startup path, warm 73 ms, audits 0 (*As built (W5)*) |
+| **G4 Versions** | node, python, git, bash, perl, ruby and rg versions reach the Flutter UI through RuntimeHost and match the pinned packages. Ending a process leaves no child | instrumented, widget and gate tests. **W4:** met on the x86_64 emulator, phase gate 43837693816 (*As built (W4)*). **W5:** `RuntimeCommandsTest` passed on the arm64 phone (CI 44240926191) and on API 26 to 36 |
+| **G5 Emulators** | `ExecModelTest` and `SealedShellTest` pass on API 34 and 36 x86_64 | runtime-gates run. **W5: met,** phase gate 44239443885 (*As built (W5)*) |
+| **G6 arm64** | The same tests pass on a physical arm64 phone in Test Lab. FULL against NORMAL is measured there and ADR-0008 updated | Test Lab runs. **W5: met,** a Google Pixel 8a with Android 14, CI 44240926191; ADR-0008 updated, and its setting is the owner's call (*As built (W5)*) |
+| **G7 minSdk** | The API 26–28 legs pass and ADR-0007 is Accepted at 26, or the owner signs off a raise to 29 | runtime-gates run. **W5: met,** phase gate 44239443885; ADR-0007 Accepted at 26 |
 | **G8 Search** | ripgrep in projects and the scan in folders find the gate's fixtures. Results open at the line and cancelling works. Figures recorded and a budget proposed | widget, integration and gate tests |
 | **G9 Licence and docs** | ADR-0011 Accepted (Apache-2.0) with CodeForge's `LICENSE`, and t1 licensed alike. ADR-0006 resolved (xterm.js). Notices and source offer drafted. Docs synced and PHASE_4_REPORT written | the documents |
 
@@ -484,3 +547,7 @@ RUNTIME_INTEGRATION (as built), EXISTING_RUNTIME_AUDIT (t1's merge, PR #229), AR
    - **The owner's phone** is usually available for manual tests (the owner, 2026-11-15): the phone sessions, and G6's fallback if Test Lab cannot run.
 4. **During this phase, the Play Console:** the developer account and the upload key. The closed test's start is proposed in W7.
 5. **Later (ROADMAP's decision queue):** what runs the arm64 tests after Test Lab shuts down on 2027-09-30. The options are the Developer Device Platform (needs billing), the owner's phone sessions, or both.
+6. **From W5, for the owner's decision:**
+   - **The session store's sync mode** (ADR-0008): on a Pixel 8a, `FULL` cost about 0.1 ms per change and nothing measurable on snapshots. It would close the gap `NORMAL` leaves after an operating-system crash or a power cut. The recommendation is `FULL`, a one-line change with its tests; the setting stays `NORMAL` until the owner says.
+   - **An old WebView:** the editor page needs Chrome 87 or later. A phone with Android 8 or 9 that updates its WebView has up to 138, but one never updated can't open the editor (ADR-0007). The proposal: the app checks the version at start and says so plainly, with W7's Play preparation.
+   - **t1's `RuntimeManifest.read(InputStream)`** uses an API 33 method (*As built (W5)*). The fix belongs in t1, by its owner; CodeForge works around it meanwhile.

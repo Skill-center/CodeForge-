@@ -4,6 +4,16 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 4 W5, the runtime gates (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md))
+- **The runtime is proven on real targets.** t1's two on-device gates, ported to CodeForge's host, pass with the runtime's install and command tests on emulators with Android 8.0, 8.1, 9, 14 and 16, in every phase gate from now on. They also pass on a physical Google Pixel 8a with Android 14 in Firebase Test Lab.
+- **On the Pixel 8a,** a mid-range phone, the first install took 13.6 s (17.6 s through the app's own start path), within the 60 s budget. A warm start took 73 ms, within 100 ms. Every program came from the app, all seven tools matched their pins, and no command left a process behind.
+- **minSdk 26 is confirmed** ([ADR-0007](adr/0007-min-sdk.md), Accepted): Android 8.0 and later.
+- **Fixed: the runtime could not install on Android 8.0 to 12L.** t1's installer reads its manifest with a Java method Android added only in Android 13, and nothing at build time said so. The gates measured the crash on Android 8 and 9. CodeForge now installs through the same kernel steps without that call, and leaves t1's files untouched.
+- **CI now checks the API floor on every push:** every method, field and class the app's own and vendored code uses must exist on Android 8.0, sit behind a version check, or be vendored code the app never calls.
+- **Measured on the phone:** the session store's safer sync mode, `FULL`, cost about 0.1 ms per change ([ADR-0008](adr/0008-persistence.md)). Whether to switch to it is the owner's call.
+- **CI found two faults of its own and fixed them:** the app and its test APK came from two builds signed with different keys, and one leg's evidence overwrote another's. A check now compares the signatures before a device is spent, so no physical test was used on either fault.
+- Verified by CI 44233761227, 44239443972 and 44244875981 (`+866: All tests passed!`; 105 Kotlin tests, 4 of them new, none skipped; 22 kernel tests; the API floor with no violation), phase gate 44239443885 (five runtime legs, 16 of 16 tests each, and every emulator group on its first attempt), and Test Lab in CI 44240926191 (17 of 17 tests on the Pixel 8a, 1 of the day's 5 tests).
+
 ### Added — Firebase Test Lab connected (2026-11-17)
 - **CI reaches Test Lab's real phones.** A Robo crawl of the debug APK passed on a Google Pixel 10 (API 36) in 192 s (CI 44167128978). Its results went to Test Lab's own bucket, on the no-cost plan without billing, as expected. W5's arm64 gates build on this.
 - **The key's account needed the Editor role on the project itself.** The owner's key is the Firebase Admin SDK account's, which on its own can't use Test Lab, so listing the phones was refused (403) until the owner added the role and enabled the two APIs.

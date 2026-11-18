@@ -147,15 +147,20 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 
 ## 4. Device testing
 
-- **Emulators (CI-owned):** x86_64 API 34 & 36 — correctness gates (t1-proven).
+- **Emulators (CI-owned):** x86_64 API 34 & 36 — correctness gates (t1-proven). **Since Phase 4 W5:** the runtime gates run the runtime's instrumented tests on x86_64 API 26, 27, 28, 34 and 36 in every phase gate (`phase-gate.yml`, `tool/ci/runtime_gate_leg.sh`; ADR-0007, ADR-0009), and the emulator gate's groups run on API 36.
 - **Connecting Test Lab** (since 2026-11-15; the owner's Firebase project, on the no-cost Spark plan):
   - **The credential:** a service account with the **Editor** role. Its JSON key goes in the repository secret `FIREBASE_TEST_LAB_KEY`, and the project id in `FIREBASE_PROJECT_ID`, a repository variable or a repository secret (the variable wins when both are set; as a secret, the job's log masks it). The owner stored both as secrets on 2026-11-17.
     - **The key is the Firebase Admin SDK account's** (`firebase-adminsdk-fbsvc@…`). On its own that account cannot use Test Lab: listing the phones was refused with a 403 (CI 44144982229 and 44153536306) until the owner gave it Editor on the project's IAM page and enabled the Cloud Testing and Cloud Tool Results APIs (2026-11-17).
     - Firebase requires Editor for tests that use Test Lab's default results bucket (its IAM reference). The narrower pair, *Firebase Test Lab Admin* and *Firebase Analytics Viewer*, works only with a bucket of one's own, and that needs billing.
     - The project holds nothing else and has no billing account, which bounds what the key can do.
   - **Storage on Spark:** since 2026-02-03 a Spark project can't use its own Cloud Storage buckets. Test Lab's default results bucket, however, lives in a project Test Lab owns (the Tool Results API's `initializeSettings`), so runs should keep working without billing. The jobs never pass `--results-bucket`. **Confirmed on 2026-11-17** (CI 44167128978): the results went to Test Lab's own bucket, without billing.
-  - **The check** is `ci.yml`'s `testlab` job, run by a pushed commit with `[testlab]` in its subject line. The tag only in the message's body stops the job at its first step, so a message that mentions it spends no test:
-    - It runs one Robo crawl of that run's debug APK on a physical arm64 phone. `tool/ci/testlab_device.py` chooses the phone: the most spare capacity first, then the newest Android version from API 26 to 36, then a Pixel.
+  - **The job** is `ci.yml`'s `testlab` job, run by a pushed commit with `[testlab]` in its subject line. The tag only in the message's body stops the job at its first step, so a message that mentions it spends no test:
+    - **Since Phase 4 W5 it is the runtime's arm64 gate** (G6, with G3's and G4's arm64 figures and ADR-0008's phone measurement):
+      - It builds the arm64 debug APK, which carries the arm64 payload, with `integration_test/sync_modes_test.dart` as its Dart entrypoint. One Gradle run builds it and its test APK, and `tool/ci/same_signer.sh` checks that one key signed both.
+      - It runs the test APK's `dev.codeforge.app` package on one phone: the runtime's four instrumented classes, then `SyncModesTest`.
+      - It fetches the JUnit report and the device log from Test Lab's results bucket, judges them with `tool/ci/gate_results.py`, and commits `ci-results/testlab/` back.
+      - `tool/ci/testlab_device.py --runtime` chooses the phone. It must run Android 14 or later. A mid-range one with high or medium capacity comes first (Pixel a, Galaxy A, moto g, Redmi Note, Nord), then the order below.
+    - Until W5 it ran one Robo crawl of the run's debug APK, the connection check below. `tool/ci/testlab_device.py` without `--runtime` chooses as it did then: the most spare capacity first, then the newest Android version from API 26 to 36, then a Pixel.
     - It commits `ci-results/testlab/` back, with the project id replaced by `$FIREBASE_PROJECT_ID`.
     - Listing the devices costs nothing. The crawl uses 1 of the Spark plan's 5 physical-device tests a day.
     - **When listing fails** (a refused key), `tool/ci/testlab_diagnose.py` asks gcloud what the key can see: its account, the account's roles on the project, and the Cloud Testing and Cloud Tool Results APIs. It ends with one hint and prints no id. It costs no test.
@@ -164,6 +169,11 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
     - Test Lab listed 212 models, 204 of them physical. 211 phone and version pairs qualified, and the picker chose a Google Pixel 10 (`frankel`) on API 36, with high capacity.
     - The 83.7 MB debug APK waited 2 minutes in the queue, then Robo crawled it for 192 s. The outcome was *Passed* (gcloud's exit 0).
     - The evidence is `app/ci-results/testlab/` (`check.txt`, `device.txt`).
+  - **The first runtime run** (2026-11-18, CI 44240926191, 12.7 minutes, after CI 44239443972 passed on the change):
+    - 162 phone and version pairs qualified, and the picker chose a Google Pixel 8a (`akita`) with Android 14 and high capacity.
+    - It waited 1 minute in the queue. The 17 tests passed in 90 s of the phone's time (gcloud's exit 0, *17 test cases passed*).
+    - The results bucket was readable with the key's Editor role. The evidence is `app/ci-results/testlab/` (`runtime.txt`, `runtime.json`, `logcat-runtime.txt`, `check.txt`, `device.txt`, `fetch.txt`).
+    - It was 1 of the day's 5 physical-device tests.
   - **Spending Test Lab runs** (the owner's rule, 2026-11-17): a change is first green in a plain CI run, without the tag. Only then does a separate commit, usually empty, carry the tag in its subject line, so a Test Lab run never tests a change that CI hasn't passed. CI's *Test Lab scripts* step runs both scripts' self-tests on every push, so plain CI covers changes to them too. The agent decides when a Test Lab run is worth it, and keeps within the day's five physical-device tests.
 - **arm64 hardware:** required for Phase 4 exit (sealed-on-arm64 gap R2), perf budgets, IME matrix, release sign-off. **Owner decision 2026-11-11 (ADR-0009 amendment):** Firebase Test Lab's physical devices run the tests that need no computer attached (the runtime's instrumentation tests, the in-app benchmark) from a CI job (`gcloud firebase test android run`), with one CI credential the owner adds by Phase 4. The host-driven checks (the folder picker, the key injector, `adb`-timed measurements) stay on the emulator, and the owner's phone sessions cover the rest: those produce a **manual-checklist artifact**, and the phase report records device + build hash + operator — never a silent skip. *(Superseded plan: a self-hosted GitHub Actions runner on a machine with the device attached, labeled `arm64-device`. GitHub advises against self-hosted runners on public repositories.)*
 

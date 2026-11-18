@@ -15,6 +15,7 @@
 > - Its second vendored t1's sealed-runtime kernel and pinned every input of the runtime.
 > - Its third puts the runtime in the app, so far on the CI emulator. It installs when a workspace opens, verifying every file, while the editor works. It starts again in about 18 ms, and it checks at every start that every program comes from the app. Settings → Runtime shows all of it.
 > - Its fourth runs the runtime's tools: Settings → Linux runtime checks node, python, git, bash, perl, ruby and rg, each against its pinned version, and every command ends with all the processes it started. For now the app runs only those checks: running your own code comes with Phase 5.
+> - Its fifth proves the runtime on real targets: Android 8.0, 8.1, 9, 14 and 16 emulators, and a physical Pixel 8a (Android 14) in Firebase Test Lab, where the first install took 13.6 s and a warm start 73 ms. So Android 8.0 and later is confirmed.
 >
 > Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
 
@@ -46,7 +47,7 @@ Key audit corrections: "Seald" → **sealed** build model; the "~50 MB app" → 
 ## Locked decisions (2026-11-05; open items decided 2026-11-11)
 
 - Flutter UI + Kotlin host + vendored t1 runtime modules (Pigeon/EventChannel boundary)
-- Sealed execution model only · compileSdk/targetSdk **36** · minSdk **26**, to be verified by the Phase 4 reconciliation gate (owner decision 2026-11-11)
+- Sealed execution model only · compileSdk/targetSdk **36** · minSdk **26**, confirmed by the Phase 4 reconciliation gate on API 26–28 (ADR-0007, Accepted 2026-11-18)
 - Riverpod 3 · GoRouter 18 · Drift (Phase 2+) · CodeMirror 6 primary editor candidate (device gate vs Monaco) — *chosen 2026-11-06 ([ADR-0004](docs/adr/0004-editor-engine.md))*
 - GitHub Actions as the build authority · GitHub Releases first, Play-compatible AAB second
 - License: **Apache-2.0** (owner decision 2026-11-12, ADR-0011), so the terminal frontend is xterm.js (ADR-0006's rule)
