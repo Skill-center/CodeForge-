@@ -107,10 +107,12 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | `runtime/pins.json` | the pins: the bootstrap, the core set, and every resolved package with its SHA-256 |
 | `runtime/pins.py` | `check`, `fetch` (fails closed), `bootstrap`, `resolve` (re-pin), `info` (what a payload holds, for the app) |
 | `runtime/notices.py` | drafts THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md from the pinned packages' licence files |
+| `runtime/sources.py` | assembles the copyleft packages' corresponding source (Phase 5 W1): the Termux recipes at the commits that built the pinned versions, Termux's build system, and the upstream files, each verified against its SHA-256 |
 | `runtime/provenance.py` | checks this record; `copy` writes the vendored files from t1 with their change; `record` rewrites the hashes |
 | `runtime/tests/fixtures.py` | synthetic Termux repositories for CodeForge's tests |
 | `runtime/tests/test-pins.py` | pins.py's tests, the fail-closed cases among them |
 | `runtime/tests/test-notices.py` | notices.py's tests |
+| `runtime/tests/test-sources.py` | sources.py's tests, on a local termux-packages history and upstream, without the network |
 | `runtime/tests/test-provenance.py` | provenance.py's tests |
 | `runtime/tests/test-spawn.py` | the launcher's tests (W4), on the host's C compiler: output and exit status, its own session and group, clean signals, a child left behind, a tree stopped whole, processes that left the group, exec failures, and nothing left behind |
 | `runtime/tests/live-fail-closed.py` | CI's check that a missing pinned package fails closed against the real repository |
