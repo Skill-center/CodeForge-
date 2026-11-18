@@ -1,6 +1,6 @@
 # ADR-0013: How a folder from shared storage reaches the runtime
 
-**Status:** Accepted · 2026-11-18 · Phase 4 W6 ([PHASE_4_PLAN.md](../phases/PHASE_4_PLAN.md) W6), with the copy measured on the gate's folder · decided by the agent on the owner's delegation of W5 and W6's open decisions (2026-11-18) · built with *Run* in Phase 5
+**Status:** Accepted · 2026-11-18 · Phase 4 W6 ([PHASE_4_PLAN.md](../phases/PHASE_4_PLAN.md) W6, which assigns this decision to W6), with the copy measured on the gate's folder · decided by the agent, as the plan asks; the owner can change it before Phase 5 builds it with *Run*
 
 ## Context
 - **A folder workspace has no path a program can open.** It is a tree the user picked in Android's folder picker, reached through the Storage Access Framework (SECURITY §4.1): `content://` documents behind a documents provider, which only the storage broker reads and writes. The app asks for no storage permission (SECURITY S7).
