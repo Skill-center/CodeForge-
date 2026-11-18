@@ -25,7 +25,7 @@
 
 **Proposed: start the closed test with the first build that has the release workflow and the source archive, as Phase 5's first work package. It runs 14 days, alongside Phase 5's work.**
 
-- **Why not now:** the closed test distributes the app, and with it the userland's GPL binaries. So the source archive and the offer must exist first (SOURCE_OFFER.md, ADR-0010). There is also no release workflow yet: CI builds APKs, and Play needs a signed App Bundle.
+- **Why not now:** the closed test distributes the app, and with it the userland's GPL binaries. So the source archive and the offer must exist first (SOURCE_OFFER.md, ADR-0010). **Since Phase 5 W1** both do, and the release workflow builds the signed App Bundle Play needs; it runs dry until the owner's keys exist (CI 44399784786).
 - **Why not later:** the production gate needs those 14 days, and they can pass during Phase 5, long before the public release in Phase 10. A later test can then try the terminal.
 - **What it needs, and who:**
 
@@ -33,8 +33,8 @@
   |---|---|---|
   | The developer account, verified | the owner | not started |
   | Play App Signing, and the upload key in CI's secrets | the owner | not started |
-  | The release workflow: a signed arm64 App Bundle, with its size within Play's 200 MB base limit | the agent (Phase 5 W1, proposed) | not built: CI builds APKs |
-  | The source archive with the release, and the offer in About | the agent (Phase 5 W1, proposed) | the mechanism is decided (SOURCE_OFFER.md) |
+  | The release workflow: a signed arm64 App Bundle, with its size within Play's 200 MB base limit | the agent (Phase 5 W1) | **built:** 146.2 MB per device (dry run CI 44399784786), signed with throwaway keys until the owner's exist |
+  | The source archive with the release, and the offer in About | the agent (Phase 5 W1) | **built:** the archive in every release run (261.7 MB in CI 44399784786), the offer in About |
   | The privacy policy at a public URL | the owner fills in the name, the date and the address; it can be published from this public repository (GitHub Pages) | drafted |
   | The listing, Data safety, content rating, target audience | the owner, from the drafts | drafted |
   | The graphics: an icon at 512 × 512, a feature graphic, 2 to 8 screenshots | the agent | to produce |

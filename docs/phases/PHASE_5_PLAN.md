@@ -1,6 +1,6 @@
 # Phase 5 Plan — Terminal & Execution
 
-**Status:** **In progress.** Proposed on 2026-11-18, the day Phase 4 was accepted. **The owner's decisions on 2026-11-18** (§10): start with W1; the release build gets network access from Phase 5; the release workflow runs dry until the owner adds the keys; the owner arranges the licence review, and no public binary goes out before it · **Spec reference:** §8 Phase 5 (terminal and execution), §6.4 (the terminal connects to the existing environment), §6.5 (the capability model), §7 (security), §10 (the end-to-end scenario) · **Architecture:** [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md), [ADR-0006](../adr/0006-terminal-frontend.md) (xterm.js), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [SECURITY.md](../SECURITY.md) §2, [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Builds on:** Phase 4 ([report](PHASE_4_REPORT.md)): the sealed runtime, its exec model and launcher, search
+**Status:** **In progress.** Proposed on 2026-11-18, the day Phase 4 was accepted. **W1 built on 2026-11-18** (CI 44381310978 and 44399784786, whose release dry run passed whole; see *As built (W1)*). **The owner's decisions on 2026-11-18** (§10): start with W1; the release build gets network access from Phase 5; the release workflow runs dry until the owner adds the keys; the owner arranges the licence review, and no public binary goes out before it · **Spec reference:** §8 Phase 5 (terminal and execution), §6.4 (the terminal connects to the existing environment), §6.5 (the capability model), §7 (security), §10 (the end-to-end scenario) · **Architecture:** [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md), [ADR-0006](../adr/0006-terminal-frontend.md) (xterm.js), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [SECURITY.md](../SECURITY.md) §2, [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Builds on:** Phase 4 ([report](PHASE_4_REPORT.md)): the sealed runtime, its exec model and launcher, search
 
 ---
 
@@ -83,6 +83,29 @@ ROADMAP's row: a write, run, output loop, with multiple sessions, Run File and R
   - **the userland's packages** with their licence texts. A build step writes those texts from the payload's licence files into an asset beside the userland archive, so they show before the runtime is installed. The host serves them, and Dart registers them with `LicenseRegistry`.
 
 **Not in W1:** the first real release. That waits for the owner's keys and the licence review (§10, item 3).
+
+**As built (W1):**
+- **G1 met by the release dry run CI 44399784786,** all four jobs:
+  - **The App Bundle and the APK,** arm64, signed with throwaway keys. All seven checks passed (`release_checks=pass`). The figures, the same in each dry run (CI 44389009942 for the detail):
+    - Play's per-device size: 146.2 MB, 73.1 % of the 200 MB limit (97.5 MB shared and 48.7 MB of libraries).
+    - The APK: 149,579,340 bytes, carrying arm64's payload (260 native libraries, 252 executables).
+    - 16 KB alignment: 258 of 258 objects, under `--require-compliant`. The risk that arm64's Termux libraries were not aligned did not happen.
+    - The release manifest: INTERNET and androidx.core's own permission, nothing else.
+    - The notices are current, and each file has one signer, the expected key.
+  - **The source archive,** 261,662,720 bytes: 55 package versions, 69 upstream files, each verified against its recipe's SHA-256, and Termux's tree at 42 commits. It took 10.6 minutes with its cache warm (SOURCE_OFFER.md, *As built*).
+  - **The checksums:** `SHA256SUMS` over the APK, the archive and the two notices, and a report with the App Bundle's checksum. Nothing was published.
+- **The app:** About shows the offer, CodeForge's licence, and the userland's texts on the licence page. CI 44381310978: `+895: All tests passed!`, ten more than before (the offer against SOURCE_OFFER.md, the bundled licence, the userland file's parser, both screens).
+- **Deviations, and why:**
+  - **The userland's texts are a committed asset,** not a build step's output that the host serves. runtime/notices.py writes `app/assets/licenses/userland.txt` from the pinned packages' own licence files, and CI checks it against the pins as it checks the notices: 112 package versions, 67 distinct texts, 645 KB. Dart reads it from the app's assets, so it shows before the runtime is installed, needs no Kotlin or Pigeon change, and a change to it is reviewed like any file.
+  - **About shows the offer's own words,** not a link to SOURCE_OFFER.md, so the offer is there offline. A test holds the app's paragraphs and SOURCE_OFFER's quotation to the same words.
+  - **The archive holds more than the recipe folders:** also Termux's build system at every commit and at the bootstrap's tag, an upstream's patches that a build step downloads (reviewed, `STEP_DOWNLOADS`), and dpkg's Git source as a reproducible tar. SOURCE_OFFER had promised Termux's build scripts.
+  - **The cache is keyed by the pins' and the offer's hash,** each file under its SHA-256, and a run starts from the newest entry.
+  - **A release's tag must be the app's version,** because About names the archive `codeforge-<version>-sources.tar`.
+- **What the work found:**
+  - **libdb's licence text was missing under its name.** Its `copyright` links to `AGPL-3.0-only.txt`, a name termux-licenses 2.2 introduced in August 2026, while the payload carries the bootstrap's 2.1, which has the same text as `AGPL-V3.txt`. Phase 4's check had taken every link target as present; writing the app's file follows each link, and failed (CI 44377396101). notices.py records the rename (`RENAMED_TEXTS`), checked both ways, and THIRD_PARTY_NOTICES marks the row.
+  - **Hosts fail, so the archive has mirrors.** mirrors.kernel.org, which 36 of the 69 files name, timed out on the runner (CI 44389009942). fossies.org answered HTTP 401 (CI 44394419519). nano's `latest/` no longer holds the pinned 8.7.1. `sources.py` tries hosts that serve the same files (`MIRRORS`), and accepts a file only with the recipe's SHA-256, so the archive is the same bytes whichever host answered. 53 of the 68 archives have one.
+  - **A pipe race failed a verified bundle once:** `printf | grep -q` under pipefail in the signer check (CI 44394419519). The script now reads through here-strings, and its `--self-test` (8 cases, the race first) runs in a new quality gate, *Release scripts*.
+  - **A widget test that loaded an asset inside `runAsync`** left the screen waiting on a future of the real zone, which the fake clock never runs (CI 44377396101). The test binding serves assets synchronously, so the load needs no help.
 
 ### W2 — The PTY and terminal sessions (2 sessions) 🔑 critical path → G2
 

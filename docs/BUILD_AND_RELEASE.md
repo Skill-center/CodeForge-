@@ -141,6 +141,17 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 
   The artifacts (`codeforge-<label>-app`, `-sources`, `-release`) are kept 14 days. They are signed with keys nobody holds, so none can be installed over a real release, and none is a release.
 
+  **The dry runs** (W1):
+  - CI 44389009942: the build and all seven checks passed. The archive failed closed when mirrors.kernel.org timed out, hence the mirrors.
+  - CI 44394419519: the signer check's pipe race, and fossies.org's HTTP 401.
+  - CI 44399784786: passed whole, in 13 minutes after the run's own build.
+    - The App Bundle: 146.2 MB per device, 73.1 % of Play's limit.
+    - The APK: 149,579,340 bytes, with 258 of 258 objects 16 KB aligned.
+    - The source archive: 261,662,720 bytes.
+    - `SHA256SUMS` and the report.
+
+  PHASE_5_PLAN *As built (W1)* has the detail.
+
 ## 3. Toolchain pins in CI
 
 - Flutter: `.flutter-version` (**3.50.0** since Phase 4 W1; 3.47.9 before). Both workflows read the file and pass the version to `subosito/flutter-action`; the next step records the Flutter installed (`ci-results/flutter.txt`, and a notice on the run) and fails if it is another.

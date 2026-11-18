@@ -4,6 +4,19 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 5 W1, the release workflow, the source archive, and the licences in the app (plan: [phases/PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md))
+- **The release workflow** (`.github/workflows/release.yml`). A `[release]` tag in a commit's subject line runs a dry run after CI's own build:
+  - an arm64 App Bundle signed with an upload key, and an APK signed with a release key, both throwaway keys made in the job;
+  - seven checks: Play's per-device size, the runtime in the APK, 16 KB alignment, the release manifest, the notices, and each file's signer;
+  - the source archive, and `SHA256SUMS`.
+
+  Publishing a draft GitHub Release is written, and switched off until the owner's keys exist (BUILD_AND_RELEASE §2.5 and §5). Dry run CI 44399784786 passed whole: 146.2 MB per device (73.1 % of Play's limit), 258 of 258 objects aligned, one signer each.
+- **The source archive** (`runtime/sources.py`). For each of the 55 copyleft package versions: Termux's recipe at the commit that built it, Termux's build system, every upstream file verified against the recipe's SHA-256, and a manifest. It is reproducible, fails closed, and falls back to mirrors when a host fails. The first: 261,662,720 bytes, 69 upstream files (SOURCE_OFFER.md).
+- **The licences in the app.** About → Source code shows the written offer, About → CodeForge's license shows the repository's LICENSE, and Open-source licenses now lists the userland's packages with their texts (`app/assets/licenses/userland.txt`, written by runtime/notices.py and checked by CI). Two of SOURCE_OFFER's three items before the first distribution are done; the licence review remains the owner's.
+- **The release build asks for INTERNET** (the owner's decision, 2026-11-18), so npm, pip and git work there. The store texts and the Data safety draft say so, and the release manifest gate allows INTERNET and nothing else new.
+- **Found and fixed:** libdb's licence text, under a name termux-licenses has since changed (`RENAMED_TEXTS`); a pipe race in the signer check, which now has a self-test gate; a widget test waiting on the real zone.
+- Verified by CI 44372237339, 44381310978 (`+895: All tests passed!`; the userland's texts written by its commit-back), and the release dry runs 44389009942, 44394419519 and 44399784786 (PHASE_5_PLAN *As built (W1)*).
+
 ### Phase 5's first decisions (2026-11-18)
 - The owner decided: start with W1; the release build gets network access from Phase 5, so `npm install`, `pip install` and later `git clone` work there as they do in debug builds; the release workflow runs dry, signing with a throwaway key, until the owner adds the keys; the owner arranges the licence review, and no public binary goes out before it ([PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md) §10).
 - Found when W1 started: GitHub runs a manual workflow trigger only for workflows on the default branch, and `main` has none. So a `[release]` tag in a commit's subject line starts the release workflow's dry run, which ci.yml calls as a reusable workflow.

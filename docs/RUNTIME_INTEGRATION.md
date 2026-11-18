@@ -106,7 +106,7 @@ Git operations on SAF trees: Phase 7 spike decides between (a) running git on a 
 
 Both shapes run the identical sealed execution model; `check-bundle-size.py` + exec audit gate both. The apt shape is **not shipped** (audit §1: unpublishable, and dual mechanisms violate the port guide's "do not have both").
 
-**As at Phase 4's end:** CI builds APKs only: the release APK with one ABI's payload (x86_64 in CI, 149.5 MB), and the gate's arm64 phone APK. No binary is distributed. The signed App Bundle, the source archive beside it, and the closed test are proposed for Phase 5's first work package ([docs/store/](store/README.md), ADR-0010). The build-tools pack is not built yet. The userland's licences are listed in THIRD_PARTY_NOTICES §5, and its copyleft packages' source is offered as SOURCE_OFFER.md decides.
+**As at Phase 4's end:** CI builds APKs only: the release APK with one ABI's payload (x86_64 in CI, 149.5 MB), and the gate's arm64 phone APK. No binary is distributed. The signed App Bundle, the source archive beside it, and the closed test are proposed for Phase 5's first work package ([docs/store/](store/README.md), ADR-0010). The build-tools pack is not built yet. The userland's licences are listed in THIRD_PARTY_NOTICES §5, and its copyleft packages' source is offered as SOURCE_OFFER.md decides. **Phase 5 W1:** the release workflow builds the signed arm64 App Bundle (146.2 MB per device, 73.1 % of Play's limit) and APK, with the source archive beside them (dry run CI 44399784786), and the app's licence page lists the userland's texts. Nothing is distributed before the owner's keys and the licence review.
 
 ## 6. Phase 4 acceptance (measurable)
 

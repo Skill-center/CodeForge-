@@ -1,12 +1,12 @@
 # Release checklist (draft)
 
-> **Draft, 2026-11-18,** from t1's `store/release-checklist.md`. For every upload to Play, the closed test's first included. **(CI)** marks what CI enforces; the rest are steps in Play Console. The release workflow it refers to is not built yet: it is proposed for Phase 5's first work package ([README.md](README.md)).
+> **Draft, 2026-11-18,** from t1's `store/release-checklist.md`. For every upload to Play, the closed test's first included. **(CI)** marks what CI enforces; the rest are steps in Play Console. The release workflow it refers to is built since Phase 5 W1 (`.github/workflows/release.yml`), and runs dry until the owner's keys exist ([README.md](README.md)).
 
 ## Before the first upload, once
 
 1. **(owner)** The developer account is verified, and Play App Signing is on. The upload key is outside the repository, backed up, and in CI's secrets.
-2. **(agent)** The source archive and the written offer: SOURCE_OFFER.md's three open items are done. No build with the userland is distributed before them (ADR-0010, ADR-0011).
-3. **(agent)** THIRD_PARTY_NOTICES.md is current (CI fails when it is not), and its two open items are done: the userland's licence texts in the app's licence page, and the licence review by a qualified person.
+2. **(agent, then the owner)** SOURCE_OFFER.md's items before the first distribution are done: the archive and the offer since Phase 5 W1, then the licence review. No build with the userland is distributed before them (ADR-0010, ADR-0011).
+3. **(agent, then the owner)** THIRD_PARTY_NOTICES.md is current (CI fails when it is not), and its open item is done: the licence review by a qualified person. The userland's licence texts are in the app's licence page since Phase 5 W1.
 4. **(owner)** The privacy policy is at its public URL, and the forms are filled from [listing.md](listing.md) and [data-safety.md](data-safety.md): the listing, Data safety, content rating, target audience, ads, and app access.
 
 ## Every upload

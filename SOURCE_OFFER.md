@@ -1,6 +1,6 @@
 # Source offer
 
-> **Completed in Phase 4 W7** (2026-11-18): the mechanism is decided, and the list below is written and checked by CI from the pins. ADR-0011's interim rule 3 and ADR-0010: published before any binary that contains the userland is distributed. It is not legal advice; the open points are under *Before the first distribution*.
+> **Completed in Phase 4 W7** (2026-11-18): the mechanism is decided, and the list below is written and checked by CI from the pins. **Built in Phase 5 W1** (2026-11-18): the release workflow assembles the archive, and the app shows the offer (*As built*, below). ADR-0011's interim rule 3 and ADR-0010: published before any binary that contains the userland is distributed. It is not legal advice; the open point is under *Before the first distribution*.
 
 ## Why there is one
 
@@ -23,10 +23,19 @@ For each package version in the payload:
 - **The offer.** This file and the app (About) carry a written offer, valid for at least three years after the last distribution of each binary, to provide that source on request. The archive honours it at no cost.
 - **Requests** go to this repository's issue tracker, https://github.com/Skill-center/CodeForge-/issues, until the owner names an address of its own.
 
+**As built in Phase 5 W1.** `runtime/sources.py` writes the archive, `codeforge-<version>-sources.tar`, and the release workflow runs it for every release (runtime/README.md, BUILD_AND_RELEASE §2.5). For each package version in the table below it holds:
+
+- **Termux's recipe at the commit that built that version:** the newest termux-packages commit, at or before the point the package was built, whose recipe gives the version by Termux's own rule. That point is the pins' date for a pinned package, and the bootstrap's tag for a package from the bootstrap. The archive holds the recipe's folder at that commit (`build.sh`, its patches, its subpackages' scripts).
+- **Termux's build system** (`build-package.sh`, `scripts/`, `ndk-patches/`) at every one of those commits, and at the bootstrap's tag, whose scripts built the bootstrap.
+- **Every upstream file the recipe names,** verified against the recipe's SHA-256. That includes an upstream's own patches that a build step downloads (bash's and readline's). A Git source, dpkg's, is cloned at its tag with its submodules into a reproducible tar. A step's download that only builds a tool for the build machine is left out, and `MANIFEST.json` gives the reason.
+- **`MANIFEST.json` and a README.** The manifest gives each package's licence, the binaries it ships in with their SHA-256, and for each recipe the commit, the folder and every source with its URL and SHA-256.
+
+The same inputs give the same bytes. A file whose host fails comes from a mirror of it, and is accepted only with the same SHA-256. A package whose recipe, version or source can't be found or verified fails the release, named. **The first full archive** (dry run CI 44399784786): 261,662,720 bytes, SHA-256 `0fa3eafca3d7a56cb64cb89579da00b0a1c6d653ca6be78eb9bf72520ee78eb2`, with 55 package versions, 69 upstream files and Termux's tree at 42 commits.
+
 **Before the first distribution** (the closed test's start, or a GitHub release, whichever is first):
 
-- [ ] The release workflow assembles and publishes the source archive. It needs each pinned version mapped to the termux-packages commit that built it. The recipe declares `TERMUX_PKG_VERSION` and `TERMUX_PKG_REVISION`, so the newest commit whose recipe gives the pinned version is the one; termux-packages' history on GitHub has it.
-- [ ] The app's About shows the offer, with the link to this file.
+- [x] The release workflow assembles and publishes the source archive. **Built in Phase 5 W1:** the dry run CI 44399784786 assembled it whole (*As built*, above). A release publishes it beside the APK, in the same draft GitHub Release; that step is written, and runs once the owner's keys exist and the owner decides the first release (PHASE_5_PLAN §10).
+- [x] The app's About shows the offer. **Built in Phase 5 W1:** About → Source code shows the offer's own words (*The offer in the app*, below) rather than a link to this file, so the offer is there without a network. About → Open-source licenses lists the userland's packages with their texts.
 - [ ] A person qualified to give one reviews this file and THIRD_PARTY_NOTICES.md (THIRD_PARTY_NOTICES §6).
 
 No binary that contains the userland is distributed until these are done.
