@@ -5,7 +5,6 @@ library;
 import 'package:codeforge/core/legal/source_offer.dart';
 import 'package:codeforge/core/version.dart';
 import 'package:codeforge/features/settings/about_screen.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -34,8 +33,10 @@ void main() {
   });
 
   testWidgets("CodeForge's license shows the Apache License", (tester) async {
-    // Loaded for real first: the screen then reads the bundle's cached copy.
-    await tester.runAsync(() => rootBundle.loadString(codeForgeLicenseAsset));
+    // The test binding serves assets synchronously, so the screen's load
+    // finishes within the pumps. (Loaded first in runAsync, the bundle's
+    // cached future would belong to the real zone, and its result would
+    // never reach the screen under the fake clock.)
     await _open(tester, 'about_codeforge_license');
     expect(find.text("CodeForge's license"), findsOneWidget);
     expect(find.textContaining('Version 2.0, January 2004'), findsOneWidget);
