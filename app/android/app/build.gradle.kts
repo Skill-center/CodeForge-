@@ -106,4 +106,9 @@ dependencies {
     // are plain JUnit4 classes, which AndroidJUnitRunner runs without it.
     androidTestImplementation("junit:junit:4.12")
     androidTestImplementation("androidx.test:runner:1.3.0")
+    // ActivityTestRule, for integration_test's FlutterTestRunner (Phase 4 W5:
+    // the session store's sync modes on a Test Lab phone, androidTest's
+    // syncmodes/SyncModesTest.java). The same train's version, which
+    // integration_test already puts into the debug app.
+    androidTestImplementation("androidx.test:rules:1.2.0")
 }

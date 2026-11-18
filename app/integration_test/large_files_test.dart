@@ -184,8 +184,9 @@ void _deleteDatabase(String path) {
 /// The session store's writes at each size, on a database of its own with
 /// the app's settings (WAL, synchronous NORMAL) and then synchronous FULL
 /// (ADR-0008); with the digest of the text that the journal computes on
-/// the UI isolate at a document's first edit.
-Future<Map<String, Object?>> _storeTimings(String folder) async {
+/// the UI isolate at a document's first edit. Public for
+/// sync_modes_test.dart, which times the same writes on a Test Lab phone.
+Future<Map<String, Object?>> storeTimings(String folder) async {
   final path = '$folder/largegate.sqlite';
   _deleteDatabase(path);
   final db = AppDatabase(NativeDatabase.createInBackground(File(path)));
@@ -504,7 +505,7 @@ void main() {
       }
     }
 
-    final store = await _storeTimings(filesDir);
+    final store = await storeTimings(filesDir);
 
     // The session the gate's release build restores: the demo with the
     // 1 MiB file open, stored as the active tab.

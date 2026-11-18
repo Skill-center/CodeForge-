@@ -8,8 +8,12 @@
 # Usage (from the repository root): commit_gate_evidence.sh <branch>
 set -uo pipefail
 
-branch="${1:?usage: commit_gate_evidence.sh <branch>}"
-dir="app/ci-results/gate"
+branch="${1:?usage: commit_gate_evidence.sh <branch> [<dir> [<what>]]}"
+# The folder this job owns (the emulator gate's by default; the runtime
+# gates', app/ci-results/runtime-gates, since Phase 4 W5) and its name in the
+# commit message.
+dir="${2:-app/ci-results/gate}"
+what="${3:-phase-gate evidence}"
 if [ ! -d "$dir" ]; then
   echo "::warning::no gate evidence directory ($dir); nothing to commit"
   exit 0
@@ -27,17 +31,17 @@ for attempt in 1 2 3 4 5; do
     cp -a "$snapshot/." "$dir/"
     git add -A "$dir"
     if git diff --cached --quiet; then
-      echo "gate evidence already up to date on $branch"
+      echo "$what already up to date on $branch"
       exit 0
     fi
-    if git commit -q -m "chore(ci): phase-gate evidence [skip ci]" &&
+    if git commit -q -m "chore(ci): $what [skip ci]" &&
       git push -q origin "HEAD:$branch"; then
-      echo "gate evidence pushed on attempt $attempt: $(git rev-parse --short HEAD)"
+      echo "$what pushed on attempt $attempt: $(git rev-parse --short HEAD)"
       exit 0
     fi
   fi
   echo "evidence push attempt $attempt failed; retrying"
   sleep $((attempt * 5))
 done
-echo "::error::failed to push gate evidence to $branch after 5 attempts"
+echo "::error::failed to push $what to $branch after 5 attempts"
 exit 1

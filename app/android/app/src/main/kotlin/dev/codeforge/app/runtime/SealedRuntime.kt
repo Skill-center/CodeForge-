@@ -4,10 +4,8 @@ import dev.codeforge.runtime.core.HarnessConfig
 import dev.codeforge.runtime.core.exec.SealedPayloadInstaller
 import dev.codeforge.runtime.sealed.ExecAudit
 import dev.codeforge.runtime.sealed.PayloadExtractor
-import dev.codeforge.runtime.sealed.SealedInstaller
 import dev.codeforge.runtime.sealed.SealedLayout
 import dev.codeforge.runtime.sealed.SealedUninstaller
-import java.io.ByteArrayInputStream
 import java.io.EOFException
 import java.io.File
 import java.io.IOException
@@ -97,9 +95,11 @@ data class RuntimeSizes(
  * synthetic payload; the device's payload comes through [AssetPayloadSource].
  *
  * It is a thin adapter over t1's kernel, the shape t1 describes for a host
- * that consumes it (SealedPayloadInstaller's class comment): the kernel's
- * SealedInstaller extracts, verifies and links, and this class adds the four
- * things CodeForge needs around it. Progress for each file. An install marker,
+ * that consumes it (SealedPayloadInstaller's class comment): the kernel
+ * extracts, verifies and links, and this class adds the four things CodeForge
+ * needs around it. (It reaches the kernel through [PayloadInstall], which makes
+ * SealedInstaller.install's calls itself: the kernel's entry point needs API 33,
+ * Phase 4 W5.) Progress for each file. An install marker,
  * written only after everything verified, so an unchanged payload is never
  * extracted twice and a failed or half-finished install is never taken for a
  * ready one. Exact removal of what the previous install wrote
@@ -240,16 +240,17 @@ class SealedRuntime(
             throw RuntimeFailure(RuntimeProblem.STORAGE, failure.message ?: "the prefix is not writable", failure)
         }
 
-        val request = SealedInstaller.Request()
-            .prefix(config.prefix)
-            .nativeLibraryDirectory(config.nativeLibraryDirectory)
-            .execManifest(exec)
-            .linkManifest(links)
-            .progress(PayloadExtractor.Listener { _, index -> listener?.onProgress(index, total) })
         val result = try {
             source.open(SealedPayloadInstaller.userlandAsset(abi)).use { userland ->
-                request.payload(userland).manifest(ByteArrayInputStream(manifest))
-                SealedInstaller.install(request)
+                PayloadInstall.install(
+                    prefix = config.prefix,
+                    nativeLibraryDirectory = config.nativeLibraryDirectory,
+                    payload = userland,
+                    manifest = manifest,
+                    execManifest = exec,
+                    linkManifest = links,
+                    progress = PayloadExtractor.Listener { _, index -> listener?.onProgress(index, total) },
+                )
             }
         } catch (failure: IOException) {
             throw classify(failure)

@@ -454,19 +454,39 @@ jobs:
           cat ci-results/manifest.txt
           exit "$status"
 
-      # The testlab job's two scripts prove themselves on every push, so that a
+      # The testlab job's scripts prove themselves on every push, so that a
       # change to them is green in plain CI before a commit spends a Test Lab
-      # run on it (the owner's rule, 2026-11-17; BUILD_AND_RELEASE §4).
+      # run on it (the owner's rule, 2026-11-17; BUILD_AND_RELEASE §4). Since
+      # Phase 4 W5 that includes gate_results.py, which judges the runtime
+      # gates' runs, the emulator legs' and Test Lab's alike.
       - name: Test Lab scripts
         id: testlab_scripts
         continue-on-error: true
         run: |
           status=0
           { python3 tool/ci/testlab_device.py --self-test \
-              && python3 tool/ci/testlab_diagnose.py --self-test; } \
+              && python3 tool/ci/testlab_diagnose.py --self-test \
+              && python3 tool/ci/gate_results.py --self-test; } \
             > ci-results/testlab-scripts.txt 2>&1 || status=$?
           cat ci-results/testlab-scripts.txt
           exit "$status"
+
+      # What minSdk 26 promises (Phase 4 W5, ADR-0007): every method, field
+      # and class that CodeForge's own and vendored code refers to in the
+      # debug APK's dex, against the SDK's API database. One newer than API
+      # 26 passes only behind a version check or in vendored code the app
+      # never calls, both named in the script (tool/ci/check_api_floor.py).
+      # W5 found t1's RuntimeManifest reading with InputStream.readAllBytes
+      # (API 33), which made every runtime install fail on Android 8.0 to
+      # 12L; nothing at build time had said so.
+      - name: API floor (minSdk 26)
+        id: api_floor
+        continue-on-error: true
+        run: |
+          python3 tool/ci/check_api_floor.py --self-test
+          python3 tool/ci/check_api_floor.py --apk build/app/outputs/flutter-apk/app-debug.apk \
+            --out ci-results/api-floor.txt
+          head -n 2 ci-results/api-floor.txt >> "$GITHUB_STEP_SUMMARY"
 
       # The host's Kotlin unit tests (src/test; Phase 3 W1: the backup
       # policy and its rules files; Phase 4 W3: the runtime host). After the
@@ -708,7 +728,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts kotlin_tests sealed_runtime_tests release_build runtime_apk; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -721,6 +741,7 @@ jobs:
               build) outcome="${{ steps.build.outcome }}" ;;
               manifest) outcome="${{ steps.manifest.outcome }}" ;;
               testlab_scripts) outcome="${{ steps.testlab_scripts.outcome }}" ;;
+              api_floor) outcome="${{ steps.api_floor.outcome }}" ;;
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
               sealed_runtime_tests) outcome="${{ steps.sealed_runtime_tests.outcome }}" ;;
               release_build) outcome="${{ steps.release_build.outcome }}" ;;
@@ -970,25 +991,41 @@ jobs:
           echo "payload (informative until W3): ${{ steps.payload.outcome }}"
           exit $fail
 
-  # Firebase Test Lab connection check (Phase 4, before W5's runtime gates).
+  # Firebase Test Lab: the runtime's arm64 gates (Phase 4 W5: G6, with G3's
+  # and G4's arm64 figures and ADR-0008's phone measurement; ADR-0009).
   # Runs only for a pushed commit whose subject line (the message's first
   # line) has [testlab], after the quality job; the tag in the body alone
   # starts the job but stops it at its first step, so that a message which
-  # mentions the tag can't spend a test by accident. Then it runs one Robo crawl of that run's debug APK (it carries
-  # arm64-v8a) on one physical arm64 phone, picked by
-  # app/tool/ci/testlab_device.py. On the Spark plan that costs 1 of the 5
-  # free physical-device tests a day. Needs the repository secret
+  # mentions the tag can't spend a test by accident. The owner's rule
+  # (2026-11-17, BUILD_AND_RELEASE §4): a change goes out without the tag,
+  # and a separate commit (usually empty) carries it once that run is green.
+  #
+  # It builds the arm64-v8a debug APK, which carries the arm64 payload, with
+  # integration_test/sync_modes_test.dart as its Dart entrypoint, and its
+  # test APK, then runs the test APK's dev.codeforge.app package on one
+  # physical arm64 phone with Android 14 or later, picked by
+  # app/tool/ci/testlab_device.py --runtime (a mid-range one first):
+  #   runtime.ExecModelTest and runtime.SealedShellTest (t1's, ported: G6),
+  #   runtime.RuntimeInstallTest (G3's first install) and
+  #   runtime.RuntimeCommandsTest (G4), then
+  #   syncmodes.SyncModesTest: the session store's synchronous NORMAL
+  #   against FULL (ADR-0008), through integration_test's FlutterTestRunner.
+  # One matrix on one phone: 1 of the Spark plan's 5 free physical-device
+  # tests a day. The JUnit report and the device log come back from Test
+  # Lab's results bucket, app/tool/ci/gate_results.py judges them (every
+  # class ran, none failed or skipped, the audits 0, the store's timings
+  # found), and the evidence goes to app/ci-results/testlab/, committed back
+  # with the project id masked. Needs the repository secret
   # FIREBASE_TEST_LAB_KEY (a service account's JSON key; the account needs
   # the Editor role, which Test Lab's default results bucket requires) and
   # FIREBASE_PROJECT_ID, as a repository variable or a repository secret
-  # (BUILD_AND_RELEASE §4; the variable wins when both are set).
-  # The evidence goes to app/ci-results/testlab/, committed back.
+  # (the variable wins when both are set).
   testlab:
-    name: Firebase Test Lab check (physical arm64 phone)
+    name: Firebase Test Lab · runtime on a physical arm64 phone
     needs: quality-and-build
     if: github.event_name == 'push' && contains(github.event.head_commit.message, '[testlab]')
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       PROJECT: ${{ vars.FIREBASE_PROJECT_ID || secrets.FIREBASE_PROJECT_ID }}
       RESULTS: app/ci-results/testlab
@@ -1009,7 +1046,7 @@ jobs:
           case "$subject" in
             *"[testlab]"*) echo "asked=true" >> "$GITHUB_OUTPUT" ;;
             *)
-              echo "The tag is in the message's body, not its subject line: no check, no test used."
+              echo "The tag is in the message's body, not its subject line: no run, no test used."
               echo "asked=false" >> "$GITHUB_OUTPUT"
               exit 0 ;;
           esac
@@ -1024,13 +1061,87 @@ jobs:
           fi
           python3 app/tool/ci/testlab_device.py --self-test
           python3 app/tool/ci/testlab_diagnose.py --self-test
+          python3 app/tool/ci/gate_results.py --self-test
 
-      - name: Download the debug APK
+      # The build: as the phase gate's, for arm64 (whose payload goes into a
+      # build that targets arm64 alone, android/build.gradle.kts).
+      - uses: actions/setup-java@v6
         if: steps.asked.outputs.asked == 'true'
-        uses: actions/download-artifact@v8
         with:
-          name: codeforge-debug-apk
-          path: testlab-apk
+          distribution: temurin
+          java-version: "17"
+
+      - name: Read the Flutter pin
+        id: flutter_pin
+        if: steps.asked.outputs.asked == 'true'
+        run: echo "version=$(tr -d '[:space:]' < .flutter-version)" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        if: steps.asked.outputs.asked == 'true'
+        with:
+          flutter-version: ${{ steps.flutter_pin.outputs.version }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v7
+        if: steps.asked.outputs.asked == 'true'
+        with:
+          node-version-file: editor/.nvmrc
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+
+      - name: Build the editor page
+        if: steps.asked.outputs.asked == 'true'
+        working-directory: editor
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm run verify
+
+      - name: Resolve dependencies and generate code
+        if: steps.asked.outputs.asked == 'true'
+        working-directory: app
+        run: |
+          flutter pub get
+          dart run build_runner build
+          dart run pigeon --input pigeons/storage_api.dart
+          dart run pigeon --input pigeons/runtime_api.dart
+
+      - name: Restore the Gradle distribution
+        if: steps.asked.outputs.asked == 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Fetch Gradle
+        if: steps.asked.outputs.asked == 'true'
+        working-directory: app
+        run: bash tool/ci/fetch_gradle.sh
+
+      - name: Restore the runtime's pinned files
+        if: steps.asked.outputs.asked == 'true'
+        uses: actions/cache/restore@v6
+        with:
+          path: runtime/generated/cache
+          key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
+
+      - name: Build the arm64 APKs
+        if: steps.asked.outputs.asked == 'true'
+        working-directory: app
+        run: |
+          mkdir -p ../testlab-apk build/testlab
+          flutter build apk --debug --target-platform android-arm64 \
+            -t integration_test/sync_modes_test.dart > build/testlab/build.txt 2>&1 \
+            || { tail -n 40 build/testlab/build.txt; exit 1; }
+          grep -E 'sealed payload|CodeForge ABIs|Built ' build/testlab/build.txt || true
+          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebugAndroidTest \
+              -Ptarget-platform=android-arm64 --console=plain ) >> build/testlab/build.txt 2>&1 \
+            || { tail -n 40 build/testlab/build.txt; exit 1; }
+          cp build/app/outputs/flutter-apk/app-debug.apk ../testlab-apk/app-debug.apk
+          cp build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk ../testlab-apk/
+          python3 tool/ci/check_runtime_apk.py ../testlab-apk/app-debug.apk --abi arm64-v8a
+          ls -l ../testlab-apk
 
       - name: Authenticate to Google Cloud
         if: steps.asked.outputs.asked == 'true'
@@ -1056,7 +1167,7 @@ jobs:
               | tee "$RESULTS/check.txt"
             exit "$status"
           fi
-          device=$(python3 app/tool/ci/testlab_device.py "$RUNNER_TEMP/models.json" --list 5 \
+          device=$(python3 app/tool/ci/testlab_device.py "$RUNNER_TEMP/models.json" --list 8 --runtime \
             2> "$RESULTS/device.txt") || { cat "$RESULTS/device.txt"; exit 1; }
           cat "$RESULTS/device.txt"
           echo "device=$device" >> "$GITHUB_OUTPUT"
@@ -1070,55 +1181,120 @@ jobs:
           python3 app/tool/ci/testlab_diagnose.py 2>&1 | tee -a "$RESULTS/check.txt"
           echo "testlab: $(grep '^hint=' "$RESULTS/check.txt" | tail -n 1)" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Robo crawl on the phone
-        id: robo
+      # The one test this push spends. Its verdict is the judge's, below: a
+      # failed matrix still has results to bring back.
+      - name: Run the runtime's tests on the phone
+        id: run
         if: steps.asked.outputs.asked == 'true'
         env:
           DEVICE: ${{ steps.device.outputs.device }}
         run: |
           status=0
-          gcloud firebase test android run --type robo \
-            --app testlab-apk/app-debug.apk --device "$DEVICE" \
-            --timeout 3m --results-history-name codeforge-check \
-            --format=json > "$RUNNER_TEMP/robo.json" 2> "$RUNNER_TEMP/robo.log" || status=$?
+          gcloud firebase test android run --type instrumentation \
+            --app testlab-apk/app-debug.apk --test testlab-apk/app-debug-androidTest.apk \
+            --device "$DEVICE" --timeout 30m --test-targets "package dev.codeforge.app" \
+            --results-history-name codeforge-runtime \
+            --results-dir "codeforge-runtime/${{ github.run_id }}-${{ github.run_attempt }}" \
+            --format=json > "$RUNNER_TEMP/run.json" 2> "$RUNNER_TEMP/run.log" || status=$?
           case "$status" in
             0) meaning="every test execution passed" ;;
             1) meaning="a general failure (a file, the network, or a permission)" ;;
-            10) meaning="the test did not pass" ;;
+            10) meaning="a test did not pass" ;;
             15) meaning="Test Lab could not decide pass or fail" ;;
             18) meaning="the device and version are not supported together" ;;
             19) meaning="the test matrix was cancelled" ;;
             20) meaning="a Test Lab infrastructure error" ;;
             *) meaning="see the log" ;;
           esac
+          echo "gcloud_exit=$status" >> "$GITHUB_OUTPUT"
           {
             echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ) run=${{ github.run_id }} sha=${GITHUB_SHA:0:7}"
             echo "app=testlab-apk/app-debug.apk bytes=$(stat -c %s testlab-apk/app-debug.apk)"
+            echo "test=testlab-apk/app-debug-androidTest.apk bytes=$(stat -c %s testlab-apk/app-debug-androidTest.apk)"
             echo "device=$DEVICE"
             echo "gcloud_exit=$status ($meaning)"
             echo "--- outcome"
-            cat "$RUNNER_TEMP/robo.json"
+            cat "$RUNNER_TEMP/run.json"
             echo "--- gcloud's log (last 40 lines)"
-            tail -n 40 "$RUNNER_TEMP/robo.log"
+            tail -n 40 "$RUNNER_TEMP/run.log"
           } > "$RESULTS/check.txt"
           cat "$RESULTS/check.txt"
           echo "testlab: gcloud_exit=$status ($meaning) on $DEVICE" >> "$GITHUB_STEP_SUMMARY"
-          exit "$status"
+
+      # The JUnit report and the device log, from the results bucket that
+      # gcloud named (Test Lab's own on the Spark plan; the key's Editor role
+      # reads it). Videos and screenshots stay there.
+      - name: Fetch the results
+        if: always() && steps.run.outcome == 'success'
+        run: |
+          mkdir -p "$RUNNER_TEMP/results"
+          url=$(grep -o 'https://console.developers.google.com/storage/browser/[^] ]*' \
+            "$RUNNER_TEMP/run.log" | head -n 1)
+          if [ -z "$url" ]; then
+            echo "fetch: gcloud named no results bucket" | tee "$RESULTS/fetch.txt"
+            exit 0
+          fi
+          status=0
+          gcloud storage rsync --recursive --exclude='.*\.(mp4|png|jpg|webm)$' \
+            "gs://${url#https://console.developers.google.com/storage/browser/}" "$RUNNER_TEMP/results" \
+            > "$RUNNER_TEMP/fetch.log" 2>&1 || status=$?
+          {
+            echo "fetch_exit=$status"
+            tail -n 6 "$RUNNER_TEMP/fetch.log"
+            echo "--- files"
+            ( cd "$RUNNER_TEMP/results" && find . -type f -printf '%P %s\n' | sort | head -n 80 )
+          } | tee "$RESULTS/fetch.txt"
+
+      - name: Judge the run
+        id: judge
+        if: always() && steps.run.outcome == 'success'
+        env:
+          DEVICE: ${{ steps.device.outputs.device }}
+          GCLOUD_EXIT: ${{ steps.run.outputs.gcloud_exit }}
+        run: |
+          found="$RUNNER_TEMP/results"
+          args=()
+          while IFS= read -r report; do
+            args+=(--junit "$report")
+          done < <(find "$found" -type f -name 'test_result_*.xml' 2>/dev/null | sort)
+          log=$(find "$found" -type f -name logcat -not -path '*/test_cases/*' 2>/dev/null | head -n 1)
+          if [ -n "$log" ]; then
+            args+=(--figures "$log" --document CODEFORGE_SYNC_JSON "$log")
+            grep -E 'CodeForgeRuntimeGate|CodeForgeRuntime|ExecModel|CODEFORGE_SYNC_JSON|FlutterTestRunner|TestRunner|AndroidRuntime' \
+              "$log" | tail -n 3000 > "$RESULTS/logcat-runtime.txt" || true
+          fi
+          python3 app/tool/ci/gate_results.py "${args[@]}" \
+            --expect dev.codeforge.app.runtime.ExecModelTest:1 \
+            --expect dev.codeforge.app.runtime.SealedShellTest:2 \
+            --expect dev.codeforge.app.runtime.RuntimeInstallTest:6 \
+            --expect dev.codeforge.app.runtime.RuntimeCommandsTest:6 \
+            --expect dev.codeforge.app.syncmodes.SyncModesTest:1 \
+            --require exec_model_audit_outside_apk=0 \
+            --require audit_outside_apk=0 \
+            --require warm_audit_outside_apk=0 \
+            --require sealed_shell_audit_outside_apk=0 \
+            --require sealed_shell_first_start_audit_outside_apk=0 \
+            --require sealed_shell_second_start_audit_outside_apk=0 \
+            --need-document CODEFORGE_SYNC_JSON \
+            --meta "device=$DEVICE" --meta "gcloud_exit=$GCLOUD_EXIT" \
+            --meta "run=${{ github.run_id }}" --meta "sha=${GITHUB_SHA:0:7}" \
+            --out-json "$RESULTS/runtime.json" --out-txt "$RESULTS/runtime.txt"
 
       # The project id is not a credential, but the repository is public, so
       # the committed evidence names it $FIREBASE_PROJECT_ID; the job's log
       # keeps the console link (with the id masked when it is a secret).
-      - name: Commit the check back
+      - name: Commit the evidence back
         if: always() && steps.asked.outputs.asked == 'true'
         run: |
           mkdir -p "$RESULTS"
           if [ -n "$PROJECT" ]; then
-            find "$RESULTS" -type f -name '*.txt' -exec sed -i "s/$PROJECT/\$FIREBASE_PROJECT_ID/g" {} +
+            find "$RESULTS" -type f \( -name '*.txt' -o -name '*.json' \) \
+              -exec sed -i "s/$PROJECT/\$FIREBASE_PROJECT_ID/g" {} +
           fi
           git config user.name "codeforge-ci"
           git config user.email "ci@codeforge.invalid"
           git add -A -- "$RESULTS"
           if ! git diff --cached --quiet; then
-            git commit -m "chore(ci): Test Lab check [skip ci]"
+            git commit -m "chore(ci): Test Lab runtime gates [skip ci]"
             bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
           fi

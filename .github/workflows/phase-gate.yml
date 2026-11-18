@@ -311,3 +311,191 @@ jobs:
             echo "Emulator gate failed — see committed app/ci-results/gate/ evidence."
             exit 1
           fi
+
+  # The runtime gates (Phase 4 W5; G5: API 34 and 36, G7: API 26 to 28 for
+  # ADR-0007; ADR-0009's runtime gates). They run in this same gate run, so
+  # a work package still has one gate. One job builds the debug APK with
+  # the x86_64 payload and its test APK, once; each leg boots one API level
+  # and runs the runtime's instrumented tests on them, t1's ported
+  # ExecModelTest and SealedShellTest with W3's and W4's
+  # (tool/ci/runtime_gate_leg.sh); the last job keeps every leg's evidence
+  # in app/ci-results/runtime-gates/ and fails the run when a leg failed.
+  runtime-build:
+    name: Runtime gates · build (x86_64 payload)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[phase-gate]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Read the Flutter pin
+        id: flutter_pin
+        working-directory: .
+        run: echo "version=$(tr -d '[:space:]' < .flutter-version)" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.flutter_pin.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: |
+          actual=$(flutter --version | awk '/^Flutter / { print $2; exit }')
+          want="${{ steps.flutter_pin.outputs.version }}"
+          if [ "$actual" != "$want" ]; then
+            echo "::error title=Flutter pin::Flutter $actual was installed; .flutter-version pins $want."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: editor/.nvmrc
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+
+      - name: Build the editor page
+        working-directory: editor
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm run verify
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: |
+          dart run build_runner build
+          dart run pigeon --input pigeons/storage_api.dart
+          dart run pigeon --input pigeons/runtime_api.dart
+
+      - name: Restore the Gradle distribution
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Fetch Gradle
+        run: bash tool/ci/fetch_gradle.sh
+
+      - name: Restore the runtime's pinned files
+        uses: actions/cache/restore@v6
+        with:
+          path: runtime/generated/cache
+          key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
+
+      # The build the main gate's runtime group makes: one ABI, so the
+      # x86_64 payload goes in (android/build.gradle.kts). Flutter builds the
+      # app (and writes what Gradle needs), Gradle the test APK.
+      - name: Build the APKs
+        run: |
+          mkdir -p build/runtime-gates
+          flutter build apk --debug --target-platform android-x64 > build/runtime-gates/build.txt 2>&1 \
+            || { tail -n 40 build/runtime-gates/build.txt; exit 1; }
+          grep -E 'sealed payload|CodeForge ABIs|Built ' build/runtime-gates/build.txt || true
+          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebugAndroidTest \
+              -Ptarget-platform=android-x64 --console=plain ) >> build/runtime-gates/build.txt 2>&1 \
+            || { tail -n 40 build/runtime-gates/build.txt; exit 1; }
+          cp build/app/outputs/flutter-apk/app-debug.apk build/runtime-gates/app-debug.apk
+          cp build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk build/runtime-gates/
+          python3 tool/ci/check_runtime_apk.py build/runtime-gates/app-debug.apk --abi x86_64
+          ls -l build/runtime-gates
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: runtime-gates-apks
+          path: |
+            app/build/runtime-gates/app-debug.apk
+            app/build/runtime-gates/app-debug-androidTest.apk
+          if-no-files-found: error
+          retention-days: 3
+
+  runtime-gates:
+    name: Runtime gates · API ${{ matrix.api }}
+    needs: runtime-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [26, 27, 28, 34, 36]
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: runtime-gates-apks
+          path: app/build/runtime-gates
+
+      - name: Run the leg
+        run: |
+          bash tool/ci/runtime_gate_leg.sh "${{ matrix.api }}" \
+            build/runtime-gates/app-debug.apk build/runtime-gates/app-debug-androidTest.apk
+
+      - name: Upload the leg's evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: runtime-gate-api-${{ matrix.api }}
+          path: app/ci-results/runtime-gates/
+          if-no-files-found: warn
+          retention-days: 7
+
+  runtime-gates-evidence:
+    name: Runtime gates · evidence
+    needs: runtime-gates
+    if: always() && needs.runtime-gates.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: runtime-gate-api-*
+          path: legs
+          merge-multiple: true
+
+      - name: Summary
+        run: |
+          dir=app/ci-results/runtime-gates
+          rm -rf "$dir" && mkdir -p "$dir"
+          cp -a legs/. "$dir/" 2>/dev/null || true
+          {
+            echo "run=${{ github.run_id }} sha=${GITHUB_SHA:0:7} date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            for api in 26 27 28 34 36; do
+              leg="$dir/api-$api/leg.txt"
+              if [ -f "$leg" ]; then
+                echo "api-$api $(head -n 1 "$leg") $(grep -E '^(system_image|webview|accel)=' "$leg" | tr '\n' ' ')"
+                grep -E '^problem: ' "$leg" | sed "s/^/  api-$api /" || true
+              else
+                echo "api-$api verdict=missing (the leg left no evidence)"
+              fi
+            done
+          } | tee "$dir/summary.txt"
+          { echo '## Runtime gates'; echo '```'; cat "$dir/summary.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the evidence back
+        run: bash app/tool/ci/commit_gate_evidence.sh "${{ github.ref_name }}" app/ci-results/runtime-gates "runtime-gates evidence"
+
+      - name: Enforce
+        run: |
+          failed=$(grep -E '^api-[0-9]+ ' app/ci-results/runtime-gates/summary.txt | grep -vc ' verdict=pass' || true)
+          echo "legs not passed: $failed"
+          [ "$failed" = "0" ]
