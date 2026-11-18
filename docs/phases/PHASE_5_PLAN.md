@@ -1,6 +1,6 @@
 # Phase 5 Plan — Terminal & Execution
 
-**Status:** **Proposed on 2026-11-18,** the day Phase 4 was accepted. The owner's decisions it needs are in §10 · **Spec reference:** §8 Phase 5 (terminal and execution), §6.4 (the terminal connects to the existing environment), §6.5 (the capability model), §7 (security), §10 (the end-to-end scenario) · **Architecture:** [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md), [ADR-0006](../adr/0006-terminal-frontend.md) (xterm.js), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [SECURITY.md](../SECURITY.md) §2, [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Builds on:** Phase 4 ([report](PHASE_4_REPORT.md)): the sealed runtime, its exec model and launcher, search
+**Status:** **In progress.** Proposed on 2026-11-18, the day Phase 4 was accepted. **The owner's decisions on 2026-11-18** (§10): start with W1; the release build gets network access from Phase 5; the release workflow runs dry until the owner adds the keys; the owner arranges the licence review, and no public binary goes out before it · **Spec reference:** §8 Phase 5 (terminal and execution), §6.4 (the terminal connects to the existing environment), §6.5 (the capability model), §7 (security), §10 (the end-to-end scenario) · **Architecture:** [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md), [ADR-0006](../adr/0006-terminal-frontend.md) (xterm.js), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [SECURITY.md](../SECURITY.md) §2, [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Builds on:** Phase 4 ([report](PHASE_4_REPORT.md)): the sealed runtime, its exec model and launcher, search
 
 ---
 
@@ -60,8 +60,8 @@ ROADMAP's row: a write, run, output loop, with multiple sessions, Run File and R
 
 ### W1 — The release workflow, the source archive, and the licences in the app (1–2 sessions) → G1
 
-**The release workflow** (`.github/workflows/release.yml`, the second workflow; `ci.yml` stays the build authority for every push):
-- **Triggers:** a manual run (`workflow_dispatch`, a dry run by default), and later a tag `v*`. **The tag trigger stays off** until the owner's keys exist and the owner decides on the first release (§10, item 3).
+**The release workflow** (`.github/workflows/release.yml`; `ci.yml` stays the build authority for every push):
+- **Triggers:** a push whose subject line carries `[release]` runs a dry run, like `[testlab]`. `release.yml` is a reusable workflow (`workflow_call`), and ci.yml calls it, so a push still makes one run. **Found when W1 started:** GitHub starts a manual run (`workflow_dispatch`) only for a workflow that exists on the default branch, and `main` has none. Later, a tag `v*` publishes. **The tag trigger stays off** until the owner's keys exist and the owner decides on the first release (§10, item 3).
 - **The build:** one arm64 release App Bundle for Play and one arm64 release APK for GitHub Releases, from the same commit.
 - **The checks:** `check-bundle-size.py` against Play's 200 MB per-device limit, 16 KB page alignment, the release manifest gate, and the notices being current.
 - **Signing:**
@@ -251,7 +251,7 @@ TERMINAL_ARCHITECTURE (as built), SECURITY §2.2, ADR-0014 (new), ADR-0006 and A
 - **No language servers** (Phase 6), **no git UI** (Phase 7, though git works in the terminal), **no debugger** (Phase 9).
 - **No compiler:** native npm addons and pip packages that need one can't be installed. W4 says so where it happens.
 - **Sessions don't survive a reboot or a force-stop:** their processes end with the app. The tombstones say so.
-- **The release build's network access is the owner's decision** (§10, item 4). Debug and profile builds have it, as today.
+- **The release build has network access from Phase 5** (the owner's decision, §10 item 4), as debug and profile builds already do. What a user's command sends is the user's own doing, and the app itself sends nothing.
 - **No 32-bit ARM build;** the release APK in CI stays x86_64 for the emulators, while the release workflow builds arm64.
 
 ## 9. Risks & mitigations
@@ -264,6 +264,7 @@ TERMINAL_ARCHITECTURE (as built), SECURITY §2.2, ADR-0014 (new), ADR-0006 and A
 | Play rejects the special-use declaration | Sessions then end when the app leaves the foreground, said plainly in the app. The `dataSync` type with its 6-hour cap and `onTimeout` is the second fallback |
 | Android ends the app with its sessions despite the service, on a phone short of memory | Tombstones, and the scrollback kept in the host's buffer until the process dies; measured on the Pixel 8a |
 | The process-count limit counts the app's own threads | Measured before it is set; left unset, with the reason recorded, if it would break the app |
+| **Play's Device and Network Abuse policy:** an app "may not download executable code (such as dex, JAR, .so files) from a source other than Google Play", except code run by a virtual machine or an interpreter ([Play Console Help 16559646](https://support.google.com/googleplay/android-developer/answer/16559646)). With network access, a user's `npm install` can fetch native addons published for Android: `@rollup/rollup-android-arm64` and `lightningcss-android-arm64` (`.node` libraries) and `@esbuild/android-arm64` (a program), all on npm with `os: android` (checked 2026-11-18) | The app itself downloads nothing (ADR-0005). A program written to the app's storage can't be executed at target 36, and W4 measures whether node can load such a `.node` library from there. W4's banner explains either outcome. The question goes to the owner's Play review before the first submission, with the measurement |
 | An upstream source URL disappears | The archive's cache under the pins' hash; the release fails closed, naming the package; the owner can't publish without the source |
 | Test Lab's 5 daily tests, and its end on 2027-09-30 | One phone run per gate, as in Phase 4; ROADMAP's decision queue holds the successor |
 | The terminal's WebView pushes memory past ADR-0004's budget, measured with the editor's | One WebView for every session; measured in W6 against ADR-0006's 80 MB delta |
@@ -273,12 +274,13 @@ TERMINAL_ARCHITECTURE (as built), SECURITY §2.2, ADR-0014 (new), ADR-0006 and A
 1. **Phase 4 accepted on 2026-11-18** (the owner's "next" after PHASE_4_REPORT asked to accept it or ask for changes).
 2. **The phone session,** non-blocking: PHASE_3_PHONE_CHECKLIST and PHASE_4_PHONE_CHECKLIST, on the APK of gate 44332891340 (kept until 2026-12-18).
 3. **For W1, the release:**
-   - **The keys:** Play's upload key (with Play App Signing) and a release key for GitHub's APK, as repository secrets. BUILD_AND_RELEASE §4 will list the steps and the secrets' names. Until they exist, the workflow runs dry.
-   - **The first GitHub Release:** when, after the licence review by a qualified person, which the owner arranges (SOURCE_OFFER.md).
+   - **The keys:** Play's upload key (with Play App Signing) and a release key for GitHub's APK, as repository secrets. BUILD_AND_RELEASE §4 will list the steps and the secrets' names. **Decided 2026-11-18: dry runs for now.** The workflow signs with a throwaway key until the owner adds the keys.
+   - **The first GitHub Release:** after the licence review by a qualified person (SOURCE_OFFER.md). **Decided 2026-11-18: the owner arranges the review,** and no public binary goes out before it is done.
    - **The source offer's contact address:** until one is named, requests go to the repository's issues.
 4. **Network access for the release build,** by W4 (Run, and `npm install` or `pip install` in the terminal):
    - **(a) Yes, from Phase 5.** npm, pip and later git work in the release build as they do in the debug build. The Data safety answers can stay "nothing collected": the app itself sends nothing, and what a user's command sends is a user-initiated transfer, which Play exempts (§0). They and the privacy policy are reworded to say so.
    - **(b) No, until Phase 7.** The release build stays offline, and `npm install` and `pip install` fail there with a message saying why.
    - **The agent recommends (a).** A terminal that can't install packages misses the phase's purpose, and the debug builds already work that way.
+   - **Decided 2026-11-18: (a).** The release manifest gains `INTERNET` in W1, with the Data safety answers, the privacy policy and the listing reworded in the same change. Play's rule on downloaded executable code is a separate question, in §9.
 5. **For W5:** Play Console's special-use declaration for the foreground service, at the first submission, with text the agent drafts.
 6. **Left to the agent,** unless the owner wants them: the PTY's design (§3, W2), the session cap (8), the limits' values (measured), the renderer (measured), and the flow control's sizes.

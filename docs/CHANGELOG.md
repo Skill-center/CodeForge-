@@ -4,6 +4,10 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 5's first decisions (2026-11-18)
+- The owner decided: start with W1; the release build gets network access from Phase 5, so `npm install`, `pip install` and later `git clone` work there as they do in debug builds; the release workflow runs dry, signing with a throwaway key, until the owner adds the keys; the owner arranges the licence review, and no public binary goes out before it ([PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md) §10).
+- Found when W1 started: GitHub runs a manual workflow trigger only for workflows on the default branch, and `main` has none. So a `[release]` tag in a commit's subject line starts the release workflow's dry run, which ci.yml calls as a reusable workflow.
+
 ### Phase 5 planned (2026-11-18)
 - [PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md): the terminal and running code in seven work packages. First the release workflow, the source archive, and the offer and licences in the app, so that GitHub Releases and Play's closed test can start when the owner is ready. Then a PTY CodeForge writes itself, terminal sessions on the sealed runtime, the xterm.js view in the workbench, Run for files and projects (folders through ADR-0013's copy), a foreground service with *End all* and measured limits, and xterm.js's budgets on an arm64 phone. The owner decides the release keys, the first release, and network access for the release build (§10).
 
