@@ -1,4 +1,5 @@
-/// About page: version, license notices for bundled fonts, log viewer.
+/// About page: version; the source offer, CodeForge's license and the
+/// open-source and font licenses (Phase 5 W1); the logs.
 library;
 
 import 'package:flutter/services.dart';
@@ -9,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../application/logs.dart';
 import '../../application/providers.dart';
 import '../../core/errors/failure.dart';
+import '../../core/legal/source_offer.dart';
 import '../../core/logging/logger.dart';
 import '../../core/version.dart';
 import '../../design_system/components/buttons.dart';
@@ -69,6 +71,32 @@ class AboutScreen extends ConsumerWidget {
             ),
             const CfSectionHeader('Legal'),
             CfSettingsTile(
+              key: const ValueKey('about_source_code'),
+              leading: const Icon(CfIcons.code),
+              title: 'Source code',
+              subtitle:
+                  'Where it is, and the written offer for the Linux '
+                  "userland's copyleft packages",
+              trailing: const Icon(CfIcons.chevronRight, size: 18),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const _SourceOfferScreen(),
+                ),
+              ),
+            ),
+            CfSettingsTile(
+              key: const ValueKey('about_codeforge_license'),
+              leading: const Icon(CfIcons.info),
+              title: "CodeForge's license",
+              subtitle: 'Apache License 2.0',
+              trailing: const Icon(CfIcons.chevronRight, size: 18),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const _CodeForgeLicenseScreen(),
+                ),
+              ),
+            ),
+            CfSettingsTile(
               leading: const Icon(CfIcons.fontDownload),
               title: 'Bundled font licenses',
               subtitle:
@@ -82,14 +110,20 @@ class AboutScreen extends ConsumerWidget {
               ),
             ),
             CfSettingsTile(
+              key: const ValueKey('about_open_source_licenses'),
               leading: const Icon(CfIcons.description),
               title: 'Open-source licenses',
-              subtitle: 'Flutter and Dart packages',
+              subtitle:
+                  'Flutter and Dart packages, the editor page and the Linux '
+                  'userland',
               trailing: const Icon(CfIcons.chevronRight, size: 18),
               onTap: () => showLicensePage(
                 context: context,
                 applicationName: 'CodeForge',
                 applicationVersion: appVersion,
+                applicationLegalese:
+                    'CodeForge is licensed under the Apache License 2.0. '
+                    'The packages below keep their own licenses.',
               ),
             ),
             const CfSectionHeader('Diagnostics'),
@@ -108,6 +142,61 @@ class AboutScreen extends ConsumerWidget {
             const SizedBox(height: CfSpacing.xl),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// About → Source code (Phase 5 W1): where CodeForge's source is, and the
+/// written offer for the userland's copyleft packages, worded as
+/// SOURCE_OFFER.md words it.
+class _SourceOfferScreen extends StatelessWidget {
+  const _SourceOfferScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodyMedium;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Source code')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(CfSpacing.lg),
+          children: [
+            for (final paragraph in sourceOfferParagraphs(appVersion))
+              Padding(
+                padding: const EdgeInsets.only(bottom: CfSpacing.md),
+                child: SelectableText(paragraph, style: style),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// About → CodeForge's license (Phase 5 W1): the repository's LICENSE.
+class _CodeForgeLicenseScreen extends StatelessWidget {
+  const _CodeForgeLicenseScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = CfColors.of(context);
+    return Scaffold(
+      appBar: AppBar(title: const Text("CodeForge's license")),
+      body: FutureBuilder<String>(
+        future: rootBundle.loadString(codeForgeLicenseAsset),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(CfSpacing.lg),
+            child: SelectableText(
+              snapshot.data!,
+              style: CfTypography.code(colors, fontSize: 11),
+            ),
+          );
+        },
       ),
     );
   }

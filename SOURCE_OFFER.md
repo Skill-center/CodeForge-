@@ -31,6 +31,20 @@ For each package version in the payload:
 
 No binary that contains the userland is distributed until these are done.
 
+## The offer in the app
+
+About → Source code shows this text (Phase 5 W1, `app/lib/core/legal/source_offer.dart`), with the app's version for `{version}`. A test, `app/test/core/source_offer_test.dart`, keeps the two the same: a change to one is a change to the other, and the licence review covers both.
+
+> CodeForge is open source, under the Apache License 2.0. Its source code is at https://github.com/Skill-center/CodeForge-.
+>
+> The Linux userland inside the app is built from Termux packages. Many of them are under the GNU GPL, the GNU LGPL or another copyleft license. Open-source licenses lists every package with its license text.
+>
+> The complete corresponding source code of those copyleft packages is published with every release of CodeForge, next to the app, at https://github.com/Skill-center/CodeForge-/releases: the upstream sources, Termux's build recipes and patches at the commits that built each package, and Termux's build scripts, each file listed with its SHA-256 checksum. For this version it is codeforge-{version}-sources.tar.
+>
+> Written offer: for at least three years after we last distribute this version of CodeForge, we will give anyone who asks a complete machine-readable copy of that source code, at no charge. To ask, open an issue at https://github.com/Skill-center/CodeForge-/issues.
+
+About → CodeForge's license shows the repository's LICENSE. About → Open-source licenses lists the userland's packages with their licence texts, after the Flutter and Dart packages and the editor page's: runtime/notices.py writes the texts into `app/assets/licenses/userland.txt` from the pinned packages' own licence files, and CI checks the file against the pins.
+
 ## The copyleft packages in the payload
 
 <!-- copyleft:begin -->
