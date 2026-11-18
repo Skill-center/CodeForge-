@@ -1,0 +1,20 @@
+onError: commandError=true message=Permission Denial: starting instrumentation ComponentInfo{dev.codeforge.app.test/androidx.test.runner.AndroidJUnitRunner} from pid=5636, uid=5636 not allowed because package dev.codeforge.app.test does not have a signature matching the target dev.codeforge.app
+java.lang.SecurityException: Permission Denial: starting instrumentation ComponentInfo{dev.codeforge.app.test/androidx.test.runner.AndroidJUnitRunner} from pid=5636, uid=5636 not allowed because package dev.codeforge.app.test does not have a signature matching the target dev.codeforge.app
+	at android.os.Parcel.createException(Parcel.java:1950)
+	at android.os.Parcel.readException(Parcel.java:1918)
+	at android.os.Parcel.readException(Parcel.java:1868)
+	at android.app.IActivityManager$Stub$Proxy.startInstrumentation(IActivityManager.java:4501)
+	at com.android.commands.am.Instrument.run(Instrument.java:484)
+	at com.android.commands.am.Am.runInstrument(Am.java:194)
+	at com.android.commands.am.Am.onRun(Am.java:80)
+	at com.android.internal.os.BaseCommand.run(BaseCommand.java:54)
+	at com.android.commands.am.Am.main(Am.java:50)
+	at com.android.internal.os.RuntimeInit.nativeFinishInit(Native Method)
+	at com.android.internal.os.RuntimeInit.main(RuntimeInit.java:340)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.startInstrumentation(ActivityManagerService.java:22119)
+	at android.app.IActivityManager$Stub.onTransact$startInstrumentation$(IActivityManager.java:10316)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:528)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:3291)
+	at android.os.Binder.execTransact(Binder.java:731)
+

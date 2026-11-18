@@ -1,0 +1,24 @@
+onError: commandError=true message=Permission Denial: starting instrumentation ComponentInfo{dev.codeforge.app.test/androidx.test.runner.AndroidJUnitRunner} from pid=4409, uid=2000 not allowed because package dev.codeforge.app.test does not have a signature matching the target dev.codeforge.app
+java.lang.SecurityException: Permission Denial: starting instrumentation ComponentInfo{dev.codeforge.app.test/androidx.test.runner.AndroidJUnitRunner} from pid=4409, uid=2000 not allowed because package dev.codeforge.app.test does not have a signature matching the target dev.codeforge.app
+	at android.os.Parcel.createExceptionOrNull(Parcel.java:3057)
+	at android.os.Parcel.createException(Parcel.java:3041)
+	at android.os.Parcel.readException(Parcel.java:3024)
+	at android.os.Parcel.readException(Parcel.java:2966)
+	at android.app.IActivityManager$Stub$Proxy.startInstrumentation(IActivityManager.java:6182)
+	at com.android.commands.am.Instrument.run(Instrument.java:533)
+	at com.android.commands.am.Am.runInstrument(Am.java:208)
+	at com.android.commands.am.Am.onRun(Am.java:85)
+	at com.android.internal.os.BaseCommand.run(BaseCommand.java:62)
+	at com.android.commands.am.Am.main(Am.java:54)
+	at com.android.internal.os.RuntimeInit.nativeFinishInit(Native Method)
+	at com.android.internal.os.RuntimeInit.main(RuntimeInit.java:359)
+Caused by: android.os.RemoteException: Remote stack trace:
+	at com.android.server.am.ActivityManagerService.startInstrumentation(ActivityManagerService.java:15526)
+	at android.app.IActivityManager$Stub.onTransact(IActivityManager.java:2977)
+	at com.android.server.am.ActivityManagerService.onTransact(ActivityManagerService.java:2720)
+	at android.os.Binder.execTransactInternal(Binder.java:1339)
+	at android.os.Binder.execTransact(Binder.java:1275)
+
+INSTRUMENTATION_STATUS: Error=Permission Denial: starting instrumentation ComponentInfo{dev.codeforge.app.test/androidx.test.runner.AndroidJUnitRunner} from pid=4409, uid=2000 not allowed because package dev.codeforge.app.test does not have a signature matching the target dev.codeforge.app
+INSTRUMENTATION_STATUS: id=ActivityManagerService
+INSTRUMENTATION_STATUS_CODE: -1
