@@ -10,7 +10,9 @@
 /// 10 MiB, then 20 one-character changes, with synchronous NORMAL and then
 /// FULL, in a database of its own beside the app's), and the result is
 /// printed as numbered CODEFORGE_SYNC_JSON lines, which the job reads back
-/// from the device log (tool/ci/gate_results.py).
+/// from the device log (tool/ci/gate_results.py). Since Phase 4 W6 the same
+/// entrypoint also runs search on the phone (phone_search_test.dart), whose
+/// figures come back as CODEFORGE_SEARCH_JSON.
 library;
 
 import 'dart:convert';
@@ -22,6 +24,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'large_files_test.dart' show storeTimings;
+import 'phone_search_test.dart' show phoneSearchTests;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -45,4 +48,7 @@ void main() {
     // debugPrint is throttled: let the queue drain before the test ends.
     await debugPrintDone;
   }, timeout: const Timeout(Duration(minutes: 10)));
+
+  // Since Phase 4 W6, search on the same phone (phone_search_test.dart).
+  phoneSearchTests();
 }
