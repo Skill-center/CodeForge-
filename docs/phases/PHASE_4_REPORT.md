@@ -1,6 +1,6 @@
 # Phase 4 Report — Runtime Integration
 
-**Status:** **Work done, awaiting the owner's acceptance** (§10) · **Date:** 2026-11-18 · **Branch:** `arena/f57c33ee-codeforge`
+**Status:** **Accepted by the owner on 2026-11-18** (the owner's "next" on 2026-11-18, after the report asked to accept the phase or ask for changes); the phone session (§8) and Play's owner actions (§10) are still open, and non-blocking · **Date:** 2026-11-18 · **Branch:** `arena/f57c33ee-codeforge`
 **Plan:** [PHASE_4_PLAN.md](PHASE_4_PLAN.md) · **Spec:** §8 Phase 4, §2, §6.4–6.5, §7 · **Rule:** every claim below cites a CI run, a phase gate or an evidence commit. Where something was not measured or not met, this report says so.
 
 ---

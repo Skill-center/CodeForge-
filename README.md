@@ -2,7 +2,7 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 4, runtime integration, has finished its work and awaits the owner's acceptance ([report](docs/phases/PHASE_4_REPORT.md)). Phase 3, workspace and files, was accepted on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
+> **Status: Phase 4, runtime integration, was accepted on 2026-11-18 ([report](docs/phases/PHASE_4_REPORT.md)), and Phase 5, the terminal and running code, is planned ([plan](docs/phases/PHASE_5_PLAN.md)). Phase 3, workspace and files, was accepted on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
 > - Projects live in the app's own storage, and folders open through Android's own picker, with no storage permission.
 > - Home lists the recent projects and folders with their status, and each keeps its tabs, unsaved text and explorer view.
 > - The explorer creates, renames, moves, copies and deletes, and Go to File finds a file by name.
@@ -39,7 +39,7 @@
 | [Runtime Audit](docs/EXISTING_RUNTIME_AUDIT.md) | The existing Linux environment (`m-cyber12/t1`), fully audited |
 | [Architecture](docs/ARCHITECTURE.md) · [Repo Structure](docs/REPOSITORY_STRUCTURE.md) | How the system is built and where everything lives |
 | [Tech Stack](docs/TECH_STACK.md) | Every dependency, verified versions, rejection reasons |
-| [Phase 4 Plan](docs/phases/PHASE_4_PLAN.md) · [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
+| **[Phase 5 Plan](docs/phases/PHASE_5_PLAN.md)** · [Phase 4 Plan](docs/phases/PHASE_4_PLAN.md) · [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
 | [Roadmap](docs/ROADMAP.md) | Phases 0–10, dependencies, decision queue |
 | [ADRs](docs/adr/) | 13 architecture decision records |
 

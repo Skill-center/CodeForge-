@@ -4,6 +4,12 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 5 planned (2026-11-18)
+- [PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md): the terminal and running code in seven work packages. First the release workflow, the source archive, and the offer and licences in the app, so that GitHub Releases and Play's closed test can start when the owner is ready. Then a PTY CodeForge writes itself, terminal sessions on the sealed runtime, the xterm.js view in the workbench, Run for files and projects (folders through ADR-0013's copy), a foreground service with *End all* and measured limits, and xterm.js's budgets on an arm64 phone. The owner decides the release keys, the first release, and network access for the release build (§10).
+
+### Phase 4 accepted (2026-11-18)
+- The owner accepted Phase 4 by saying "next" after its report ([PHASE_4_REPORT.md](phases/PHASE_4_REPORT.md)). The phone session, on the exit gate's APK, and Play's owner actions stay open and non-blocking.
+
 ### Changed — Phase 4 W7, t1 fixed in CodeForge's copy, the notices, Play's drafts and the phase exit (plan: [phases/PHASE_4_PLAN.md](phases/PHASE_4_PLAN.md), report: [phases/PHASE_4_REPORT.md](phases/PHASE_4_REPORT.md))
 - **t1's installer is fixed where CodeForge uses it.** The owner said CodeForge may change t1 freely (2026-11-18). This account cannot push to t1, so the fix is applied to the vendored kernel as a recorded patch (`native/patches/`, two files), and CI checks the record against t1's files on every push ([native/PROVENANCE.md](../native/PROVENANCE.md)). The app installs through t1's own installer again: CodeForge's copy of its steps (`PayloadInstall`) and that copy's 4 tests are gone. The API-floor check now finds no unused vendored code: 0 violations, 1 guarded call, 0 dead entries (CI 44292608356).
 - **The notices are complete** ([THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)): the 70 Dart packages in the app's dependency closure (a superset of what the compiler keeps), the editor page's 27 packages (all MIT), Flutter, its engine and the fonts, and every userland package with a licence. CI writes each list from the resolved dependencies or the pins, and fails when one goes stale.
