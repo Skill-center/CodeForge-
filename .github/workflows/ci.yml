@@ -504,6 +504,19 @@ jobs:
           cat ci-results/testlab-scripts.txt
           exit "$status"
 
+      # The release workflow's signer check proves itself on every push, so a
+      # change to it is green here before a release run spends a build on it
+      # (Phase 5 W1; its first case is the pipe race that failed CI
+      # 44394419519's bundle check).
+      - name: Release scripts
+        id: release_scripts
+        continue-on-error: true
+        run: |
+          status=0
+          bash tool/ci/check_signer.sh --self-test > ci-results/release-scripts.txt 2>&1 || status=$?
+          cat ci-results/release-scripts.txt
+          exit "$status"
+
       # What minSdk 26 promises (Phase 4 W5, ADR-0007): every method, field
       # and class that CodeForge's own and vendored code refers to in the
       # debug APK's dex, against the SDK's API database. One newer than API
@@ -780,7 +793,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk release_manifest; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts release_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk release_manifest; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -793,6 +806,7 @@ jobs:
               build) outcome="${{ steps.build.outcome }}" ;;
               manifest) outcome="${{ steps.manifest.outcome }}" ;;
               testlab_scripts) outcome="${{ steps.testlab_scripts.outcome }}" ;;
+              release_scripts) outcome="${{ steps.release_scripts.outcome }}" ;;
               api_floor) outcome="${{ steps.api_floor.outcome }}" ;;
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
               sealed_runtime_tests) outcome="${{ steps.sealed_runtime_tests.outcome }}" ;;
