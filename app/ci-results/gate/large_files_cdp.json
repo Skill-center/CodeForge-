@@ -2,7 +2,7 @@
   "schema": 1,
   "tool": "editor/tool/large_cdp.mjs",
   "mode": "driver",
-  "startedAt": "2026-11-18T05:08:59.973Z",
+  "startedAt": "2026-11-18T06:48:31.725Z",
   "method": {
     "scroll": "scrollTop of .cm-scroller stepped every frame at 6 px/ms for 3000 ms from the cursor's view, bouncing at the ends; frames over 32 ms are slow",
     "typing": "Input.dispatchKeyEvent key presses 60 ms apart at the cursor on the middle line, each timed from its input event to the end of the next frame (bench/input_recorder.ts)",
@@ -14,22 +14,27 @@
   "files": {
     "large_512kb.js": {
       "prepare": {
-        "request": "1794978574553.1",
-        "at": "2026-11-18T05:09:36.239Z",
+        "request": "1794984540308.1",
+        "at": "2026-11-18T06:49:02.370Z",
         "messagesWatched": true,
         "longTasksWatched": true,
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 426.8,
+          "appPssMB": 412.2,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 82.3
+              "pssMB": 23.8
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 71
             }
           ],
-          "rendererPssMB": 82.3,
-          "totalPssMB": 509.1
+          "rendererPssMB": 94.8,
+          "totalPssMB": 507
         },
         "jsHeap": {
           "usedMB": 9.5,
@@ -37,22 +42,22 @@
         }
       },
       "measure": {
-        "request": "1794978574553.2",
-        "at": "2026-11-18T05:09:38.513Z",
+        "request": "1794984540308.2",
+        "at": "2026-11-18T06:49:04.379Z",
         "chars": 524164,
         "lines": 17621,
         "open": {
           "type": "doc.open",
           "chars": 541907,
-          "processMs": 45.4,
-          "paintedMs": 59.6
+          "processMs": 54.6,
+          "paintedMs": 65.6
         },
         "messages": 2,
         "openLongTasks": {
           "supported": true,
-          "count": 7,
-          "totalMs": 700,
-          "maxMs": 124
+          "count": 5,
+          "totalMs": 451,
+          "maxMs": 105
         },
         "dom": {
           "lines": 81,
@@ -60,39 +65,44 @@
         },
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 429,
+          "appPssMB": 404.7,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 106.2
+              "pssMB": 23.8
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 94.7
             }
           ],
-          "rendererPssMB": 106.2,
-          "totalPssMB": 535.2
+          "rendererPssMB": 118.5,
+          "totalPssMB": 523.2
         },
         "jsHeap": {
           "usedMB": 9.5,
           "totalMB": 9.5
         },
         "scroll": {
-          "frames": 26,
-          "slowFrames": 24,
-          "slowFramePct": 92.3,
-          "p95FrameMs": 183.4,
-          "maxFrameMs": 200,
+          "frames": 28,
+          "slowFrames": 25,
+          "slowFramePct": 89.3,
+          "p95FrameMs": 166.7,
+          "maxFrameMs": 183.3,
           "thresholdMs": 32,
-          "distancePx": 18900,
+          "distancePx": 18300,
           "scrollMaxPx": 369406
         },
         "focused": true,
         "typing": {
           "keys": 60,
           "count": 60,
-          "p50Ms": 61.3,
-          "p95Ms": 166.8,
-          "maxMs": 270.7,
-          "meanMs": 79.9,
+          "p50Ms": 33.9,
+          "p95Ms": 117.8,
+          "maxMs": 180.3,
+          "meanMs": 47.6,
           "events": {
             "keydown": 60,
             "beforeinput": 60
@@ -100,36 +110,36 @@
         },
         "longTasksWhileMeasuring": {
           "supported": true,
-          "count": 42,
-          "totalMs": 3504,
-          "maxMs": 140
+          "count": 20,
+          "totalMs": 1362,
+          "maxMs": 100
         }
       }
     },
     "large_1mb.js": {
       "prepare": {
-        "request": "1794978574553.3",
-        "at": "2026-11-18T05:09:59.762Z",
+        "request": "1794984540308.3",
+        "at": "2026-11-18T06:49:21.376Z",
         "messagesWatched": true,
         "longTasksWatched": true
       },
       "measure": {
-        "request": "1794978574553.4",
-        "at": "2026-11-18T05:10:00.878Z",
+        "request": "1794984540308.4",
+        "at": "2026-11-18T06:49:22.411Z",
         "chars": 1048614,
         "lines": 35107,
         "open": {
           "type": "doc.open",
           "chars": 1083842,
-          "processMs": 16.5,
-          "paintedMs": 26
+          "processMs": 14,
+          "paintedMs": 21.3
         },
         "messages": 2,
         "openLongTasks": {
           "supported": true,
-          "count": 1,
-          "totalMs": 61,
-          "maxMs": 61
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
         },
         "dom": {
           "lines": 81,
@@ -137,39 +147,44 @@
         },
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 429.8,
+          "appPssMB": 426.6,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 125.4
+              "pssMB": 23.8
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 128.8
             }
           ],
-          "rendererPssMB": 125.4,
-          "totalPssMB": 555.2
+          "rendererPssMB": 152.6,
+          "totalPssMB": 579.2
         },
         "jsHeap": {
           "usedMB": 9.5,
           "totalMB": 9.5
         },
         "scroll": {
-          "frames": 27,
-          "slowFrames": 25,
-          "slowFramePct": 92.6,
-          "p95FrameMs": 183.4,
-          "maxFrameMs": 216.6,
+          "frames": 29,
+          "slowFrames": 26,
+          "slowFramePct": 89.7,
+          "p95FrameMs": 150.1,
+          "maxFrameMs": 166.7,
           "thresholdMs": 32,
-          "distancePx": 18400,
+          "distancePx": 18100,
           "scrollMaxPx": 736736
         },
         "focused": true,
         "typing": {
           "keys": 60,
           "count": 60,
-          "p50Ms": 30.8,
-          "p95Ms": 74,
-          "maxMs": 118.5,
-          "meanMs": 36.1,
+          "p50Ms": 28.3,
+          "p95Ms": 83.3,
+          "maxMs": 113.3,
+          "meanMs": 34.9,
           "events": {
             "keydown": 60,
             "beforeinput": 60
@@ -177,36 +192,36 @@
         },
         "longTasksWhileMeasuring": {
           "supported": true,
-          "count": 8,
-          "totalMs": 591,
-          "maxMs": 135
+          "count": 9,
+          "totalMs": 620,
+          "maxMs": 98
         }
       }
     },
     "large_1mb.txt": {
       "prepare": {
-        "request": "1794978574553.5",
-        "at": "2026-11-18T05:10:18.989Z",
+        "request": "1794984540308.5",
+        "at": "2026-11-18T06:49:38.414Z",
         "messagesWatched": true,
         "longTasksWatched": true
       },
       "measure": {
-        "request": "1794978574553.6",
-        "at": "2026-11-18T05:10:20.066Z",
+        "request": "1794984540308.6",
+        "at": "2026-11-18T06:49:39.439Z",
         "chars": 1048614,
         "lines": 35107,
         "open": {
           "type": "doc.open",
           "chars": 1083843,
-          "processMs": 41.1,
-          "paintedMs": 59.2
+          "processMs": 58.1,
+          "paintedMs": 76
         },
         "messages": 2,
         "openLongTasks": {
           "supported": true,
           "count": 1,
-          "totalMs": 59,
-          "maxMs": 59
+          "totalMs": 73,
+          "maxMs": 73
         },
         "dom": {
           "lines": 81,
@@ -214,39 +229,44 @@
         },
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 438.9,
+          "appPssMB": 455.6,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 107.8
+              "pssMB": 23.9
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 128.9
             }
           ],
-          "rendererPssMB": 107.8,
-          "totalPssMB": 546.7
+          "rendererPssMB": 152.8,
+          "totalPssMB": 608.4
         },
         "jsHeap": {
           "usedMB": 9.5,
           "totalMB": 9.5
         },
         "scroll": {
-          "frames": 23,
-          "slowFrames": 21,
-          "slowFramePct": 91.3,
-          "p95FrameMs": 200,
-          "maxFrameMs": 200,
+          "frames": 28,
+          "slowFrames": 25,
+          "slowFramePct": 89.3,
+          "p95FrameMs": 166.6,
+          "maxFrameMs": 166.7,
           "thresholdMs": 32,
-          "distancePx": 18300,
+          "distancePx": 18100,
           "scrollMaxPx": 736612
         },
         "focused": true,
         "typing": {
           "keys": 60,
           "count": 60,
-          "p50Ms": 36.8,
-          "p95Ms": 109.7,
-          "maxMs": 125.1,
-          "meanMs": 48.2,
+          "p50Ms": 29.5,
+          "p95Ms": 99,
+          "maxMs": 159.7,
+          "meanMs": 37.8,
           "events": {
             "keydown": 60,
             "beforeinput": 60
@@ -254,36 +274,36 @@
         },
         "longTasksWhileMeasuring": {
           "supported": true,
-          "count": 21,
-          "totalMs": 1560,
-          "maxMs": 115
+          "count": 10,
+          "totalMs": 650,
+          "maxMs": 77
         }
       }
     },
     "large_5mb.js": {
       "prepare": {
-        "request": "1794978574553.7",
-        "at": "2026-11-18T05:10:39.813Z",
+        "request": "1794984540308.7",
+        "at": "2026-11-18T06:49:55.828Z",
         "messagesWatched": true,
         "longTasksWatched": true
       },
       "measure": {
-        "request": "1794978574553.8",
-        "at": "2026-11-18T05:10:41.361Z",
+        "request": "1794984540308.8",
+        "at": "2026-11-18T06:49:57.311Z",
         "chars": 5242929,
         "lines": 174624,
         "open": {
           "type": "doc.open",
           "chars": 5417675,
-          "processMs": 162.5,
-          "paintedMs": 180.5
+          "processMs": 128.6,
+          "paintedMs": 138.1
         },
         "messages": 2,
         "openLongTasks": {
           "supported": true,
           "count": 1,
-          "totalMs": 244,
-          "maxMs": 244
+          "totalMs": 225,
+          "maxMs": 225
         },
         "dom": {
           "lines": 75,
@@ -291,39 +311,44 @@
         },
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 462.3,
+          "appPssMB": 475.5,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 132.7
+              "pssMB": 23.9
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 130.3
             }
           ],
-          "rendererPssMB": 132.7,
-          "totalPssMB": 595
+          "rendererPssMB": 154.2,
+          "totalPssMB": 629.7
         },
         "jsHeap": {
           "usedMB": 9.5,
           "totalMB": 9.5
         },
         "scroll": {
-          "frames": 24,
-          "slowFrames": 21,
-          "slowFramePct": 87.5,
-          "p95FrameMs": 183.4,
-          "maxFrameMs": 200,
+          "frames": 29,
+          "slowFrames": 26,
+          "slowFramePct": 89.7,
+          "p95FrameMs": 150.1,
+          "maxFrameMs": 166.6,
           "thresholdMs": 32,
-          "distancePx": 18200,
+          "distancePx": 18000,
           "scrollMaxPx": 3658283
         },
         "focused": true,
         "typing": {
           "keys": 60,
           "count": 60,
-          "p50Ms": 36.2,
-          "p95Ms": 151.6,
-          "maxMs": 156.5,
-          "meanMs": 51.8,
+          "p50Ms": 30.1,
+          "p95Ms": 80.6,
+          "maxMs": 107.7,
+          "meanMs": 36.2,
           "events": {
             "keydown": 60,
             "beforeinput": 60
@@ -331,36 +356,36 @@
         },
         "longTasksWhileMeasuring": {
           "supported": true,
-          "count": 22,
-          "totalMs": 1642,
-          "maxMs": 96
+          "count": 6,
+          "totalMs": 373,
+          "maxMs": 71
         }
       }
     },
     "large_5mb.txt": {
       "prepare": {
-        "request": "1794978574553.9",
-        "at": "2026-11-18T05:11:00.438Z",
+        "request": "1794984540308.9",
+        "at": "2026-11-18T06:50:13.112Z",
         "messagesWatched": true,
         "longTasksWatched": true
       },
       "measure": {
-        "request": "1794978574553.10",
-        "at": "2026-11-18T05:11:02.419Z",
+        "request": "1794984540308.10",
+        "at": "2026-11-18T06:50:14.640Z",
         "chars": 5242929,
         "lines": 174624,
         "open": {
           "type": "doc.open",
           "chars": 5417675,
-          "processMs": 64,
-          "paintedMs": 96.9
+          "processMs": 100.8,
+          "paintedMs": 113.1
         },
         "messages": 2,
         "openLongTasks": {
           "supported": true,
           "count": 1,
-          "totalMs": 194,
-          "maxMs": 194
+          "totalMs": 237,
+          "maxMs": 237
         },
         "dom": {
           "lines": 81,
@@ -368,39 +393,44 @@
         },
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 502,
+          "appPssMB": 479.5,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 152.8
+              "pssMB": 23.9
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 155.4
             }
           ],
-          "rendererPssMB": 152.8,
-          "totalPssMB": 654.8
+          "rendererPssMB": 179.3,
+          "totalPssMB": 658.8
         },
         "jsHeap": {
           "usedMB": 9.5,
           "totalMB": 9.5
         },
         "scroll": {
-          "frames": 25,
-          "slowFrames": 22,
-          "slowFramePct": 88,
-          "p95FrameMs": 200,
-          "maxFrameMs": 200.1,
+          "frames": 32,
+          "slowFrames": 30,
+          "slowFramePct": 93.8,
+          "p95FrameMs": 150,
+          "maxFrameMs": 150.1,
           "thresholdMs": 32,
-          "distancePx": 18300,
+          "distancePx": 18301,
           "scrollMaxPx": 3658159
         },
         "focused": true,
         "typing": {
           "keys": 60,
           "count": 60,
-          "p50Ms": 34.2,
-          "p95Ms": 111.7,
-          "maxMs": 168,
-          "meanMs": 45.3,
+          "p50Ms": 30.2,
+          "p95Ms": 77.1,
+          "maxMs": 84.3,
+          "meanMs": 33.3,
           "events": {
             "keydown": 60,
             "beforeinput": 60
@@ -408,36 +438,36 @@
         },
         "longTasksWhileMeasuring": {
           "supported": true,
-          "count": 21,
-          "totalMs": 1468,
-          "maxMs": 108
+          "count": 5,
+          "totalMs": 320,
+          "maxMs": 81
         }
       }
     },
     "large_10mb.js": {
       "prepare": {
-        "request": "1794978574553.11",
-        "at": "2026-11-18T05:11:22.640Z",
+        "request": "1794984540308.11",
+        "at": "2026-11-18T06:50:31.593Z",
         "messagesWatched": true,
         "longTasksWatched": true
       },
       "measure": {
-        "request": "1794978574553.12",
-        "at": "2026-11-18T05:11:24.607Z",
+        "request": "1794984540308.12",
+        "at": "2026-11-18T06:50:33.568Z",
         "chars": 10485681,
         "lines": 347776,
         "open": {
           "type": "doc.open",
           "chars": 10833579,
-          "processMs": 96.7,
-          "paintedMs": 108.8
+          "processMs": 118.1,
+          "paintedMs": 126.4
         },
         "messages": 2,
         "openLongTasks": {
           "supported": true,
           "count": 1,
-          "totalMs": 429,
-          "maxMs": 429
+          "totalMs": 462,
+          "maxMs": 462
         },
         "dom": {
           "lines": 75,
@@ -445,39 +475,44 @@
         },
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 529.7,
+          "appPssMB": 518,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 189.5
+              "pssMB": 23.9
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 185.9
             }
           ],
-          "rendererPssMB": 189.5,
-          "totalPssMB": 719.2
+          "rendererPssMB": 209.8,
+          "totalPssMB": 727.8
         },
         "jsHeap": {
           "usedMB": 9.5,
           "totalMB": 9.5
         },
         "scroll": {
-          "frames": 26,
-          "slowFrames": 23,
-          "slowFramePct": 88.5,
-          "p95FrameMs": 183.4,
-          "maxFrameMs": 200.1,
+          "frames": 31,
+          "slowFrames": 29,
+          "slowFramePct": 93.5,
+          "p95FrameMs": 166.6,
+          "maxFrameMs": 166.7,
           "thresholdMs": 32,
-          "distancePx": 18701,
+          "distancePx": 18401,
           "scrollMaxPx": 6999472
         },
         "focused": true,
         "typing": {
           "keys": 60,
           "count": 60,
-          "p50Ms": 37.2,
-          "p95Ms": 98.3,
-          "maxMs": 178.5,
-          "meanMs": 45.7,
+          "p50Ms": 33.7,
+          "p95Ms": 90.8,
+          "maxMs": 124.1,
+          "meanMs": 38.2,
           "events": {
             "keydown": 60,
             "beforeinput": 60
@@ -485,36 +520,36 @@
         },
         "longTasksWhileMeasuring": {
           "supported": true,
-          "count": 22,
-          "totalMs": 1590,
-          "maxMs": 129
+          "count": 4,
+          "totalMs": 219,
+          "maxMs": 60
         }
       }
     },
     "large_10mb.txt": {
       "prepare": {
-        "request": "1794978574553.13",
-        "at": "2026-11-18T05:11:43.587Z",
+        "request": "1794984540308.13",
+        "at": "2026-11-18T06:50:49.722Z",
         "messagesWatched": true,
         "longTasksWatched": true
       },
       "measure": {
-        "request": "1794978574553.14",
-        "at": "2026-11-18T05:11:45.710Z",
+        "request": "1794984540308.14",
+        "at": "2026-11-18T06:50:51.709Z",
         "chars": 10485681,
         "lines": 347776,
         "open": {
           "type": "doc.open",
           "chars": 10833579,
-          "processMs": 177.3,
-          "paintedMs": 189
+          "processMs": 122.9,
+          "paintedMs": 137.7
         },
         "messages": 2,
         "openLongTasks": {
           "supported": true,
-          "count": 2,
-          "totalMs": 463,
-          "maxMs": 354
+          "count": 1,
+          "totalMs": 417,
+          "maxMs": 417
         },
         "dom": {
           "lines": 81,
@@ -522,39 +557,44 @@
         },
         "memory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 613.9,
+          "appPssMB": 586.8,
           "renderers": [
             {
-              "pid": 8643,
+              "pid": 4294,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 203.3
+              "pssMB": 23.9
+            },
+            {
+              "pid": 8441,
+              "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
+              "pssMB": 211.8
             }
           ],
-          "rendererPssMB": 203.3,
-          "totalPssMB": 817.2
+          "rendererPssMB": 235.7,
+          "totalPssMB": 822.5
         },
         "jsHeap": {
           "usedMB": 9.5,
           "totalMB": 9.5
         },
         "scroll": {
-          "frames": 23,
-          "slowFrames": 20,
-          "slowFramePct": 87,
-          "p95FrameMs": 200,
-          "maxFrameMs": 233.3,
+          "frames": 28,
+          "slowFrames": 26,
+          "slowFramePct": 92.9,
+          "p95FrameMs": 150.1,
+          "maxFrameMs": 200.1,
           "thresholdMs": 32,
-          "distancePx": 18200,
+          "distancePx": 18800,
           "scrollMaxPx": 6999348
         },
         "focused": true,
         "typing": {
           "keys": 60,
           "count": 60,
-          "p50Ms": 41.1,
-          "p95Ms": 126.2,
-          "maxMs": 183.1,
-          "meanMs": 52.1,
+          "p50Ms": 21.2,
+          "p95Ms": 73.9,
+          "maxMs": 96,
+          "meanMs": 29.6,
           "events": {
             "keydown": 60,
             "beforeinput": 60
@@ -562,13 +602,13 @@
         },
         "longTasksWhileMeasuring": {
           "supported": true,
-          "count": 25,
-          "totalMs": 1894,
-          "maxMs": 122
+          "count": 11,
+          "totalMs": 661,
+          "maxMs": 76
         }
       }
     }
   },
   "errors": [],
-  "finishedAt": "2026-11-18T05:12:09.832Z"
+  "finishedAt": "2026-11-18T06:51:11.642Z"
 }
