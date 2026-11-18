@@ -204,7 +204,7 @@ class SearchHost(
             if (result != null) return ripgrep.summary(result, run.cancelled)
             // An install took the prefix meanwhile: the scan instead.
         }
-        return scan(TextScan(LocalTree(root), query, limits, collector, run::stopped), run)
+        return scan(TextScan(LocalTree(root), query, limits, collector, stopped = run::stopped), run)
     }
 
     private fun searchFolder(
@@ -222,7 +222,9 @@ class SearchHost(
             val (failure, detail) = TextScan.failureOf(error)
             return failed(failure, detail)
         }
-        return scan(TextScan(SafTree(ops), query, limits, collector, run::stopped), run)
+        // Each file is an open the provider answers: read several at a time.
+        val walk = TextScan(SafTree(ops), query, limits, collector, parallelism = SAF_READERS, stopped = run::stopped)
+        return scan(walk, run)
     }
 
     private fun scan(walk: TextScan, run: Running): SearchSummary = try {
@@ -255,6 +257,9 @@ class SearchHost(
 
         /** ripgrep's stderr kept: its complaints about files it could not read. */
         const val STDERR_LIMIT = 64 * 1024
+
+        /** Files a folder's scan reads at once through its provider. */
+        const val SAF_READERS = 4
     }
 }
 

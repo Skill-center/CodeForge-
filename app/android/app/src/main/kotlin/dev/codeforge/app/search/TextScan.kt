@@ -8,6 +8,13 @@ import dev.codeforge.app.storage.StorageProblem
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.concurrent.Callable
+import java.util.concurrent.CancellationException
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicInteger
 
 /** One entry of a [ScanTree]: [path] is relative to the tree's top, '/'-separated. */
 class ScanEntry(
@@ -86,14 +93,21 @@ class SafTree(private val ops: DocumentOps) : ScanTree {
  *   files that are not text by the editor's rule ([TextRule]).
  * - **Lines** break at \n, \r\n and a lone \r, as the editor's do, so a
  *   result opens at its line.
+ * - **Reads ahead** on [parallelism] threads: through a documents provider
+ *   each file is an open the provider answers, about 5 ms on the gate's
+ *   emulator, so the files are read and matched several at a time. Their
+ *   results are taken back in the walk's order, on the walking thread, so the
+ *   order and the counts are the same as one at a time.
  * - **Stops** when [stopped] says so (checked between files), at
- *   [SearchLimits.maxFiles] files, or when the collector is full.
+ *   [SearchLimits.maxFiles] files, or when the collector is full; reads still
+ *   in flight are cancelled.
  */
 class TextScan(
     private val tree: ScanTree,
     private val query: SearchQuery,
     private val limits: SearchLimits,
     private val collector: SearchCollector,
+    private val parallelism: Int = 1,
     private val stopped: () -> Boolean,
 ) {
     var searched = 0
@@ -111,10 +125,44 @@ class TextScan(
     var filesCapped = false
         private set
 
+    /** What reading and matching one file found. */
+    private sealed class Outcome {
+        class Lines(val lines: List<SearchLine>) : Outcome()
+        object Large : Outcome()
+        object Binary : Outcome()
+        object NotText : Outcome()
+        object Unreadable : Outcome()
+    }
+
     /** Walks the tree. Throws IllegalArgumentException for a bad query, and what the top's listing throws. */
     fun run() {
         val matcher = LineMatcher.of(query)
         val filter = GlobFilter(query.includes, query.excludes)
+        val threads = parallelism.coerceIn(1, MAX_PARALLELISM)
+        val pool = if (threads > 1) {
+            val count = AtomicInteger()
+            Executors.newFixedThreadPool(threads) { task ->
+                Thread(task, "codeforge-scan-${count.incrementAndGet()}").apply { isDaemon = true }
+            }
+        } else {
+            null
+        }
+        val inFlight = ArrayDeque<Pair<ScanEntry, Future<Outcome>>>()
+        try {
+            walk(matcher, filter, pool, inFlight)
+            while (inFlight.isNotEmpty() && !stopped() && !collector.full) take(inFlight)
+        } finally {
+            for ((_, future) in inFlight) future.cancel(true)
+            pool?.shutdownNow()
+        }
+    }
+
+    private fun walk(
+        matcher: LineMatcher,
+        filter: GlobFilter,
+        pool: ExecutorService?,
+        inFlight: ArrayDeque<Pair<ScanEntry, Future<Outcome>>>,
+    ) {
         val pending = ArrayDeque<Pair<ScanEntry?, Int>>()
         pending.add(null to 0)
         while (pending.isNotEmpty()) {
@@ -140,38 +188,59 @@ class TextScan(
                     return
                 }
                 searched += 1
-                scanFile(entry, matcher)
-                collector.poll()
+                if (pool == null) {
+                    record(entry, scanFile(entry, matcher))
+                    collector.poll()
+                } else {
+                    inFlight.add(entry to pool.submit(Callable { scanFile(entry, matcher) }))
+                    // Enough read ahead to keep every thread busy, no more.
+                    while (inFlight.size >= MAX_IN_FLIGHT) {
+                        if (stopped() || collector.full) return
+                        take(inFlight)
+                    }
+                }
             }
         }
     }
 
-    private fun scanFile(entry: ScanEntry, matcher: LineMatcher) {
-        val listed = entry.size
-        if (listed != null && listed > limits.maxFileBytes) {
-            large += 1
-            return
+    /** The oldest read in flight, waited for and recorded. */
+    private fun take(inFlight: ArrayDeque<Pair<ScanEntry, Future<Outcome>>>) {
+        val (entry, future) = inFlight.removeFirst()
+        val outcome = try {
+            future.get()
+        } catch (failure: ExecutionException) {
+            Outcome.Unreadable
+        } catch (failure: CancellationException) {
+            Outcome.Unreadable
         }
+        record(entry, outcome)
+        collector.poll()
+    }
+
+    /** Counts one file's outcome; on the walking thread only. */
+    private fun record(entry: ScanEntry, outcome: Outcome) {
+        when (outcome) {
+            is Outcome.Lines -> if (outcome.lines.isNotEmpty()) collector.add(entry.path, outcome.lines)
+            Outcome.Large -> large += 1
+            Outcome.Binary -> binary += 1
+            Outcome.NotText -> notText += 1
+            Outcome.Unreadable -> unreadable += 1
+        }
+    }
+
+    /** Reads and matches one file: on any thread, touching nothing shared. */
+    private fun scanFile(entry: ScanEntry, matcher: LineMatcher): Outcome {
+        val listed = entry.size
+        if (listed != null && listed > limits.maxFileBytes) return Outcome.Large
         val bytes = try {
             tree.read(entry, limits.maxFileBytes)
         } catch (failure: Exception) {
-            unreadable += 1
-            return
-        }
-        if (bytes == null) {
-            large += 1
-            return
-        }
+            return Outcome.Unreadable
+        } ?: return Outcome.Large
         val text = when (val decoded = TextRule.decode(bytes)) {
             is TextRule.Decoded.Text -> decoded.text
-            TextRule.Decoded.Binary -> {
-                binary += 1
-                return
-            }
-            TextRule.Decoded.NotText -> {
-                notText += 1
-                return
-            }
+            TextRule.Decoded.Binary -> return Outcome.Binary
+            TextRule.Decoded.NotText -> return Outcome.NotText
         }
         val found = ArrayList<SearchLine>()
         var number = 1
@@ -179,17 +248,19 @@ class TextScan(
         while (true) {
             var end = start
             while (end < text.length && text[end] != '\n' && text[end] != '\r') end += 1
-            val matches = matcher.find(text.substring(start, end))
+            val line = text.substring(start, end)
+            val matches = matcher.find(line)
             if (matches != null) {
-                found.add(SearchCollector.lineOf(number, text.substring(start, end), matches.ranges, matches.count))
-                if (collector.lines + found.size >= limits.maxLines) break
+                found.add(SearchCollector.lineOf(number, line, matches.ranges, matches.count))
+                // The collector keeps no more than its cap from any one file.
+                if (found.size >= limits.maxLines) break
             }
             if (end >= text.length) break
             start = if (text[end] == '\r' && end + 1 < text.length && text[end + 1] == '\n') end + 2 else end + 1
             number += 1
             if (start == text.length) break
         }
-        if (found.isNotEmpty()) collector.add(entry.path, found)
+        return Outcome.Lines(found)
     }
 
     /** The summary once the walk has ended. */
@@ -223,6 +294,12 @@ class TextScan(
     }
 
     companion object {
+        /** Threads a scan may read with. */
+        const val MAX_PARALLELISM = 8
+
+        /** Reads waiting at most, ahead of the one being recorded. */
+        const val MAX_IN_FLIGHT = 16
+
         /** A failure the top folder's listing threw, as the search's. */
         fun failureOf(error: Throwable): Pair<SearchFailure, String> = when (error) {
             is StorageException -> when (error.problem) {

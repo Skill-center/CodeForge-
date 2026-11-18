@@ -140,6 +140,72 @@ class TextScanTest {
         assertEquals(1, summary.skippedBinary)
     }
 
+    /** [inner], with every read taking [delayMs] first, as a provider's open does. */
+    private class SlowTree(private val inner: ScanTree, private val delayMs: Long) : ScanTree {
+        override fun entries(folder: ScanEntry?): List<ScanEntry> = inner.entries(folder)
+
+        override fun read(file: ScanEntry, cap: Int): ByteArray? {
+            Thread.sleep(delayMs)
+            return inner.read(file, cap)
+        }
+    }
+
+    private fun timedScan(tree: ScanTree, query: SearchQuery, parallelism: Int, stopWhen: () -> Boolean = { false }): Triple<TextScan, List<SearchFile>, Long> {
+        val files = mutableListOf<SearchFile>()
+        val limits = SearchLimits()
+        val collector = SearchCollector(limits, emit = { files.addAll(it) })
+        val walk = TextScan(tree, query, limits, collector, parallelism = parallelism, stopped = stopWhen)
+        val started = System.nanoTime()
+        walk.run()
+        collector.flush()
+        return Triple(walk, files, (System.nanoTime() - started) / 1_000_000L)
+    }
+
+    @Test
+    fun readingAheadKeepsTheResultsAndTheirOrder() {
+        val root = temp.newFolder("p")
+        for (d in 0 until 5) for (f in 0 until 40) {
+            write(root, "d$d/f%02d.txt".format(f), if (f % 3 == 0) "a needle\nnone\nneedle again\n" else "nothing\n")
+        }
+        write(root, "d1/blob.bin", byteArrayOf(0x6E, 0x00))
+        val (one, oneFiles, _) = timedScan(LocalTree(root), SearchQuery("needle"), parallelism = 1)
+        val (four, fourFiles, _) = timedScan(LocalTree(root), SearchQuery("needle"), parallelism = 4)
+        assertEquals(oneFiles.map { it.path to it.lines.map { l -> l.line } }, fourFiles.map { it.path to it.lines.map { l -> l.line } })
+        assertEquals(5 * 14, fourFiles.size)
+        assertEquals(one.searched, four.searched)
+        assertEquals(1, four.binary)
+    }
+
+    @Test
+    fun readingAheadIsFasterWhereEachReadWaits() {
+        val root = temp.newFolder("p")
+        for (f in 0 until 40) write(root, "f%02d.txt".format(f), "needle $f\n")
+        val tree = SlowTree(LocalTree(root), delayMs = 20)
+        val (_, sequentialFiles, sequential) = timedScan(tree, SearchQuery("needle"), parallelism = 1)
+        val (_, parallelFiles, parallel) = timedScan(tree, SearchQuery("needle"), parallelism = 4)
+        assertEquals(40, sequentialFiles.size)
+        assertEquals(sequentialFiles.map { it.path }, parallelFiles.map { it.path })
+        assertTrue("4 readers took $parallel ms, 1 took $sequential ms", parallel * 4 < sequential * 3)
+    }
+
+    @Test
+    fun aStopCancelsTheReadsInFlight() {
+        val root = temp.newFolder("p")
+        for (f in 0 until 100) write(root, "f%03d.txt".format(f), "needle\n")
+        val found = mutableListOf<SearchFile>()
+        val limits = SearchLimits()
+        val collector = SearchCollector(limits, emit = { found.addAll(it) })
+        val walk = TextScan(SlowTree(LocalTree(root), delayMs = 50), SearchQuery("needle"), limits, collector, parallelism = 4) {
+            collector.lines >= 3
+        }
+        val started = System.nanoTime()
+        walk.run()
+        val ms = (System.nanoTime() - started) / 1_000_000L
+        assertTrue("stopped after $ms ms", ms < 2_000L)
+        assertTrue("read ${walk.searched} of 100", walk.searched < 100)
+        assertEquals(3, collector.lines)
+    }
+
     @Test
     fun aGoneFolderFailsTheSearchWithAReason() {
         val missing = File(temp.root, "gone")
