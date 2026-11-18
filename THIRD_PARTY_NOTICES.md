@@ -10,12 +10,12 @@ CodeForge's own code is licensed under the Apache License 2.0 (`LICENSE`). The a
 
 ## 2. The Flutter app's packages
 
-The Dart and Flutter packages linked into the app: the closure of `pubspec.yaml`'s regular dependencies, as `flutter pub deps` resolves it. `app/tool/check_licenses.dart` writes this section and checks it on every CI run, with each package's licence as its own licence file names it; GPL, AGPL and SSPL fail the build. Flutter collects these texts into the app, where its licence page shows them. Dev-only tools (code generators, test frameworks) are not distributed and are left out.
+The Dart and Flutter packages in the app's dependency closure: `pubspec.yaml`'s regular dependencies and everything they need, as `flutter pub deps` resolves it. The list is a superset of what the app holds, since the compiler keeps only the code the app reaches. It includes test libraries (`test_api`, `matcher`, the leak trackers) because flutter_riverpod and riverpod 3 declare `flutter_test` and `test_api` as regular dependencies. `app/tool/check_licenses.dart` writes this section and checks it on every CI run, with each package's licence as its own licence file names it; GPL, AGPL and SSPL fail the build. Flutter collects these texts into the app, where its licence page shows them. Dev-only tools (code generators, test frameworks) are not distributed and are left out.
 
 <!-- dart:begin -->
 <!-- Written by app/tool/check_licenses.dart from the app's resolved dependencies. Do not edit by hand: CI checks it. -->
 
-**70 packages** are linked into the app: BSD-3-Clause 60, MIT 7, Apache-2.0 3.
+**70 packages** are in the app's dependency closure: BSD-3-Clause 60, MIT 7, Apache-2.0 3. The compiler keeps only the code the app reaches, so the app holds a subset of them.
 
 | Package | Version | Licence |
 |---|---|---|

@@ -685,6 +685,22 @@ jobs:
             >> "$GITHUB_STEP_SUMMARY" || true
           exit "$status"
 
+      # The release build's merged manifest (Phase 4 W7): no permission but
+      # androidx.core's own signature permission, so no internet access. The
+      # store listing and the Data safety answers (docs/store/) say so.
+      - name: Release manifest
+        id: release_manifest
+        if: steps.release_build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          status=0
+          python3 tool/ci/check_manifest.py build/app release \
+            > ci-results/release-manifest.txt 2>&1 || status=$?
+          cat ci-results/release-manifest.txt
+          grep -E '^permissions:|^manifest_check=' ci-results/release-manifest.txt \
+            | sed 's/^/release /' >> "$GITHUB_STEP_SUMMARY" || true
+          exit "$status"
+
       - name: Coverage summary
         if: always()
         run: |
@@ -762,7 +778,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk release_manifest; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -780,6 +796,7 @@ jobs:
               sealed_runtime_tests) outcome="${{ steps.sealed_runtime_tests.outcome }}" ;;
               release_build) outcome="${{ steps.release_build.outcome }}" ;;
               runtime_apk) outcome="${{ steps.runtime_apk.outcome }}" ;;
+              release_manifest) outcome="${{ steps.release_manifest.outcome }}" ;;
             esac
             echo "$gate: $outcome"
             [ "$outcome" = "success" ] || fail=1

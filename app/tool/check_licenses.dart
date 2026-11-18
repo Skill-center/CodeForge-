@@ -8,10 +8,12 @@
 /// fail the gate until allowlisted here with a justification.
 ///
 /// Since Phase 4 W7 it also keeps THIRD_PARTY_NOTICES.md's section 2
-/// current: the packages linked into the app (the closure of the regular
-/// dependencies, from `flutter pub deps --json`), each with its version and
-/// the licence its own licence file names. With `--write-notices` it writes
-/// the section (CI's [bootstrap] runs); otherwise a stale section fails.
+/// current: the app's dependency closure (the regular dependencies and all
+/// they need, from `flutter pub deps --json`), each with its version and the
+/// licence its own licence file names. The compiler keeps only the code the
+/// app reaches, so the binary holds a subset of the list. With
+/// `--write-notices` it writes the section (in CI's bootstrap runs);
+/// otherwise a stale section fails.
 ///
 /// Run after `flutter pub get`: dart run tool/check_licenses.dart
 library;
@@ -219,7 +221,9 @@ String? _notices(Map<String, String> licenceTexts, {required bool write}) {
     "<!-- Written by app/tool/check_licenses.dart from the app's resolved "
         'dependencies. Do not edit by hand: CI checks it. -->',
     '',
-    '**${rows.length} packages** are linked into the app: $counts.',
+    "**${rows.length} packages** are in the app's dependency closure: "
+        '$counts. The compiler keeps only the code the app reaches, so the '
+        'app holds a subset of them.',
     '',
     '| Package | Version | Licence |',
     '|---|---|---|',
@@ -239,7 +243,9 @@ String? _notices(Map<String, String> licenceTexts, {required bool write}) {
   final updated =
       '${text.substring(0, begin)}$section'
       '${text.substring(end + _dartEnd.length)}';
-  stdout.writeln('notices: ${rows.length} packages linked into the app');
+  stdout.writeln(
+    "notices: ${rows.length} packages in the app's dependency closure",
+  );
   if (updated == text) {
     return null;
   }

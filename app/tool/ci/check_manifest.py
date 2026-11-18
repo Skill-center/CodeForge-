@@ -12,6 +12,10 @@ library's, and the build type's, as AGP merged them for the APK):
     (backupAgent, fullBackupOnly), with the rules files of Android 11 and
     lower (fullBackupContent) and of Android 12 and later
     (dataExtractionRules);
+  * for the release variant (Phase 4 W7), declares any permission at all
+    but androidx.core's own signature permission: the store listing and the
+    Data safety answers (docs/store/) say the app asks for none and has no
+    internet access, and this keeps that true;
   * keeps the native libraries inside the APK (extractNativeLibs="false").
     The sealed runtime's executables ship as JNI libraries that Android must
     extract into the native library directory, the one place an app
@@ -23,7 +27,8 @@ Usage:
   check_manifest.py <build dir> [variant]   finds the merged manifest of
                                             <variant> (default debug) under
                                             <build dir>/intermediates
-  check_manifest.py --file <manifest>       checks that file
+  check_manifest.py --file <manifest> [variant]  checks that file, as
+                                            <variant> (default debug)
   check_manifest.py --self-test             shows the check passing a good
                                             manifest and failing bad ones
 
@@ -66,6 +71,10 @@ EXPECTED_BACKUP = {
     'dataExtractionRules': '@xml/data_extraction_rules',
 }
 # Every <application> attribute that has a say in backup and restore.
+# The only permission a release build may carry: androidx.core (1.9 and
+# later) declares it, signature-level, so the app's own receivers registered
+# as not exported stay private. It grants nothing outside the app.
+RELEASE_PERMISSIONS = {f'{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'}
 BACKUP_ATTRIBUTES = set(EXPECTED_BACKUP) | {
     'backupInForeground',
     'restoreAnyVersion',
@@ -78,7 +87,7 @@ def is_storage_permission(name):
     return name in STORAGE_PERMISSIONS or any(m in name for m in STORAGE_MARKERS)
 
 
-def check(xml_text):
+def check(xml_text, release=False):
     """The findings for one manifest's text, and what was checked."""
     findings = []
     checked = []
@@ -93,6 +102,9 @@ def check(xml_text):
     for name in sorted(permissions):
         if is_storage_permission(name):
             findings.append(f'storage permission declared: {name}')
+        elif release and name not in RELEASE_PERMISSIONS:
+            findings.append(f'{name} in the release build: the listing and the Data safety '
+                            'answers say it asks for no permissions (docs/store/)')
     application = root.find('application')
     if application is None:
         findings.append('no <application> element')
@@ -162,6 +174,14 @@ BAD = {
     'native libraries kept in the APK': GOOD.replace('<application ', '<application android:extractNativeLibs="false" '),
 }
 
+# A release build: androidx.core's signature permission only.
+GOOD_RELEASE = GOOD.replace('android.permission.INTERNET', f'{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION')
+BAD_RELEASE = {
+    'INTERNET in a release build': GOOD,
+    'another permission in a release build': GOOD_RELEASE.replace(
+        '<application ', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n  <application '),
+}
+
 
 def self_test():
     ok = True
@@ -172,14 +192,22 @@ def self_test():
         findings, _ = check(text)
         print(f'self-test: {name} -> {"caught: " + findings[0] if findings else "MISSED"}')
         ok &= bool(findings)
+    findings, _ = check(GOOD_RELEASE, release=True)
+    print(f'self-test: good release manifest -> {"pass" if not findings else "FAIL " + "; ".join(findings)}')
+    ok &= not findings
+    for name, text in BAD_RELEASE.items():
+        findings, _ = check(text, release=True)
+        print(f'self-test: {name} -> {"caught: " + findings[0] if findings else "MISSED"}')
+        ok &= bool(findings)
     return ok
 
 
 def main(argv):
     if argv[1:2] == ['--self-test']:
         return 0 if self_test() else 1
-    if argv[1:2] == ['--file'] and len(argv) == 3:
+    if argv[1:2] == ['--file'] and len(argv) in (3, 4):
         path = argv[2]
+        variant = argv[3] if len(argv) == 4 else 'debug'
     elif len(argv) in (2, 3) and not argv[1].startswith('-'):
         variant = argv[2] if len(argv) == 3 else 'debug'
         path = merged_manifest(argv[1], variant)
@@ -190,7 +218,7 @@ def main(argv):
         print(__doc__)
         return 2
     with open(path, encoding='utf-8') as f:
-        findings, checked = check(f.read())
+        findings, checked = check(f.read(), release=variant == 'release')
     print(f'manifest: {path}')
     for line in checked:
         print(line)
