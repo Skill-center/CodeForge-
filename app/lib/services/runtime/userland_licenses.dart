@@ -22,8 +22,7 @@ const String _filesPrefix = 'Files: ';
 
 /// [userlandLicenses] from the app's own bundle, for
 /// `LicenseRegistry.addLicense` at startup.
-Stream<LicenseEntry> bundledUserlandLicenses() =>
-    userlandLicenses(rootBundle);
+Stream<LicenseEntry> bundledUserlandLicenses() => userlandLicenses(rootBundle);
 
 /// The entries of [userlandLicensesAsset] in [bundle]: none when the file is
 /// missing or malformed. The tests hold the bundled file to the format.

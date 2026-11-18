@@ -30,10 +30,7 @@ void main() {
     for (final paragraph in sourceOfferParagraphs(appVersion)) {
       expect(find.text(paragraph), findsOneWidget);
     }
-    expect(
-      find.textContaining(sourceArchiveName(appVersion)),
-      findsOneWidget,
-    );
+    expect(find.textContaining(sourceArchiveName(appVersion)), findsOneWidget);
   });
 
   testWidgets("CodeForge's license shows the Apache License", (tester) async {
