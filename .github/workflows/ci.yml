@@ -686,8 +686,10 @@ jobs:
           exit "$status"
 
       # The release build's merged manifest (Phase 4 W7): no permission but
-      # androidx.core's own signature permission, so no internet access. The
-      # store listing and the Data safety answers (docs/store/) say so.
+      # INTERNET (since Phase 5 W1: the userland's tools reach the network
+      # when the user runs them) and androidx.core's own signature
+      # permission. The store listing and the Data safety answers
+      # (docs/store/) say exactly that.
       - name: Release manifest
         id: release_manifest
         if: steps.release_build.outcome == 'success'

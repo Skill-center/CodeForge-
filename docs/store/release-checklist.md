@@ -11,7 +11,7 @@
 
 ## Every upload
 
-1. **(CI)** The run for the commit is green: the quality gates (with the *Release manifest* gate: no permissions), the runtime's supply chain, and the editor page.
+1. **(CI)** The run for the commit is green: the quality gates (with the *Release manifest* gate: INTERNET and androidx.core's signature permission, nothing else), the runtime's supply chain, and the editor page.
 2. **(CI)** The last phase gate for the change passed, with every runtime leg (Android 8.0 to 16).
 3. **(CI)** The release workflow built the arm64 App Bundle from the same pins, signed it with the upload key, and checked its base module against Play's 200 MB limit (`runtime/check-bundle-size.py`) and its native libraries' 16 KB alignment.
 4. **(CI)** The release on GitHub carries the source archive and its checksums, next to the bundle's.

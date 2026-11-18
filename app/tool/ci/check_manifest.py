@@ -12,10 +12,11 @@ library's, and the build type's, as AGP merged them for the APK):
     (backupAgent, fullBackupOnly), with the rules files of Android 11 and
     lower (fullBackupContent) and of Android 12 and later
     (dataExtractionRules);
-  * for the release variant (Phase 4 W7), declares any permission at all
-    but androidx.core's own signature permission: the store listing and the
-    Data safety answers (docs/store/) say the app asks for none and has no
-    internet access, and this keeps that true;
+  * for the release variant (Phase 4 W7), declares any permission but
+    INTERNET (Phase 5 W1: the userland's tools reach the network when the
+    user runs them) and androidx.core's own signature permission: the store
+    listing and the Data safety answers (docs/store/) name exactly these,
+    and this keeps that true;
   * keeps the native libraries inside the APK (extractNativeLibs="false").
     The sealed runtime's executables ship as JNI libraries that Android must
     extract into the native library directory, the one place an app
@@ -71,10 +72,16 @@ EXPECTED_BACKUP = {
     'dataExtractionRules': '@xml/data_extraction_rules',
 }
 # Every <application> attribute that has a say in backup and restore.
-# The only permission a release build may carry: androidx.core (1.9 and
-# later) declares it, signature-level, so the app's own receivers registered
-# as not exported stay private. It grants nothing outside the app.
-RELEASE_PERMISSIONS = {f'{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'}
+# The only permissions a release build may carry. INTERNET since Phase 5 W1
+# (the owner's decision of 2026-11-18): the userland's tools reach the
+# network when the user runs them; the store texts say so. And androidx.core
+# (1.9 and later) declares the other, signature-level, so the app's own
+# receivers registered as not exported stay private: it grants nothing
+# outside the app.
+RELEASE_PERMISSIONS = {
+    'android.permission.INTERNET',
+    f'{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
+}
 BACKUP_ATTRIBUTES = set(EXPECTED_BACKUP) | {
     'backupInForeground',
     'restoreAnyVersion',
@@ -104,7 +111,7 @@ def check(xml_text, release=False):
             findings.append(f'storage permission declared: {name}')
         elif release and name not in RELEASE_PERMISSIONS:
             findings.append(f'{name} in the release build: the listing and the Data safety '
-                            'answers say it asks for no permissions (docs/store/)')
+                            'answers name INTERNET alone (docs/store/)')
     application = root.find('application')
     if application is None:
         findings.append('no <application> element')
@@ -174,10 +181,13 @@ BAD = {
     'native libraries kept in the APK': GOOD.replace('<application ', '<application android:extractNativeLibs="false" '),
 }
 
-# A release build: androidx.core's signature permission only.
-GOOD_RELEASE = GOOD.replace('android.permission.INTERNET', f'{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION')
+# A release build: INTERNET and androidx.core's signature permission.
+GOOD_RELEASE = GOOD.replace(
+    'android.permission.INTERNET"/>',
+    f'android.permission.INTERNET"/>\n  <uses-permission android:name="{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>')
 BAD_RELEASE = {
-    'INTERNET in a release build': GOOD,
+    'a network-state permission in a release build': GOOD_RELEASE.replace(
+        '<application ', '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n  <application '),
     'another permission in a release build': GOOD_RELEASE.replace(
         '<application ', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n  <application '),
 }

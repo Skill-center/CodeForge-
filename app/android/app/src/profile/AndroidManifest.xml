@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Profiling builds only: Flutter tool communication. -->
+    <!-- Flutter tool communication. Since Phase 5 W1 the main manifest asks
+         for INTERNET in every build; this keeps it in profile builds whatever
+         the main manifest says. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 </manifest>

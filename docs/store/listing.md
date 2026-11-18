@@ -1,6 +1,6 @@
 # Play Store listing (draft)
 
-> **Draft, 2026-11-18,** from t1's `store/listing.md`. It describes the app as it is at the end of Phase 4. **Before each upload, check it against the build:** a listing that claims more than the app does is a policy problem. The terminal arrives in Phase 5. Until then the listing says the runtime's tools ship and are checked, not that you can run your own commands.
+> **Draft, 2026-11-18,** from t1's `store/listing.md`. It describes the app as it is at the end of Phase 4, with one change from Phase 5 W1 (2026-11-18): the release build asks for internet access, for the commands the user runs. **Before each upload, check it against the build:** a listing that claims more than the app does is a policy problem. The terminal arrives in Phase 5. Until then the listing says the runtime's tools ship and are checked, not that you can run your own commands.
 
 ## App identity
 
@@ -18,9 +18,9 @@
 **Short description** (80 characters at most):
 
 ```
-A code editor for Android with a real Linux toolchain inside. Offline, no ads.
+A code editor for Android with a real Linux toolchain inside. No account or ads.
 ```
-(78 characters.)
+(80 characters.)
 
 **Full description** (4,000 characters at most):
 
@@ -59,7 +59,8 @@ A LINUX TOOLCHAIN, INSIDE THE APP
 
 PRIVATE BY DESIGN
 • No account, no ads, no analytics, no tracking
-• The app asks for no permissions, and has no internet access
+• One permission, internet access, for the commands you run (npm, pip, git);
+  the app itself sends nothing
 • Android backup is your choice, and off until you turn it on
 
 CodeForge is open source under the Apache License 2.0. The bundled Linux
@@ -92,7 +93,7 @@ The screenshots show the demo project only: no real project names, keys or perso
 | Data safety | **No data collected, no data shared** ([data-safety.md](data-safety.md)) | — |
 | Privacy policy | [privacy-policy.md](privacy-policy.md), at a public URL | Required even when nothing is collected |
 | Government, financial, health, news apps | No | — |
-| Permissions declarations | None apply: the release build asks for no permissions | CI's *Release manifest* gate reads the release build's merged manifest on every push. Its only entry is androidx.core's own signature permission, which grants nothing outside the app |
+| Permissions declarations | None apply: the release build's one permission, INTERNET, is a normal permission, which Play's declaration forms do not cover | CI's *Release manifest* gate reads the release build's merged manifest on every push. Its entries: INTERNET (from Phase 5 W1), and androidx.core's own signature permission, which grants nothing outside the app |
 
 ## Release notes (the first upload)
 
