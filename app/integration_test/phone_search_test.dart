@@ -145,7 +145,9 @@ void phoneSearchTests() {
         expect(state.summary!.outcome, SearchOutcome.done);
         expect(state.files.length, 200);
       }
-      final word = await run(const SearchQuery(text: 'needle', wholeWord: true));
+      final word = await run(
+        const SearchQuery(text: 'needle', wholeWord: true),
+      );
       expect(word.files.length, 100);
       final regex = await run(
         const SearchQuery(text: r"id = 'm[0-4]-s0-f\d+'", regex: true),
