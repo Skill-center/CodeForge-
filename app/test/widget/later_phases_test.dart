@@ -61,5 +61,4 @@ void main() {
     );
     expect(chip.tooltip, 'Git arrives in Phase 7');
   });
-
 }

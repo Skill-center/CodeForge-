@@ -107,18 +107,16 @@ final class FakeSearchRun implements SearchRun {
 }
 
 /// A file with one matching line per entry of [lines]: (line, text, match).
-SearchFileResult searchFile(
-  String path,
-  List<(int, String, String)> lines,
-) => SearchFileResult(
-  path: path,
-  lines: [
-    for (final (number, text, match) in lines)
-      SearchLine(
-        line: number,
-        column: text.indexOf(match) + 1,
-        preview: text,
-        ranges: [text.indexOf(match), text.indexOf(match) + match.length],
-      ),
-  ],
-);
+SearchFileResult searchFile(String path, List<(int, String, String)> lines) =>
+    SearchFileResult(
+      path: path,
+      lines: [
+        for (final (number, text, match) in lines)
+          SearchLine(
+            line: number,
+            column: text.indexOf(match) + 1,
+            preview: text,
+            ranges: [text.indexOf(match), text.indexOf(match) + match.length],
+          ),
+      ],
+    );

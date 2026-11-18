@@ -47,7 +47,9 @@ void main() {
     expect(search.last.workspace, const DemoProjectLocation());
 
     search.last.found([
-      searchFile('main.js', [(2, "import { greet } from './utils.js';", 'greet')]),
+      searchFile('main.js', [
+        (2, "import { greet } from './utils.js';", 'greet'),
+      ]),
     ]);
     await pumpEventQueue();
     expect(state().files.single.path, 'main.js');
@@ -69,23 +71,32 @@ void main() {
     expect(state().elapsedMs, isNotNull);
   });
 
-  test('a new search cancels the running one and ignores its late results', () async {
-    controller().search(const SearchQuery(text: 'one'));
-    final first = search.last;
-    controller().search(const SearchQuery(text: 'two'));
-    final second = search.last;
-    expect(first.cancelRequested, isTrue);
+  test(
+    'a new search cancels the running one and ignores its late results',
+    () async {
+      controller().search(const SearchQuery(text: 'one'));
+      final first = search.last;
+      controller().search(const SearchQuery(text: 'two'));
+      final second = search.last;
+      expect(first.cancelRequested, isTrue);
 
-    first.found([searchFile('late.js', [(1, 'one', 'one')])]);
-    second.found([searchFile('main.js', [(1, 'two', 'two')])]);
-    await pumpEventQueue();
-    expect(state().query.text, 'two');
-    expect(state().files.map((f) => f.path), ['main.js']);
-  });
+      first.found([
+        searchFile('late.js', [(1, 'one', 'one')]),
+      ]);
+      second.found([
+        searchFile('main.js', [(1, 'two', 'two')]),
+      ]);
+      await pumpEventQueue();
+      expect(state().query.text, 'two');
+      expect(state().files.map((f) => f.path), ['main.js']);
+    },
+  );
 
   test('stop keeps what was found and waits for the host to end', () async {
     controller().search(const SearchQuery(text: 'x'));
-    search.last.found([searchFile('a.js', [(1, 'x', 'x')])]);
+    search.last.found([
+      searchFile('a.js', [(1, 'x', 'x')]),
+    ]);
     await pumpEventQueue();
     await controller().stop();
     await pumpEventQueue();
@@ -105,20 +116,27 @@ void main() {
     expect(state().files, isEmpty);
   });
 
-  test('switching workspaces drops the results and the running search', () async {
-    controller().search(const SearchQuery(text: 'x'));
-    search.last.found([searchFile('a.js', [(1, 'x', 'x')])]);
-    await pumpEventQueue();
-    container
-        .read(_workspace.notifier)
-        .open(const FolderLocation(treeUri: 'content://tree/1', name: 'Gate'));
-    expect(state().phase, SearchPhase.idle);
-    expect(state().files, isEmpty);
-    expect(search.last.cancelRequested, isTrue);
+  test(
+    'switching workspaces drops the results and the running search',
+    () async {
+      controller().search(const SearchQuery(text: 'x'));
+      search.last.found([
+        searchFile('a.js', [(1, 'x', 'x')]),
+      ]);
+      await pumpEventQueue();
+      container
+          .read(_workspace.notifier)
+          .open(
+            const FolderLocation(treeUri: 'content://tree/1', name: 'Gate'),
+          );
+      expect(state().phase, SearchPhase.idle);
+      expect(state().files, isEmpty);
+      expect(search.last.cancelRequested, isTrue);
 
-    controller().search(const SearchQuery(text: 'y'));
-    expect(search.last.workspace, isA<FolderLocation>());
-  });
+      controller().search(const SearchQuery(text: 'y'));
+      expect(search.last.workspace, isA<FolderLocation>());
+    },
+  );
 
   test('a file folds away and back', () async {
     controller().search(const SearchQuery(text: 'x'));

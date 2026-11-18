@@ -353,12 +353,14 @@ void main() {
       String? left;
       final leftWatch = Stopwatch()..start();
       while (leftWatch.elapsed < const Duration(seconds: 5)) {
-        final counted = await container
-            .read(runtimeServiceProvider)
-            .exec('bash', [
-              '-c',
-              r'n=0; for f in /proc/[0-9]*/comm; do read -r c < "$f" 2>/dev/null && [ "$c" = rg ] && n=$((n + 1)); done; echo $n',
-            ], timeout: const Duration(seconds: 20));
+        final counted = await container.read(runtimeServiceProvider).exec(
+          'bash',
+          [
+            '-c',
+            r'n=0; for f in /proc/[0-9]*/comm; do read -r c < "$f" 2>/dev/null && [ "$c" = rg ] && n=$((n + 1)); done; echo $n',
+          ],
+          timeout: const Duration(seconds: 20),
+        );
         left = counted.valueOrNull?.stdout.trim();
         if (left == '0') {
           break;
@@ -392,15 +394,11 @@ void main() {
         'needle',
       );
       await tester.tap(find.byKey(const ValueKey('search_go')));
-      await pumpUntil(
-        tester,
-        () {
-          final state = container.read(searchControllerProvider);
-          return state.query.text == 'needle' &&
-              state.phase == SearchPhase.finished;
-        },
-        what: "the panel's search",
-      );
+      await pumpUntil(tester, () {
+        final state = container.read(searchControllerProvider);
+        return state.query.text == 'needle' &&
+            state.phase == SearchPhase.finished;
+      }, what: "the panel's search");
       await tester.pumpAndSettle();
       final panel = container.read(searchControllerProvider);
       expect(panel.files.map((f) => f.path), ['m0/s0/f07.js']);
@@ -410,25 +408,25 @@ void main() {
       final content = File('$root/m0/s0/f07.js').readAsStringSync();
       final lines = content.split('\n');
       final expectedHead =
-          lines[0].length + 1 + lines[1].length + 1 + lines[2].indexOf('needle');
-      await pumpUntil(
-        tester,
-        () {
-          final docId = container.read(documentControllerProvider).active?.docId;
-          if (container.read(documentControllerProvider).activePath !=
-                  'm0/s0/f07.js' ||
-              docId == null) {
-            return false;
-          }
-          return container
-                  .read(editorHostProvider)
-                  .viewStateOf(docId)
-                  ?.selection
-                  ?.head ==
-              expectedHead;
-        },
-        what: 'm0/s0/f07.js open with the cursor on its match',
-      );
+          lines[0].length +
+          1 +
+          lines[1].length +
+          1 +
+          lines[2].indexOf('needle');
+      await pumpUntil(tester, () {
+        final docId = container.read(documentControllerProvider).active?.docId;
+        if (container.read(documentControllerProvider).activePath !=
+                'm0/s0/f07.js' ||
+            docId == null) {
+          return false;
+        }
+        return container
+                .read(editorHostProvider)
+                .viewStateOf(docId)
+                ?.selection
+                ?.head ==
+            expectedHead;
+      }, what: 'm0/s0/f07.js open with the cursor on its match');
       _say('opened m0/s0/f07.js at line 3, column 17 (offset $expectedHead)');
       report['open'] = {'path': 'm0/s0/f07.js', 'line': 3, 'column': 17};
       await tester.pumpAndSettle();
@@ -470,10 +468,7 @@ void main() {
       expect(scanned.summary!.engine, SearchEngine.scan);
       expect(scanned.summary!.outcome, SearchOutcome.done);
       expect(scanned.files.length, 100, reason: 'many/0100.txt to 0199.txt');
-      expect(
-        scanned.summary!.filesSearched,
-        greaterThanOrEqualTo(_manyFiles),
-      );
+      expect(scanned.summary!.filesSearched, greaterThanOrEqualTo(_manyFiles));
       final needle = await run(
         const SearchQuery(text: 'needle'),
         'folder needle',
@@ -520,8 +515,9 @@ void main() {
         final listed = await broker.list(folder.treeUri, path);
         final entries = listed.valueOrNull;
         expect(entries, isNotNull, reason: 'list "$path": $listed');
-        Directory(path.isEmpty ? target.path : '${target.path}/$path')
-            .createSync(recursive: true);
+        Directory(
+          path.isEmpty ? target.path : '${target.path}/$path',
+        ).createSync(recursive: true);
         copiedFolders++;
         for (final entry in entries!) {
           final child = path.isEmpty ? entry.name : '$path/${entry.name}';

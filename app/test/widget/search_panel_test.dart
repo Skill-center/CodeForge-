@@ -29,9 +29,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  String status(WidgetTester tester) => tester
-      .widget<Text>(find.byKey(const ValueKey('search_status')))
-      .data!;
+  String status(WidgetTester tester) =>
+      tester.widget<Text>(find.byKey(const ValueKey('search_status'))).data!;
 
   testWidgets('results come grouped by file, and one opens at its line', (
     tester,
@@ -44,7 +43,9 @@ void main() {
     expect(run.query.caseSensitive, isFalse);
 
     run.found([
-      searchFile('main.js', [(2, "import { greet } from './utils.js';", 'greet')]),
+      searchFile('main.js', [
+        (2, "import { greet } from './utils.js';", 'greet'),
+      ]),
       searchFile('utils.js', [
         (2, 'export function greet(language) {', 'greet'),
       ]),
@@ -99,38 +100,39 @@ void main() {
     expect(find.byKey(const ValueKey('search_file_main.js')), findsOneWidget);
   });
 
-  testWidgets('the switches and the globs reach the search, and a switch runs it again', (
-    tester,
-  ) async {
-    final harness = await openSearch(tester);
-    await tester.tap(find.byKey(const ValueKey('search_filters')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('search_includes')),
-      'src, *.js',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('search_excludes')),
-      'dist',
-    );
-    await tester.tap(find.byKey(const ValueKey('search_word')));
-    await tester.pumpAndSettle();
-    // No search has run yet: a switch alone starts none.
-    expect(harness.search.runs, isEmpty);
+  testWidgets(
+    'the switches and the globs reach the search, and a switch runs it again',
+    (tester) async {
+      final harness = await openSearch(tester);
+      await tester.tap(find.byKey(const ValueKey('search_filters')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('search_includes')),
+        'src, *.js',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('search_excludes')),
+        'dist',
+      );
+      await tester.tap(find.byKey(const ValueKey('search_word')));
+      await tester.pumpAndSettle();
+      // No search has run yet: a switch alone starts none.
+      expect(harness.search.runs, isEmpty);
 
-    await searchFor(tester, 'lang');
-    var run = harness.search.last;
-    expect(run.query.wholeWord, isTrue);
-    expect(run.query.includes, ['src', '*.js']);
-    expect(run.query.excludes, ['dist']);
+      await searchFor(tester, 'lang');
+      var run = harness.search.last;
+      expect(run.query.wholeWord, isTrue);
+      expect(run.query.includes, ['src', '*.js']);
+      expect(run.query.excludes, ['dist']);
 
-    await tester.tap(find.byKey(const ValueKey('search_case')));
-    await tester.pumpAndSettle();
-    expect(harness.search.runs, hasLength(2));
-    run = harness.search.last;
-    expect(run.query.caseSensitive, isTrue);
-    expect(harness.search.runs.first.finished, isTrue);
-  });
+      await tester.tap(find.byKey(const ValueKey('search_case')));
+      await tester.pumpAndSettle();
+      expect(harness.search.runs, hasLength(2));
+      run = harness.search.last;
+      expect(run.query.caseSensitive, isTrue);
+      expect(harness.search.runs.first.finished, isTrue);
+    },
+  );
 
   testWidgets('a pattern that cannot run says why', (tester) async {
     final harness = await openSearch(tester);
@@ -140,26 +142,26 @@ void main() {
     harness.search.last.finish(
       SearchOutcome.failed,
       problem: SearchProblem.badQuery,
-      detail: 'Not a valid regular expression for ripgrep: look-around is '
+      detail:
+          'Not a valid regular expression for ripgrep: look-around is '
           'not supported',
     );
     await tester.pumpAndSettle();
     expect(status(tester), contains('look-around is not supported'));
   });
 
-  testWidgets('nothing found says how much was searched, and what was left out', (
-    tester,
-  ) async {
-    final harness = await openSearch(tester);
-    await searchFor(tester, 'zzz');
-    harness.search.last.finish(SearchOutcome.done, filesSearched: 1234);
-    await tester.pumpAndSettle();
-    expect(status(tester), 'No results in 1,234 files');
-  });
+  testWidgets(
+    'nothing found says how much was searched, and what was left out',
+    (tester) async {
+      final harness = await openSearch(tester);
+      await searchFor(tester, 'zzz');
+      harness.search.last.finish(SearchOutcome.done, filesSearched: 1234);
+      await tester.pumpAndSettle();
+      expect(status(tester), 'No results in 1,234 files');
+    },
+  );
 
-  testWidgets('before any search, the panel says what it does', (
-    tester,
-  ) async {
+  testWidgets('before any search, the panel says what it does', (tester) async {
     await tester.pumpWidget(
       TestHarness().wrap(const Scaffold(body: SearchPanel())),
     );
@@ -180,11 +182,7 @@ void main() {
       cutEnd: true,
       ranges: [4, 9],
     );
-    final (spans, plain) = previewSpans(
-      line,
-      const TextStyle(),
-      CfColors.dark,
-    );
+    final (spans, plain) = previewSpans(line, const TextStyle(), CfColors.dark);
     expect(plain, '…abc match def…');
     expect(spans.map((s) => s.text), ['…', 'abc ', 'match', ' def', '…']);
   });

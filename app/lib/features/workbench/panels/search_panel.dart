@@ -310,7 +310,8 @@ class _StatusLine extends StatelessWidget {
 
 /// The status line's text for [search], and whether it reports a problem.
 (String, bool) searchStatus(SearchState search) {
-  final found = '${_count(search.lines, 'result')} in '
+  final found =
+      '${_count(search.lines, 'result')} in '
       '${_count(search.files.length, 'file')}';
   switch (search.phase) {
     case SearchPhase.idle:
