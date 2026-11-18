@@ -1,0 +1,34 @@
+self-test ok     the most capacity wins over a newer version: model=oriole,version=33
+self-test ok     then the newer version: model=oriole,version=33
+self-test ok     a deprecated version loses: model=redfin,version=30
+self-test ok     then a Google phone: model=oriole,version=33
+self-test ok     virtual devices, tablets, x86 phones and denied phones never qualify: model=felix,version=34
+self-test ok     versions outside API 26 to 36 and without capacity never qualify: model=panther,version=33
+self-test ok     nothing qualifies: None
+self-test ok     runtime: Android 14 or later only: model=felix,version=34
+self-test ok     runtime: a mid-range phone before a flagship with as much capacity: model=akita,version=34
+self-test ok     runtime: medium capacity is enough for a mid-range phone: model=a35x,version=34
+self-test ok     runtime: but a scarce one comes after any with capacity: model=komodo,version=35
+self-test ok     without --runtime, capacity and version decide as before: model=komodo,version=35
+self-test: all cases pass
+testlab_diagnose self-test: OK (11 cases)
+self-test ok     am: a pass, a failure and an assumption failure are told apart: {'dev.codeforge.app.runtime.ExecModelTest': (1, 0, 0), 'dev.codeforge.app.runtime.SealedShellTest': (0, 1, 1)}
+self-test ok     am: the failure keeps its first line: ['a_shellAndToolsRunFromTheApkPayload: java.lang.AssertionError: bash did not run (exit 127):']
+self-test ok     am: a failure and a skip both fail the gate: ['dev.codeforge.app.runtime.SealedShellTest has 1 failure(s): a_shellAndToolsRunFromTheApkPayload: java.lang.AssertionError: bash did not run (exit 127):', 'dev.codeforge.app.runtime.SealedShellTest skipped 1 test(s) - a skip is not a pass']
+self-test ok     am: a crash is a problem, and the test it stopped in a failure: (['the run ended early: Process crashed.'], ['dataDirectoryExecutionFollowsTargetSdk: no result (the run stopped inside it)'])
+self-test ok     junit: four tests in three classes, all passed: ['dev.codeforge.app.runtime.ExecModelTest', 'dev.codeforge.app.runtime.SealedShellTest', 'dev.codeforge.app.syncmodes.SyncModesTest']
+self-test ok     log: RUNTIME_GATE figures read, other lines left: {'exec_model_audit_outside_apk': '0', 'sealed_shell_audit_outside_apk': '0', 'first_install_ms': '21034'}
+self-test ok     log: the numbered document joined: {'test': 'sync_modes', 'store': {'changes': {'count': 20}}}
+self-test ok     junit + log: the gate passes
+self-test ok     a class that did not run, a missing figure and a missing document fail it: ['dev.codeforge.app.runtime.RuntimeInstallTest did not run', 'figure audit_outside_apk was not recorded', 'no complete CODEFORGE_SYNC_JSON document in the device log']
+verdict=pass
+device=model=x,version=36
+class dev.codeforge.app.runtime.ExecModelTest tests=1 passed=1 failed=0 skipped=0
+class dev.codeforge.app.runtime.SealedShellTest tests=2 passed=2 failed=0 skipped=0
+class dev.codeforge.app.syncmodes.SyncModesTest tests=1 passed=1 failed=0 skipped=0
+exec_model_audit_outside_apk=0
+first_install_ms=21034
+sealed_shell_audit_outside_apk=0
+CODEFORGE_SYNC_JSON={"store": {"changes": {"count": 20}}, "test": "sync_modes"}
+self-test ok     the command line writes the evidence: (0, 'pass')
+self-test: all cases pass
