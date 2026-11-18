@@ -250,6 +250,32 @@ public class SealedInstallerTest {
     }
 
     @Test
+    public void manifestReadsAStreamThatArrivesInPieces() throws Exception {
+        String text = "b".repeat(64) + "\t12\tshare/a\n"
+            + "c".repeat(64) + "\t3\tshare/b\n";
+        boolean[] closed = {false};
+        java.io.InputStream slow = new java.io.FilterInputStream(
+            new java.io.ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))) {
+            @Override
+            public int read(byte[] buffer, int offset, int length) throws IOException {
+                return super.read(buffer, offset, Math.min(length, 3));
+            }
+
+            @Override
+            public void close() throws IOException {
+                closed[0] = true;
+                super.close();
+            }
+        };
+        RuntimeManifest manifest = RuntimeManifest.read(slow);
+        assertEquals(2, manifest.size());
+        assertEquals(12, manifest.get("share/a").size);
+        assertEquals(3, manifest.get("share/b").size);
+        assertTrue("read closes the stream", closed[0]);
+        assertTrue(RuntimeManifest.read((java.io.InputStream) null).isEmpty());
+    }
+
+    @Test
     public void verifyFindsChangedFiles() throws Exception {
         File root = directory();
         File prefix = new File(root, "prefix");

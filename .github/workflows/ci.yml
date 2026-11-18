@@ -556,8 +556,9 @@ jobs:
           echo "::warning title=Kotlin unit tests failed::$(cat "$RUNNER_TEMP/kotlin-digest.txt")"
 
       # The vendored sealed-runtime kernel's JUnit tests (Phase 4 W2, gate G2):
-      # t1's tests, changed only in their package (native/PROVENANCE.md; the
-      # runtime job's provenance check proves it), on the JVM with no Android
+      # t1's tests, changed only in their package and by recorded patches
+      # (native/PROVENANCE.md; the runtime job's provenance check proves it;
+      # one test more since Phase 4 W7's patch), on the JVM with no Android
       # SDK. The module is included by app/android/settings.gradle.kts, and
       # nothing depends on it before W3. Counted from the JUnit XML like the
       # Kotlin tests; a run that found no tests fails.
@@ -598,16 +599,6 @@ jobs:
           } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/sealed-digest.txt"
           echo "::warning title=Sealed runtime tests failed::$(cat "$RUNNER_TEMP/sealed-digest.txt")"
-
-      # The upstream patches for t1 (native/upstream/; native/PROVENANCE.md,
-      # "Upstream patches"; since Phase 4 W6): each mapped onto the vendored
-      # kernel, applied, the kernel's JUnit tests run with it, and the
-      # vendored files restored, checked unchanged. A patch that no longer
-      # applies fails; one already vendored only warns.
-      - name: Upstream patches for t1
-        id: upstream_patches
-        continue-on-error: true
-        run: bash tool/ci/check_upstream_patches.sh
 
       # The runtime's pinned files (Phase 4 W3), for the release build below:
       # a build that targets one ABI carries that ABI's sealed payload, built
@@ -759,7 +750,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts api_floor kotlin_tests sealed_runtime_tests upstream_patches release_build runtime_apk; do
+          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
@@ -775,7 +766,6 @@ jobs:
               api_floor) outcome="${{ steps.api_floor.outcome }}" ;;
               kotlin_tests) outcome="${{ steps.kotlin_tests.outcome }}" ;;
               sealed_runtime_tests) outcome="${{ steps.sealed_runtime_tests.outcome }}" ;;
-              upstream_patches) outcome="${{ steps.upstream_patches.outcome }}" ;;
               release_build) outcome="${{ steps.release_build.outcome }}" ;;
               runtime_apk) outcome="${{ steps.runtime_apk.outcome }}" ;;
             esac

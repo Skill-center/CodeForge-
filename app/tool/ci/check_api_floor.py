@@ -8,14 +8,16 @@ API level that brought each one. A reference that is newer than minSdk (26)
 throws NoSuchMethodError, NoSuchFieldError or NoClassDefFoundError on older
 Android, and nothing at build time says so: CodeForge compiles against API 36.
 W5 found one such call through review, in vendored code: t1's
-RuntimeManifest.read(InputStream) reads with InputStream.readAllBytes(), which
+RuntimeManifest.read(InputStream) read with InputStream.readAllBytes(), which
 Android has only from API 33 (D8 does not backport it), and it made every
-runtime install fail on Android 8.0 to 12L.
+runtime install fail on Android 8.0 to 12L. W5 kept it out as dead code; since
+W7 the vendored kernel carries CodeForge's fix (native/PROVENANCE.md,
+*Patches*), and the app installs through it again.
 
 A newer reference passes only when ALLOWED names it, as one of two kinds:
   guarded  the method calls it behind a Build.VERSION.SDK_INT check;
-  dead     vendored code the app never calls (vendored files are never
-           edited, AGENTS.md §4). "Never called" is checked: a method that
+  dead     vendored code the app never calls, left as it came. "Never
+           called" is checked: a method that
            refers to something newer is tainted, and so is every method of
            ours that calls a tainted one, so a new call into dead code
            fails here.
@@ -57,20 +59,21 @@ OURS = ("dev.codeforge.",)
 # matched against "pkg.Class.method:(args)ret", so "pkg.Class.method:" names
 # every overload; a reference prefix against "Lpkg/Class;.member:type".
 ALLOWED = [
-    ("dead", "dev.codeforge.runtime.sealed.RuntimeManifest.read:(Ljava/io/InputStream;)", None,
-     "t1's kernel (vendored): reads with InputStream.readAllBytes (API 33). The host parses "
-     "the manifest itself (app/android/app/src/main/kotlin/dev/codeforge/app/runtime/"
-     "PayloadInstall.kt)."),
-    ("dead", "dev.codeforge.runtime.sealed.SealedInstaller.install:", None,
-     "t1's kernel (vendored): its entry point reads the manifest through "
-     "RuntimeManifest.read(InputStream). PayloadInstall makes its calls instead."),
-    ("dead", "dev.codeforge.runtime.core.exec.SealedPayloadInstaller.install:", None,
-     "t1's adapter (vendored): installs through SealedInstaller.install. The runtime host "
-     "installs through PayloadInstall (native/PROVENANCE.md)."),
     ("guarded", "dev.codeforge.app.CodeForgeBackupAgent.onFullBackup:",
      "Landroid/app/backup/FullBackupDataOutput;.getTransportFlags:",
      "read only when Build.VERSION.SDK_INT >= P (28)."),
 ]
+
+# The self-test's allowlist: W5's dead chain, as it stood before W7's fix, and
+# the guarded call, so both kinds stay tested.
+SAMPLE_ALLOWED = [
+    ("dead", "dev.codeforge.runtime.sealed.RuntimeManifest.read:(Ljava/io/InputStream;)", None,
+     "a vendored method reading with InputStream.readAllBytes (API 33)."),
+    ("dead", "dev.codeforge.runtime.sealed.SealedInstaller.install:", None,
+     "a vendored method calling it."),
+    ("dead", "dev.codeforge.runtime.core.exec.SealedPayloadInstaller.install:", None,
+     "a vendored method calling that one."),
+] + ALLOWED
 
 HEADER = re.compile(r"\|\[[0-9a-f]+\] (\S+)\s*$")
 INVOKE = re.compile(
@@ -424,15 +427,16 @@ def self_test():
         "00d1c8:                                        |[00d1c8] dev.codeforge.app.Theme.brand:()V",
         "00d1d8: 2200 4300                              |0000: new-instance v0, Landroid/app/Brand; // type@0043",
     ]
-    stale = ALLOWED + [("guarded", "dev.codeforge.app.Gone.method:", "Ljava/io/File;.toPath:", "x")]
+    stale = SAMPLE_ALLOWED + [("guarded", "dev.codeforge.app.Gone.method:", "Ljava/io/File;.toPath:",
+                               "x")]
     cases = [
-        ("the vendored dead chain and a guarded call pass", base, ALLOWED,
+        ("the vendored dead chain and a guarded call pass", base, SAMPLE_ALLOWED,
          {"violations": 0, "dead": 3, "guarded": 1, "stale": 0}),
-        ("a new call into the dead chain fails", extra(*new_caller), ALLOWED,
+        ("a new call into the dead chain fails", extra(*new_caller), SAMPLE_ALLOWED,
          {"violations": 1, "dead": 3, "guarded": 1, "stale": 0}),
-        ("an inherited API 33 method in our code fails", extra(*direct), ALLOWED,
+        ("an inherited API 33 method in our code fails", extra(*direct), SAMPLE_ALLOWED,
          {"violations": 1, "dead": 3, "guarded": 1, "stale": 0}),
-        ("a class from API 31 fails", extra(*new_class), ALLOWED,
+        ("a class from API 31 fails", extra(*new_class), SAMPLE_ALLOWED,
          {"violations": 1, "dead": 3, "guarded": 1, "stale": 0}),
         ("an entry that matches nothing is stale", base, stale,
          {"violations": 0, "dead": 3, "guarded": 1, "stale": 1}),
@@ -446,7 +450,7 @@ def self_test():
         status = "ok" if got == expected else "FAILED"
         failed += got != expected
         print("self-test %-6s %s: %s" % (status, name, got))
-    findings = analyze(base, api, MIN_SDK, ALLOWED)
+    findings = analyze(base, api, MIN_SDK, SAMPLE_ALLOWED)
     counts = (findings["stats"]["methods"], findings["stats"]["unknown"])
     status = "ok" if counts == (6, 1) else "FAILED"
     failed += counts != (6, 1)

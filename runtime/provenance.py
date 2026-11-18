@@ -16,14 +16,19 @@ PROVENANCE.md are the record:
     dev.codeforge.runtime.core, and io.mcyber12.sealed becomes
     dev.codeforge.runtime.sealed (the runtime core, Phase 4 W3);
   - `none`: byte for byte;
+  and since 2026-11-18 (the owner: CodeForge may change t1's code) a change may
+  carry patches after it, `package + t1-0001-runtime-manifest-read.patch`:
+  files in native/patches/, written against t1's tree as `git format-patch`
+  writes them. They apply to t1's file before the change does;
 * between `<!-- own:begin -->` and `<!-- own:end -->`, every file under
-  native/ and runtime/ that is CodeForge's own.
+  native/ and runtime/ that is CodeForge's own (the patches among them).
 
 `check` proves, offline:
 
 * each vendored file exists and has its recorded SHA-256;
-* undoing its recorded change gives t1's recorded SHA-256 exactly, so the file
-  differs from t1 in its package (and import) lines and nowhere else;
+* undoing its recorded change, then taking its patches off, gives t1's
+  recorded SHA-256 exactly, so the file differs from t1 in its package (and
+  import) lines and its recorded patches, and nowhere else;
 * every file under native/ and runtime/ is in exactly one table, so nothing
   arrives unrecorded (generated/, ci-results/ and caches excepted);
 * the header names the repository, a full commit and the licence.
@@ -47,10 +52,12 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_ROOT = os.path.dirname(HERE)
 RECORD = "native/PROVENANCE.md"
+PATCHES = "native/patches"
 SCOPES = ("native", "runtime")
 IGNORED_PARTS = {"generated", "ci-results", "__pycache__", "build", ".gradle", ".cxx"}
 VENDORED = ("<!-- vendored:begin -->", "<!-- vendored:end -->")
@@ -109,7 +116,10 @@ def vendored_rows(text):
     for cells in table_rows(section(text, VENDORED)):
         if len(cells) != 5:
             raise ProvenanceError("a vendored row needs 5 cells: %s" % " | ".join(cells))
-        rows.append(dict(zip(("path", "t1", "change", "t1_sha", "sha"), cells)))
+        row = dict(zip(("path", "t1", "cell", "t1_sha", "sha"), cells))
+        parts = [part.strip() for part in row["cell"].split("+")]
+        row["change"], row["patches"] = parts[0], [part for part in parts[1:] if part]
+        rows.append(row)
     return rows
 
 
@@ -142,6 +152,54 @@ def backward(data, change):
     if change == "rename":
         return _declarations(data, [(new, old) for old, new in reversed(RENAMES)])
     return re.sub(rb"(?m)^" + re.escape(CODEFORGE_PACKAGE), T1_PACKAGE, data)
+
+
+def patch(root, name, t1_path, data, reverse=False):
+    """[data], t1's file at [t1_path], with the patch [name] applied (or taken off)."""
+    source = os.path.join(root, PATCHES, name)
+    if not os.path.isfile(source):
+        raise ProvenanceError("%s: the patch %s is not in %s" % (t1_path, name, PATCHES))
+    with tempfile.TemporaryDirectory(prefix="codeforge-patch-") as work:
+        target = os.path.join(work, t1_path)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "wb") as handle:
+            handle.write(data)
+        command = ["git", "apply", "--include=" + t1_path]
+        if reverse:
+            command.append("--reverse")
+        command.append(os.path.abspath(source))
+        # Never a repository around it: git would apply relative to its root.
+        environment = dict(os.environ, GIT_CEILING_DIRECTORIES=os.path.dirname(work))
+        try:
+            result = subprocess.run(command, cwd=work, capture_output=True, text=True,
+                                    env=environment)
+        except OSError as error:
+            raise ProvenanceError("a patched file needs git to check: %s" % error)
+        if result.returncode != 0:
+            raise ProvenanceError("%s does not %s %s: %s"
+                                  % (name, "come off" if reverse else "apply to", t1_path,
+                                     result.stderr.strip()))
+        with open(target, "rb") as handle:
+            changed = handle.read()
+    if changed == data:
+        raise ProvenanceError("%s changes nothing in %s" % (name, t1_path))
+    return changed
+
+
+def forward_row(root, row, upstream):
+    """t1's file -> CodeForge's: its patches, then its change."""
+    data = upstream
+    for name in row["patches"]:
+        data = patch(root, name, row["t1"], data)
+    return forward(data, row["change"])
+
+
+def backward_row(root, row, ours):
+    """CodeForge's file -> t1's: its change undone, then its patches taken off."""
+    data = backward(ours, row["change"])
+    for name in reversed(row["patches"]):
+        data = patch(root, name, row["t1"], data, reverse=True)
+    return data
 
 
 def files_in_scope(root):
@@ -206,9 +264,14 @@ def check(root):
                 problems.append("%s: expected a `package dev.codeforge...` line and no "
                                 "io.mcyber12 anywhere (a t1 name outside a package or "
                                 "import line cannot be renamed)" % label)
-        if sha256(backward(data, row["change"])) != row["t1_sha"]:
+        try:
+            original = backward_row(root, row, data)
+        except ProvenanceError as error:
+            problems.append("%s: %s" % (label, error))
+            continue
+        if sha256(original) != row["t1_sha"]:
             problems.append("%s differs from t1's %s beyond the recorded change (%s)"
-                            % (label, row["t1"], row["change"]))
+                            % (label, row["t1"], row["cell"]))
     for label in own:
         if label in listed:
             problems.append("%s is listed both as vendored and as CodeForge's own" % label)
@@ -250,7 +313,7 @@ def copy(root, t1_root):
         source = os.path.join(t1_root, row["t1"])
         with open(source, "rb") as handle:
             upstream = handle.read()
-        ours = forward(upstream, row["change"])
+        ours = forward_row(root, row, upstream)
         if row["change"] == "rename" and b"io.mcyber12" in ours:
             raise ProvenanceError("%s names a t1 package outside its package and import "
                                   "lines, which the rename does not reach: it cannot be "
@@ -278,13 +341,11 @@ def record(root, t1_root):
             upstream = handle.read()
         with open(os.path.join(root, row["path"]), "rb") as handle:
             ours = handle.read()
-        if forward(upstream, row["change"]) != ours:
+        if forward_row(root, row, upstream) != ours:
             raise ProvenanceError("%s is not t1's %s with the change %s applied: copy it again "
-                                  "(export-sealed-runtime.sh for the kernel, `provenance.py "
-                                  "copy` for the runtime core)"
-                                  % (row["path"], row["t1"], row["change"]))
+                                  "(`provenance.py copy`)" % (row["path"], row["t1"], row["cell"]))
         lines.append("| `%s` | `%s` | %s | `%s` | `%s` |"
-                     % (row["path"], row["t1"], row["change"], sha256(upstream), sha256(ours)))
+                     % (row["path"], row["t1"], row["cell"], sha256(upstream), sha256(ours)))
     begin, end = VENDORED
     updated = (text[:text.index(begin) + len(begin)] + "\n" + "\n".join(lines) + "\n"
                + text[text.index(end):])
@@ -321,8 +382,10 @@ def main(argv=None):
         print("provenance: %d problem(s)" % len(problems), file=sys.stderr)
         return 1
     renamed = sum(1 for row in rows if row["change"] in RENAMED)
-    print("provenance: OK - %d vendored files (%d with the package renamed, %d byte for byte) "
-          "and %d of CodeForge's own" % (len(rows), renamed, len(rows) - renamed, len(own)))
+    patched = sum(1 for row in rows if row["patches"])
+    print("provenance: OK - %d vendored files (%d with the package renamed, %d byte for byte; "
+          "%d patched) and %d of CodeForge's own"
+          % (len(rows), renamed, len(rows) - renamed, patched, len(own)))
     return 0
 
 

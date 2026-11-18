@@ -15,6 +15,10 @@ checks that the record catches each way vendored code can drift:
   * a listed file that is gone fails;
   * `record` refuses a file that is not t1's with the recorded change;
   * the header must name the repository, a full commit and the licence;
+  * a recorded patch: `record` and `check` take it into account, an edit
+    beyond it is caught by the hash or by the patch refusing to come off,
+    `copy` applies it and stops when it no longer applies, and a missing
+    patch fails the check (since 2026-11-18);
   * the repository's own native/PROVENANCE.md passes.
 
 Run: python3 runtime/tests/test-provenance.py
@@ -181,11 +185,76 @@ class ProvenanceTest(unittest.TestCase):
         write(path, text.replace("- **Commit:** `%s`" % COMMIT, "- **Commit:** main").encode())
         self.assertIn("full 40-digit sha", self.problems())
 
+    def patched(self):
+        """Kernel.java with a recorded patch, written against t1's tree."""
+        import difflib
+        fixed = JAVA.replace(b"public final class Kernel {\n}",
+                             b"public final class Kernel {\n    static final int FIXED = 1;\n}")
+        diff = "".join(difflib.unified_diff(
+            JAVA.decode().splitlines(True), fixed.decode().splitlines(True),
+            "a/sealed-runtime/Kernel.java", "b/sealed-runtime/Kernel.java"))
+        write(os.path.join(self.root, "native", "patches", "fix.patch"), diff.encode())
+        path = os.path.join(self.root, "native", "PROVENANCE.md")
+        with open(path) as handle:
+            text = handle.read()
+        text = text.replace("| `sealed-runtime/Kernel.java` | package | ",
+                            "| `sealed-runtime/Kernel.java` | package + fix.patch | ")
+        text = text.replace("| `runtime/own.py` | CodeForge's |",
+                            "| `runtime/own.py` | CodeForge's |\n| `native/patches/fix.patch` | a patch |")
+        write(path, text.encode())
+        write(self.java, provenance.forward(fixed, "package"))
+        return fixed
+
+    def test_a_recorded_patch_is_checked_both_ways(self):
+        self.patched()
+        self.assertEqual(provenance.record(self.root, self.t1), 3)
+        self.assertEqual(self.problems(), "")
+        with open(self.java, "rb") as handle:
+            good = handle.read()
+        path = os.path.join(self.root, "native", "PROVENANCE.md")
+
+        def edited(old, new):
+            data = good.replace(old, new)
+            write(self.java, data)
+            with open(path) as handle:
+                text = handle.read()
+            row = [line for line in text.splitlines() if "Kernel.java" in line][0]
+            recorded = row.split("|")[5].strip().strip("`")
+            write(path, text.replace(recorded, provenance.sha256(data)).encode())
+            return self.problems()
+
+        # Outside the patch's reach, with the hash updated: the hash catches it.
+        self.assertIn("Kernel.java differs from t1's sealed-runtime/Kernel.java beyond the "
+                      "recorded change (package + fix.patch)",
+                      edited(b"import java.io.File;", b"import java.io.Files;"))
+        # Inside it: the patch no longer comes off.
+        self.assertIn("fix.patch does not come off sealed-runtime/Kernel.java",
+                      edited(b"Kernel class", b"Kernel klass"))
+
+    def test_copy_applies_the_patch_and_stops_when_it_no_longer_applies(self):
+        fixed = self.patched()
+        os.remove(self.java)
+        provenance.copy(self.root, self.t1)
+        with open(self.java, "rb") as handle:
+            self.assertEqual(handle.read(), provenance.forward(fixed, "package"))
+        write(os.path.join(self.t1, "sealed-runtime", "Kernel.java"),
+              JAVA.replace(b"public final class Kernel {\n}", b"public final class Core {\n}"))
+        with self.assertRaises(provenance.ProvenanceError) as caught:
+            provenance.copy(self.root, self.t1)
+        self.assertIn("does not apply", str(caught.exception))
+
+    def test_a_missing_patch_fails_the_check(self):
+        self.patched()
+        provenance.record(self.root, self.t1)
+        os.remove(os.path.join(self.root, "native", "patches", "fix.patch"))
+        problems = self.problems()
+        self.assertIn("the patch fix.patch is not in native/patches", problems)
+
     def test_the_repositorys_record_passes(self):
         result = subprocess.run([sys.executable, os.path.join(RUNTIME, "provenance.py"), "check"],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("23 vendored files (14 with the package renamed, 9 byte for byte)",
+        self.assertIn("23 vendored files (14 with the package renamed, 9 byte for byte; 2 patched)",
                       result.stdout)
 
 

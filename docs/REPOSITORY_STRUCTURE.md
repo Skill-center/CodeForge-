@@ -63,7 +63,10 @@ CodeForge-/
 │
 ├── native/                       # vendored runtime modules (Phase 4, from t1 @ d9789a2)
 │   ├── PROVENANCE.md             # source repo + commit, licence, every file's SHA-256 (W2)
-│   ├── sealed-runtime/           # t1's kernel, whole: plain Java, 22 JVM tests (W2)
+│   ├── patches/                  # CodeForge's changes to t1's code, recorded per file (W7;
+│   │                             #   the owner's permission, 2026-11-18)
+│   ├── sealed-runtime/           # t1's kernel, whole: plain Java, 22 JVM tests (W2), 23 with
+│   │                             #   CodeForge's patch (W7)
 │   ├── runtime-core/             # (W3) t1's HarnessConfig, HarnessPaths, exec adapter, renamed;
 │   │                             #   harness-exec.c/harness-probe.c unchanged, built by its own
 │   │                             #   Android.mk and Gradle tasks, which also build the payload
@@ -108,7 +111,7 @@ CodeForge-/
 
 1. **`app/` never contains runtime binaries.** Payload assets are generated into Gradle build dirs by `runtime/` scripts at build time (t1 pattern) — never committed.
 2. **`editor/` builds a deterministic page** committed nowhere: CI builds it into `app/assets/editor/` and the Android build consumes it from there. `manifest.json` records its SHA-256, size and bundled packages.
-3. **`native/` is vendored, not forked-and-forgotten.** PROVENANCE.md records upstream commit; changes are either upstreamable patches (documented) or CodeForge-specific adapters in clearly separated files. Re-sync procedure documented there. Since Phase 4 W2, CI enforces it: `runtime/provenance.py check` fails when a vendored file differs from t1 by anything but its recorded change, or when a file under `native/` or `runtime/` is unrecorded.
+3. **`native/` is vendored, not forked-and-forgotten.** PROVENANCE.md records upstream commit; changes are either upstreamable patches (documented) or CodeForge-specific adapters in clearly separated files. Re-sync procedure documented there. Since Phase 4 W2, CI enforces it: `runtime/provenance.py check` fails when a vendored file differs from t1 by anything but its recorded change and patches, or when a file under `native/` or `runtime/` is unrecorded. Since W7 a patch may change a vendored file, with the owner's permission (2026-11-18): it lives in `native/patches/`, and its file's row names it.
 4. **Generated artifacts stay out of Git** (build/, .dart_tool/, node_modules/, payloads, APKs). `.gitignore` covers them from Phase 1.
 5. **Docs move with code.** A PR that changes architecture updates the matching doc + ADR in the same PR (spec rule 12).
 

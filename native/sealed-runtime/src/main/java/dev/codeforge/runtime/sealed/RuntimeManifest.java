@@ -1,5 +1,6 @@
 package dev.codeforge.runtime.sealed;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -121,7 +122,16 @@ public final class RuntimeManifest {
     public static RuntimeManifest read(InputStream input) throws IOException {
         if (input == null) return empty();
         try (InputStream stream = input) {
-            return parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+            // Not InputStream.readAllBytes(): Android has it only from API 33,
+            // and D8 does not backport it, so an app below that would throw
+            // NoSuchMethodError here.
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = stream.read(buffer)) != -1) {
+                bytes.write(buffer, 0, count);
+            }
+            return parse(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
         }
     }
 

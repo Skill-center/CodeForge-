@@ -213,15 +213,16 @@ class RuntimeInstallTest {
     }
 
     /**
-     * Why the host installs through PayloadInstall (Phase 4 W5): t1's kernel
-     * reads a manifest stream with `InputStream.readAllBytes()`, which Android
-     * has only from API 33 (D8 does not backport it). Below API 33 the
-     * kernel's own entry point cannot run; from it, the stream reads as the
-     * bytes the host parses itself. The runtime gates' legs run this on
-     * API 26 to 36, so the reason is measured, not assumed.
+     * The kernel reads a manifest stream on every API level (Phase 4 W7). t1's
+     * kernel read it with `InputStream.readAllBytes()`, which Android has only
+     * from API 33 (D8 does not backport it), so in W5 this test measured
+     * NoSuchMethodError on API 26 to 28. CodeForge's patch to the vendored
+     * kernel reads in a loop (native/PROVENANCE.md, *Patches*), and the host
+     * installs through the kernel's own entry point again. The runtime gates'
+     * legs run this on API 26 to 36, so the fix is measured, not assumed.
      */
     @Test
-    fun g_theKernelsManifestStreamNeedsApi33() {
+    fun g_theKernelReadsAManifestStreamOnEveryApiLevel() {
         // A digest of 64 zeros, for a file of 0 bytes: one entry.
         val line = "0000000000000000000000000000000000000000000000000000000000000000\t0\tetc/empty\n"
         val outcome = try {
@@ -230,11 +231,7 @@ class RuntimeInstallTest {
             "NoSuchMethodError"
         }
         record("kernel_manifest_stream", "$outcome sdk=${Build.VERSION.SDK_INT}")
-        if (Build.VERSION.SDK_INT >= 33) {
-            assertEquals("read 1", outcome)
-        } else {
-            assertEquals("NoSuchMethodError", outcome)
-        }
+        assertEquals("read 1", outcome)
     }
 
     /** The payload, with one byte of the userland zip inverted. */
