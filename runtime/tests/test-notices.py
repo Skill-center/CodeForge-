@@ -10,7 +10,10 @@ fetches them with runtime/pins.py, and checks the drafted notices:
   * a pinned package replaces the bootstrap's copy;
   * a package without a licence file is listed for review;
   * only copyleft packages reach the source offer;
-  * the sections are rewritten in place, and --check reports them stale.
+  * the sections are rewritten in place, and --check reports them stale;
+  * the app's licence file holds each text once, after the packages that
+    carry it, following links to share/LICENSES and failing closed when a
+    text is not in the payload (Phase 5 W1).
 
 Run: python3 runtime/tests/test-notices.py
 """
@@ -52,6 +55,11 @@ modification, are permitted provided that ...
 3. Neither the name of the copyright holder nor the names of its contributors"""
 BSD2 = b"""Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met"""
+GPL3 = b"""                    GNU GENERAL PUBLIC LICENSE\r
+                       Version 3, 29 June 2007\r
+\x0c\r
+ Everyone is permitted to copy and distribute verbatim copies   \r
+"""
 GPL3_NOTICE = b"""This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -105,7 +113,10 @@ class NoticesTest(unittest.TestCase):
                  "zlib": ("1.3.0", None),
                  "libandroid": ("0.1", None)},
                 files={"share/doc/zlib/LICENSE": BSD3,
-                       "share/doc/libandroid/copyright": LGPL21},
+                       "share/doc/libandroid/copyright": LGPL21,
+                       # termux-licenses' generic texts, which Termux's links name.
+                       "share/LICENSES/GPL-2.0.txt": GPL2,
+                       "share/LICENSES/GPL-3.0.txt": GPL3},
                 symlinks={"share/doc/bash/copyright": "../../LICENSES/GPL-3.0.txt"})
         self.pins_path = os.path.join(self.work, "pins.json")
         fixtures.write_json(self.pins_path, fixtures.pins_for(repo, bootstraps,
@@ -124,6 +135,8 @@ class NoticesTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
         self.notices_path = os.path.join(self.work, "THIRD_PARTY_NOTICES.md")
         self.offer_path = os.path.join(self.work, "SOURCE_OFFER.md")
+        # Never the repository's own file.
+        self.app_path = os.path.join(self.work, "app", "userland.txt")
         with open(self.notices_path, "w") as handle:
             handle.write(NOTICES_TEMPLATE)
         with open(self.offer_path, "w") as handle:
@@ -134,7 +147,8 @@ class NoticesTest(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             return notices.main(["--pins", self.pins_path, "--cache", self.cache,
                                  "--notices", self.notices_path,
-                                 "--source-offer", self.offer_path] + list(extra))
+                                 "--source-offer", self.offer_path,
+                                 "--app-licences", self.app_path] + list(extra))
 
     def read(self, path):
         with open(path, encoding="utf-8") as handle:
@@ -196,21 +210,121 @@ class NoticesTest(unittest.TestCase):
         with self.reviewed():
             self.assertEqual(self.run_notices("--check"), 1)
             self.assertEqual(self.read(self.notices_path), NOTICES_TEMPLATE)
+            self.assertFalse(os.path.exists(self.app_path))
             self.assertEqual(self.run_notices(), 0)
             self.assertEqual(self.run_notices("--check"), 0)
+            # The app's file alone, edited by hand, is stale too.
+            with open(self.app_path, "a", encoding="utf-8") as handle:
+                handle.write("edited\n")
+            edited = self.read(self.app_path)
+            self.assertEqual(self.run_notices("--check"), 1)
+            self.assertEqual(self.read(self.app_path), edited)
 
     def test_the_output_is_stable(self):
         with self.reviewed():
             self.assertEqual(self.run_notices(), 0)
-            first = self.read(self.notices_path), self.read(self.offer_path)
+            first = (self.read(self.notices_path), self.read(self.offer_path),
+                     self.read(self.app_path))
             self.assertEqual(self.run_notices(), 0)
-        self.assertEqual((self.read(self.notices_path), self.read(self.offer_path)), first)
+        self.assertEqual((self.read(self.notices_path), self.read(self.offer_path),
+                          self.read(self.app_path)), first)
+
+    def app_entries(self):
+        """The app file's entries: (packages line, files line, text)."""
+        sections = self.read(self.app_path).split("\n%s\n" % notices.ENTRY_SEPARATOR)
+        entries = []
+        for section in sections[1:]:
+            lines = section.rstrip("\n").split("\n")
+            self.assertTrue(lines[0].startswith("Packages: "), section)
+            self.assertTrue(lines[1].startswith("Files: "), section)
+            self.assertEqual(lines[2], "", section)
+            entries.append((lines[0][len("Packages: "):], lines[1][len("Files: "):],
+                            "\n".join(lines[3:])))
+        return sections[0], entries
+
+    def test_the_app_gets_each_text_once_after_the_packages_that_carry_it(self):
+        with self.reviewed():
+            self.assertEqual(self.run_notices(), 0)
+        preamble, entries = self.app_entries()
+        self.assertIn("\n6 package versions, 5 distinct texts.\n", preamble)
+        by_packages = {packages: (files, text) for packages, files, text in entries}
+        self.assertEqual(len(by_packages), 5)
+        # A link is followed to termux-licenses' text.
+        self.assertEqual(by_packages["git 2.51.0"][0], "share/LICENSES/GPL-2.0.txt")
+        self.assertEqual(by_packages["git 2.51.0"][1], GPL2.decode())
+        self.assertEqual(by_packages["bash 5.2.37"][0], "share/LICENSES/GPL-3.0.txt")
+        # A text another package carries is listed once, under both (mystery's
+        # review points to zlib's), in name order.
+        self.assertEqual(by_packages["mystery 1.0, zlib 1.3.1"][0], "share/doc/zlib/LICENSE")
+        self.assertEqual(by_packages["mystery 1.0, zlib 1.3.1"][1], BSD3.decode())
+        self.assertEqual(by_packages["libcurl 8.11.0"][1], MIT.decode())
+        self.assertEqual(by_packages["libandroid 0.1"][0], "share/doc/libandroid/copyright")
+        # The bootstrap's zlib 1.3.0 was replaced, and a README is no licence.
+        self.assertNotIn("1.3.0", self.read(self.app_path))
+        self.assertNotIn("not a licence", self.read(self.app_path))
+
+    def test_the_app_texts_are_normalised(self):
+        with self.reviewed():
+            self.assertEqual(self.run_notices(), 0)
+        _, entries = self.app_entries()
+        bash = [text for packages, _, text in entries if packages == "bash 5.2.37"][0]
+        # GPL3's CRLF endings, its page break and its trailing spaces are gone;
+        # its indentation stays.
+        self.assertEqual(bash, "                    GNU GENERAL PUBLIC LICENSE\n"
+                               "                       Version 3, 29 June 2007\n"
+                               "\n"
+                               " Everyone is permitted to copy and distribute verbatim copies")
+        self.assertNotIn("\r", self.read(self.app_path))
 
     def test_a_missing_section_is_an_error(self):
         with open(self.offer_path, "w") as handle:
             handle.write("# Offer without markers\n")
         with self.assertRaises(SystemExit):
             self.run_notices()
+
+
+class AppTextsTest(unittest.TestCase):
+
+    INDEX = {
+        "share/doc/a/copyright": ("link", "../../LICENSES/GPL-3.0.txt"),
+        "share/doc/b/copyright": ("link", "../a/copyright"),
+        "share/doc/c/copyright": ("link", "/data/data/com.termux/files/usr/share/doc/d/LICENSE"),
+        "share/doc/d/LICENSE": ("file", b"d's own"),
+        "share/LICENSES/GPL-3.0.txt": ("file", b"the GPL"),
+        "share/doc/loop/one": ("link", "two"),
+        "share/doc/loop/two": ("link", "one"),
+        "share/doc/gone/copyright": ("link", "../../LICENSES/Gone-1.0.txt"),
+    }
+
+    def test_links_are_followed_to_their_text(self):
+        self.assertEqual(notices.resolve_text(self.INDEX, "share/doc/a/copyright", "a", "x"),
+                         ("share/LICENSES/GPL-3.0.txt", b"the GPL"))
+        self.assertEqual(notices.resolve_text(self.INDEX, "share/doc/b/copyright", "b", "x"),
+                         ("share/LICENSES/GPL-3.0.txt", b"the GPL"))
+        self.assertEqual(notices.resolve_text(self.INDEX, "share/doc/c/copyright", "c", "x"),
+                         ("share/doc/d/LICENSE", b"d's own"))
+
+    def test_a_missing_text_fails_naming_the_package(self):
+        with self.assertRaises(SystemExit) as caught:
+            notices.resolve_text(self.INDEX, "share/doc/gone/copyright", "gone", "arm64-v8a")
+        self.assertEqual(str(caught.exception),
+                         "notices: gone's licence text share/LICENSES/Gone-1.0.txt (through "
+                         "share/doc/gone/copyright) is not in the arm64-v8a payload")
+        with self.assertRaises(SystemExit):
+            notices.resolve_text(self.INDEX, "share/doc/none/copyright", "none", "x")
+
+    def test_a_loop_of_links_fails(self):
+        with self.assertRaises(SystemExit) as caught:
+            notices.resolve_text(self.INDEX, "share/doc/loop/one", "loop", "x")
+        self.assertIn("loop of links", str(caught.exception))
+
+    def test_texts_are_decoded_and_normalised(self):
+        self.assertEqual(notices.licence_text(b"\n\na  \r\n\tb\x0c\r\nc\x1b\n\n"), "a\n\tb\nc")
+        self.assertEqual(notices.licence_text("J\u00fcrgen".encode("latin-1")), "J\u00fcrgen")
+        self.assertEqual(notices.licence_text("J\u00fcrgen".encode("utf-8")), "J\u00fcrgen")
+        self.assertEqual(notices.licence_text(b" \r\n\x0c"), "")
+        # A lone carriage return (old Mac line endings) still ends a line.
+        self.assertEqual(notices.licence_text(b"one\rtwo"), "one\ntwo")
 
 
 class ReviewTest(unittest.TestCase):

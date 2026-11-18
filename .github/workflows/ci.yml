@@ -968,6 +968,10 @@ jobs:
           PY
           exit "$status"
 
+      # THIRD_PARTY_NOTICES.md's and SOURCE_OFFER.md's generated sections, and
+      # since Phase 5 W1 the userland's licence texts for the app's licence
+      # page (app/assets/licenses/userland.txt): checked, or in a commit-back
+      # run rewritten and committed below.
       - name: Notices
         id: notices
         if: steps.fetch.outcome == 'success'
@@ -1014,7 +1018,8 @@ jobs:
         run: |
           git config user.name "codeforge-ci"
           git config user.email "ci@codeforge.invalid"
-          git add -A -- runtime/pins.json "$RESULTS" THIRD_PARTY_NOTICES.md SOURCE_OFFER.md
+          git add -A -- runtime/pins.json "$RESULTS" THIRD_PARTY_NOTICES.md SOURCE_OFFER.md \
+            app/assets/licenses/userland.txt
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): runtime pins, notices and results [skip ci]"
             bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"

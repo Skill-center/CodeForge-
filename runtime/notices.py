@@ -13,21 +13,27 @@ share/doc/<package>/ (scripts/build/termux_step_install_license.sh):
   as copyright[.N] or under the upstream name (LICENSE, COPYING, ...).
 
 This script reads those files from the pinned bootstrap and .debs (verified
-against runtime/pins.json) and rewrites two generated sections:
+against runtime/pins.json) and rewrites two generated sections and a file:
 
 * THIRD_PARTY_NOTICES.md, between `<!-- userland:begin -->` and
   `<!-- userland:end -->`: a row per package and version with its licence and
   where the licence text sits in the payload;
 * SOURCE_OFFER.md, between `<!-- copyleft:begin -->` and
   `<!-- copyleft:end -->`: the packages under a copyleft licence, whose
-  corresponding source the offer covers.
+  corresponding source the offer covers;
+* app/assets/licenses/userland.txt (Phase 5 W1): the texts themselves, for
+  the app's licence page. Each distinct text once, after the packages that
+  carry it and the paths it has in the payload; a link is followed to its
+  text (share/LICENSES/<id>.txt, from termux-licenses), and a text that is
+  not in the payload fails the run. Line endings, page breaks, other control
+  characters and trailing spaces are normalised; nothing else is changed.
 
 A licence named by Termux's link is exact. One read from a text is identified
 by its wording and marked with an asterisk, for the review in W7.
 
 Usage:
-    notices.py --cache runtime/generated/cache          rewrite the sections
-    notices.py --cache runtime/generated/cache --check  fail if they are stale
+    notices.py --cache runtime/generated/cache          rewrite them
+    notices.py --cache runtime/generated/cache --check  fail if one is stale
 
 Run `pins.py bootstrap` and `pins.py fetch` for both architectures first.
 """
@@ -37,6 +43,7 @@ import collections
 import importlib.util
 import io
 import os
+import posixpath
 import re
 import sys
 import tarfile
@@ -58,6 +65,12 @@ payload = _load("build_sealed_payload", "build-sealed-payload.py")
 
 NOTICES_MARKERS = ("<!-- userland:begin -->", "<!-- userland:end -->")
 OFFER_MARKERS = ("<!-- copyleft:begin -->", "<!-- copyleft:end -->")
+
+# The app's copy of the texts (Phase 5 W1), and the line between its entries:
+# box-drawing characters, which no licence text uses (checked when written).
+# app/lib/services/runtime/userland_licenses.dart reads it.
+APP_LICENCES = os.path.join(ROOT, "app", "assets", "licenses", "userland.txt")
+ENTRY_SEPARATOR = "\u2500" * 72
 
 # Names Termux gives licence files: copyright[.N] from its own step, and the
 # upstream names a recipe's TERMUX_PKG_LICENSE_FILE copies.
@@ -201,26 +214,34 @@ class Package:
         return unique, files
 
 
+# Where licence texts live: each package's own directory, and the generic
+# texts Termux's links point at.
+LICENCE_DIRS = ("share/doc/", "share/LICENSES/")
+
+
 def bootstrap_packages(zip_path):
+    """The bootstrap's packages, and its share/LICENSES files."""
     with zipfile.ZipFile(zip_path) as archive:
         names = archive.namelist()
         status_name = next((n for n in names if n.endswith("var/lib/dpkg/status")), None)
         if status_name is None:
             raise SystemExit("%s has no var/lib/dpkg/status" % zip_path)
         stanzas = pins_tool.t1.parse_stanzas(archive.read(status_name).decode("utf-8", "replace"))
-        docs = {}
+        docs, shared = {}, {}
         for name in names:
             relative = payload.normalize(name)
-            if relative.startswith("share/doc/") and not name.endswith("/"):
-                docs[relative] = ("file", archive.read(name))
+            if relative.startswith(LICENCE_DIRS) and not name.endswith("/"):
+                into = docs if relative.startswith("share/doc/") else shared
+                into[relative] = ("file", archive.read(name))
         if "SYMLINKS.txt" in names:
             for line in archive.read("SYMLINKS.txt").decode("utf-8", "replace").splitlines():
                 if payload.SYMLINK_SEPARATOR not in line:
                     continue
                 target, link = line.split(payload.SYMLINK_SEPARATOR, 1)
                 relative = payload.normalize(link.strip())
-                if relative.startswith("share/doc/"):
-                    docs[relative] = ("link", target.strip())
+                if relative.startswith(LICENCE_DIRS):
+                    into = docs if relative.startswith("share/doc/") else shared
+                    into[relative] = ("link", target.strip())
     packages = {}
     for stanza in stanzas:
         name = stanza.get("Package")
@@ -230,43 +251,52 @@ def bootstrap_packages(zip_path):
         own = {p: v for p, v in docs.items() if p.startswith(prefix)}
         packages[name] = Package(name, stanza.get("Version", ""), stanza.get("Homepage"),
                                  own, "bootstrap")
-    return packages
+    return packages, shared
 
 
 def deb_package(path):
+    """A pinned package, and the share/LICENSES files it ships."""
     stanzas = pins_tool.t1.parse_stanzas(payload.deb_control(path))
     control = stanzas[0] if stanzas else {}
-    docs = {}
+    docs, shared = {}, {}
     with tarfile.open(fileobj=io.BytesIO(payload.deb_data_tar(path)), mode="r:") as tar:
         for member in tar:
             relative = payload.normalize(member.name)
-            if not relative.startswith("share/doc/"):
+            if not relative.startswith(LICENCE_DIRS):
                 continue
+            into = docs if relative.startswith("share/doc/") else shared
             if member.issym():
-                docs[relative] = ("link", member.linkname)
+                into[relative] = ("link", member.linkname)
             elif member.isfile():
                 handle = tar.extractfile(member)
-                docs[relative] = ("file", handle.read() if handle else b"")
-    return Package(control.get("Package", os.path.basename(path).split("_")[0]),
-                   control.get("Version", ""), control.get("Homepage"), docs, "pinned")
+                into[relative] = ("file", handle.read() if handle else b"")
+    package = Package(control.get("Package", os.path.basename(path).split("_")[0]),
+                      control.get("Version", ""), control.get("Homepage"), docs, "pinned")
+    return package, shared
 
 
 def payload_packages(pins, cache, arch):
-    """What one architecture's payload holds: the bootstrap, refreshed by the pins."""
+    """What one architecture's payload holds: the bootstrap, refreshed by the pins.
+
+    Returns the packages by name, and the share/LICENSES files: the
+    bootstrap's, with a pinned package's own laid over them, as the payload
+    builder lays its files over the bootstrap's.
+    """
     bootstrap = pins["bootstrap"]["files"][arch]
     zip_path = os.path.join(cache, "bootstrap", "bootstrap-%s.zip" % arch)
     if not os.path.isfile(zip_path) or pins_tool.sha256_file(zip_path) != bootstrap["sha256"]:
         raise SystemExit("the pinned %s bootstrap is not in %s: run `pins.py bootstrap` first"
                          % (arch, cache))
-    packages = bootstrap_packages(zip_path)
+    packages, shared = bootstrap_packages(zip_path)
     for entry in pins["packages"][arch]:
         path = os.path.join(cache, "debs", arch, os.path.basename(entry["filename"]))
         if not os.path.isfile(path) or pins_tool.sha256_file(path) != entry["sha256"]:
             raise SystemExit("pinned %s %s (%s) is not in %s: run `pins.py fetch` first"
                              % (entry["package"], entry["version"], arch, cache))
-        package = deb_package(path)
+        package, own_shared = deb_package(path)
         packages[package.name] = package
-    return packages
+        shared.update(own_shared)
+    return packages, shared
 
 
 def cell(text):
@@ -296,12 +326,56 @@ def review(name, identifiers, files, known):
     return reviewed, [(path, None) for path in parent_texts]
 
 
+def licence_text(data):
+    """A licence file's text as the app shows it: decoded (UTF-8, else Latin-1),
+    with its line endings, page breaks, other control characters and trailing
+    spaces normalised."""
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        text = data.decode("latin-1")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", "", text)
+    return "\n".join(line.rstrip() for line in text.split("\n")).strip("\n")
+
+
+def resolve_text(index, path, owner, arch):
+    """(the path whose bytes are the text, the bytes) for a licence file,
+    following links; fails, naming the package, when the text is missing."""
+    seen = []
+    while True:
+        entry = index.get(path)
+        if entry is None:
+            via = " (through %s)" % " -> ".join(seen) if seen else ""
+            raise SystemExit("notices: %s's licence text %s%s is not in the %s payload"
+                             % (owner, path, via, arch))
+        kind, value = entry
+        if kind == "file":
+            return path, value
+        seen.append(path)
+        if len(seen) > 8:
+            raise SystemExit("notices: %s's licence file %s is a loop of links"
+                             % (owner, seen[0]))
+        match = GENERIC_LINK.search(value)
+        if match:
+            path = "share/LICENSES/%s.txt" % match.group(1)
+        elif value.startswith("/"):
+            path = payload.normalize(value)
+        else:
+            path = posixpath.normpath(posixpath.join(posixpath.dirname(path), value))
+
+
 def collect(pins, cache):
-    """Rows merged across architectures: (name, version, licence, files, homepage) -> ABIs."""
+    """Rows merged across architectures: (name, version, licence, files, homepage) -> ABIs;
+    the counts per architecture; and the texts: text -> ({(name, version)}, {paths})."""
     rows = collections.OrderedDict()
     counts = {}
+    texts = {}
     for arch in sorted(pins_tool.ABIS):
-        packages = payload_packages(pins, cache, arch)
+        packages, shared = payload_packages(pins, cache, arch)
+        index = dict(shared)
+        for package in packages.values():
+            index.update(package.docs)
         counts[arch] = (len(packages),
                         sum(1 for p in packages.values() if p.origin == "pinned"))
         # Every licence path the payload carries: the share/doc files, and the
@@ -320,8 +394,19 @@ def collect(pins, cache):
             key = (package.name, package.version, tuple(identifiers), tuple(files),
                    package.homepage)
             rows.setdefault(key, []).append(pins_tool.ABIS[arch])
+            for path, _ in files:
+                where, data = resolve_text(index, path, package.name, pins_tool.ABIS[arch])
+                text = licence_text(data)
+                if not text:
+                    continue
+                if ENTRY_SEPARATOR in text:
+                    raise SystemExit("notices: %s's licence text %s contains the app file's "
+                                     "entry separator" % (package.name, where))
+                carriers, paths = texts.setdefault(text, (set(), set()))
+                carriers.add((package.name, package.version))
+                paths.add(where)
     ordered = sorted(rows.items(), key=lambda item: (item[0][0].lower(), item[0][1]))
-    return ordered, counts
+    return ordered, counts, texts
 
 
 def licence_label(identifiers):
@@ -405,6 +490,40 @@ def render_offer(pins, ordered):
     return "\n".join(lines)
 
 
+def render_app_licences(pins, texts):
+    """app/assets/licenses/userland.txt: each distinct text once, after the
+    packages that carry it and its paths in the payload."""
+    def order(package):
+        return (package[0].lower(), package[0], package[1])
+
+    entries = sorted(((sorted(carriers, key=order), sorted(paths), text)
+                      for text, (carriers, paths) in texts.items()),
+                     key=lambda entry: ([order(p) for p in entry[0]], entry[1], entry[2]))
+    versions = {package for carriers, _, _ in entries for package in carriers}
+    lines = [
+        "CodeForge's Linux userland: the licence texts its Termux packages carry.",
+        "",
+        "Written by runtime/notices.py from runtime/pins.json and the pinned files.",
+        "Do not edit by hand: CI checks it.",
+        "Bootstrap %s, pins resolved %s." % (pins["bootstrap"]["version"],
+                                             pins.get("resolvedAt", "never")),
+        "%d package versions, %d distinct texts." % (len(versions), len(entries)),
+        "",
+        "Each entry names the packages (name and version) whose licence files hold",
+        "the text, and the text's paths in the payload, then gives the text, with",
+        "its line endings, page breaks and trailing spaces normalised.",
+    ]
+    for carriers, paths, text in entries:
+        lines += [
+            ENTRY_SEPARATOR,
+            "Packages: " + ", ".join("%s %s" % package for package in carriers),
+            "Files: " + ", ".join(paths),
+            "",
+            text,
+        ]
+    return "\n".join(lines) + "\n"
+
+
 def replace_section(text, markers, section, path):
     begin, end = markers
     if text.count(begin) != 1 or text.count(end) != 1 or text.index(begin) > text.index(end):
@@ -420,6 +539,8 @@ def main(argv=None):
     parser.add_argument("--cache", required=True)
     parser.add_argument("--notices", default=os.path.join(ROOT, "THIRD_PARTY_NOTICES.md"))
     parser.add_argument("--source-offer", default=os.path.join(ROOT, "SOURCE_OFFER.md"))
+    parser.add_argument("--app-licences", default=APP_LICENCES,
+                        help="the licence texts for the app's licence page")
     parser.add_argument("--check", action="store_true",
                         help="change nothing; exit 1 when a section is stale")
     arguments = parser.parse_args(argv)
@@ -430,25 +551,31 @@ def main(argv=None):
         print("notices: the pins do not pass `pins.py check`:\n  " + "\n  ".join(problems),
               file=sys.stderr)
         return 1
-    ordered, counts = collect(pins, arguments.cache)
+    ordered, counts, texts = collect(pins, arguments.cache)
     stale = []
     for path, markers, section in (
             (arguments.notices, NOTICES_MARKERS, render_notices(pins, ordered, counts)),
-            (arguments.source_offer, OFFER_MARKERS, render_offer(pins, ordered))):
-        with open(path, encoding="utf-8") as handle:
-            text = handle.read()
-        updated = replace_section(text, markers, section, path)
+            (arguments.source_offer, OFFER_MARKERS, render_offer(pins, ordered)),
+            (arguments.app_licences, None, render_app_licences(pins, texts))):
+        text = ""
+        if markers or os.path.isfile(path):
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+        updated = replace_section(text, markers, section, path) if markers else section
         if updated == text:
             print("notices: %s is current" % os.path.relpath(path, ROOT))
             continue
         if arguments.check:
             stale.append(os.path.relpath(path, ROOT))
             continue
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write(updated)
-        print("notices: rewrote the generated section of %s" % os.path.relpath(path, ROOT))
+        print("notices: rewrote %s%s" % ("the generated section of " if markers else "",
+                                         os.path.relpath(path, ROOT)))
     copyleft = sum(1 for key, _ in ordered if any(COPYLEFT.match(i) for i, _ in key[2]))
-    print("notices: %d package versions, %d under a copyleft licence" % (len(ordered), copyleft))
+    print("notices: %d package versions, %d under a copyleft licence; %d distinct licence texts"
+          % (len(ordered), copyleft, len(texts)))
     unnamed = sorted({key[0] for key, _ in ordered
                       if not key[2] or any(i == "unidentified" for i, _ in key[2])})
     if unnamed:
