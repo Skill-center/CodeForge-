@@ -1,400 +1,400 @@
-11-18 04:53:02.836  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:02.840  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:02.843  1980  4247 E memtrack: Couldn't load memtrack module
-11-18 04:53:02.843  1980  4247 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:02.844  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:02.852  1980  5184 I chatty  : uid=1000 system_server identical 8 lines
-11-18 04:53:02.853  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:02.854  1980  5184 W system_server: Could not open dex files from location: /system/framework/com.android.location.provider.jar
-11-18 04:53:02.855  1980  5184 I PackageManager.DexOptimizer: Running dexopt (dexoptNeeded=1) on: /system/priv-app/PrebuiltGmsCore/PrebuiltGmsCore.apk pkg=com.google.android.gms isa=x86 dexoptFlags=boot_complete,public,enable_hidden_api_checks targetFilter=verify oatDir=null classLoaderContext=PCL[/system/framework/org.apache.http.legacy.boot.jar:/system/framework/com.android.media.remotedisplay.jar:/system/framework/com.android.location.provider.jar]
-11-18 04:53:02.855  1727  2036 V installed: DexInv: --- BEGIN '/system/priv-app/PrebuiltGmsCore/PrebuiltGmsCore.apk' ---
-11-18 04:53:02.864  5278  5278 W dex2oat : Unexpected CPU variant for X86 using defaults: x86_64
-11-18 04:53:02.864  5278  5278 W dex2oat : Mismatch between dex2oat instruction set features (ISA: X86 Feature string: -ssse3,-sse4.1,-sse4.2,-avx,-avx2,-popcnt) and those of dex2oat executable (ISA: X86 Feature string: ssse3,sse4.1,sse4.2,-avx,-avx2,popcnt) for the command line:
-11-18 04:53:02.864  5278  5278 W dex2oat : /system/bin/dex2oat --zip-fd=8 --zip-location=PrebuiltGmsCore.apk --input-vdex-fd=-1 --output-vdex-fd=10 --oat-fd=9 --oat-location=/data/dalvik-cache/x86/system@priv-app@PrebuiltGmsCore@PrebuiltGmsCore.apk@classes.dex --instruction-set=x86 --instruction-set-variant=x86_64 --instruction-set-features=default --runtime-arg -Xms64m --runtime-arg -Xmx512m --compiler-filter=verify --swap-fd=11 --classpath-dir=/system/priv-app/PrebuiltGmsCore --class-loader-context=PCL[/system/framework/org.apache.http.legacy.boot.jar:/system/framework/com.android.media.remotedisplay.jar:/system/framework/com.android.location.provider.jar] --generate-mini-debug-info --compact-dex-level=none --runtime-arg -Xtarget-sdk-version:30 --runtime-arg -Xhidden-api-checks --compilation-reason=boot
-11-18 04:53:02.864  5278  5278 I dex2oat : /system/bin/dex2oat --input-vdex-fd=-1 --output-vdex-fd=10 --compiler-filter=verify --classpath-dir=/system/priv-app/PrebuiltGmsCore --class-loader-context=PCL[/system/framework/org.apache.http.legacy.boot.jar:/system/framework/com.android.media.remotedisplay.jar:/system/framework/com.android.location.provider.jar] --generate-mini-debug-info --compact-dex-level=none --compilation-reason=boot
-11-18 04:53:02.870  5278  5278 W dex2oat : Could not open dex files from location: /system/framework/com.android.location.provider.jar
-11-18 04:53:02.870  5278  5278 W dex2oat : Failed to open classpath dex files
-11-18 04:53:02.912  2842  2842 I MicroDetectionWorker: #startMicroDetector [speakerMode: 0]
-11-18 04:53:02.913  2842  2842 I AudioController: Using mInputStreamFactoryBuilder
-11-18 04:53:02.913  2842  2842 I AudioController: Created new AudioSource
-11-18 04:53:02.914  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:02.927  2842  3019 I MicroRecognitionRunner: Starting detection.
-11-18 04:53:02.927  2842  3021 I MicrophoneInputStream: mic_starting  SR : 16000 CC : 16 SO : 6
-11-18 04:53:02.930  1911  5282 I AudioFlinger: AudioFlinger's thread 0xf0a83a00 tid=5282 ready to run
-11-18 04:53:02.931  2842  3021 I MicrophoneInputStream: mic_started  SR : 16000 CC : 16 SO : 6
-11-18 04:53:02.931  2842  3021 E ActivityThread: Failed to find provider info for com.google.android.apps.gsa.testing.ui.audio.recorded
-11-18 04:53:02.932  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:02.936  2842  3019 E Tee     : Incorrect start position: startPosition: 2144283647, mBufferBegin: 0, mBufferEnd: 627200
-11-18 04:53:02.936  2842  3019 W ErrorReporter: reportError [type: 211, code: 524300]: Error reading from input stream
-11-18 04:53:02.942  2842  3395 I MicroRecognitionRunner: Stopping hotword detection.
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: onFatalError, processing error from engine(4)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: com.google.android.apps.gsa.shared.speech.b.g: Error reading from input stream
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.k.a(SourceFile:91)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.l.run(Unknown Source:14)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.a.b(SourceFile:32)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.c.call(Unknown Source:4)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.g.run(Unknown Source:4)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at java.lang.Thread.run(Thread.java:764)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.i.run(SourceFile:6)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: Caused by: com.google.android.apps.gsa.shared.exception.GsaIOException: Error code: 393241 | No splits possible, buffers rewound.
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.Tee.bul(SourceFile:31)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.am.te(SourceFile:38)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.l.run(Unknown Source:3)
-11-18 04:53:02.942  2842  3019 W ErrorProcessor: 	... 12 more
-11-18 04:53:02.942  2842  3019 I AudioController: internalShutdown
-11-18 04:53:02.943  2842  3021 I MicrophoneInputStream: mic_close  SR : 16000 CC : 16 SO : 6
-11-18 04:53:02.944  2842  2842 I MicroDetector: Keeping mic open: false
-11-18 04:53:02.944  2842  2842 I MicroDetectionWorker: #onError(false)
-11-18 04:53:02.944  2842  3022 I DeviceStateChecker: DeviceStateChecker cancelled
-11-18 04:53:02.966  1980  4247 I ActivityManager: Killing 4374:com.google.android.packageinstaller/u0a26 (adj 906): empty #17
-11-18 04:53:02.968  1980  1998 W libprocessgroup: kill(-4374, 9) failed: No such process
-11-18 04:53:02.969  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:02.969  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:02.976  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:02.976  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:03.005  1980  1998 W libprocessgroup: kill(-4374, 9) failed: No such process
-11-18 04:53:03.006  1933  1933 I Zygote  : Process 4374 exited due to signal (9)
-11-18 04:53:03.049  1980  1998 W libprocessgroup: kill(-4374, 9) failed: No such process
-11-18 04:53:03.049  1980  1998 I libprocessgroup: Successfully killed process cgroup uid 10026 pid 4374 in 80ms
-11-18 04:53:03.184  1942  2488 W DnsTlsSocket: SSL_connect error 5, errno=111
-11-18 04:53:03.258  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE commands_timeout=failure=timed_out ms=507 ended=1
-11-18 04:53:03.258  4839  4863 I TestRunner: finished: d_resultsAreTyped(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-18 04:53:03.259  5278  5278 I dex2oat : Large app, accepted running with swap.
-11-18 04:53:03.261  4839  4863 I TestRunner: started: e_endingASessionLeavesNoChild(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-18 04:53:03.332  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tree=sleeps=5 with_marker=6 group=5285 in_group=5 setsid=true
-11-18 04:53:03.430  5278  5278 W dex2oat : Accessing hidden method Landroid/view/View;->setTransitionVisibility(I)V (dark greylist, linking)
-11-18 04:53:03.440  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE commands_end=failure=ended ended=5 remaining=0 ms=104 left=0 in_group=0 processes_before=1 processes_after=1
-11-18 04:53:03.441  4839  4863 I TestRunner: finished: e_endingASessionLeavesNoChild(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-18 04:53:03.445  4839  4863 I TestRunner: started: f_aTimeLimitAndAnExitEndTheirTreesToo(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-18 04:53:03.465  2558  5111 I Vision  : Requesting optional module download of ocr.
-11-18 04:53:03.465  2558  5111 I Vision  : Checking for download completion for 96129 -- ocr
-11-18 04:53:03.467  1980  1980 V SettingsProvider: Notifying for 0: content://settings/system/radio.data.stall.recovery.action
-11-18 04:53:03.612  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@7b3f826)
-11-18 04:53:03.612  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@7b3f826)
-11-18 04:53:03.877  5278  5278 I dex2oat : Explicit concurrent copying GC freed 68577(10MB) AllocSpace objects, 0(0B) LOS objects, 97% free, 44KB/1580KB, paused 38us total 27.160ms
-11-18 04:53:04.200  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:04.200  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:04.397  5278  5278 I dex2oat : Explicit concurrent copying GC freed 75653(9MB) AllocSpace objects, 0(0B) LOS objects, 96% free, 63KB/1599KB, paused 8us total 27.735ms
-11-18 04:53:04.474  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE commands_timeout_tree=ended=3 left=0
-11-18 04:53:04.474  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE commands_exit_tree=exit=0 ended=1 left=0
-11-18 04:53:04.474  4839  4863 I TestRunner: finished: f_aTimeLimitAndAnExitEndTheirTreesToo(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-18 04:53:04.478  4839  4863 I TestRunner: started: a_theApkCarriesThePayloadAndThePreload(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:04.479  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE abi=x86_64
-11-18 04:53:04.480  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE payload=3dc2163786c5abef
-11-18 04:53:04.480  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE apk_bytes=203618817
-11-18 04:53:04.480  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE exec_manifest_entries=535
-11-18 04:53:04.480  4839  4863 I TestRunner: finished: a_theApkCarriesThePayloadAndThePreload(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:04.482  4839  4863 I TestRunner: started: b_aFirstInstallVerifiesEveryFileAndAuditsClean(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:04.612  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@a06c67)
-11-18 04:53:04.612  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@a06c67)
-11-18 04:53:04.810  5278  5278 W dex2oat : Class aibk failed lock verification and will run slower.
-11-18 04:53:04.810  5278  5278 W dex2oat : Common causes for lock verification issues are non-optimized dex code
-11-18 04:53:04.810  5278  5278 W dex2oat : and incorrect proguard optimizations.
-11-18 04:53:04.814  5278  5278 W dex2oat : Class aicu failed lock verification and will run slower.
-11-18 04:53:05.119  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:05.119  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:05.248  5278  5278 W dex2oat : Class alhp failed lock verification and will run slower.
-11-18 04:53:05.434  5278  5303 W dex2oat : Verification of java.lang.String com.google.android.gms.ocr.base.OcrImage.toString() took 138.993ms
-11-18 04:53:05.435  5278  5278 W dex2oat : Verification of int alql.a(java.lang.String) took 149.557ms
-11-18 04:53:05.612  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@3ffba14)
-11-18 04:53:05.613  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@3ffba14)
-11-18 04:53:05.716  5278  5278 W dex2oat : Verification of void alvr.run() took 220.430ms
-11-18 04:53:05.997  5278  5303 W dex2oat : Verification of void com.google.android.gms.ocr.view.DetectedSegmentsView.<init>(android.content.Context, android.util.AttributeSet) took 341.688ms
-11-18 04:53:06.146  5278  5278 W dex2oat : Verification of void amed.a() took 420.658ms
-11-18 04:53:06.214  5278  5278 I dex2oat : Explicit concurrent copying GC freed 82400(10MB) AllocSpace objects, 0(0B) LOS objects, 94% free, 82KB/1618KB, paused 8us total 31.207ms
-11-18 04:53:06.613  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e0c82bd)
-11-18 04:53:06.613  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e0c82bd)
-11-18 04:53:07.176  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:07.176  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:07.613  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@65770b2)
-11-18 04:53:07.613  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@65770b2)
-11-18 04:53:07.791  5278  5309 W dex2oat : Verification of void azuc.h(azcq) took 365.933ms
-11-18 04:53:07.795  5278  5278 W dex2oat : Verification of android.os.Bundle azvg.a(java.lang.String, android.os.Bundle) took 315.978ms
-11-18 04:53:07.849  5278  5278 I dex2oat : Explicit concurrent copying GC freed 76395(12MB) AllocSpace objects, 0(0B) LOS objects, 94% free, 86KB/1622KB, paused 9us total 52.288ms
-11-18 04:53:07.948  2842  2842 I MicroDetectionWorker: #startMicroDetector [speakerMode: 0]
-11-18 04:53:07.948  2842  2842 I AudioController: Using mInputStreamFactoryBuilder
-11-18 04:53:07.948  2842  2842 I AudioController: Created new AudioSource
-11-18 04:53:07.949  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:07.995  2842  3019 I MicroRecognitionRunner: Starting detection.
-11-18 04:53:07.996  2842  3023 I MicrophoneInputStream: mic_starting  SR : 16000 CC : 16 SO : 6
-11-18 04:53:07.998  2842  3023 I MicrophoneInputStream: mic_started  SR : 16000 CC : 16 SO : 6
-11-18 04:53:07.999  2842  3023 E ActivityThread: Failed to find provider info for com.google.android.apps.gsa.testing.ui.audio.recorded
-11-18 04:53:07.999  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:08.000  2842  3023 I MicrophoneInputStream: mic_close  SR : 16000 CC : 16 SO : 6
-11-18 04:53:08.006  2842  3019 I MicroRecognitionRunner: Detection finished
-11-18 04:53:08.006  2842  3019 W ErrorReporter: reportError [type: 211, code: 524300]: Error reading from input stream
-11-18 04:53:08.006  2842  3395 I MicroRecognitionRunner: Stopping hotword detection.
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: onFatalError, processing error from engine(4)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: com.google.android.apps.gsa.shared.speech.b.g: Error reading from input stream
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.k.a(SourceFile:91)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.l.run(Unknown Source:14)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.a.b(SourceFile:32)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.c.call(Unknown Source:4)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.g.run(Unknown Source:4)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.lang.Thread.run(Thread.java:764)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.i.run(SourceFile:6)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: Caused by: com.google.android.apps.gsa.shared.exception.GsaIOException: Error code: 393238 | Buffer overflow, no available space.
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.Tee.j(SourceFile:103)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.au.read(SourceFile:2)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.io.InputStream.read(InputStream.java:101)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.ao.run(SourceFile:17)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.an.run(SourceFile:2)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
-11-18 04:53:08.006  2842  3019 W ErrorProcessor: 	... 10 more
-11-18 04:53:08.006  2842  3019 I AudioController: internalShutdown
-11-18 04:53:08.007  1911  5313 I AudioFlinger: AudioFlinger's thread 0xf09033c0 tid=5313 ready to run
-11-18 04:53:08.008  2842  2842 I MicroDetector: Keeping mic open: false
-11-18 04:53:08.008  2842  2842 I MicroDetectionWorker: #onError(false)
-11-18 04:53:08.008  2842  3022 I DeviceStateChecker: DeviceStateChecker cancelled
-11-18 04:53:08.594  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:08.594  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:08.613  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@c286380)
-11-18 04:53:08.617  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:08.617  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:08.636  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:08.636  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:08.667  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:08.667  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:08.696  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:08.696  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:08.710  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:08.710  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:08.723  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@c286380)
-11-18 04:53:08.751  5278  5278 I dex2oat : Explicit concurrent copying GC freed 72623(9MB) AllocSpace objects, 0(0B) LOS objects, 94% free, 95KB/1631KB, paused 8us total 26.148ms
-11-18 04:53:09.319  5278  5278 I dex2oat : Explicit concurrent copying GC freed 76221(7MB) AllocSpace objects, 0(0B) LOS objects, 94% free, 97KB/1633KB, paused 7us total 18.740ms
-11-18 04:53:09.419  5278  5278 I dex2oat : Explicit concurrent copying GC freed 11501(1168KB) AllocSpace objects, 0(0B) LOS objects, 93% free, 99KB/1635KB, paused 8us total 2.878ms
-11-18 04:53:09.471  5278  5278 I dex2oat : dex2oat took 6.608s (5.607s cpu) (threads: 2) arena alloc=0B (0B) java alloc=99KB (102384B) native alloc=9MB (9576072B) free=2MB (3006840B) swap=16MB (16777216B)
-11-18 04:53:09.481  1727  2036 V installed: DexInv: --- END '/system/priv-app/PrebuiltGmsCore/PrebuiltGmsCore.apk' (success) ---
-11-18 04:53:09.483  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:09.492  1980  5184 I chatty  : uid=1000 system_server identical 6 lines
-11-18 04:53:09.492  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:09.493  2128  3061 W Nearby  : Failed attempt #3 out of 3 for RestoreDeviceName [CONTEXT service_id=49 ]
-11-18 04:53:09.493  2128  3061 W Nearby  : java.lang.IllegalStateException: BluetoothAdapter not ready yet!
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at ajpy.d(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at ajpx.run(Unknown Source:0)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at bwuj.call(Unknown Source:0)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at bwuo.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at bwuo.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):9)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at ajpw.run(Unknown Source:0)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at java.lang.Thread.run(Thread.java:764)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at sow.run(Unknown Source:0)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at sux.run(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
-11-18 04:53:09.493  2128  3061 W Nearby  : 	at java.lang.Thread.run(Thread.java:764)
-11-18 04:53:09.494  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:09.512  1980  5184 I chatty  : uid=1000 system_server identical 35 lines
-11-18 04:53:09.512  1980  5184 I system_server: The ClassLoaderContext is a special shared library.
-11-18 04:53:09.512  1980  5184 I BackgroundDexOptService: Pinning optimized code {dev.codeforge.app.test, dev.codeforge.app, com.google.android.gms}
-11-18 04:53:09.513  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:09.513  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:09.521  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:09.521  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:09.613  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@347e5fe)
-11-18 04:53:09.613  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@347e5fe)
-11-18 04:53:10.461  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_ms=5978
-11-18 04:53:10.462  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_files=13894
-11-18 04:53:10.462  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_verified=13894
-11-18 04:53:10.462  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_bytes=274844694
-11-18 04:53:10.462  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_executables=535
-11-18 04:53:10.462  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_links=1169
-11-18 04:53:10.613  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e24815f)
-11-18 04:53:10.614  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e24815f)
-11-18 04:53:10.676  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_apk=0
-11-18 04:53:10.676  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_scripts=24
-11-18 04:53:10.676  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE audit_shipped=535
-11-18 04:53:10.677  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE audit_scanned=7611
-11-18 04:53:10.677  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE audit_truncated=false
-11-18 04:53:10.677  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE audit_ms=213
-11-18 04:53:10.948  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_bytes=274844694
-11-18 04:53:10.948  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_files=13894
-11-18 04:53:10.948  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE native_library_bytes=139988032
-11-18 04:53:10.948  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE installed_total_bytes=618451543
-11-18 04:53:10.948  4839  4863 I TestRunner: finished: b_aFirstInstallVerifiesEveryFileAndAuditsClean(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:10.951  4839  4863 I TestRunner: started: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:11.014  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_samples=11,12,12,10,12
-11-18 04:53:11.014  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_median=12
-11-18 04:53:11.014  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_budget_ms=100
-11-18 04:53:11.220  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_outside_apk=0
-11-18 04:53:11.220  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_ms=205
-11-18 04:53:11.221  4839  4863 I TestRunner: finished: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:11.224  4839  4863 I TestRunner: started: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:11.238  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE relinked_after_move=1
-11-18 04:53:11.238  4839  4863 I TestRunner: finished: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:11.240  4839  4863 I TestRunner: started: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:11.329  1942  3159 W DnsTlsSocket: SSL_connect error 5, errno=111
-11-18 04:53:11.613  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@37037ac)
-11-18 04:53:11.614  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@37037ac)
-11-18 04:53:12.614  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@2c64c75)
-11-18 04:53:12.614  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@2c64c75)
-11-18 04:53:13.015  2842  2842 I MicroDetectionWorker: #startMicroDetector [speakerMode: 0]
-11-18 04:53:13.015  2842  2842 I AudioController: Using mInputStreamFactoryBuilder
-11-18 04:53:13.015  2842  2842 I AudioController: Created new AudioSource
-11-18 04:53:13.017  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:13.025  2842  3022 I MicroRecognitionRunner: Starting detection.
-11-18 04:53:13.025  2842  3023 I MicrophoneInputStream: mic_starting  SR : 16000 CC : 16 SO : 6
-11-18 04:53:13.027  2842  3023 I MicrophoneInputStream: mic_started  SR : 16000 CC : 16 SO : 6
-11-18 04:53:13.028  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:13.029  2842  3023 I MicrophoneInputStream: mic_close  SR : 16000 CC : 16 SO : 6
-11-18 04:53:13.031  2842  3022 I MicroRecognitionRunner: Detection finished
-11-18 04:53:13.031  2842  3022 W ErrorReporter: reportError [type: 211, code: 524300]: Error reading from input stream
-11-18 04:53:13.031  2842  3395 I MicroRecognitionRunner: Stopping hotword detection.
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: onFatalError, processing error from engine(4)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: com.google.android.apps.gsa.shared.speech.b.g: Error reading from input stream
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.k.a(SourceFile:91)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.l.run(Unknown Source:14)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.a.b(SourceFile:32)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.c.call(Unknown Source:4)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.g.run(Unknown Source:4)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.lang.Thread.run(Thread.java:764)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.i.run(SourceFile:6)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: Caused by: com.google.android.apps.gsa.shared.exception.GsaIOException: Error code: 393238 | Buffer overflow, no available space.
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.Tee.j(SourceFile:103)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.au.read(SourceFile:2)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.io.InputStream.read(InputStream.java:101)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.ao.run(SourceFile:17)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.an.run(SourceFile:2)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
-11-18 04:53:13.031  2842  3022 W ErrorProcessor: 	... 10 more
-11-18 04:53:13.031  2842  3022 I AudioController: internalShutdown
-11-18 04:53:13.032  2842  2842 I MicroDetector: Keeping mic open: false
-11-18 04:53:13.032  2842  2842 I MicroDetectionWorker: #onError(false)
-11-18 04:53:13.032  2842  3019 I DeviceStateChecker: DeviceStateChecker cancelled
-11-18 04:53:13.032  1911  5320 I AudioFlinger: AudioFlinger's thread 0xf0783440 tid=5320 ready to run
-11-18 04:53:13.055  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_offset=33554432
-11-18 04:53:13.055  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_problem=corrupt
-11-18 04:53:13.055  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
-11-18 04:53:13.116  4839  4863 I TestRunner: finished: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:13.119  4839  4863 I TestRunner: started: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:13.027  2842  3023 E ActivityThread: Failed to find provider info for com.google.android.apps.gsa.testing.ui.audio.recorded
-11-18 04:53:13.465  1980  1995 I ActivityManager: Killing 4471:com.android.cellbroadcastreceiver/u0a36 (adj 906): empty #17
-11-18 04:53:13.465  1980  1995 I ActivityManager: Killing 3047:com.google.process.gapps/u0a61 (adj 906): empty #18
-11-18 04:53:13.465  1980  1998 W libprocessgroup: kill(-4471, 9) failed: No such process
-11-18 04:53:13.465  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:13.466  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:13.472  2558  5322 I Vision  : Requesting optional module download of ocr.
-11-18 04:53:13.472  2558  5322 I Vision  : Exceeded maximum feature download tries for ocr
-11-18 04:53:13.472  2558  5322 W Vision  : Request of optional module download of ocr failed.
-11-18 04:53:13.473  2558  5322 I Vision  : Checking for download completion for 106137 -- ocr
-11-18 04:53:13.476  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:13.476  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:13.496  1933  1933 I Zygote  : Process 3047 exited due to signal (9)
-11-18 04:53:13.496  1933  1933 I Zygote  : Process 4471 exited due to signal (9)
-11-18 04:53:13.506  1980  1998 W libprocessgroup: kill(-4471, 9) failed: No such process
-11-18 04:53:13.506  1980  1998 I libprocessgroup: Successfully killed process cgroup uid 10036 pid 4471 in 40ms
-11-18 04:53:13.506  1980  1998 W libprocessgroup: kill(-3047, 9) failed: No such process
-11-18 04:53:13.506  1980  1998 I libprocessgroup: Successfully killed process cgroup uid 10061 pid 3047 in 0ms
-11-18 04:53:13.614  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@d39d47b)
-11-18 04:53:13.614  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@d39d47b)
-11-18 04:53:14.614  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@27f2298)
-11-18 04:53:14.614  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@27f2298)
-11-18 04:53:15.614  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@63c3af1)
-11-18 04:53:15.614  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@63c3af1)
-11-18 04:53:16.005  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:16.005  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:16.617  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@28fd044)
-11-18 04:53:16.617  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@28fd044)
-11-18 04:53:17.614  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@148952d)
-11-18 04:53:17.614  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@148952d)
-11-18 04:53:18.037  2842  2842 I MicroDetectionWorker: #startMicroDetector [speakerMode: 0]
-11-18 04:53:18.038  2842  2842 I AudioController: Using mInputStreamFactoryBuilder
-11-18 04:53:18.038  2842  2842 I AudioController: Created new AudioSource
-11-18 04:53:18.038  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:18.163  2842  3022 I MicroRecognitionRunner: Starting detection.
-11-18 04:53:18.164  2842  3023 I MicrophoneInputStream: mic_starting  SR : 16000 CC : 16 SO : 6
-11-18 04:53:18.166  2842  3023 I MicrophoneInputStream: mic_started  SR : 16000 CC : 16 SO : 6
-11-18 04:53:18.166  2842  3023 E ActivityThread: Failed to find provider info for com.google.android.apps.gsa.testing.ui.audio.recorded
-11-18 04:53:18.166  2842  2842 I MicroDetectionWorker: onReady
-11-18 04:53:18.167  2842  3023 I MicrophoneInputStream: mic_close  SR : 16000 CC : 16 SO : 6
-11-18 04:53:18.168  2842  3022 I MicroRecognitionRunner: Detection finished
-11-18 04:53:18.168  2842  3022 W ErrorReporter: reportError [type: 211, code: 524300]: Error reading from input stream
-11-18 04:53:18.168  2842  3395 I MicroRecognitionRunner: Stopping hotword detection.
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: onFatalError, processing error from engine(4)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: com.google.android.apps.gsa.shared.speech.b.g: Error reading from input stream
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.k.a(SourceFile:91)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.staticplugins.microdetection.d.l.run(Unknown Source:14)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.a.b(SourceFile:32)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.libraries.gsa.runner.a.c.call(Unknown Source:4)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.g.run(Unknown Source:4)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.aw.run(SourceFile:4)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.lang.Thread.run(Thread.java:764)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.shared.util.concurrent.b.i.run(SourceFile:6)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: Caused by: com.google.android.apps.gsa.shared.exception.GsaIOException: Error code: 393238 | Buffer overflow, no available space.
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.Tee.j(SourceFile:103)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.au.read(SourceFile:2)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.io.InputStream.read(InputStream.java:101)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.ao.run(SourceFile:17)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at com.google.android.apps.gsa.speech.audio.an.run(SourceFile:2)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:458)
-11-18 04:53:18.168  2842  3022 W ErrorProcessor: 	... 10 more
-11-18 04:53:18.168  2842  3022 I AudioController: internalShutdown
-11-18 04:53:18.169  2842  2842 I MicroDetector: Keeping mic open: false
-11-18 04:53:18.169  2842  2842 I MicroDetectionWorker: #onError(false)
-11-18 04:53:18.169  2842  3019 I DeviceStateChecker: DeviceStateChecker cancelled
-11-18 04:53:18.169  1911  5325 I AudioFlinger: AudioFlinger's thread 0xf0603880 tid=5325 ready to run
-11-18 04:53:18.614  1980  2386 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@7296a62)
-11-18 04:53:18.626  1980  1994 I ActivityManager: Killing 3543:com.google.android.youtube/u0a62 (adj 906): empty #17
-11-18 04:53:18.627  1980  1998 W libprocessgroup: kill(-3543, 9) failed: No such process
-11-18 04:53:18.627  1980  1994 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@7296a62)
-11-18 04:53:18.627  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:18.627  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:18.648  1980  1994 E memtrack: Couldn't load memtrack module
-11-18 04:53:18.648  1980  1994 W android.os.Debug: failed to get memory consumption info: -1
-11-18 04:53:18.666  1980  1998 W libprocessgroup: kill(-3543, 9) failed: No such process
-11-18 04:53:18.666  1933  1933 I Zygote  : Process 3543 exited due to signal (9)
-11-18 04:53:18.666  1980  2410 D ConnectivityService: ConnectivityService NetworkRequestInfo binderDied(NetworkRequest [ TRACK_DEFAULT id=15, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Unwanted:  Uid: 10062] ], android.os.BinderProxy@4d857f3)
-11-18 04:53:18.666  1980  2410 D ConnectivityService: ConnectivityService NetworkRequestInfo binderDied(NetworkRequest [ LISTEN id=16, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Unwanted:  Uid: 10062] ], android.os.BinderProxy@3dbacb0)
-11-18 04:53:18.667  1980  2092 D ConnectivityService: releasing NetworkRequest [ TRACK_DEFAULT id=15, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED Unwanted:  Uid: 10062] ] (release request)
-11-18 04:53:18.706  1980  1998 W libprocessgroup: kill(-3543, 9) failed: No such process
-11-18 04:53:18.706  1980  1998 I libprocessgroup: Successfully killed process cgroup uid 10062 pid 3543 in 78ms
-11-18 04:53:18.747  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE digest_problem=corrupt
-11-18 04:53:18.747  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE digest_detail=digest differs: bin/am
-11-18 04:53:19.103  4839  4863 I TestRunner: finished: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:19.106  4839  4863 I TestRunner: started: g_theKernelsManifestStreamNeedsApi33(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:19.108  4839  4863 I CodeForgeRuntimeGate: RUNTIME_GATE kernel_manifest_stream=NoSuchMethodError sdk=28
-11-18 04:53:19.108  4839  4863 I TestRunner: finished: g_theKernelsManifestStreamNeedsApi33(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-18 04:53:19.110  4839  4863 I TestRunner: run finished: 16 tests, 0 failed, 0 ignored
-11-18 04:53:19.114  4839  4863 D NetworkSecurityConfig: No Network Security Config specified, using platform default
-11-18 04:53:19.211  4839  4863 I MonitoringInstr: waitForActivitiesToComplete() took: 0ms
-11-18 04:53:19.212  1980  2410 I ActivityManager: Force stopping dev.codeforge.app appid=10086 user=0: finished inst
-11-18 04:53:19.212  1980  2410 I ActivityManager: Killing 4839:dev.codeforge.app/u0a86 (adj 0): stop dev.codeforge.app
-11-18 04:53:19.212  1980  5329 W Binder  : Outgoing transactions from this process must be FLAG_ONEWAY
-11-18 04:53:19.212  1980  5329 W Binder  : java.lang.Throwable
-11-18 04:53:19.212  1980  5329 W Binder  : 	at android.os.BinderProxy.transact(Binder.java:1114)
-11-18 04:53:19.212  1980  5329 W Binder  : 	at android.app.IInstrumentationWatcher$Stub$Proxy.instrumentationFinished(IInstrumentationWatcher.java:164)
-11-18 04:53:19.212  1980  5329 W Binder  : 	at com.android.server.am.InstrumentationReporter$MyThread.run(InstrumentationReporter.java:86)
-11-18 04:53:19.213  1980  1998 W libprocessgroup: kill(-4839, 9) failed: No such process
-11-18 04:53:19.213  4828  4828 D AndroidRuntime: Shutting down VM
-11-18 04:53:19.216  4828  5330 W app_process: Thread attaching while runtime is shutting down: Binder:4828_3
-11-18 04:53:19.216  4828  5330 I AndroidRuntime: NOTE: attach of thread 'Binder:4828_3' failed
-11-18 04:53:19.256  1980  1998 W libprocessgroup: kill(-4839, 9) failed: No such process
-11-18 04:53:19.276  1933  1933 I Zygote  : Process 4839 exited due to signal (9)
-11-18 04:53:19.296  1980  1998 W libprocessgroup: kill(-4839, 9) failed: No such process
-11-18 04:53:19.296  1980  1998 I libprocessgroup: Successfully killed process cgroup uid 10086 pid 4839 in 83ms
+11-18 06:37:58.174  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@ec7f7dd)
+11-18 06:37:58.174  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@ec7f7dd)
+11-18 06:37:58.428  2362  4742 W ChimeraConfigurator: Error syncing flags: qoq: COMMIT_TIMEOUT
+11-18 06:37:58.428  2362  4742 I ChmraDebugLogger: [79] COMMIT_TIMEOUT
+11-18 06:37:58.430  1885  1899 E memtrack: Couldn't load memtrack module
+11-18 06:37:58.430  1885  1899 W android.os.Debug: failed to get memory consumption info: -1
+11-18 06:37:58.474  2362  4742 I ChmraDebugLogger: [52] null
+11-18 06:37:58.581  2362  4742 I ChimeraConfigService: Scheduling checkin for one-off execution between [3300,43200] seconds from now (1794983878581)
+11-18 06:37:58.585  2362  4742 I ChimeraConfigurator: Starting update, reason: 4 urgentFeatures: vision.ocr:-1
+11-18 06:37:58.687  2026  3050 W Conscrypt: Could not set socket write timeout: java.net.SocketException: Socket closed
+11-18 06:37:58.687  2026  3050 W Conscrypt: 	at com.google.android.gms.org.conscrypt.Platform.setSocketWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
+11-18 06:37:58.687  2026  3050 W Conscrypt: 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket.setSoWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:58.715  2026  3050 W Conscrypt: Could not set socket write timeout: java.net.SocketException: Socket closed
+11-18 06:37:58.715  2026  3050 W Conscrypt: 	at com.google.android.gms.org.conscrypt.Platform.setSocketWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
+11-18 06:37:58.715  2026  3050 W Conscrypt: 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket.setSoWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:58.960  2026  3013 W GLSUser : [AppCertManager] Failed to get security token.
+11-18 06:37:58.960  2026  3013 W GLSUser : java.io.IOException: Invalid scope
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at adiw.b(:com.google.android.gms@202414023@20.24.14 (040800-319035315):23)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at adiw.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):18)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at adiw.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):11)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at hwy.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):17)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at hww.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):45)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at hwr.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at hwu.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):10)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at gbi.call(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at soy.b(:com.google.android.gms@202414023@20.24.14 (040800-319035315):12)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at soy.run(:com.google.android.gms@202414023@20.24.14 (040800-319035315):7)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at sux.run(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:58.960  2026  3013 W GLSUser : 	at java.lang.Thread.run(Thread.java:764)
+11-18 06:37:59.001  2026  3013 W GLSUser : [AppCertManager] IOException while requesting key: 
+11-18 06:37:59.001  2026  3013 W GLSUser : java.io.IOException: Invalid device key response.
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at hwy.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):49)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at hww.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):45)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at hwr.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at hwu.a(:com.google.android.gms@202414023@20.24.14 (040800-319035315):10)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at gbi.call(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at soy.b(:com.google.android.gms@202414023@20.24.14 (040800-319035315):12)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at soy.run(:com.google.android.gms@202414023@20.24.14 (040800-319035315):7)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1167)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:641)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at sux.run(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:59.001  2026  3013 W GLSUser : 	at java.lang.Thread.run(Thread.java:764)
+11-18 06:37:59.015  2026  2026 E BluetoothAdapter: Bluetooth binder is null
+11-18 06:37:59.020  2026  2026 I chatty  : uid=10032 com.google.android.gms.persistent identical 1 line
+11-18 06:37:59.020  2026  2026 E BluetoothAdapter: Bluetooth binder is null
+11-18 06:37:59.022  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Updating password complexity components state.
+11-18 06:37:59.022  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.admin.DeviceAdminReceiver
+11-18 06:37:59.022  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.ui.SetNewPasswordActivity
+11-18 06:37:59.027  2026  2026 E BluetoothAdapter: Bluetooth binder is null
+11-18 06:37:59.063  2026  3050 I aopq    : Scheduling Phenotype for a PhenotypeSyncImmediately(13, com.google.android.gms) one off with window [1, 2] in seconds [CONTEXT service_id=51 ]
+11-18 06:37:59.070  2026  4783 I aorp    : updateFromConfigurations using legacy put method [CONTEXT service_id=204 ]
+11-18 06:37:59.071  1885  1885 V SettingsProvider: Notifying for 0: content://settings/global/phenotype_test_setting
+11-18 06:37:59.128  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Updating password complexity components state.
+11-18 06:37:59.128  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.admin.DeviceAdminReceiver
+11-18 06:37:59.128  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.ui.SetNewPasswordActivity
+11-18 06:37:59.174  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@f02a8bd)
+11-18 06:37:59.174  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@f02a8bd)
+11-18 06:37:59.174  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Updating password complexity components state.
+11-18 06:37:59.174  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.admin.DeviceAdminReceiver
+11-18 06:37:59.175  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.ui.SetNewPasswordActivity
+11-18 06:37:59.181  2362  5369 I ChromeSync: [Sync,SyncIntentOperation] Handling the intent: Intent { act=com.google.android.gms.phenotype.COMMITTED flg=0x10 pkg=com.google.android.gms cmp=com.google.android.gms/.chimera.GmsIntentOperationService (has extras) }.
+11-18 06:37:59.181  2026  5380 I PTCommittedOperation: Receive new configuration for com.google.android.gms.clearcut.public
+11-18 06:37:59.182  1885  2100 W ActivityManager: Unable to start service Intent { act=com.google.android.gms.auth.key.retrieval.service.START pkg=com.google.android.gms } U=0: not found
+11-18 06:37:59.183  2362  5369 I MdiSyncModule: flag handling is skipping irrelevant intent.
+11-18 06:37:59.184  2362  5370 W ModuleInitIntentOp: Dropping unexpected action com.google.android.gms.phenotype.COMMITTED
+11-18 06:37:59.185  1885  3215 W ActivityManager: Unbind failed: could not find connection for android.os.BinderProxy@2b99eb2
+11-18 06:37:59.186  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Updating password complexity components state.
+11-18 06:37:59.186  2362  2788 E GmsClient: unable to connect to service: com.google.android.gms.auth.key.retrieval.service.START on com.google.android.gms
+11-18 06:37:59.186  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.admin.DeviceAdminReceiver
+11-18 06:37:59.187  2026  4783 I Auth    : [AuthManaged,PasswordComplexityHelperImpl] Disabling com.google.android.gms.auth.managed.ui.SetNewPasswordActivity
+11-18 06:37:59.398  2026  3361 W Conscrypt: Could not set socket write timeout: java.net.SocketException: Socket closed
+11-18 06:37:59.398  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.Platform.setSocketWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
+11-18 06:37:59.398  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket.setSoWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:37:59.418  2026  3361 W Conscrypt: Could not set socket write timeout: java.net.SocketException: Socket closed
+11-18 06:37:59.418  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.Platform.setSocketWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
+11-18 06:37:59.418  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket.setSoWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:38:00.093  2026  3361 W Conscrypt: Could not set socket write timeout: java.net.SocketException: Socket closed
+11-18 06:38:00.097  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.Platform.setSocketWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
+11-18 06:38:00.099  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket.setSoWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:38:00.124  2026  3361 W Conscrypt: Could not set socket write timeout: java.net.SocketException: Socket closed
+11-18 06:38:00.124  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.Platform.setSocketWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):2)
+11-18 06:38:00.124  2026  3361 W Conscrypt: 	at com.google.android.gms.org.conscrypt.ConscryptFileDescriptorSocket.setSoWriteTimeout(:com.google.android.gms@202414023@20.24.14 (040800-319035315):0)
+11-18 06:38:00.174  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@490f5ac)
+11-18 06:38:00.174  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@490f5ac)
+11-18 06:38:01.174  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@b9b3275)
+11-18 06:38:01.174  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@b9b3275)
+11-18 06:38:01.613  1885  1953 W ActivityManager: Unable to start service Intent { act=com.google.android.gms.drive.ApiService.RESET_AFTER_BOOT flg=0x4 cmp=com.google.android.gms/.drive.api.ApiService (has extras) } U=0: not found
+11-18 06:38:01.617  2362  5411 I Vision  : Requesting optional module download of ocr.
+11-18 06:38:01.617  2362  5411 I Vision  : Checking for download completion for 144921 -- ocr
+11-18 06:38:01.623  1885  1885 V SettingsProvider: Notifying for 0: content://settings/system/radio.data.stall.recovery.action
+11-18 06:38:01.626  5422  5422 W .apps.wallpape: Unexpected CPU variant for X86 using defaults: x86_64
+11-18 06:38:01.628  1885  3215 I ActivityManager: Start proc 5422:com.google.android.apps.wallpaper/u0a10 for broadcast com.google.android.apps.wallpaper/.module.DailyLoggingAlarmReceiver
+11-18 06:38:01.652  5422  5422 I .apps.wallpape: The ClassLoaderContext is a special shared library.
+11-18 06:38:01.652  5422  5422 I .apps.wallpape: The ClassLoaderContext is a special shared library.
+11-18 06:38:02.097  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_ms=8122
+11-18 06:38:02.097  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_files=13894
+11-18 06:38:02.097  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_verified=13894
+11-18 06:38:02.097  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_bytes=274844694
+11-18 06:38:02.097  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_executables=535
+11-18 06:38:02.097  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_links=1169
+11-18 06:38:02.174  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@694f64f)
+11-18 06:38:02.175  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@694f64f)
+11-18 06:38:02.259  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_apk=0
+11-18 06:38:02.259  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_scripts=24
+11-18 06:38:02.259  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE audit_shipped=535
+11-18 06:38:02.259  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE audit_scanned=7611
+11-18 06:38:02.259  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE audit_truncated=false
+11-18 06:38:02.259  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE audit_ms=160
+11-18 06:38:02.281  5084  5096 I v.codeforge.ap: Background concurrent copying GC freed 80841(3MB) AllocSpace objects, 0(0B) LOS objects, 49% free, 1624KB/3MB, paused 8.751ms total 14.650ms
+11-18 06:38:02.472  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_bytes=274844694
+11-18 06:38:02.473  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_files=13894
+11-18 06:38:02.473  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE native_library_bytes=139988032
+11-18 06:38:02.473  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE installed_total_bytes=618455295
+11-18 06:38:02.473  5084  5107 I TestRunner: finished: b_aFirstInstallVerifiesEveryFileAndAuditsClean(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:02.475  5084  5107 I TestRunner: started: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:02.518  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_samples=6,9,6,9,9
+11-18 06:38:02.518  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_median=9
+11-18 06:38:02.518  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_budget_ms=100
+11-18 06:38:02.662  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_outside_apk=0
+11-18 06:38:02.662  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_ms=143
+11-18 06:38:02.662  5084  5107 I TestRunner: finished: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:02.664  5084  5107 I TestRunner: started: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:02.676  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE relinked_after_move=1
+11-18 06:38:02.676  5084  5107 I TestRunner: finished: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:02.678  5084  5107 I TestRunner: started: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:03.174  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@9321dc)
+11-18 06:38:03.175  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@9321dc)
+11-18 06:38:03.663  1885  1899 E memtrack: Couldn't load memtrack module
+11-18 06:38:03.663  1885  1899 W android.os.Debug: failed to get memory consumption info: -1
+11-18 06:38:03.871  1885  1899 E memtrack: Couldn't load memtrack module
+11-18 06:38:03.871  1885  1899 W android.os.Debug: failed to get memory consumption info: -1
+11-18 06:38:04.174  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@f1ea2e5)
+11-18 06:38:04.175  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@f1ea2e5)
+11-18 06:38:05.177  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@7cb51ba)
+11-18 06:38:05.178  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@7cb51ba)
+11-18 06:38:05.181  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@454a86b)
+11-18 06:38:05.181  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@454a86b)
+11-18 06:38:05.590  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_offset=33554432
+11-18 06:38:05.590  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_problem=corrupt
+11-18 06:38:05.590  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
+11-18 06:38:05.655  5084  5107 I TestRunner: finished: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:05.657  5084  5107 I TestRunner: started: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:06.055  1885  3706 I ActivityManager: Killing 4720:com.android.keychain/1000 (adj 906): empty #17
+11-18 06:38:06.055  1885  1903 W libprocessgroup: kill(-4720, 9) failed: No such process
+11-18 06:38:06.057  1885  1899 E memtrack: Couldn't load memtrack module
+11-18 06:38:06.057  1885  1899 W android.os.Debug: failed to get memory consumption info: -1
+11-18 06:38:06.076  1728  1728 I Zygote  : Process 4720 exited due to signal (9)
+11-18 06:38:06.095  1885  1903 W libprocessgroup: kill(-4720, 9) failed: No such process
+11-18 06:38:06.095  1885  1903 I libprocessgroup: Successfully killed process cgroup uid 1000 pid 4720 in 40ms
+11-18 06:38:06.180  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@a82dc35)
+11-18 06:38:06.181  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@a82dc35)
+11-18 06:38:07.157  3475  3475 I CarrierServices: [2] RcsAutoStartReceiver.b: carrierServicesJibeServiceEnabled changed from true to true
+11-18 06:38:07.157  3475  3475 I CarrierServices: [2] RcsAutoStartReceiver.b: enableRcs changed from true to true
+11-18 06:38:07.157  3475  3475 I CarrierServices: [2] RcsAutoStartReceiver.b: RcsAutoStartReceiver triggered. Fetching RCS State. Action: android.intent.action.PACKAGE_CHANGED
+11-18 06:38:07.169  3475  3475 I CarrierServices: [2] aws.a: Migration binding to RcsMigrationService
+11-18 06:38:07.173  2947  2947 I Bugle   : returning RCS state provider.
+11-18 06:38:07.180  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@aac0a9c)
+11-18 06:38:07.183  2026  5391 I Fitness : OnPackageChangedOperation got intent: Intent { act=android.intent.action.PACKAGE_CHANGED dat=package:com.google.android.googlequicksearchbox flg=0x45000010 cmp=com.google.android.gms/.chimera.PersistentIntentOperationService (has extras) } [CONTEXT service_id=17 ]
+11-18 06:38:07.191  2947  4190 I CarrierServices: [91] inq.shouldUseCarrierServicesApkForV1Apis: Checking if using CarrierServices.apk is possible. Enabled: true, isAtLeastM: true, runningInsideBugle: true
+11-18 06:38:07.196  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.196  2026  5391 I Fitness : FitCleanupIntentOperation received Intent android.intent.action.PACKAGE_CHANGED [CONTEXT service_id=17 ]
+11-18 06:38:07.198  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.198  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.201  2150  2150 D CarrierSvcBindHelper: No carrier app for: 0
+11-18 06:38:07.201  2150  2150 D ImsResolver: maybeAddedImsService, packageName: com.google.android.googlequicksearchbox
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: Failed to read configuration: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: java.io.FileNotFoundException: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open0(Native Method)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open(FileInputStream.java:231)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.<init>(FileInputStream.java:165)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at android.app.ContextImpl.openFileInput(ContextImpl.java:560)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at android.content.ContextWrapper.openFileInput(ContextWrapper.java:202)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at ion.a(SourceFile:2)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at idl.a(SourceFile:4)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at idm.a(SourceFile:7)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at com.google.android.apps.messaging.rcsmigration.RcsStateProvider.buildRcsState(SourceFile:81)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at com.google.android.apps.messaging.rcsmigration.RcsStateProvider.getRcsState(SourceFile:6)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at com.google.android.ims.rcsmigration.IRcsStateProvider$Stub.dispatchTransaction(SourceFile:10)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at com.google.android.aidl.BaseStub.onTransact(SourceFile:18)
+11-18 06:38:07.218  2947  4190 W RcsProvisioning: 	at android.os.Binder.execTransact(Binder.java:731)
+11-18 06:38:07.218  2947  4190 D RcsProvisioning: Retrieving backup token
+11-18 06:38:07.218  2947  4190 D RcsProvisioning: Exception while getting subscriber Id. Using default
+11-18 06:38:07.241  1885  1957 I InputReader: Reconfiguring input devices.  changes=0x00000010
+11-18 06:38:07.242  1885  1885 I Telecom : DefaultDialerCache: Refreshing default dialer for user 0: now com.google.android.dialer: DDC.oR@AKI
+11-18 06:38:07.252  2547  2547 I BgTaskExecutorImpl: Starting NONEXCLUSIVE background task smartspace_update.
+11-18 06:38:07.267  1885  2031 D ActivityManager: Raise procstate to external provider: ProcessRecord{7ba8d07 3219:com.android.providers.calendar/u0a28}
+11-18 06:38:07.269  2715  2825 W QsbUiManager: Doodle is not valid.
+11-18 06:38:07.269  2715  2825 W QsbUiManager: Doodle bitmap is not valid.
+11-18 06:38:07.277  2547  3019 W VelvetNetworkClient: Cannot connect to server without account
+11-18 06:38:07.329  2026  2060 I .gms.persisten: Background concurrent copying GC freed 85669(4MB) AllocSpace objects, 39(1720KB) LOS objects, 42% free, 8MB/14MB, paused 419us total 133.961ms
+11-18 06:38:07.355  2947  4190 D RcsProvisioning: No backup token found
+11-18 06:38:07.355  2947  4190 D RcsProvisioning: Retrieving backup token
+11-18 06:38:07.355  2947  4190 D RcsProvisioning: Exception while getting subscriber Id. Using default
+11-18 06:38:07.382  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@aac0a9c)
+11-18 06:38:07.411  2362  3240 I Icing   : IndexChimeraService.getServiceInterface callingPackage=com.google.android.gms componentName=AppsCorpus serviceId=36
+11-18 06:38:07.427  2362  3319 W Icing   : No valid account for uploading user actions
+11-18 06:38:07.445  2362  3348 I Icing   : IndexChimeraService.getServiceInterface callingPackage=com.google.android.gms componentName=null serviceId=30
+11-18 06:38:07.453  2362  3319 I Icing   : Usage reports ok 0, Failed Usage reports 0, indexed 0, rejected 0
+11-18 06:38:07.457  2362  3319 W Icing   : No valid account for uploading user actions
+11-18 06:38:07.464  2362  3319 I Icing   : Usage reports ok 0, Failed Usage reports 0, indexed 0, rejected 0
+11-18 06:38:07.495  2947  4190 D RcsProvisioning: No backup token found
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: Failed to read configuration: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: java.io.FileNotFoundException: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open0(Native Method)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open(FileInputStream.java:231)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.<init>(FileInputStream.java:165)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at android.app.ContextImpl.openFileInput(ContextImpl.java:560)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at android.content.ContextWrapper.openFileInput(ContextWrapper.java:202)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at ion.a(SourceFile:2)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at idl.a(SourceFile:4)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at idm.a(SourceFile:7)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at iez.buildConferencesFileName(SourceFile:30)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at com.google.android.apps.messaging.rcsmigration.RcsStateProvider.buildRcsState(SourceFile:129)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at com.google.android.apps.messaging.rcsmigration.RcsStateProvider.getRcsState(SourceFile:6)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at com.google.android.ims.rcsmigration.IRcsStateProvider$Stub.dispatchTransaction(SourceFile:10)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at com.google.android.aidl.BaseStub.onTransact(SourceFile:18)
+11-18 06:38:07.499  2947  4190 W RcsProvisioning: 	at android.os.Binder.execTransact(Binder.java:731)
+11-18 06:38:07.499  2947  4190 D RcsProvisioning: Retrieving backup token
+11-18 06:38:07.499  2947  4190 D RcsProvisioning: Exception while getting subscriber Id. Using default
+11-18 06:38:07.609  2947  4190 D RcsProvisioning: No backup token found
+11-18 06:38:07.609  2947  4190 E CarrierServices: [91] iez.getFile: File not found.: /data/user/0/com.google.android.apps.messaging/files/httpft_pending (No such file or directory)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	java.io.FileInputStream.open0(Native Method)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	java.io.FileInputStream.open(FileInputStream.java:231)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	java.io.FileInputStream.<init>(FileInputStream.java:165)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	android.app.ContextImpl.openFileInput(ContextImpl.java:560)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	android.content.ContextWrapper.openFileInput(ContextWrapper.java:202)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	iez.getFile(SourceFile:20)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	com.google.android.apps.messaging.rcsmigration.RcsStateProvider.buildRcsState(SourceFile:136)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	com.google.android.apps.messaging.rcsmigration.RcsStateProvider.getRcsState(SourceFile:6)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	com.google.android.ims.rcsmigration.IRcsStateProvider$Stub.dispatchTransaction(SourceFile:10)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	com.google.android.aidl.BaseStub.onTransact(SourceFile:18)
+11-18 06:38:07.609  2947  4190 E CarrierServices: 	android.os.Binder.execTransact(Binder.java:731)
+11-18 06:38:07.610  3475  5466 I CarrierServices: [85] awt.doInBackground: Saving RCS State
+11-18 06:38:07.610  3475  5466 I CarrierServices: [85] awt.doInBackground: Old operation mode: 2
+11-18 06:38:07.610  3475  5466 I CarrierServices: [85] awt.doInBackground: New operation mode: 2
+11-18 06:38:07.611  2947  4190 I CarrierServices: [91] RcsStateProvider.onMigrationComplete: Migration complete.
+11-18 06:38:07.612  2947  4190 I CarrierServices: [91] inq.shouldUseCarrierServicesApkForV1Apis: Checking if using CarrierServices.apk is possible. Enabled: true, isAtLeastM: true, runningInsideBugle: true
+11-18 06:38:07.613  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.613  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.613  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.613  2947  4190 I CarrierServices: [91] RcsStateProvider.onMigrationComplete: Rcs Engine should be running in cs.apk. Stopping JibeService.
+11-18 06:38:07.614  2947  4190 I CarrierServices: [91] RcsStateProvider.onMigrationComplete: JibeService stopped: true
+11-18 06:38:07.615  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.615  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.615  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.616  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.616  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.617  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.chatsession.ChatSessionService connected. Will notify listeners: true
+11-18 06:38:07.617  2947  2947 V BugleRcs: com.google.android.rcs.client.chatsession.ChatSessionService RCS service connected
+11-18 06:38:07.618  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.619  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.619  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.619  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.619  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.620  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.events.EventService connected. Will notify listeners: true
+11-18 06:38:07.620  2947  2947 V BugleRcs: com.google.android.rcs.client.events.EventService RCS service connected
+11-18 06:38:07.621  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.622  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.622  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.625  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.625  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.627  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.contacts.ContactsService connected. Will notify listeners: true
+11-18 06:38:07.627  2947  2947 V BugleRcs: com.google.android.rcs.client.contacts.ContactsService RCS service connected
+11-18 06:38:07.627  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.628  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.628  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.629  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.629  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.630  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.filetransfer.FileTransferService connected. Will notify listeners: true
+11-18 06:38:07.630  2947  2947 V BugleRcs: com.google.android.rcs.client.filetransfer.FileTransferService RCS service connected
+11-18 06:38:07.631  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.631  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.631  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.632  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.632  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.633  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.locationsharing.LocationSharingService connected. Will notify listeners: true
+11-18 06:38:07.633  2947  2947 V BugleRcs: com.google.android.rcs.client.locationsharing.LocationSharingService RCS service connected
+11-18 06:38:07.634  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.634  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.634  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.635  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.635  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.636  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.ims.ImsConnectionTrackerService connected. Will notify listeners: true
+11-18 06:38:07.636  2947  2947 V BugleRcs: com.google.android.rcs.client.ims.ImsConnectionTrackerService RCS service connected
+11-18 06:38:07.636  2947  2947 V BugleRcs: kicking off RCS sending/receiving
+11-18 06:38:07.636  2947  2947 V BugleAction: no RCS because we're not registered
+11-18 06:38:07.637  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.637  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.637  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.638  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.638  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.639  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.profile.RcsProfileService connected. Will notify listeners: true
+11-18 06:38:07.639  2947  2947 V BugleRcs: com.google.android.rcs.client.profile.RcsProfileService RCS service connected
+11-18 06:38:07.639  2947  2947 V BugleRcs: kicking off RCS sending/receiving
+11-18 06:38:07.640  2947  2947 V BugleAction: no RCS because we're not registered
+11-18 06:38:07.640  3475  3492 W CarrierServices: [40] bmc.a: No config URL. RCS will be disabled!
+11-18 06:38:07.640  2947  2947 I BugleRcs: RcsAvailability ACS url: null
+11-18 06:38:07.640  2947  4190 I CarrierServices: [91] inq.e: Network Operator: 310260
+11-18 06:38:07.641  2947  4190 I CarrierServices: [91] inq.e: carrierWithOldEcApis: false
+11-18 06:38:07.641  2947  4190 I CarrierServices: [91] inq.e: hasDialerThatSupportsNewEc: false
+11-18 06:38:07.642  2947  4190 I CarrierServices: [91] jsn.connect: shouldUseCarrierServicesJibeService: true, CarrierServices rcs service found: true
+11-18 06:38:07.642  2947  4190 I CarrierServices: [91] jsn.connect: Binding to JibeService in CarrierServices.
+11-18 06:38:07.643  2947  2947 D RcsClientLib: Service com.google.android.rcs.client.businessinfo.BusinessInfoService connected. Will notify listeners: true
+11-18 06:38:07.643  2947  2947 V BugleRcs: com.google.android.rcs.client.businessinfo.BusinessInfoService RCS service connected
+11-18 06:38:07.643  2947  2947 V BugleRcs: kicking off RCS sending/receiving
+11-18 06:38:07.644  2947  2947 V BugleAction: no RCS because we're not registered
+11-18 06:38:07.644  3475  3492 W CarrierServices: [40] bmc.a: No config URL. RCS will be disabled!
+11-18 06:38:07.644  2947  2947 I BugleRcs: RcsAvailability ACS url: null
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: Failed to read configuration: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: java.io.FileNotFoundException: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open0(Native Method)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open(FileInputStream.java:231)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.<init>(FileInputStream.java:165)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at android.app.ContextImpl.openFileInput(ContextImpl.java:560)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at android.content.ContextWrapper.openFileInput(ContextWrapper.java:202)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at ion.a(SourceFile:2)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at idl.a(SourceFile:4)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at idm.a(SourceFile:7)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at com.google.android.apps.messaging.rcsmigration.RcsStateProvider.onMigrationComplete(SourceFile:27)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at com.google.android.ims.rcsmigration.IRcsStateProvider$Stub.dispatchTransaction(SourceFile:14)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at com.google.android.aidl.BaseStub.onTransact(SourceFile:18)
+11-18 06:38:07.644  2947  4190 W RcsProvisioning: 	at android.os.Binder.execTransact(Binder.java:731)
+11-18 06:38:07.644  2947  4190 D RcsProvisioning: Retrieving backup token
+11-18 06:38:07.644  2947  4190 D RcsProvisioning: Exception while getting subscriber Id. Using default
+11-18 06:38:07.778  2947  4190 D RcsProvisioning: No backup token found
+11-18 06:38:07.778  2947  4190 D RcsProvisioning: Clearing backup token
+11-18 06:38:07.778  2947  4190 D RcsProvisioning: Exception while getting subscriber Id. Using default
+11-18 06:38:07.788  2947  4190 I CarrierServices: [91] RcsStateProvider.onMigrationComplete: Deleted transfers file: false
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: Failed to read configuration: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: java.io.FileNotFoundException: /data/user/0/com.google.android.apps.messaging/files/rcsconfig (No such file or directory)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open0(Native Method)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.open(FileInputStream.java:231)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at java.io.FileInputStream.<init>(FileInputStream.java:165)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at android.app.ContextImpl.openFileInput(ContextImpl.java:560)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at android.content.ContextWrapper.openFileInput(ContextWrapper.java:202)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at ion.a(SourceFile:2)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at idl.a(SourceFile:4)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at idm.a(SourceFile:7)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at iez.buildConferencesFileName(SourceFile:30)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at com.google.android.apps.messaging.rcsmigration.RcsStateProvider.onMigrationComplete(SourceFile:48)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at com.google.android.ims.rcsmigration.IRcsStateProvider$Stub.dispatchTransaction(SourceFile:14)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at com.google.android.aidl.BaseStub.onTransact(SourceFile:18)
+11-18 06:38:07.788  2947  4190 W RcsProvisioning: 	at android.os.Binder.execTransact(Binder.java:731)
+11-18 06:38:07.788  2947  4190 D RcsProvisioning: Retrieving backup token
+11-18 06:38:07.788  2947  4190 D RcsProvisioning: Exception while getting subscriber Id. Using default
+11-18 06:38:07.925  2947  4190 D RcsProvisioning: No backup token found
+11-18 06:38:07.932  3475  3475 I CarrierServices: [2] aww.a: Unbinding RcsMigrationService
+11-18 06:38:08.181  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@5721d16)
+11-18 06:38:08.181  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@5721d16)
+11-18 06:38:08.291  2715  2829 D ProtoStore: deleting smartspace_current
+11-18 06:38:08.291  2715  2829 D ProtoStore: no cached data
+11-18 06:38:08.291  2715  2829 D ProtoStore: no cached data
+11-18 06:38:08.457  2362  3319 I Icing   : Indexing com.google.android.gms-apps from com.google.android.gms
+11-18 06:38:08.504  2362  3319 I Icing   : Indexing done com.google.android.gms-apps
+11-18 06:38:08.505  2362  3319 I Icing   : Indexing com.google.android.gms-internal.3p:MobileApplication from com.google.android.gms
+11-18 06:38:08.520  2362  3319 I Icing   : Indexing done com.google.android.gms-internal.3p:MobileApplication
+11-18 06:38:09.180  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@9154084)
+11-18 06:38:09.181  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@9154084)
+11-18 06:38:10.181  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@1cce06d)
+11-18 06:38:10.181  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@1cce06d)
+11-18 06:38:11.181  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@1eaf4a2)
+11-18 06:38:11.181  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@1eaf4a2)
+11-18 06:38:11.622  2362  5459 I Vision  : Requesting optional module download of ocr.
+11-18 06:38:11.622  2362  5459 I Vision  : Checking for download completion for 154926 -- ocr
+11-18 06:38:11.625  1885  1899 E memtrack: Couldn't load memtrack module
+11-18 06:38:11.626  1885  1899 W android.os.Debug: failed to get memory consumption info: -1
+11-18 06:38:11.630  1885  1899 E memtrack: Couldn't load memtrack module
+11-18 06:38:11.630  1885  1899 W android.os.Debug: failed to get memory consumption info: -1
+11-18 06:38:12.181  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e41669)
+11-18 06:38:12.181  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e41669)
+11-18 06:38:13.068  1885  1899 E memtrack: Couldn't load memtrack module
+11-18 06:38:13.068  1885  1899 W android.os.Debug: failed to get memory consumption info: -1
+11-18 06:38:13.181  1885  1939 I GnssLocationProvider: WakeLock acquired by sendMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e27b8ee)
+11-18 06:38:13.182  1885  1899 I GnssLocationProvider: WakeLock released by handleMessage(REPORT_SV_STATUS, 0, com.android.server.location.GnssLocationProvider$SvStatusInfo@e27b8ee)
+11-18 06:38:13.241  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE digest_problem=corrupt
+11-18 06:38:13.241  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE digest_detail=digest differs: bin/am
+11-18 06:38:13.458  5084  5107 I TestRunner: finished: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:13.460  5084  5107 I TestRunner: started: g_theKernelsManifestStreamNeedsApi33(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:13.461  5084  5107 I CodeForgeRuntimeGate: RUNTIME_GATE kernel_manifest_stream=NoSuchMethodError sdk=28
+11-18 06:38:13.461  5084  5107 I TestRunner: finished: g_theKernelsManifestStreamNeedsApi33(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-18 06:38:13.464  5084  5107 I TestRunner: run finished: 16 tests, 0 failed, 0 ignored
+11-18 06:38:13.467  5084  5107 D NetworkSecurityConfig: No Network Security Config specified, using platform default
+11-18 06:38:13.606  5084  5107 I MonitoringInstr: waitForActivitiesToComplete() took: 0ms
+11-18 06:38:13.607  1885  3214 I ActivityManager: Force stopping dev.codeforge.app appid=10086 user=0: finished inst
+11-18 06:38:13.607  1885  3214 I ActivityManager: Killing 5084:dev.codeforge.app/u0a86 (adj 0): stop dev.codeforge.app
+11-18 06:38:13.607  1885  1903 W libprocessgroup: kill(-5084, 9) failed: No such process
+11-18 06:38:13.608  1885  5474 W Binder  : Outgoing transactions from this process must be FLAG_ONEWAY
+11-18 06:38:13.608  1885  5474 W Binder  : java.lang.Throwable
+11-18 06:38:13.608  1885  5474 W Binder  : 	at android.os.BinderProxy.transact(Binder.java:1114)
+11-18 06:38:13.608  1885  5474 W Binder  : 	at android.app.IInstrumentationWatcher$Stub$Proxy.instrumentationFinished(IInstrumentationWatcher.java:164)
+11-18 06:38:13.608  1885  5474 W Binder  : 	at com.android.server.am.InstrumentationReporter$MyThread.run(InstrumentationReporter.java:86)
+11-18 06:38:13.608  5072  5072 D AndroidRuntime: Shutting down VM
+11-18 06:38:13.645  1885  1903 W libprocessgroup: kill(-5084, 9) failed: No such process
+11-18 06:38:13.646  1728  1728 I Zygote  : Process 5084 exited due to signal (9)
+11-18 06:38:13.685  1885  1903 W libprocessgroup: kill(-5084, 9) failed: No such process
+11-18 06:38:13.685  1885  1903 I libprocessgroup: Successfully killed process cgroup uid 10086 pid 5084 in 78ms
