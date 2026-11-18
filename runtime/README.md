@@ -12,9 +12,10 @@ The scripts that turn pinned Termux packages into the sealed payload the app shi
 | `build-sealed-payload.py` | t1 | Splits the bootstrap and the `.deb`s into the payload: `userland-<abi>.zip`, the manifests, `jniLibs/<abi>/lib*.so` |
 | `check-sealed-manifest.sh` | t1 | Checks that a payload tree is sealed |
 | `check-bundle-size.py`, `check-page-alignment.py` | t1 | Play's 200 MB base-module limit, 16 KB page alignment |
-| `notices.py` | CodeForge | Drafts THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md from the pinned packages' licence files |
+| `notices.py` | CodeForge | Drafts THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md from the pinned packages' licence files, and (Phase 5 W1) writes their texts for the app's licence page, `app/assets/licenses/userland.txt`: each distinct text once, after the packages that carry it, a link followed to its text, and a text missing from the payload failing the run |
+| `sources.py` | CodeForge | (Phase 5 W1) Builds the source archive SOURCE_OFFER.md promises: for each copyleft package version in its table, the termux-packages commit whose recipe gives that version, that recipe and Termux's build system at that commit, and the upstream files from the recipe's URLs, each verified against the recipe's SHA-256. Fails closed, naming the package; the same inputs give the same bytes |
 | `provenance.py` | CodeForge | `check`s native/PROVENANCE.md against the vendored files · `copy` re-vendors them from a t1 checkout with their recorded change · `record` writes the hashes |
-| `tests/` | both | t1's two script tests; CodeForge's pins, notices and provenance tests; the live fail-closed check |
+| `tests/` | both | t1's two script tests; CodeForge's pins, notices, provenance, launcher and sources tests; the live fail-closed check |
 
 ## Commands
 
@@ -25,6 +26,10 @@ python3 runtime/pins.py fetch --arch x86_64 --cache runtime/generated/cache --ou
 python3 runtime/build-sealed-payload.py --bootstrap runtime/generated/bootstrap/bootstrap-x86_64.zip \
     --abi x86_64 --deb-dir runtime/generated/debs/x86_64 --out runtime/generated/payload
 python3 runtime/notices.py --cache runtime/generated/cache [--check]
+git clone --filter=blob:none --no-checkout https://github.com/termux/termux-packages.git /tmp/termux-packages
+python3 runtime/sources.py plan --termux /tmp/termux-packages [--json plan.json]   # commits and URLs, no downloads
+python3 runtime/sources.py build --termux /tmp/termux-packages --cache runtime/generated/sources-cache \
+    --out codeforge-0.1.0-sources.tar --label 0.1.0
 python3 runtime/pins.py info --arch x86_64 --out runtime/generated/payload/assets/runtime-info-x86_64.json
 python3 runtime/provenance.py check
 python3 runtime/provenance.py copy --t1 /path/to/t1   # at PROVENANCE's commit; then record
@@ -32,6 +37,16 @@ for t in runtime/tests/test-*.py; do python3 "$t" || echo "FAILED: $t"; done
 ```
 
 `runtime/generated/` is ignored by Git. Architectures use Termux's names (`aarch64`, `x86_64`); the payload builder takes the Android ABI (`arm64-v8a`, `x86_64`).
+
+## The source archive (Phase 5 W1)
+
+`sources.py` reads termux-packages through Git, so a blobless clone is enough (about 65 MB; it fetches the blobs it reads, in batches, and writes a commit-graph with changed-path filters the first time, which takes a plan from minutes to about 9 s). For each row of SOURCE_OFFER.md's copyleft table:
+
+- **The commit.** Among the commits that touched the package's folder, the newest one at or before the point the package was built, whose recipe gives the pinned version (Termux's rule: `TERMUX_PKG_VERSION`, then `-TERMUX_PKG_REVISION` when the revision isn't 0 or the version holds a `-`). That point is the pins' date for a pinned package, and the bootstrap's tag for a package from the bootstrap. A subpackage is found through its parent's folder.
+- **The recipe**, read without running it: `build.sh` is sourced by bash with only text filters on `PATH` (sed under `--sandbox`), and its build steps run with `termux_download` recorded, so a source downloaded in a step is found. Downloads that only build tools for the build machine are left out, each with its reason (`STEP_DOWNLOADS`), and `MANIFEST.json` says so; a download in a step nobody reviewed fails the build.
+- **The files.** Each URL is downloaded (curl, three attempts), verified against the recipe's SHA-256, and kept in the cache under that hash; a Git source is a depth-1 clone at its tag, with submodules, made into a deterministic tar. A mismatch, a missing file or a recipe that gives no source fails the build.
+
+The archive, `codeforge-<label>-sources/`: `MANIFEST.json` (per package: its licence, the binaries it ships in with their SHA-256, and per recipe the commit, the folder and every source with its URL and SHA-256), a README, `termux-packages/<commit>/` (Termux's build system and the recipe folders) and `upstream/<recipe>-<version>/`. It is written in PAX format with fixed times and owners, sorted, with repeated content as hard links, so it is reproducible. CI builds it in every release run (`.github/workflows/release.yml`).
 
 ## How pinning works
 

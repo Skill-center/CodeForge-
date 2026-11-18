@@ -11,14 +11,16 @@ CodeForge-/
 │   │   ├── design_system/        # tokens / theme / components
 │   │   ├── core/                 # errors, logging, platform, utils;
 │   │   │                         #   editor/: protocol v1 mirror, change sets, shadows;
-│   │   │                         #   files/: workspace paths, text codec, file stamps
+│   │   │                         #   files/: workspace paths, text codec, file stamps;
+│   │   │                         #   legal/: the source offer About shows (Ph. 5 W1)
 │   │   ├── services/             # interfaces + fake/ + native/ impls;
 │   │   │                         #   files/: the dart:io file service + demo project;
 │   │   │                         #   platform/: the app's files folder (one channel);
 │   │   │                         #   editor/: WebView surface, page verification;
 │   │   │                         #   editor/bench/: benchmark pages + their WebView;
 │   │   │                         #   perf/: frame timing recorder;
-│   │   │                         #   runtime/: the runtime's state + its Pigeon client (Ph. 4);
+│   │   │                         #   runtime/: the runtime's state + its Pigeon client (Ph. 4),
+│   │   │                         #   the userland's licence texts for About (Ph. 5 W1);
 │   │   │                         #   search/: search across files + its Pigeon client (Ph. 4 W6)
 │   │   ├── application/          # controllers + providers; editor/: the editor host;
 │   │   │                         #   documents/: open documents and tabs;
@@ -41,6 +43,8 @@ CodeForge-/
 │   │   │                         #   gate builds them for its debug APK and the phone APK)
 │   │   ├── terminal/             # xterm bundle (Phase 5; ADR-0006 chose xterm.js)
 │   │   ├── fonts/                # bundled UI + mono fonts (offline)
+│   │   ├── licenses/             # (Ph. 5 W1) CodeForge's LICENSE, copied; userland.txt, the
+│   │   │                         #   userland's licence texts (runtime/notices.py; CI checks it)
 │   │   └── icons/
 │   ├── test/                     # unit + widget tests mirror lib/; support/: scripted
 │   │                             #   editor page, benchmark pages, in-memory files
@@ -87,13 +91,17 @@ CodeForge-/
 │   │                             #   info (the payload's JSON for the app, W3)
 │   ├── notices.py                # writes THIRD_PARTY_NOTICES §5 and SOURCE_OFFER's copyleft
 │   │                             #   table from the payload's licence files, with W7's
-│   │                             #   reviews; fails on a package with no licence named
+│   │                             #   reviews; fails on a package with no licence named;
+│   │                             #   since Phase 5 W1 also the texts for the app's licence page
+│   ├── sources.py                # (Phase 5 W1) the copyleft packages' corresponding source:
+│   │                             #   recipes at the commits that built them, Termux's build
+│   │                             #   system, the upstream files verified; fails closed
 │   ├── provenance.py             # checks native/PROVENANCE.md against the vendored files;
 │   │                             #   copy re-vendors them from a t1 checkout (W3)
 │   ├── README.md                 # how the supply chain fits together
 │   ├── ci-results/               # the runtime job's evidence (committed back)
-│   └── tests/                    # t1's 2 script tests, CodeForge's 4 (pins, notices,
-│                                 #   provenance, the launcher) + fixtures, live check
+│   └── tests/                    # t1's 2 script tests, CodeForge's 5 (pins, notices,
+│                                 #   provenance, the launcher, sources) + fixtures, live check
 │
 ├── docs/                         # all project documentation (spec §13)
 │   ├── adr/                      # architecture decision records
@@ -104,7 +112,9 @@ CodeForge-/
 │   └── *.md
 │
 ├── .github/
-│   ├── workflows/                # ci.yml (editor + Flutter jobs, and the phase gate); release.yml later
+│   ├── workflows/                # ci.yml (editor + Flutter jobs, and the phase gate);
+│   │                             #   release.yml (Phase 5 W1): the release build, which ci.yml
+│   │                             #   calls for a [release] subject line; dry runs only so far
 │   └── PULL_REQUEST_TEMPLATE.md
 │
 ├── AGENTS.md                     # agent development rules (spec §12 workflow)
