@@ -21,4 +21,14 @@ Got dependencies!
 17 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Analyzing app...                                                
-No issues found! (ran in 1.8s)
+
+  error • The getter 'valueOrNull' isn't defined for the type 'Result<ProjectLocation>'. Try importing the library that defines 'valueOrNull', correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull' • integration_test/search_test.dart:149:31 • undefined_getter
+  error • The getter 'isOk' isn't defined for the type 'Result<WorkspaceRef>'. Try importing the library that defines 'isOk', correcting the name to the name of an existing getter, or defining a getter or field named 'isOk' • integration_test/search_test.dart:185:21 • undefined_getter
+  error • The getter 'valueOrNull' isn't defined for the type 'Result<ExecResult>'. Try importing the library that defines 'valueOrNull', correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull' • integration_test/search_test.dart:364:24 • undefined_getter
+  error • The getter 'valueOrNull' isn't defined for the type 'Result<List<BrokerEntry>>'. Try importing the library that defines 'valueOrNull', correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull' • integration_test/search_test.dart:516:32 • undefined_getter
+  error • The getter 'valueOrNull' isn't defined for the type 'Result<BrokerRead>'. Try importing the library that defines 'valueOrNull', correcting the name to the name of an existing getter, or defining a getter or field named 'valueOrNull' • integration_test/search_test.dart:533:30 • undefined_getter
+  error • A value of type 'double' can't be assigned to a variable of type 'int'. Try changing the type of the variable, or casting the right-hand type to 'int' • integration_test/search_test.dart:537:26 • invalid_assignment
+   info • Unclosed instance of 'Sink'. Try invoking 'close' in the function in which the 'Sink' was created • lib/services/search/native/pigeon_search_service.dart:41:11 • close_sinks
+   info • Unclosed instance of 'Sink'. Try invoking 'close' in the function in which the 'Sink' was created • lib/services/search/native/pigeon_search_service.dart:132:11 • close_sinks
+
+8 issues found. (ran in 2.6s)
