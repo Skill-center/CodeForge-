@@ -1,0 +1,30 @@
+{
+  "gate": "G6",
+  "system_image": "system-images;android-36;google_apis;x86_64",
+  "gpu": "swiftshader_indirect",
+  "accel": "kvm",
+  "cold_start": {
+    "apk": "release-x64",
+    "method": "am start -W (TotalTime) after am force-stop, 10 runs",
+    "samples_ms": [1193,1386,1288,1243,1357,1247,1228,1180,1315,1404],
+    "median_ms": 1267,
+    "budget_ms": 1500,
+    "within_budget": true
+  },
+  "cold_start_skia": {
+    "apk": "the same release build with EnableImpeller=false (comparison, not shipped)",
+    "samples_ms": [1025,1169,1033,1087,1038,940,1118,1184,1441,1005],
+    "median_ms": 1062
+  },
+  "cold_start_again": {
+    "apk": "release-x64, once more after the Skia block",
+    "samples_ms": [1192,1318,1336,1245,1315,1284,1217,1179,1341,1119],
+    "median_ms": 1264
+  },
+  "renderer": "impeller (Flutter's default since Phase 3 W6)",
+  "apk_bytes": {
+    "debug": 83740311,
+    "cold_start_apk": 149425941
+  },
+  "nav_frame_profile": "not measured on CI in Phase 1 (requires a profile-mode build; see docs/phases/PHASE_1_REPORT.md)"
+}
