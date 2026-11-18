@@ -404,17 +404,20 @@ class SourcesTest(unittest.TestCase):
                           "https://ftpmirror.gnu.org/bash/bash-5.3-patches/bash53-001", url])
         node = "https://nodejs.org/dist/v26.13.1/node-v26.13.1.tar.xz"
         self.assertEqual(sources.download_urls(node), [(None, node)])
-        # Where prefixes nest, the longest decides.
-        old = "https://fossies.org/linux/misc/old/psmisc-23.7.tar.xz"
-        self.assertEqual([candidate for _, candidate in sources.download_urls(old)],
-                         [old, "https://fossies.org/linux/misc/psmisc-23.7.tar.xz"])
+        # A prefix can end inside a file's name.
+        db = "https://fossies.org/linux/misc/db-18.1.40.tar.gz"
+        self.assertEqual([candidate for _, candidate in sources.download_urls(db)],
+                         [db, "https://download.oracle.com/berkeley-db/db-18.1.40.tar.gz",
+                          "https://distcache.freebsd.org/ports-distfiles/bdb/db-18.1.40.tar.gz"])
+        other = "https://fossies.org/linux/misc/other-1.0.tar.gz"
+        self.assertEqual(sources.download_urls(other), [(None, other)])
         nano = "https://nano-editor.org/dist/latest/nano-8.7.1.tar.xz"
         self.assertEqual([candidate for _, candidate in sources.download_urls(nano)],
                          [nano, "https://nano-editor.org/dist/v8/nano-8.7.1.tar.xz",
                           "https://ftp.gnu.org/gnu/nano/nano-8.7.1.tar.xz"])
-        # Each prefix is a folder, and in one group only.
+        # Each prefix is a web address, in one group only.
         prefixes = [prefix for group in sources.MIRRORS for prefix in group]
-        self.assertTrue(all(prefix.endswith("/") for prefix in prefixes))
+        self.assertTrue(all(prefix.startswith(("https://", "http://")) for prefix in prefixes))
         self.assertEqual(len(prefixes), len(set(prefixes)))
 
     def test_a_file_its_host_lacks_comes_from_a_mirror_and_the_archive_is_unchanged(self):

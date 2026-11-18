@@ -89,7 +89,8 @@ FILTERS = ("basename", "cut", "dirname", "expr", "grep", "head", "sed", "seq", "
 DOWNLOAD_ATTEMPTS = 3
 TIMEOUT = 300                 # seconds, per download attempt
 
-# Hosts that serve the same files, by URL prefix (added after the first dry
+# Hosts that serve the same files, by URL prefix, which may end inside a file
+# name (added after the first dry
 # run, CI 44389009942, where mirrors.kernel.org never answered the runner; 36
 # of the 69 upstream files name it). When a download fails, the same path is
 # tried under the group's other prefixes, in order. A file counts only with
@@ -116,8 +117,15 @@ MIRRORS = (
      "https://ftp.gnu.org/gnu/nano/"),
     # Thomas Dickey's archives, and their mirror.
     ("https://invisible-island.net/archives/", "https://invisible-mirror.net/archives/"),
-    # fossies.org moves a superseded version to old/.
-    ("https://fossies.org/linux/misc/", "https://fossies.org/linux/misc/old/"),
+    # fossies.org refuses some clients' downloads with HTTP 401 (CI 44394419519;
+    # others have seen it since August 2026), so its two files come from their
+    # upstreams: Berkeley DB's from Oracle and FreeBSD's distfile cache, psmisc's
+    # from SourceForge, each the same SHA-256 as the recipe's.
+    ("https://fossies.org/linux/misc/db-", "https://download.oracle.com/berkeley-db/db-",
+     "https://distcache.freebsd.org/ports-distfiles/bdb/db-"),
+    ("https://fossies.org/linux/misc/psmisc-",
+     "https://downloads.sourceforge.net/project/psmisc/psmisc/psmisc-",
+     "https://sourceforge.net/projects/psmisc/files/psmisc/psmisc-"),
     # SourceForge's project pages, and its download host.
     ("https://sourceforge.net/projects/net-tools/files/",
      "https://downloads.sourceforge.net/project/net-tools/"),
