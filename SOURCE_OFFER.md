@@ -36,7 +36,7 @@ No binary that contains the userland is distributed until these are done.
 <!-- copyleft:begin -->
 <!-- Written by runtime/notices.py from runtime/pins.json and the pinned files. Do not edit by hand: CI checks it. -->
 
-**52 package versions** are under a copyleft licence (GPL, LGPL, AGPL, GFDL, MPL and the like), identified as in THIRD_PARTY_NOTICES.md. Bootstrap `2026.02.12-r1+apt.android-7`, pins resolved 2026-11-13T09:43:19Z.
+**55 package versions** are under a copyleft licence (GPL, LGPL, AGPL, GFDL, MPL and the like), identified as in THIRD_PARTY_NOTICES.md. Bootstrap `2026.02.12-r1+apt.android-7`, pins resolved 2026-11-13T09:43:19Z.
 
 | Package | Version | ABIs | Licence | Homepage |
 |---|---|---|---|---|
@@ -54,6 +54,7 @@ No binary that contains the userland is distributed until these are done.
 | gawk | 5.3.1-2 | arm64-v8a, x86_64 | GPL-3.0 | https://www.gnu.org/software/gawk/ |
 | gdbm | 1.26-1 | arm64-v8a, x86_64 | GPL-3.0 | https://www.gnu.org.ua/software/gdbm/ |
 | git | 2.56.1 | arm64-v8a, x86_64 | GPL-2.0 | https://git-scm.com/ |
+| gpgv | 2.5.17 | arm64-v8a, x86_64 | GPL-3.0† | https://www.gnupg.org/ |
 | grep | 3.12-3 | arm64-v8a, x86_64 | GPL-3.0 | https://www.gnu.org/software/grep/ |
 | gzip | 1.14-1 | arm64-v8a, x86_64 | GPL-3.0 | https://www.gnu.org/software/gzip/ |
 | inetutils | 2.6-1 | arm64-v8a, x86_64 | GPL-3.0 | https://www.gnu.org/software/inetutils/ |
@@ -69,10 +70,11 @@ No binary that contains the userland is distributed until these are done.
 | libiconv | 1.19.1 | arm64-v8a, x86_64 | LGPL-2.1, GPL-3.0 | https://www.gnu.org/software/libiconv/ |
 | libidn2 | 2.3.8-1 | arm64-v8a, x86_64 | LGPL-3.0, GPL-2.0, GPL-3.0 | https://www.gnu.org/software/libidn/#libidn2 |
 | liblz4 | 1.10.0-1 | arm64-v8a, x86_64 | GPL-2.0 | https://lz4.github.io/lz4/ |
-| liblzma | 5.8.4 | arm64-v8a, x86_64 | unidentified\*, GPL-2.0\*, GPL-3.0\*, LGPL-2.1\* | https://tukaani.org/xz/ |
+| liblzma | 5.8.4 | arm64-v8a, x86_64 | 0BSD†, GPL-2.0\*, GPL-3.0\*, LGPL-2.1\* | https://tukaani.org/xz/ |
 | libmpfr | 4.2.1-1 | arm64-v8a, x86_64 | LGPL-3.0 | https://www.mpfr.org/ |
 | libnettle | 4.0+really3.10.2 | arm64-v8a, x86_64 | GPL-2.0, LGPL-3.0 | https://www.lysator.liu.se/~nisse/nettle/ |
 | libnpth | 1.6-3 | arm64-v8a, x86_64 | LGPL-2.0 | https://www.gnupg.org/related_software/npth/ |
+| libsmartcols | 2.41.2-1 | arm64-v8a, x86_64 | LGPL-2.1† | https://en.wikipedia.org/wiki/Util-linux |
 | libunistring | 1.3-1 | arm64-v8a, x86_64 | LGPL-3.0, GPL-2.0 | https://www.gnu.org/software/libunistring/ |
 | nano | 8.7.1 | arm64-v8a, x86_64 | GPL-3.0 | https://www.nano-editor.org/ |
 | net-tools | 2.10.0-1 | arm64-v8a, x86_64 | GPL-2.0 | http://net-tools.sourceforge.net/ |
@@ -91,6 +93,7 @@ No binary that contains the userland is distributed until these are done.
 | util-linux | 2.41.2-1 | arm64-v8a, x86_64 | BSD-2-Clause\*, BSD-3-Clause\*, GPL-2.0\*, GPL-3.0\*, ISC\*, LGPL-2.1\* | https://en.wikipedia.org/wiki/Util-linux |
 | which | 2.25 | arm64-v8a, x86_64 | GPL-2.0-or-later | https://savannah.gnu.org/projects/which/ |
 | xxhash | 0.8.3-1 | arm64-v8a, x86_64 | BSD-2-Clause\*, GPL-2.0 | https://cyan4973.github.io/xxHash/ |
+| xz-utils | 5.8.4 | arm64-v8a, x86_64 | 0BSD†, GPL-2.0† | https://tukaani.org/xz/ |
 | zstd | 1.5.7-1 | arm64-v8a, x86_64 | GPL-2.0 | https://github.com/facebook/zstd |
 
 <!-- copyleft:end -->

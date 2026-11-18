@@ -3,24 +3,24 @@ Python 3.14.4
 *** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***
 --- script-tests
 === PASS runtime/tests/test-check-bundle-size.py
-Ran 9 tests in 0.011s
+Ran 9 tests in 0.009s
 OK
 === PASS runtime/tests/test-notices.py
-Ran 9 tests in 2.117s
+Ran 15 tests in 2.139s
 OK
 === PASS runtime/tests/test-pins.py
-Ran 21 tests in 3.145s
+Ran 21 tests in 2.404s
 OK
 === PASS runtime/tests/test-provenance.py
-Ran 12 tests in 0.114s
+Ran 15 tests in 0.130s
 OK
 === PASS runtime/tests/test-sealed-payload.py
 === PASS runtime/tests/test-spawn.py
-Ran 16 tests in 4.048s
+Ran 16 tests in 3.650s
 OK
-script_test_files=6 cases=68 failed_files=0
+script_test_files=6 cases=77 failed_files=0
 --- provenance
-provenance: OK - 23 vendored files (14 with the package renamed, 9 byte for byte) and 18 of CodeForge's own
+provenance: OK - 23 vendored files (14 with the package renamed, 9 byte for byte; 2 patched) and 18 of CodeForge's own
 --- pins
 pins: OK - 50 for aarch64 (2 for consistency), 50 for x86_64 (2 for consistency) on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:43:19Z
 --- fetch
@@ -38,6 +38,6 @@ live-fail-closed: OK - fetching a pinned git that the repository does not have e
 payload abi=arm64-v8a executables=534 unique_binaries=252 data_files=13892 symlinks=1169 scripts=24 userland_zip_bytes=97867524 library_bytes=99469960
 payload abi=x86_64 executables=535 unique_binaries=251 data_files=13894 symlinks=1169 scripts=24 userland_zip_bytes=97953717 library_bytes=99230560
 --- notices
-notices: THIRD_PARTY_NOTICES.md is current
-notices: SOURCE_OFFER.md is current
-notices: 112 package versions, 52 under a copyleft licence
+notices: rewrote the generated section of THIRD_PARTY_NOTICES.md
+notices: rewrote the generated section of SOURCE_OFFER.md
+notices: 112 package versions, 55 under a copyleft licence
