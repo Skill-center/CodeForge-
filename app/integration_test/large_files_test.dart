@@ -19,10 +19,10 @@
 /// The app side is timed here: the write, the open (read and decode, then
 /// the page's own report of the document), the typed text's sync, the
 /// journal catching up, the save; and the session store's snapshot and
-/// change writes at each size with `synchronous = NORMAL` (the app's)
-/// against `FULL` (ADR-0008), with the journal's first-edit digest. This is
-/// a debug (JIT) build, so the app side is pessimistic; the page's numbers
-/// do not depend on how the app was built.
+/// change writes at each size with `synchronous = NORMAL` against `FULL`
+/// (the app's since Phase 4, ADR-0008), with the journal's first-edit
+/// digest. This is a debug (JIT) build, so the app side is pessimistic; the
+/// page's numbers do not depend on how the app was built.
 ///
 /// The test ends with large_1mb.js open and stored as the active tab: the
 /// gate then installs the release build over the same data, which restores
@@ -182,8 +182,8 @@ void _deleteDatabase(String path) {
 }
 
 /// The session store's writes at each size, on a database of its own with
-/// the app's settings (WAL, synchronous NORMAL) and then synchronous FULL
-/// (ADR-0008); with the digest of the text that the journal computes on
+/// WAL and synchronous NORMAL, then synchronous FULL (the app's since Phase
+/// 4, ADR-0008); with the digest of the text that the journal computes on
 /// the UI isolate at a document's first edit. Public for
 /// sync_modes_test.dart, which times the same writes on a Test Lab phone.
 Future<Map<String, Object?>> storeTimings(String folder) async {

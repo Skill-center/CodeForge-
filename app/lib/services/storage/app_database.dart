@@ -193,10 +193,12 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (details) async {
       // Write-ahead logging: appending a change is one short write, and a
-      // killed process loses nothing that was committed. NORMAL sync is
-      // durable against process death, which is what the journal is for.
+      // killed process loses nothing that was committed. FULL sync makes
+      // every commit durable through an operating-system crash or a power
+      // cut as well. On a phone that costs about 0.1 ms per change
+      // (ADR-0008: measured on a Pixel 8a in Phase 4 W5).
       await customStatement('PRAGMA journal_mode = WAL');
-      await customStatement('PRAGMA synchronous = NORMAL');
+      await customStatement('PRAGMA synchronous = FULL');
     },
   );
 }

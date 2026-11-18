@@ -74,8 +74,9 @@ The restore gate runs `restore_a_test.dart`, force-stops the app, then runs
   A commit message containing `[bootstrap]` lets CI generate the artifacts
   the authoring sandbox cannot (lockfile, `dart fix`/format results, golden
   baselines) and commit them back with `[skip ci]`.
-- `.github/workflows/phase-gate.yml` — emulator integration + process-death
-  restore + cold-start measurement, triggered by `[phase-gate]`.
+- The phase gate, in the same workflow — emulator integration +
+  process-death restore + cold-start measurement, and the runtime gates on
+  API 26 to 36, when the head commit carries `[phase-gate]`.
 
 ## Conventions
 

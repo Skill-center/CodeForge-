@@ -15,6 +15,7 @@ import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
+import '../../core/editor/webview_floor.dart';
 import 'editor_surface.dart';
 
 /// Base URL the page is loaded under. Nothing is fetched from it: the page
@@ -43,6 +44,18 @@ final class WebViewEditorSurface implements EditorSurface {
 
   @override
   Stream<EditorSurfaceEvent> get events => _events.stream;
+
+  /// From the WebView's own user agent (WebSettings.getUserAgentString on
+  /// Android), which names its Chromium version. Never throws: a WebView
+  /// that can't answer is not refused.
+  @override
+  Future<int?> engineMajorVersion() async {
+    try {
+      return chromeMajorVersion(await _controller.getUserAgent());
+    } on Object {
+      return null;
+    }
+  }
 
   @override
   Future<void> loadPage(String html) async {

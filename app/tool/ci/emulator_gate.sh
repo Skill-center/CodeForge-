@@ -7,7 +7,8 @@
 # Run from app/ on a Linux CI runner with ANDROID_HOME set.
 #
 # Evidence lands in ci-results/gate/ — a directory owned by this script, so
-# phase-gate.yml can commit it back without touching CI's own diagnostics:
+# ci.yml's phase gate can commit it back without touching CI's own
+# diagnostics:
 #   host.txt         runner CPU/RAM, /dev/kvm, acceleration actually used
 #   readiness.txt    boot + framework-readiness timings
 #   attempts.txt     every integration-test attempt and its exit code
@@ -1572,7 +1573,7 @@ debug_bytes=$(stat -c %s build/gate/app-plain-debug.apk 2>/dev/null || echo 0)
   [ "$installed" = "1" ] || echo "install_failed_record_only=true"
 } | tee "$RESULTS/coldstart-summary.txt"
 # The renderer comparison (Phase 3 W6): the same release build with Skia
-# (built with Flutter's opt-out by phase-gate.yml), timed the same way right
+# (built with Flutter's opt-out by ci.yml's phase gate), timed the same way right
 # after, then the shipped APK once more, so that drift between the blocks
 # shows. Record-only; the budget above stays on the first block, as in
 # every gate before.

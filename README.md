@@ -65,7 +65,7 @@ app/                     ← the Flutter app
   drift_schemas/         ← Drift schema dumps (CI-generated)
   android/               ← Kotlin host, minSdk 26 / target 36
 editor/                  ← the editor page: TypeScript + CodeMirror 6, protocol v1, benchmark pages, build and verify tools
-.github/workflows/       ← ci.yml (every push: Flutter + editor jobs) · phase-gate.yml (emulator gate)
+.github/workflows/       ← ci.yml (every push: Flutter + editor jobs; with [phase-gate], the emulator and runtime gates too)
 docs/                    ← architecture, ADRs 0001–0012, phase plans and reports
 README.md · AGENTS.md · CONTRIBUTING.md
 ```

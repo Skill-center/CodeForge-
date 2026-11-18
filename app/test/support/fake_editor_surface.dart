@@ -64,7 +64,14 @@ final class FakeDocument {
 }
 
 final class FakeEditorSurface implements EditorSurface {
-  FakeEditorSurface({this.announceReady = true, this.respond = true});
+  FakeEditorSurface({
+    this.announceReady = true,
+    this.respond = true,
+    this.engineMajor,
+  });
+
+  /// The engine version this page reports (null: it can't tell).
+  int? engineMajor;
 
   /// Whether a loaded page announces `editor.ready` (false: a page that
   /// never starts).
@@ -124,6 +131,9 @@ final class FakeEditorSurface implements EditorSurface {
 
   @override
   Stream<EditorSurfaceEvent> get events => _events.stream;
+
+  @override
+  Future<int?> engineMajorVersion() async => engineMajor;
 
   @override
   Future<void> loadPage(String html) async {

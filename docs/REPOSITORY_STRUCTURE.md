@@ -93,7 +93,7 @@ CodeForge-/
 │   └── *.md
 │
 ├── .github/
-│   ├── workflows/                # ci.yml (editor + Flutter jobs), phase-gate.yml; release.yml later
+│   ├── workflows/                # ci.yml (editor + Flutter jobs, and the phase gate); release.yml later
 │   └── PULL_REQUEST_TEMPLATE.md
 │
 ├── AGENTS.md                     # agent development rules (spec §12 workflow)

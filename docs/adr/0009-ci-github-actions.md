@@ -1,13 +1,13 @@
 # ADR-0009: GitHub Actions as the build authority; evidence-gate CI philosophy from t1
 
-**Status:** Accepted · 2026-11-05 · amended 2026-11-11 (owner decisions: arm64 runs on Firebase Test Lab; no nightly run) · as built in Phase 4 W5 (2026-11-18: the runtime gates and the Test Lab job)
+**Status:** Accepted · 2026-11-05 · amended 2026-11-11 (owner decisions: arm64 runs on Firebase Test Lab; no nightly run) · as built in Phase 4 W5 (2026-11-18: the runtime gates and the Test Lab job) · amended 2026-11-18 (owner request: CI and the phase gate in one workflow)
 
 ## Context
 The development sandbox cannot build Android (no Flutter/Java/Android SDK; dl.google.com unreachable). The user explicitly wants GitHub Actions for builds. The audited t1 project demonstrates a rigorous CI discipline: JVM gates, emulator E2E on TCG `aosp_atd` images, exec-model publishability gates, size/alignment checks, fail-closed signing — with evidence published per run.
 
 ## Decision
 - **GitHub Actions is the build authority from Phase 1.** No local-only "it builds on my machine" claims; phase reports cite run ids (spec rules 15/16).
-- Pipelines per BUILD_AND_RELEASE.md: `ci.yml` (PR, <15 min), `phase-gate.yml`, `runtime-gates.yml` (Phase 4+), `release.yml` (tags), `deps.yml` (monthly). *(As built in Phase 4 W5: the runtime gates are jobs of `phase-gate.yml`, not a workflow of their own; see the amendment.)*
+- Pipelines per BUILD_AND_RELEASE.md: `ci.yml` (PR, <15 min), `phase-gate.yml`, `runtime-gates.yml` (Phase 4+), `release.yml` (tags), `deps.yml` (monthly). *(As built in Phase 4 W5: the runtime gates are jobs of `phase-gate.yml`, not a workflow of their own. Since W6, `phase-gate.yml` is part of `ci.yml`; see the amendments.)*
 - Adopt t1 patterns: pinned toolchains, SHA-verified payloads, `assert-gate-results.py`-style evidence files, generous adb timeouts for TCG emulators, fail-closed signing, per-device bundle-size arithmetic.
 - **Artifacts + job summaries instead of t1's hundreds of diagnostics branches** (repo hygiene); optional single orphan branch for gate JSON history.
 - arm64 hardware gates via self-hosted runner when available; until then, explicit manual-checklist artifacts (device, build hash, operator) — never silent skips. *(Superseded on 2026-11-11: see the amendment.)*
@@ -27,3 +27,9 @@ The development sandbox cannot build Android (no Flutter/Java/Android SDK; dl.go
   - **t1's evidence rule:** `app/tool/ci/gate_results.py` judges each run the way t1's `assert-gate-results.py` does. Every expected class runs at least its number of tests, and none fails or is skipped. It also requires figures, such as every audit at 0.
   - **The arm64 leg** is `ci.yml`'s `testlab` job. A commit with `[testlab]` in its subject line starts it, after a plain CI run of the change has passed (the owner's rule, BUILD_AND_RELEASE §4). It builds the arm64 payload APK and runs the same tests, and the session store's two sync modes (ADR-0008), on one physical phone with Android 14 or later. That is one test of the day's five.
   - **The API floor:** `ci.yml`'s *API floor* step checks the debug APK's dex against the SDK's API database on every push (ADR-0007).
+
+## Amendment (2026-11-18, owner request: one workflow)
+- **The owner asked** for CI and the phase gate in one workflow, after W5. Since W6, `phase-gate.yml`'s four jobs are jobs of `ci.yml`, with their steps unchanged: the emulator gate, the runtime gates' build, its five legs and its evidence. `phase-gate.yml` is gone.
+- **What stays:** the gate runs once per work package, on a push whose head commit carries `[phase-gate]` (or a manual run with the `phase_gate` input, once the workflow is on `main`), never for a pull request. It starts beside the build and commits its own evidence back. A work package still has one gate run, and now one run in all: the run's verdict covers the build, the tests and the gate.
+- **Queues:** plain runs and gate runs on a branch queue separately, so a push never waits behind a gate (about 50 minutes) and two gates never overlap (BUILD_AND_RELEASE §2.4).
+- **Records:** earlier phase gates keep their workflow's name, *Phase gate*, in the reports. From W6 on, a gate run is a *CI* run.

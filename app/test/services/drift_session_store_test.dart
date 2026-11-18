@@ -499,6 +499,9 @@ void main() {
       expect(file.existsSync(), isFalse, reason: 'nothing opened yet');
       final mode = await db.customSelect('PRAGMA journal_mode').getSingle();
       expect(mode.data.values.single, 'wal');
+      // FULL (2): every commit synced to storage (ADR-0008).
+      final sync = await db.customSelect('PRAGMA synchronous').getSingle();
+      expect(sync.data.values.single, 2);
       await db.close();
       expect(file.existsSync(), isTrue);
     });

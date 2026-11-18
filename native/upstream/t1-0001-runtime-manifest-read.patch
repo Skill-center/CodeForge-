@@ -1,0 +1,88 @@
+From 6f0f988e34905300c8226048b513717e5e69d0af Mon Sep 17 00:00:00 2001
+From: CodeForge <codeforge@users.noreply.github.com>
+Date: Wed, 18 Nov 2026 06:24:15 +0000
+Subject: [PATCH] sealed-runtime: read the manifest stream without readAllBytes
+
+RuntimeManifest.read(InputStream) called InputStream.readAllBytes(),
+which Android has only from API 33. D8 does not backport it, so an app
+with a lower minSdk that installs through SealedInstaller.install throws
+NoSuchMethodError there on Android 8.0 to 12L (API 26 to 32). t1's
+minSdk is 29 and its gates ran on API 34 and 36, so t1 never hit it;
+CodeForge (minSdk 26) found it on its API 26 to 28 emulator gates.
+
+Read the stream in a loop instead. The test reads a stream that returns
+at most three bytes per call and checks the stream is closed.
+---
+ .../io/mcyber12/sealed/RuntimeManifest.java   | 12 ++++++++-
+ .../mcyber12/sealed/SealedInstallerTest.java  | 26 +++++++++++++++++++
+ 2 files changed, 37 insertions(+), 1 deletion(-)
+
+diff --git a/sealed-runtime/src/main/java/io/mcyber12/sealed/RuntimeManifest.java b/sealed-runtime/src/main/java/io/mcyber12/sealed/RuntimeManifest.java
+index 8f0c719..f0f2198 100644
+--- a/sealed-runtime/src/main/java/io/mcyber12/sealed/RuntimeManifest.java
++++ b/sealed-runtime/src/main/java/io/mcyber12/sealed/RuntimeManifest.java
+@@ -1,5 +1,6 @@
+ package io.mcyber12.sealed;
+ 
++import java.io.ByteArrayOutputStream;
+ import java.io.File;
+ import java.io.IOException;
+ import java.io.InputStream;
+@@ -121,7 +122,16 @@ public final class RuntimeManifest {
+     public static RuntimeManifest read(InputStream input) throws IOException {
+         if (input == null) return empty();
+         try (InputStream stream = input) {
+-            return parse(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
++            // Not InputStream.readAllBytes(): Android has it only from API 33,
++            // and D8 does not backport it, so an app below that would throw
++            // NoSuchMethodError here.
++            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
++            byte[] buffer = new byte[8192];
++            int count;
++            while ((count = stream.read(buffer)) != -1) {
++                bytes.write(buffer, 0, count);
++            }
++            return parse(new String(bytes.toByteArray(), StandardCharsets.UTF_8));
+         }
+     }
+ 
+diff --git a/sealed-runtime/src/test/java/io/mcyber12/sealed/SealedInstallerTest.java b/sealed-runtime/src/test/java/io/mcyber12/sealed/SealedInstallerTest.java
+index 4b115c4..abc464f 100644
+--- a/sealed-runtime/src/test/java/io/mcyber12/sealed/SealedInstallerTest.java
++++ b/sealed-runtime/src/test/java/io/mcyber12/sealed/SealedInstallerTest.java
+@@ -249,6 +249,32 @@ public class SealedInstallerTest {
+         assertTrue(RuntimeManifest.empty().verify(null).contains("no prefix"));
+     }
+ 
++    @Test
++    public void manifestReadsAStreamThatArrivesInPieces() throws Exception {
++        String text = "b".repeat(64) + "\t12\tshare/a\n"
++            + "c".repeat(64) + "\t3\tshare/b\n";
++        boolean[] closed = {false};
++        java.io.InputStream slow = new java.io.FilterInputStream(
++            new java.io.ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))) {
++            @Override
++            public int read(byte[] buffer, int offset, int length) throws IOException {
++                return super.read(buffer, offset, Math.min(length, 3));
++            }
++
++            @Override
++            public void close() throws IOException {
++                closed[0] = true;
++                super.close();
++            }
++        };
++        RuntimeManifest manifest = RuntimeManifest.read(slow);
++        assertEquals(2, manifest.size());
++        assertEquals(12, manifest.get("share/a").size);
++        assertEquals(3, manifest.get("share/b").size);
++        assertTrue("read closes the stream", closed[0]);
++        assertTrue(RuntimeManifest.read((java.io.InputStream) null).isEmpty());
++    }
++
+     @Test
+     public void verifyFindsChangedFiles() throws Exception {
+         File root = directory();
+-- 
+2.39.5
+

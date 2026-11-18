@@ -35,6 +35,7 @@ CodeForge vendors t1's sealed runtime: its kernel (`native/sealed-runtime/`), it
     None of this changes a t1 file, so nothing waits on t1 (AGENTS §4).
 - **The adapter's install path.** `SealedPayloadInstaller.install` takes no progress listener. The runtime host calls t1's kernel itself, as `SealedPayloadInstaller`'s own comment says a host should, and uses the adapter's asset names and ABI choice.
 - **The kernel's entry point, `SealedInstaller.install` (W5).** It reads the manifest stream through `RuntimeManifest.read(InputStream)`, which calls `InputStream.readAllBytes()`. Android has that method only from API 33, and D8 does not backport it, so on Android 8.0 to 12L (API 26 to 32) every install through it ended in `NoSuchMethodError`. t1 never saw it: its minSdk is 29, and it ran only on API 34 and 36. A vendored file is never edited, so the runtime host makes the entry point's calls itself (`PayloadInstall.kt`, beside `SealedRuntime.kt`): `RuntimeManifest.parse` on the bytes it has read, then `PayloadExtractor`, the data links (each side checked by `RuntimeManifest.normalize`, created as the kernel creates them) and `SealedLayout`, in the kernel's order. `PayloadInstallTest` (JVM) installs the same payloads through both and compares the prefixes, counts and problems. CI's API floor check (`app/tool/ci/check_api_floor.py`) fails the build if the app calls `SealedInstaller.install`, `RuntimeManifest.read(InputStream)` or the adapter's `install` again. The fix belongs in t1 (`RuntimeManifest.read` can read the stream in a loop); a re-vendor after it can retire `PayloadInstall`.
+  - **Decided on 2026-11-18** (one of W5's open decisions, which the owner left to the agent): `PayloadInstall` stays CodeForge's install path, and nothing waits for t1. The fix is ready for t1's owner as an upstreamable patch with a test, `native/upstream/t1-0001-runtime-manifest-read.patch` (*Upstream patches* below). Whether and when t1 takes it is t1's choice. After a re-vendor that includes it, CI warns that the patch is already in, and `PayloadInstall` can retire.
 
 **Ported, not vendored (W5): t1's on-device gates.** t1's `app/src/androidTest/java/io/mcyber12/codingharness/ExecModelTest.java` and `SealedShellTest.java` (at the commit above) need classes that were not vendored (`androidx.test.ext:junit`, `HarnessCommandRunner`, `HarnessBootstrap`, `packs/*`), so CodeForge ports them. They are CodeForge's own files, in `app/android/app/src/androidTest/` (`java/dev/codeforge/app/runtime/ExecModelTest.java`, `kotlin/dev/codeforge/app/runtime/SealedShellTest.kt`), and each class comment lists what changed and why:
 - **`ExecModelTest`** keeps t1's text: its steps, order, assertions and messages. It changes the package, the runner (a plain JUnit4 class), the prefix (a root of the gate's own, cleared first) and the report. One change is about Android, not CodeForge: a denial of exec from app data is expected only where Android denies it, on API 29 and later for an app that targets 29 or later. On API 26 to 28, which t1 never ran, nothing denies it.
@@ -99,6 +100,7 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | `native/runtime-core/build.gradle.kts` | the runtime core's build script (W3): the ABIs, ndk-build for the preload, the compile task for the exec probe and (W4) the launcher, and the payload task that builds one ABI's sealed payload from the pins |
 | `native/runtime-core/src/main/AndroidManifest.xml` | the runtime core's manifest, empty: the app decides how native libraries are packaged |
 | `native/runtime-core/src/main/jni/Android.mk` | ndk-build for `harness-exec.c` with t1's 16 KB flags; t1's own also builds `termux.c`, this one never does (ADR-0011) |
+| `native/upstream/t1-0001-runtime-manifest-read.patch` | an upstreamable fix for t1, waiting for t1's owner (*Upstream patches*) |
 | `native/runtime-core/src/main/jni/codeforge-spawn.c` | the launcher every runtime command starts through (W4), built as `libcodeforge-spawn.so`: a session and process group of its own, a child subreaper, default signals, no core files; it ends the whole group and every descendant when the command exits or when it is stopped, and writes what happened to a status file (docs/SECURITY.md §2) |
 | `native/sealed-runtime/build.gradle.kts` | the module's build script: t1's, in the Kotlin DSL |
 | `runtime/README.md` | how the supply chain fits together, and its commands |
@@ -124,6 +126,18 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 6. **Commit** it as one change ("vendor t1 <sha>"), and say what t1 changed.
 
 **Vendored files are never edited here.** A fix goes to t1 first, as an upstreamable patch, and is then re-vendored. A need that is CodeForge's own goes into a separate CodeForge file (REPOSITORY_STRUCTURE's boundary rule 3).
+
+## Upstream patches
+
+Fixes for t1 that CodeForge has written wait in `native/upstream/`, one `git format-patch` file each, against the commit above and t1's own paths and package. t1's owner applies one with `git am <file>` in a t1 checkout.
+
+- **CI tests each patch on every push** (`app/tool/ci/check_upstream_patches.sh`, the quality job's *Upstream patches for t1*). It maps the patch onto the vendored kernel (t1's paths and package to CodeForge's), applies it, and runs the kernel's JUnit tests with it. Then it restores the vendored files and checks them unchanged, so nothing CodeForge builds or ships includes the patch. Its results go to `app/ci-results/upstream-patches.txt`.
+- **A patch that no longer applies** fails the run: a re-vendor changed the code it fixes, so it needs writing again.
+- **A patch that is already in** the vendored copy only warns. t1 took it and CodeForge re-vendored, so the patch can go, with whatever worked around it.
+
+| Patch | Fixes | Works around it meanwhile |
+|---|---|---|
+| `t1-0001-runtime-manifest-read.patch` | `RuntimeManifest.read(InputStream)` called `InputStream.readAllBytes()`, which Android has only from API 33 (W5). It now reads the stream in a loop. The new test reads a stream that returns three bytes per call | `PayloadInstall.kt` |
 
 ## The pins
 

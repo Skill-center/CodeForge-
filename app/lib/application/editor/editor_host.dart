@@ -19,6 +19,7 @@ import '../../core/editor/journal.dart';
 import '../../core/editor/protocol.dart';
 import '../../core/editor/rate_limiter.dart';
 import '../../core/editor/shadow_document.dart';
+import '../../core/editor/webview_floor.dart';
 import '../../core/errors/failure.dart';
 import '../../core/logging/logger.dart';
 import '../../services/editor/editor_page.dart';
@@ -272,6 +273,16 @@ final class EditorHost {
             'The editor page speaks protocol ${value.protocol}; '
                 'this app needs $protocolVersion.',
           );
+          return;
+        }
+        // A WebView older than the page's build target cannot parse it:
+        // say what to update instead of waiting for a page that can't start.
+        final engine = await _surface.engineMajorVersion();
+        if (_disposed) {
+          return;
+        }
+        if (engine != null && engine < minimumWebViewMajor) {
+          _fail('webview_too_old', webViewTooOldMessage(engine));
           return;
         }
         _armReadyTimer();

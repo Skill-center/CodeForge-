@@ -354,6 +354,27 @@ void main() {
     await host.dispose();
   });
 
+  testWidgets('a WebView older than the page never loads it, and says why', (
+    tester,
+  ) async {
+    await createHost(tester, start: false);
+    page.engineMajor = 69;
+    await host.start();
+    await settle(tester);
+    expect(host.status.phase, EditorHostPhase.failed);
+    expect(host.status.message, contains('version 69'));
+    expect(host.status.message, contains('version 87 or later'));
+    expect(page.loads, 0);
+
+    // Updated, as after reopening the app: trying again loads the page.
+    page.engineMajor = 87;
+    await host.reloadPage();
+    await settle(tester);
+    expect(host.status.phase, EditorHostPhase.ready);
+    expect(page.loads, 1);
+    await host.dispose();
+  });
+
   testWidgets('a rejected or incompatible page is never loaded', (
     tester,
   ) async {

@@ -49,6 +49,11 @@ abstract interface class EditorSurface {
   /// Observations outside the channel: loads, refused navigations, console.
   Stream<EditorSurfaceEvent> get events;
 
+  /// The Chromium major version of the engine the page runs in (the
+  /// WebView's), or null when the surface can't tell. The host checks it
+  /// against the page's floor before loading it (core/editor/webview_floor).
+  Future<int?> engineMajorVersion();
+
   /// Loads [html] as the page. Completes once loading has started.
   Future<void> loadPage(String html);
 

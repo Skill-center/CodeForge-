@@ -5,8 +5,8 @@
 #
 #   runtime_gate_leg.sh <api> <app apk> <test apk>
 #
-# Run from app/ on a Linux runner with ANDROID_HOME set; phase-gate.yml's
-# runtime-gates jobs build the two APKs once and run one leg per API level.
+# Run from app/ on a Linux runner with ANDROID_HOME set; ci.yml's phase
+# gate builds the two APKs once and runs one leg per API level.
 # The classes, in the order AndroidJUnitRunner runs them (by name):
 #   ExecModelTest        t1's, ported: Android's exec rule measured, the
 #                        native library directory, a prefix link, a shebang
