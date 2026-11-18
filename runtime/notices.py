@@ -156,6 +156,21 @@ REVIEWED = {
     "termux-exec": (("Apache-2.0",), ()),       # v2.4.0's LICENSE (a Debian copyright file)
     "unzip": (("Info-ZIP",), ()),               # its recipe: BSD (Info-ZIP's licence)
 }
+# Generic texts Termux renamed after the bootstrap was built (Phase 5 W1). A
+# package built since links to the new name, which the bootstrap's
+# termux-licenses lacks; the payload carries the same text under the old
+# name. Each entry: the new path -> (the old path, the licence its text must
+# be, by FINGERPRINTS). Used only where the new path is missing from a payload
+# and the old one is there; a run in which no payload needs an entry fails, so
+# it goes once the payload catches up.
+RENAMED_TEXTS = {
+    # termux-licenses 2.2 (termux-packages 26f95de5d3, 2026-08-08, "use SPDX
+    # identifiers for AGPL licenses") renamed AGPL-V3.txt to AGPL-3.0.txt with
+    # the same bytes (blob be3f7b28), and made AGPL-3.0-only.txt a link to it.
+    # The bootstrap carries termux-licenses 2.1, and the pinned libdb
+    # 18.1.40-6 was built after the rename.
+    "share/LICENSES/AGPL-3.0-only.txt": ("share/LICENSES/AGPL-V3.txt", "AGPL-3.0"),
+}
 COPYLEFT = re.compile(r"^(A?GPL|LGPL|GFDL|MPL|EPL|CDDL|EUPL|OSL|CECILL)", re.IGNORECASE)
 
 
@@ -339,12 +354,24 @@ def licence_text(data):
     return "\n".join(line.rstrip() for line in text.split("\n")).strip("\n")
 
 
-def resolve_text(index, path, owner, arch):
+def resolve_text(index, path, owner, arch, renamed=None):
     """(the path whose bytes are the text, the bytes) for a licence file,
-    following links; fails, naming the package, when the text is missing."""
+    following links, and a text RENAMED_TEXTS records to its old name, whose
+    use is added to `renamed`; fails, naming the package, when the text is
+    missing."""
     seen = []
     while True:
         entry = index.get(path)
+        if entry is None and path in RENAMED_TEXTS and RENAMED_TEXTS[path][0] in index:
+            old, licence = RENAMED_TEXTS[path]
+            kind, value = index[old]
+            if kind != "file" or licence not in identify(value):
+                raise SystemExit("notices: %s's licence text %s is missing, and %s, recorded "
+                                 "as its old name, is not the %s text in the %s payload"
+                                 % (owner, path, old, licence, arch))
+            if renamed is not None:
+                renamed.add(path)
+            return old, value
         if entry is None:
             via = " (through %s)" % " -> ".join(seen) if seen else ""
             raise SystemExit("notices: %s's licence text %s%s is not in the %s payload"
@@ -371,6 +398,7 @@ def collect(pins, cache):
     rows = collections.OrderedDict()
     counts = {}
     texts = {}
+    renamed = set()
     for arch in sorted(pins_tool.ABIS):
         packages, shared = payload_packages(pins, cache, arch)
         index = dict(shared)
@@ -391,11 +419,15 @@ def collect(pins, cache):
         for package in packages.values():
             identifiers, files = package.licences()
             identifiers, files = review(package.name, identifiers, files, known)
-            key = (package.name, package.version, tuple(identifiers), tuple(files),
-                   package.homepage)
-            rows.setdefault(key, []).append(pins_tool.ABIS[arch])
-            for path, _ in files:
-                where, data = resolve_text(index, path, package.name, pins_tool.ABIS[arch])
+            shown = []
+            for path, target in files:
+                used = set()
+                where, data = resolve_text(index, path, package.name, pins_tool.ABIS[arch],
+                                           used)
+                renamed |= used
+                # A renamed text: the row names the missing name and the file
+                # the text is in.
+                shown.append((path, target, (min(used), where)) if used else (path, target))
                 text = licence_text(data)
                 if not text:
                     continue
@@ -405,6 +437,13 @@ def collect(pins, cache):
                 carriers, paths = texts.setdefault(text, (set(), set()))
                 carriers.add((package.name, package.version))
                 paths.add(where)
+            key = (package.name, package.version, tuple(identifiers), tuple(shown),
+                   package.homepage)
+            rows.setdefault(key, []).append(pins_tool.ABIS[arch])
+    needless = sorted(set(RENAMED_TEXTS) - renamed)
+    if needless:
+        raise SystemExit("notices: no payload needs the old name of %s any more: drop it "
+                         "from RENAMED_TEXTS" % ", ".join(needless))
     ordered = sorted(rows.items(), key=lambda item: (item[0][0].lower(), item[0][1]))
     return ordered, counts, texts
 
@@ -419,8 +458,15 @@ def licence_label(identifiers):
 def files_label(files):
     if not files:
         return "—"
-    return "<br>".join("`%s` → `%s`" % (path, target) if target else "`%s`" % path
-                       for path, target in files)
+    labels = []
+    for path, target, *renamed in files:
+        if renamed:
+            missing, where = renamed[0]
+            head = "`%s`" % path if missing == path else "`%s` → `%s`" % (path, missing)
+            labels.append("%s\u2021 → `%s`" % (head, where))
+        else:
+            labels.append("`%s` → `%s`" % (path, target) if target else "`%s`" % path)
+    return "<br>".join(labels)
 
 
 def render_notices(pins, ordered, counts):
@@ -453,6 +499,11 @@ def render_notices(pins, ordered, counts):
         "at the paths shown (prefix-relative); a subpackage's is its parent's.",
         "",
     ]
+    if any(len(entry) == 3 for key, _ in ordered for entry in key[3]):
+        lines += ["A text with a double dagger (\u2021) is not in the payload under the name the "
+                  "link gives: Termux renamed it after the bootstrap was built, and the "
+                  "bootstrap's termux-licenses carries the same text under its old name, the last "
+                  "path shown (runtime/notices.py, `RENAMED_TEXTS`).", ""]
     if unidentified:
         lines += ["**To review:** no licence was identified for %s (CI fails until it is)." %
                   ", ".join("`%s`" % name for name in sorted(set(unidentified))), ""]

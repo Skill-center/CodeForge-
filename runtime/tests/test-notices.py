@@ -88,9 +88,20 @@ class IdentifyTest(unittest.TestCase):
         self.assertEqual(notices.identify(MIT + b"\n\n" + GPL2), ["GPL-2.0", "MIT"])
 
 
-class NoticesTest(unittest.TestCase):
+class PayloadFixture(unittest.TestCase):
+    """Two payloads from a fixture repository and bootstrap, and notices.py
+    run on them. A subclass adds pinned packages and termux-licenses texts."""
+
+    # (name, version, files, links) of further pinned packages.
+    EXTRA_PACKAGES = ()
+    # Further files in the bootstrap's share/LICENSES.
+    EXTRA_TEXTS = {}
 
     def setUp(self):
+        # The repository's renamed texts belong to its payload, not to these.
+        renamed = mock.patch.dict(notices.RENAMED_TEXTS, clear=True)
+        renamed.start()
+        self.addCleanup(renamed.stop)
         self.work = tempfile.mkdtemp(prefix="codeforge-notices-")
         self.addCleanup(shutil.rmtree, self.work, True)
         repo = fixtures.Repository(os.path.join(self.work, "repo"))
@@ -104,6 +115,8 @@ class NoticesTest(unittest.TestCase):
         repo.add("zlib", "1.3.1", files={"lib/libz.so": b"\x7fELF z new",
                                          "share/doc/zlib/LICENSE": BSD3})
         repo.add("mystery", "1.0", files={"bin/mystery": b"\x7fELF ?"})
+        for name, version, files, links in self.EXTRA_PACKAGES:
+            repo.add(name, version, files=files, links=links)
         bootstraps = {}
         for arch in fixtures.ARCHES:
             bootstraps[arch] = os.path.join(self.work, "bootstrap-%s.zip" % arch)
@@ -116,11 +129,12 @@ class NoticesTest(unittest.TestCase):
                        "share/doc/libandroid/copyright": LGPL21,
                        # termux-licenses' generic texts, which Termux's links name.
                        "share/LICENSES/GPL-2.0.txt": GPL2,
-                       "share/LICENSES/GPL-3.0.txt": GPL3},
+                       "share/LICENSES/GPL-3.0.txt": GPL3,
+                       **self.EXTRA_TEXTS},
                 symlinks={"share/doc/bash/copyright": "../../LICENSES/GPL-3.0.txt"})
         self.pins_path = os.path.join(self.work, "pins.json")
-        fixtures.write_json(self.pins_path, fixtures.pins_for(repo, bootstraps,
-                                                              ["git", "mystery"]))
+        requested = ["git", "mystery"] + [extra[0] for extra in self.EXTRA_PACKAGES]
+        fixtures.write_json(self.pins_path, fixtures.pins_for(repo, bootstraps, requested))
         self.cache = os.path.join(self.work, "cache")
         pins_script = os.path.join(RUNTIME, "pins.py")
         steps = [["resolve", "--cache", self.cache]]
@@ -164,6 +178,23 @@ class NoticesTest(unittest.TestCase):
         rows = [line for line in text.splitlines() if line.startswith("| %s |" % name)]
         self.assertEqual(len(rows), 1, "one row for %s in:\n%s" % (name, text))
         return rows[0]
+
+    def app_entries(self):
+        """The app file's entries: (packages line, files line, text)."""
+        sections = self.read(self.app_path).split("\n%s\n" % notices.ENTRY_SEPARATOR)
+        entries = []
+        for section in sections[1:]:
+            lines = section.rstrip("\n").split("\n")
+            self.assertTrue(lines[0].startswith("Packages: "), section)
+            self.assertTrue(lines[1].startswith("Files: "), section)
+            self.assertEqual(lines[2], "", section)
+            entries.append((lines[0][len("Packages: "):], lines[1][len("Files: "):],
+                            "\n".join(lines[3:])))
+        return sections[0], entries
+
+
+
+class NoticesTest(PayloadFixture):
 
     def test_the_sections_are_drafted_from_the_licence_files(self):
         # mystery's licence is unnamed: the sections are written all the same,
@@ -229,19 +260,6 @@ class NoticesTest(unittest.TestCase):
         self.assertEqual((self.read(self.notices_path), self.read(self.offer_path),
                           self.read(self.app_path)), first)
 
-    def app_entries(self):
-        """The app file's entries: (packages line, files line, text)."""
-        sections = self.read(self.app_path).split("\n%s\n" % notices.ENTRY_SEPARATOR)
-        entries = []
-        for section in sections[1:]:
-            lines = section.rstrip("\n").split("\n")
-            self.assertTrue(lines[0].startswith("Packages: "), section)
-            self.assertTrue(lines[1].startswith("Files: "), section)
-            self.assertEqual(lines[2], "", section)
-            entries.append((lines[0][len("Packages: "):], lines[1][len("Files: "):],
-                            "\n".join(lines[3:])))
-        return sections[0], entries
-
     def test_the_app_gets_each_text_once_after_the_packages_that_carry_it(self):
         with self.reviewed():
             self.assertEqual(self.run_notices(), 0)
@@ -283,6 +301,63 @@ class NoticesTest(unittest.TestCase):
             self.run_notices()
 
 
+AGPL3 = b"""                    GNU AFFERO GENERAL PUBLIC LICENSE
+                       Version 3, 19 November 2007
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>"""
+
+
+class RenamedTextTest(PayloadFixture):
+    """A text Termux renamed after the bootstrap was built: a pinned package
+    links to the new name, and the bootstrap's termux-licenses carries the
+    text under the old one (libdb and AGPL-3.0-only, Phase 5 W1)."""
+
+    EXTRA_PACKAGES = (("libdb", "18.1.40-6", {"lib/libdb.so": b"\x7fELF db"},
+                       {"share/doc/libdb/copyright": "../../LICENSES/AGPL-3.0-only.txt"}),)
+    EXTRA_TEXTS = {"share/LICENSES/AGPL-V3.txt": AGPL3}
+    RECORD = {"share/LICENSES/AGPL-3.0-only.txt": ("share/LICENSES/AGPL-V3.txt", "AGPL-3.0")}
+
+    def renamed(self, entries):
+        return mock.patch.dict(notices.RENAMED_TEXTS, entries, clear=True)
+
+    def fails(self, entries):
+        with self.reviewed(), self.renamed(entries), self.assertRaises(SystemExit) as caught:
+            self.run_notices()
+        return str(caught.exception)
+
+    def test_the_text_is_found_under_its_old_name(self):
+        with self.reviewed(), self.renamed(self.RECORD):
+            self.assertEqual(self.run_notices(), 0)
+        text = self.read(self.notices_path)
+        self.assertIn("| AGPL-3.0-only | `share/doc/libdb/copyright` → "
+                      "`share/LICENSES/AGPL-3.0-only.txt`\u2021 → `share/LICENSES/AGPL-V3.txt` |",
+                      self.row(text, "libdb"))
+        self.assertIn("A text with a double dagger (\u2021) is not in the payload", text)
+        self.row(self.read(self.offer_path), "libdb")
+        _, entries = self.app_entries()
+        by_packages = {packages: (files, body) for packages, files, body in entries}
+        self.assertEqual(by_packages["libdb 18.1.40-6"],
+                         ("share/LICENSES/AGPL-V3.txt", AGPL3.decode()))
+
+    def test_without_the_record_the_missing_text_fails(self):
+        self.assertEqual(self.fails({}),
+                         "notices: libdb's licence text share/LICENSES/AGPL-3.0-only.txt "
+                         "(through share/doc/libdb/copyright) is not in the arm64-v8a payload")
+
+    def test_an_old_name_that_is_not_the_licence_fails(self):
+        wrong = {"share/LICENSES/AGPL-3.0-only.txt": ("share/LICENSES/GPL-3.0.txt", "AGPL-3.0")}
+        self.assertEqual(self.fails(wrong),
+                         "notices: libdb's licence text share/LICENSES/AGPL-3.0-only.txt is "
+                         "missing, and share/LICENSES/GPL-3.0.txt, recorded as its old name, is "
+                         "not the AGPL-3.0 text in the arm64-v8a payload")
+
+    def test_a_record_no_payload_needs_fails(self):
+        needless = dict(self.RECORD)
+        needless["share/LICENSES/GPL-9.0.txt"] = ("share/LICENSES/GPL-3.0.txt", "GPL-3.0")
+        self.assertEqual(self.fails(needless),
+                         "notices: no payload needs the old name of share/LICENSES/GPL-9.0.txt "
+                         "any more: drop it from RENAMED_TEXTS")
+
+
 class AppTextsTest(unittest.TestCase):
 
     INDEX = {
@@ -312,6 +387,33 @@ class AppTextsTest(unittest.TestCase):
                          "share/doc/gone/copyright) is not in the arm64-v8a payload")
         with self.assertRaises(SystemExit):
             notices.resolve_text(self.INDEX, "share/doc/none/copyright", "none", "x")
+
+    def test_a_renamed_text_is_followed_only_where_the_new_name_is_missing(self):
+        index = dict(self.INDEX)
+        index["share/doc/db/copyright"] = ("link", "../../LICENSES/AGPL-3.0-only.txt")
+        index["share/LICENSES/AGPL-V3.txt"] = ("file", AGPL3)
+        record = {"share/LICENSES/AGPL-3.0-only.txt": ("share/LICENSES/AGPL-V3.txt", "AGPL-3.0")}
+        with mock.patch.dict(notices.RENAMED_TEXTS, record, clear=True):
+            used = set()
+            self.assertEqual(notices.resolve_text(index, "share/doc/db/copyright", "db", "x", used),
+                             ("share/LICENSES/AGPL-V3.txt", AGPL3))
+            self.assertEqual(used, {"share/LICENSES/AGPL-3.0-only.txt"})
+            # Once the payload has the new name, it is the text.
+            index["share/LICENSES/AGPL-3.0-only.txt"] = ("file", b"the new name")
+            used = set()
+            self.assertEqual(notices.resolve_text(index, "share/doc/db/copyright", "db", "x", used),
+                             ("share/LICENSES/AGPL-3.0-only.txt", b"the new name"))
+            self.assertEqual(used, set())
+
+    def test_a_renamed_texts_label_names_both_files(self):
+        self.assertEqual(notices.files_label([("share/doc/db/copyright", "share/LICENSES/A.txt",
+                                               ("share/LICENSES/A.txt", "share/LICENSES/O.txt")),
+                                              ("share/doc/db/LICENSE", None)]),
+                         "`share/doc/db/copyright` → `share/LICENSES/A.txt`\u2021 → "
+                         "`share/LICENSES/O.txt`<br>`share/doc/db/LICENSE`")
+        self.assertEqual(notices.files_label([("share/LICENSES/A.txt", None,
+                                               ("share/LICENSES/A.txt", "share/LICENSES/O.txt"))]),
+                         "`share/LICENSES/A.txt`\u2021 → `share/LICENSES/O.txt`")
 
     def test_a_loop_of_links_fails(self):
         with self.assertRaises(SystemExit) as caught:
