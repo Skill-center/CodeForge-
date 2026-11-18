@@ -15,7 +15,80 @@ The Dart and Flutter packages linked into the app: the closure of `pubspec.yaml`
 <!-- dart:begin -->
 <!-- Written by app/tool/check_licenses.dart from the app's resolved dependencies. Do not edit by hand: CI checks it. -->
 
-The list is written by CI's next `[bootstrap]` run.
+**70 packages** are linked into the app: BSD-3-Clause 60, MIT 7, Apache-2.0 3.
+
+| Package | Version | Licence |
+|---|---|---|
+| args | 2.7.0 | BSD-3-Clause |
+| async | 2.13.1 | BSD-3-Clause |
+| boolean_selector | 2.1.2 | BSD-3-Clause |
+| characters | 1.4.1 | BSD-3-Clause |
+| clock | 1.1.3 | Apache-2.0 |
+| code_assets | 2.1.0 | BSD-3-Clause |
+| collection | 1.19.1 | BSD-3-Clause |
+| convert | 3.1.2 | BSD-3-Clause |
+| crypto | 3.0.8 | BSD-3-Clause |
+| cupertino_ui | 1.1.6 | BSD-3-Clause |
+| drift | 2.35.3 | MIT |
+| fake_async | 1.3.3 | Apache-2.0 |
+| ffi | 2.2.0 | BSD-3-Clause |
+| file | 7.0.1 | BSD-3-Clause |
+| fixnum | 1.1.1 | BSD-3-Clause |
+| flutter_riverpod | 3.4.3 | MIT |
+| glob | 2.2.0 | BSD-3-Clause |
+| go_router | 18.1.3 | BSD-3-Clause |
+| hooks | 2.2.0 | BSD-3-Clause |
+| intl | 0.20.3 | BSD-3-Clause |
+| jni | 1.1.2 | BSD-3-Clause |
+| jni_util | 1.0.0 | BSD-3-Clause |
+| leak_tracker | 11.0.2 | BSD-3-Clause |
+| leak_tracker_flutter_testing | 3.0.10 | BSD-3-Clause |
+| leak_tracker_testing | 3.0.2 | BSD-3-Clause |
+| listen | 1.0.1 | BSD-3-Clause |
+| logging | 1.3.0 | BSD-3-Clause |
+| matcher | 0.12.20 | BSD-3-Clause |
+| material_color_utilities | 0.13.0 | Apache-2.0 |
+| material_ui | 1.10.0 | BSD-3-Clause |
+| meta | 1.19.0 | BSD-3-Clause |
+| native_toolchain_c | 0.19.5 | BSD-3-Clause |
+| objective_c | 9.6.2 | BSD-3-Clause |
+| package_config | 3.0.0 | BSD-3-Clause |
+| path | 1.9.1 | BSD-3-Clause |
+| path_provider_linux | 2.2.2 | BSD-3-Clause |
+| path_provider_platform_interface | 2.1.3 | BSD-3-Clause |
+| path_provider_windows | 2.3.0 | BSD-3-Clause |
+| platform | 3.2.0 | BSD-3-Clause |
+| plugin_platform_interface | 2.1.8 | BSD-3-Clause |
+| process | 5.0.6 | BSD-3-Clause |
+| pub_semver | 2.2.1 | BSD-3-Clause |
+| record_use | 1.1.1 | BSD-3-Clause |
+| riverpod | 3.4.3 | MIT |
+| shared_preferences | 2.5.6 | BSD-3-Clause |
+| shared_preferences_android | 2.5.4 | BSD-3-Clause |
+| shared_preferences_foundation | 2.6.1 | BSD-3-Clause |
+| shared_preferences_linux | 2.4.1 | BSD-3-Clause |
+| shared_preferences_platform_interface | 2.4.2 | BSD-3-Clause |
+| shared_preferences_web | 2.4.3 | BSD-3-Clause |
+| shared_preferences_windows | 2.4.1 | BSD-3-Clause |
+| source_span | 1.10.2 | BSD-3-Clause |
+| sqlite3 | 3.9.0 | MIT |
+| stack_trace | 1.12.2 | BSD-3-Clause |
+| state_notifier | 1.0.0 | MIT |
+| stream_channel | 2.1.4 | BSD-3-Clause |
+| string_scanner | 1.4.1 | BSD-3-Clause |
+| term_glyph | 1.2.2 | BSD-3-Clause |
+| test_api | 0.7.14 | BSD-3-Clause |
+| typed_data | 1.4.0 | BSD-3-Clause |
+| uuid | 4.6.0 | MIT |
+| vector_math | 2.4.4 | BSD-3-Clause |
+| vm_service | 15.4.0 | BSD-3-Clause |
+| web | 1.1.2 | BSD-3-Clause |
+| webview_flutter | 4.14.1 | BSD-3-Clause |
+| webview_flutter_android | 4.14.1 | BSD-3-Clause |
+| webview_flutter_platform_interface | 2.15.1 | BSD-3-Clause |
+| webview_flutter_wkwebview | 3.27.2 | BSD-3-Clause |
+| xdg_directories | 1.1.0 | BSD-3-Clause |
+| yaml | 3.1.4 | MIT |
 
 <!-- dart:end -->
 
