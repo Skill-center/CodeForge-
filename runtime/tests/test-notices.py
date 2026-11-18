@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RUNTIME = os.path.dirname(HERE)
@@ -139,13 +140,21 @@ class NoticesTest(unittest.TestCase):
         with open(path, encoding="utf-8") as handle:
             return handle.read()
 
+    def reviewed(self):
+        # W7's review, as REVIEWED records one: mystery ships no licence file,
+        # so it points to a text another package carries.
+        return mock.patch.dict(notices.REVIEWED,
+                               {"mystery": (("BSD-3-Clause",), ("share/doc/zlib/LICENSE",))})
+
     def row(self, text, name):
         rows = [line for line in text.splitlines() if line.startswith("| %s |" % name)]
         self.assertEqual(len(rows), 1, "one row for %s in:\n%s" % (name, text))
         return rows[0]
 
     def test_the_sections_are_drafted_from_the_licence_files(self):
-        self.assertEqual(self.run_notices(), 0)
+        # mystery's licence is unnamed: the sections are written all the same,
+        # showing it, and the run fails.
+        self.assertEqual(self.run_notices(), 1)
         text = self.read(self.notices_path)
         self.assertTrue(text.startswith("# Notices\n\nHand-written.\n\n<!-- userland:begin -->"))
         self.assertTrue(text.endswith("<!-- userland:end -->\n\nTail.\n"))
@@ -162,11 +171,20 @@ class NoticesTest(unittest.TestCase):
         self.assertIn("| 1.3.1 |", self.row(text, "zlib"))
         self.assertNotIn("1.3.0", text)
         self.assertIn("| none found |", self.row(text, "mystery"))
-        self.assertIn("**To review (W7):** no licence was identified for `mystery`.", text)
+        self.assertIn("**To review:** no licence was identified for `mystery` "
+                      "(CI fails until it is).", text)
         self.assertIn("**6 package versions** ship in the payloads", text)
 
+    def test_a_review_completes_the_table(self):
+        with self.reviewed():
+            self.assertEqual(self.run_notices(), 0)
+        text = self.read(self.notices_path)
+        self.assertIn("| BSD-3-Clause\u2020 | `share/doc/zlib/LICENSE` |", self.row(text, "mystery"))
+        self.assertNotIn("To review", text)
+
     def test_only_copyleft_reaches_the_source_offer(self):
-        self.assertEqual(self.run_notices(), 0)
+        with self.reviewed():
+            self.assertEqual(self.run_notices(), 0)
         offer = self.read(self.offer_path)
         for name in ("git", "bash", "libandroid"):
             self.row(offer, name)
@@ -175,15 +193,17 @@ class NoticesTest(unittest.TestCase):
         self.assertIn("**3 package versions** are under a copyleft licence", offer)
 
     def test_check_reports_stale_sections_and_changes_nothing(self):
-        self.assertEqual(self.run_notices("--check"), 1)
-        self.assertEqual(self.read(self.notices_path), NOTICES_TEMPLATE)
-        self.assertEqual(self.run_notices(), 0)
-        self.assertEqual(self.run_notices("--check"), 0)
+        with self.reviewed():
+            self.assertEqual(self.run_notices("--check"), 1)
+            self.assertEqual(self.read(self.notices_path), NOTICES_TEMPLATE)
+            self.assertEqual(self.run_notices(), 0)
+            self.assertEqual(self.run_notices("--check"), 0)
 
     def test_the_output_is_stable(self):
-        self.assertEqual(self.run_notices(), 0)
-        first = self.read(self.notices_path), self.read(self.offer_path)
-        self.assertEqual(self.run_notices(), 0)
+        with self.reviewed():
+            self.assertEqual(self.run_notices(), 0)
+            first = self.read(self.notices_path), self.read(self.offer_path)
+            self.assertEqual(self.run_notices(), 0)
         self.assertEqual((self.read(self.notices_path), self.read(self.offer_path)), first)
 
     def test_a_missing_section_is_an_error(self):
@@ -192,6 +212,49 @@ class NoticesTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.run_notices()
 
+
+class ReviewTest(unittest.TestCase):
+    """Phase 4 W7's review of the licences the fingerprints could not name."""
+
+    def test_a_subpackage_without_a_text_takes_its_parents(self):
+        ids, files = notices.review("curl", [], [], {"share/doc/libcurl/copyright"})
+        self.assertEqual(ids, [("curl", "reviewed")])
+        self.assertEqual(files, [("share/doc/libcurl/copyright", None)])
+        self.assertEqual(notices.licence_label(ids), "curl\u2020")
+
+    def test_a_parents_text_must_be_in_the_payload(self):
+        with self.assertRaises(SystemExit) as caught:
+            notices.review("xz-utils", [], [], {"share/doc/liblzma/COPYING"})
+        self.assertIn("share/doc/liblzma/COPYING.GPLv2 is not in the payload",
+                      str(caught.exception))
+
+    def test_only_what_the_fingerprints_missed_is_replaced(self):
+        ids, files = notices.review(
+            "liblzma", [("unidentified", False), ("GPL-2.0", False)],
+            [("share/doc/liblzma/COPYING", None)], set())
+        self.assertEqual(ids, [("0BSD", "reviewed"), ("GPL-2.0", False)])
+        self.assertEqual(files, [("share/doc/liblzma/COPYING", None)])
+        self.assertEqual(notices.licence_label(ids), "0BSD\u2020, GPL-2.0\\*")
+        # A pointer file whose licence another file already names adds nothing.
+        ids, _ = notices.review("pcre2", [("unidentified", False), ("BSD-3-Clause", False)],
+                                [], set())
+        self.assertEqual(ids, [("BSD-3-Clause", False)])
+
+    def test_a_review_the_fingerprints_made_needless_fails(self):
+        with self.assertRaises(SystemExit) as caught:
+            notices.review("ripgrep", [("MIT", False)], [("share/doc/ripgrep/copyright", None)],
+                           set())
+        self.assertIn("drop its review", str(caught.exception))
+        # A package with no review is left as it is.
+        self.assertEqual(notices.review("bash", [("GPL-3.0", True)], [], set()),
+                         ([("GPL-3.0", True)], []))
+
+    def test_bzip2s_own_licence_is_not_called_bsd(self):
+        text = (b'This program, "bzip2", the associated library "libbzip2", and all\n'
+                b"documentation, are copyright (C) 1996-2019 Julian R Seward.\n"
+                b"Redistribution and use in source and binary forms, with or without\n"
+                b"modification, are permitted provided that ...")
+        self.assertEqual(notices.identify(text), ["bzip2-1.0.6"])
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)

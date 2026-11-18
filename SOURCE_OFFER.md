@@ -1,6 +1,6 @@
 # Source offer
 
-> **Draft (Phase 4 W2).** ADR-0011's interim rule 3 and ADR-0010: this is published before any binary release that contains the userland, and W7 completes it. It is not legal advice: W7's licence review checks it.
+> **Completed in Phase 4 W7** (2026-11-18): the mechanism is decided, and the list below is written and checked by CI from the pins. ADR-0011's interim rule 3 and ADR-0010: published before any binary that contains the userland is distributed. It is not legal advice; the open points are under *Before the first distribution*.
 
 ## Why there is one
 
@@ -14,21 +14,22 @@ For each package version in the payload:
 - **Termux's recipe and patches.** The package's directory in https://github.com/termux/termux-packages, at the commit that built that version.
 - **The bootstrap.** The same for every package the bootstrap contains, plus Termux's scripts that build the bootstrap.
 
-## How CodeForge will provide it (decided in W7)
+## How CodeForge provides it (decided in Phase 4 W7)
 
-**The recommendation: publish the source with every release, and point to it from a written offer.**
+**The source is published with every binary, and a written offer points to it.**
 
-- **The source.** The release workflow (ADR-0010) assembles the corresponding source of every copyleft package version from the pins: the upstream archives, and Termux's recipe directories at the matching commits.
-- **Where it goes.** It is published next to the APK, as a GitHub release asset, with checksums.
-- **The offer.** The app and this file carry a written offer, valid for at least three years after the last distribution of each binary, that points to that archive. Honouring the offer then costs nothing.
+- **The source.** For each binary that contains the userland, the release workflow (ADR-0010) assembles the corresponding source of every copyleft package version in it, from the pins: the upstream archives with their SHA-256, and Termux's recipe directories (build script and patches) at the termux-packages commits that built those versions.
+- **Where it goes.** Next to the binary, as a GitHub release asset of this repository, with checksums. A binary that reaches users only through Play (the closed test included) gets the same release, so the archive exists for every distributed build.
+- **The offer.** This file and the app (About) carry a written offer, valid for at least three years after the last distribution of each binary, to provide that source on request. The archive honours it at no cost.
+- **Requests** go to this repository's issue tracker, https://github.com/Skill-center/CodeForge-/issues, until the owner names an address of its own.
 
-**Open points for W7 and the owner:**
+**Before the first distribution** (the closed test's start, or a GitHub release, whichever is first):
 
-- [ ] Choose the mechanism. The recommendation is above.
-- [ ] Map each pinned version to the termux-packages commit that built it (the history of the recipe's `TERMUX_PKG_VERSION`).
-- [ ] Choose the contact address for source requests.
-- [ ] Decide whether the Play listing links to this file.
-- [ ] Have this file and THIRD_PARTY_NOTICES.md reviewed.
+- [ ] The release workflow assembles and publishes the source archive. It needs each pinned version mapped to the termux-packages commit that built it. The recipe declares `TERMUX_PKG_VERSION` and `TERMUX_PKG_REVISION`, so the newest commit whose recipe gives the pinned version is the one; termux-packages' history on GitHub has it.
+- [ ] The app's About shows the offer, with the link to this file.
+- [ ] A person qualified to give one reviews this file and THIRD_PARTY_NOTICES.md (THIRD_PARTY_NOTICES §6).
+
+No binary that contains the userland is distributed until these are done.
 
 ## The copyleft packages in the payload
 

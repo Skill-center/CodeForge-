@@ -97,6 +97,7 @@ FINGERPRINTS = (
     ("Zlib", ("this software is provided 'as-is', without any express or implied warranty",)),
     ("Unicode-3.0", ("unicode license v3",)),
     ("Unicode-DFS-2016", ("unicode, inc. license agreement - data files and software",)),
+    ("bzip2-1.0.6", ("this program, \"bzip2\", the associated library \"libbzip2\"",)),
 )
 # Short notices ("... either version 2 of the License, or (at your option)
 # any later version"), used only when no full GNU text matched.
@@ -108,7 +109,40 @@ NOTICES = (
     ("GPL-2.0-or-later", ("gnu general public license",
                           "either version 2 of the license, or (at your option) any later")),
 )
-EXCLUSIVE = {"BSD-2-Clause": "BSD-3-Clause", "ISC": "curl"}
+# A licence another one's wording contains is dropped when that one matched.
+EXCLUSIVE = {"BSD-2-Clause": ("BSD-3-Clause", "bzip2-1.0.6"), "ISC": ("curl",)}
+
+# Phase 4 W7's review (2026-11-18) of the packages the fingerprints could not
+# name. Each entry replaces only what they could not name ("unidentified", or
+# no licence file at all), and fails the build once they name it themselves.
+# Sources, read on 2026-11-18: the package's Termux recipe (termux-packages,
+# TERMUX_PKG_LICENSE; a subpackage takes its parent's) and, at the pinned
+# version, the upstream licence file the package ships. A subpackage with no
+# licence file of its own points to its parent's texts, which must be in the
+# payload. Names follow the table's: the fingerprints' and Termux's.
+REVIEWED = {
+    # Subpackages that carry no licence file: the parent's identification.
+    "bzip2": (("bzip2-1.0.6",), ("share/doc/libbz2/copyright",)),          # libbz2's recipe: BSD
+    "curl": (("curl",), ("share/doc/libcurl/copyright",)),                 # libcurl's: MIT (curl's)
+    "file": (("BSD-2-Clause",), ("share/doc/libmagic/copyright",)),        # libmagic's
+    "gpgv": (("GPL-3.0",), ("share/LICENSES/GPL-3.0.txt",)),               # gnupg's: GPL-3.0
+    "libsmartcols": (("LGPL-2.1",),                                        # libsmartcols/COPYING:
+                     ("share/doc/util-linux/COPYING.LGPL-2.1-or-later",)),  # LGPL-2.1-or-later
+    "ncurses-ui-libs": (("MIT",), ("share/doc/ncurses/copyright",)),       # ncurses's
+    "openssh-sftp-server": (("BSD-3-Clause",), ("share/doc/openssh/copyright",)),  # openssh's
+    "xz-utils": (("0BSD", "GPL-2.0"),                                      # liblzma's; xz's COPYING:
+                 ("share/doc/liblzma/COPYING", "share/doc/liblzma/COPYING.GPLv2")),  # the tools
+    # are 0BSD, the xzgrep, xzdiff, xzless and xzmore scripts GPL-2.0-or-later.
+    # Texts the fingerprints do not know.
+    "libicu": (("Unicode-3.0",), ()),           # ICU 79's LICENSE: the Unicode License V3
+    "liblzma": (("0BSD",), ()),                 # xz 5.8.4's COPYING: liblzma is 0BSD
+    "lsof": (("lsof",), ()),                    # lsof 4.99.5's COPYING: Purdue's own licence
+    "pcre2": (("BSD-3-Clause",), ()),           # COPYING points to LICENCE.md (BSD-3-Clause)
+    "ripgrep": (("Unlicense",), ()),            # its UNLICENSE; MIT is the other file
+    "termux-core": (("MIT",), ()),              # v0.4.0's LICENSE (a Debian copyright file)
+    "termux-exec": (("Apache-2.0",), ()),       # v2.4.0's LICENSE (a Debian copyright file)
+    "unzip": (("Info-ZIP",), ()),               # its recipe: BSD (Info-ZIP's licence)
+}
 COPYLEFT = re.compile(r"^(A?GPL|LGPL|GFDL|MPL|EPL|CDDL|EUPL|OSL|CECILL)", re.IGNORECASE)
 
 
@@ -116,7 +150,7 @@ def identify(data):
     """Licence identifiers a text's wording matches (possibly several)."""
     text = re.sub(r"\s+", " ", data.decode("utf-8", "replace")).lower()
     found = [name for name, phrases in FINGERPRINTS if all(p in text for p in phrases)]
-    found = [name for name in found if EXCLUSIVE.get(name) not in found]
+    found = [name for name in found if not any(other in found for other in EXCLUSIVE.get(name, ()))]
     if not any(name.startswith(("GPL", "LGPL", "AGPL")) for name in found):
         for name, phrases in NOTICES:
             if all(p in text for p in phrases):
@@ -239,6 +273,29 @@ def cell(text):
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
+def review(name, identifiers, files, known):
+    """[identifiers], [files] with W7's review applied, where one is recorded."""
+    entry = REVIEWED.get(name)
+    if entry is None:
+        return identifiers, files
+    if identifiers and not any(i == "unidentified" for i, _ in identifiers):
+        raise SystemExit("notices: the fingerprints now name %s's licence: drop its review "
+                         "from REVIEWED" % name)
+    licences, parent_texts = entry
+    named = [item for item in identifiers if item[0] != "unidentified"]
+    reviewed = [(licence, "reviewed") for licence in licences
+                if licence not in [i for i, _ in named]]
+    if identifiers:
+        return reviewed + named, files
+    if not parent_texts:
+        raise SystemExit("notices: %s carries no licence text, and its review names none" % name)
+    missing = [path for path in parent_texts if path not in known]
+    if missing:
+        raise SystemExit("notices: %s's reviewed licence text %s is not in the payload"
+                         % (name, ", ".join(missing)))
+    return reviewed, [(path, None) for path in parent_texts]
+
+
 def collect(pins, cache):
     """Rows merged across architectures: (name, version, licence, files, homepage) -> ABIs."""
     rows = collections.OrderedDict()
@@ -247,8 +304,19 @@ def collect(pins, cache):
         packages = payload_packages(pins, cache, arch)
         counts[arch] = (len(packages),
                         sum(1 for p in packages.values() if p.origin == "pinned"))
+        # Every licence path the payload carries: the share/doc files, and the
+        # share/LICENSES texts Termux's links point at (termux-licenses).
+        known = set()
+        for package in packages.values():
+            for path, (kind, value) in package.docs.items():
+                known.add(path)
+                if kind == "link":
+                    match = GENERIC_LINK.search(value)
+                    if match:
+                        known.add("share/LICENSES/%s.txt" % match.group(1))
         for package in packages.values():
             identifiers, files = package.licences()
+            identifiers, files = review(package.name, identifiers, files, known)
             key = (package.name, package.version, tuple(identifiers), tuple(files),
                    package.homepage)
             rows.setdefault(key, []).append(pins_tool.ABIS[arch])
@@ -259,7 +327,8 @@ def collect(pins, cache):
 def licence_label(identifiers):
     if not identifiers:
         return "none found"
-    return ", ".join(name if exact else name + "\\*" for name, exact in identifiers)
+    marks = {True: "", False: "\\*", "reviewed": "\u2020"}
+    return ", ".join(name + marks[exact] for name, exact in identifiers)
 
 
 def files_label(files):
@@ -292,13 +361,15 @@ def render_notices(pins, ordered, counts):
         % ", ".join("%s %d" % (name, count) for name, count in
                     sorted(tally.items(), key=lambda item: (-item[1], item[0].lower()))),
         "",
-        "A licence with an asterisk was identified from its text's wording; the others are "
-        "named by Termux's link to `share/LICENSES/<id>.txt`, exactly as Termux names them. "
-        "The texts ship in the payload at the paths shown (prefix-relative).",
+        "A licence with an asterisk was identified from its text's wording; one with a "
+        "dagger (\u2020) by Phase 4 W7's review, from the licence the package's Termux recipe "
+        "declares (runtime/notices.py, `REVIEWED`); the others are named by Termux's link to "
+        "`share/LICENSES/<id>.txt`, exactly as Termux names them. The texts ship in the payload "
+        "at the paths shown (prefix-relative); a subpackage's is its parent's.",
         "",
     ]
     if unidentified:
-        lines += ["**To review (W7):** no licence was identified for %s." %
+        lines += ["**To review:** no licence was identified for %s (CI fails until it is)." %
                   ", ".join("`%s`" % name for name in sorted(set(unidentified))), ""]
     lines += ["| Package | Version | ABIs | Licence | Licence text in the payload | Homepage |",
               "|---|---|---|---|---|---|"]
@@ -378,6 +449,13 @@ def main(argv=None):
         print("notices: rewrote the generated section of %s" % os.path.relpath(path, ROOT))
     copyleft = sum(1 for key, _ in ordered if any(COPYLEFT.match(i) for i, _ in key[2]))
     print("notices: %d package versions, %d under a copyleft licence" % (len(ordered), copyleft))
+    unnamed = sorted({key[0] for key, _ in ordered
+                      if not key[2] or any(i == "unidentified" for i, _ in key[2])})
+    if unnamed:
+        # Written (or checked) all the same, so the section shows them.
+        print("notices: no licence identified for %s: review each and add it to REVIEWED"
+              % ", ".join(unnamed), file=sys.stderr)
+        return 1
     if stale:
         print("notices: stale: %s. Regenerate with `python3 runtime/notices.py --cache <cache>` "
               "after fetching the pins, or push a [bootstrap] commit (CI rewrites them)."

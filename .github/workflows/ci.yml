@@ -77,11 +77,15 @@ jobs:
         continue-on-error: true
         run: npx vitest run 2>&1 | tee ../editor-results/test.txt
 
+      # The licences, and since Phase 4 W7 THIRD_PARTY_NOTICES.md's list of
+      # the bundle's packages (tool/notices.mjs), current with the lockfile.
       - name: Licence gate (runtime packages)
         id: licenses
         if: steps.install.outcome == 'success'
         continue-on-error: true
-        run: node tool/check_licenses.mjs 2>&1 | tee ../editor-results/licenses.txt
+        run: |
+          { node tool/check_licenses.mjs && node tool/notices.mjs --check; } 2>&1 \
+            | tee ../editor-results/licenses.txt
 
       - name: Build the editor page
         id: build
@@ -348,10 +352,18 @@ jobs:
         continue-on-error: true
         run: dart run tool/lint_imports.dart > ci-results/imports.txt 2>&1
 
+      # The licences, and since Phase 4 W7 THIRD_PARTY_NOTICES.md's list of
+      # the packages linked into the app: a [bootstrap] run writes it (and the
+      # diagnostics commit takes it back), every other run checks it.
       - name: Dependency license gate
         id: licenses
         continue-on-error: true
-        run: dart run tool/check_licenses.dart > ci-results/licenses.txt 2>&1
+        env:
+          BOOTSTRAP: ${{ contains(github.event.head_commit.message, '[bootstrap]') }}
+        run: |
+          mode=""
+          if [ "$BOOTSTRAP" = "true" ]; then mode="--write-notices"; fi
+          dart run tool/check_licenses.dart $mode > ci-results/licenses.txt 2>&1
 
       - name: Tests (with coverage)
         id: tests

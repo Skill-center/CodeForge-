@@ -1,26 +1,71 @@
 # Third-party notices
 
-> **Draft (Phase 4 W2).** ADR-0011's interim rule 3: started from the pinned packages in Phase 4, and completed before the first binary release (W7, ADR-0010). It is not legal advice: W7's licence review checks it.
+> **Completed in Phase 4 W7** (2026-11-18), from the pinned packages (Phase 4 W2) and the app's resolved dependencies. ADR-0011's interim rule 3 and ADR-0010: published before the first binary release. Its generated sections are checked by CI on every push, so they follow the dependencies. It is not legal advice; the open points are in section 6.
 
-CodeForge's own code is licensed under the Apache License 2.0 (`LICENSE`). The app also contains, or ships beside it, software by others under their own licences. This file lists that software and says where the full licence texts are.
+CodeForge's own code is licensed under the Apache License 2.0 (`LICENSE`). The app also contains, or ships beside it, software by others under their own licences. This file lists that software and says where the full licence texts are. In the app, About → *Open-source licenses* shows Flutter's, the Dart packages' and the editor page's texts, and About → *Bundled font licenses* the fonts'.
 
 ## 1. Vendored source: t1's sealed runtime
 
-`native/sealed-runtime/` and the vendored scripts in `runtime/` come from https://github.com/m-cyber12/t1 at `d9789a2`, under the Apache License 2.0 (the same text as `LICENSE`). native/PROVENANCE.md lists every file, its SHA-256 and the one change made to it (the Java package).
+`native/sealed-runtime/`, `native/runtime-core/` and the vendored scripts in `runtime/` come from https://github.com/m-cyber12/t1 at `d9789a2`, under the Apache License 2.0 (the same text as `LICENSE`), by the same owner as CodeForge. native/PROVENANCE.md lists every file, its SHA-256 and the change made to it: the Java package, and for two files of the kernel CodeForge's recorded patch (`native/patches/`, Phase 4 W7).
 
 ## 2. The Flutter app's packages
 
-`app/tool/check_licenses.dart` checks the Dart and Flutter packages the app links on every CI run: 107 hosted packages on 2026-11-13. Permissive and weak-copyleft licences pass; GPL, AGPL and SSPL fail the build. Flutter collects their licence texts into the app, where its licence page shows them.
+The Dart and Flutter packages linked into the app: the closure of `pubspec.yaml`'s regular dependencies, as `flutter pub deps` resolves it. `app/tool/check_licenses.dart` writes this section and checks it on every CI run, with each package's licence as its own licence file names it; GPL, AGPL and SSPL fail the build. Flutter collects these texts into the app, where its licence page shows them. Dev-only tools (code generators, test frameworks) are not distributed and are left out.
 
-**W7:** the list goes here, generated from `pubspec.lock`.
+<!-- dart:begin -->
+<!-- Written by app/tool/check_licenses.dart from the app's resolved dependencies. Do not edit by hand: CI checks it. -->
+
+The list is written by CI's next `[bootstrap]` run.
+
+<!-- dart:end -->
 
 ## 3. The editor page's packages
 
-The editor page is built from `editor/`: CodeMirror 6 and its language packages, all under the MIT licence. Its build records the bundled packages in `manifest.json`, and writes their licence texts to `NOTICES.txt`, which ships beside the page in the APK. `editor/tool/check_licenses.mjs` checks them on every CI run.
+The editor page is built from `editor/`: CodeMirror 6 and its language packages. Its build writes their licence texts to `NOTICES.txt`, which ships beside the page in the APK and appears in the app's licence page. `editor/tool/check_licenses.mjs` checks their licences, and `editor/tool/notices.mjs` writes and checks this list, on every CI run.
 
-**W7:** the list goes here.
+<!-- editor:begin -->
+<!-- Written by editor/tool/notices.mjs from editor/package-lock.json. Do not edit by hand: CI checks it. -->
 
-## 4. The userland
+**27 packages** can end up in the editor page's bundle: MIT 27. Their licence texts ship in the app as `assets/editor/NOTICES.txt` and appear in its licence page.
+
+| Package | Version | Licence |
+|---|---|---|
+| @codemirror/autocomplete | 6.20.4 | MIT |
+| @codemirror/commands | 6.11.1 | MIT |
+| @codemirror/lang-css | 6.3.1 | MIT |
+| @codemirror/lang-html | 6.4.12 | MIT |
+| @codemirror/lang-javascript | 6.2.5 | MIT |
+| @codemirror/lang-json | 6.0.2 | MIT |
+| @codemirror/lang-markdown | 6.5.2 | MIT |
+| @codemirror/lang-python | 6.2.1 | MIT |
+| @codemirror/language | 6.13.1 | MIT |
+| @codemirror/lint | 6.9.7 | MIT |
+| @codemirror/search | 6.7.2 | MIT |
+| @codemirror/state | 6.7.6 | MIT |
+| @codemirror/streamparser | 6.0.0 | MIT |
+| @codemirror/view | 6.43.15 | MIT |
+| @lezer/common | 1.5.5 | MIT |
+| @lezer/css | 1.3.9 | MIT |
+| @lezer/highlight | 1.2.5 | MIT |
+| @lezer/html | 1.3.13 | MIT |
+| @lezer/javascript | 1.5.6 | MIT |
+| @lezer/json | 1.0.3 | MIT |
+| @lezer/lr | 1.4.12 | MIT |
+| @lezer/markdown | 1.8.1 | MIT |
+| @lezer/python | 1.1.19 | MIT |
+| @marijn/find-cluster-break | 1.0.4 | MIT |
+| crelt | 1.0.7 | MIT |
+| style-mod | 4.1.4 | MIT |
+| w3c-keyname | 2.2.8 | MIT |
+
+<!-- editor:end -->
+
+## 4. Flutter, its engine, and the fonts
+
+- **Flutter** (the framework, the engine and the Dart runtime) is under the BSD 3-Clause licence. The engine includes third-party libraries (Skia and Impeller's dependencies, ICU, HarfBuzz, FreeType, libpng, zlib, BoringSSL and others) under their own licences. Flutter's build gathers all of their texts into the app (`assets/flutter_assets/NOTICES.Z`), and the licence page shows them.
+- **Fonts**, in `app/assets/fonts/` with their licence texts beside them, shown in About → *Bundled font licenses*: Inter and JetBrains Mono under the SIL Open Font License 1.1 (`Inter-OFL.txt`, `JetBrainsMono-OFL.txt`), Material Symbols under the Apache License 2.0 (`MaterialSymbols-LICENSE.txt`). `CfFileGlyphs.ttf` is CodeForge's own.
+
+## 5. The userland
 
 **What it is.** The runtime payload is an aggregate of Termux packages: the bootstrap plus the pinned core set (runtime/pins.json). Each package keeps its own licence, and many of them are GPL or LGPL. They are separate programs that the app installs and runs, not code linked into it (ADR-0011).
 
@@ -158,9 +203,10 @@ A licence with an asterisk was identified from its text's wording; the others ar
 
 <!-- userland:end -->
 
-## 5. Before the first binary release (W7)
+## 6. Done in W7, and still open
 
-- [ ] Sections 2 and 3 listed, from `pubspec.lock` and the editor's manifest.
-- [ ] Every "To review" entry in section 4 resolved, and each licence with an asterisk checked against its text.
-- [ ] The app shows these notices: Flutter's licence page, plus the userland's texts.
-- [ ] PROVENANCE.md's question answered: whether the vendored files need a notice inside them.
+- [x] Sections 2 and 3 listed, each written and checked by CI from the resolved dependencies.
+- [x] Every package section 5 could not name has a licence: Phase 4 W7 read each one's Termux recipe (the dagger), and a subpackage that carries no text points to its parent's. CI fails if a named text is not in the payload, or if a review is no longer needed.
+- [x] Whether the vendored files need a notice inside them: no. t1 and CodeForge have the same owner and the same licence text, and native/PROVENANCE.md and `native/patches/` record every change made to t1's files.
+- [ ] **The userland's texts in the app's licence page.** They ship in the APK, inside the payload, and on the device in the runtime's `share/doc` and `share/LICENSES`, but the licence page does not list them yet. Before the first binary release.
+- [ ] **A licence review by a person qualified to give one,** of this file and SOURCE_OFFER.md, before the first binary release.
