@@ -22,7 +22,9 @@ A newer reference passes only when ALLOWED names it, as one of two kinds:
 An ALLOWED entry that matches nothing fails too: either it is stale, or
 this script stopped reading the dex.
 
-The dex is read with the SDK's dexdump (build-tools), disassembled (-d):
+The database is compileSdk's (platforms/android-36), or the newest the SDK
+has when that one is missing. The dex is read with the SDK's dexdump
+(build-tools), disassembled (-d):
 method headers ("|[0001a4] pkg.Class.method:(args)ret") and instructions
 ("invoke-virtual {v1}, Ljava/io/InputStream;.readAllBytes:()[B // method@0f").
 Members are resolved as the runtime resolves them: on the referenced class,
@@ -48,6 +50,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 MIN_SDK = 26        # app/android/app/build.gradle.kts (ADR-0007)
+COMPILE_SDK = 36    # the API database to judge by: compileSdk's, when present
 OURS = ("dev.codeforge.",)
 
 # (kind, method prefix, reference prefix or None, why). A method prefix is
@@ -291,7 +294,9 @@ def find_tools(dexdump, api_versions):
         dexdump = newest(glob.glob(os.path.join(sdk, "build-tools", "*", "dexdump")),
                          r"build-tools/([^/]+)/")
     if not api_versions and sdk:
-        api_versions = newest(
+        preferred = os.path.join(sdk, "platforms", "android-%d" % COMPILE_SDK, "data",
+                                 "api-versions.xml")
+        api_versions = preferred if os.path.exists(preferred) else newest(
             glob.glob(os.path.join(sdk, "platforms", "android-*", "data", "api-versions.xml")),
             r"android-([^/]+)/")
     return dexdump, api_versions
