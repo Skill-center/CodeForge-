@@ -2,7 +2,7 @@
 
 > **Completed in Phase 4 W7** (2026-11-18), from the pinned packages (Phase 4 W2) and the app's resolved dependencies. ADR-0011's interim rule 3 and ADR-0010: published before the first binary release. Its generated sections are checked by CI on every push, so they follow the dependencies. It is not legal advice; the open points are in section 6.
 
-CodeForge's own code is licensed under the Apache License 2.0 (`LICENSE`). The app also contains, or ships beside it, software by others under their own licences. This file lists that software and says where the full licence texts are. In the app, About → *Open-source licenses* shows Flutter's, the Dart packages' and the editor page's texts, and About → *Bundled font licenses* the fonts'.
+CodeForge's own code is licensed under the Apache License 2.0 (`LICENSE`). The app also contains, or ships beside it, software by others under their own licences. This file lists that software and says where the full licence texts are. In the app, About → *Open-source licenses* shows Flutter's, the Dart packages', the editor page's and (since Phase 5 W1) the userland's texts, About → *Bundled font licenses* the fonts', and About → *CodeForge's license* CodeForge's own.
 
 ## 1. Vendored source: t1's sealed runtime
 
@@ -142,9 +142,9 @@ The editor page is built from `editor/`: CodeMirror 6 and its language packages.
 
 **What it is.** The runtime payload is an aggregate of Termux packages: the bootstrap plus the pinned core set (runtime/pins.json). Each package keeps its own licence, and many of them are GPL or LGPL. They are separate programs that the app installs and runs, not code linked into it (ADR-0011).
 
-**Where the texts are.** Every package's licence text ships inside the payload, at the path the table gives.
+**Where the texts are.** Every package's licence text ships inside the payload, at the path the table gives. Since Phase 5 W1 the app also carries them as `app/assets/licenses/userland.txt`, each distinct text once after the packages that carry it, so its licence page lists them before the runtime is installed.
 
-**How the table is made.** runtime/notices.py writes it from the pinned packages' own licence files, and CI checks it against the pins.
+**How the table is made.** runtime/notices.py writes it, and the app's file, from the pinned packages' own licence files, and CI checks both against the pins.
 
 **The source.** SOURCE_OFFER.md covers the corresponding source of the copyleft packages.
 
@@ -276,10 +276,10 @@ A text with a double dagger (‡) is not in the payload under the name the link 
 
 <!-- userland:end -->
 
-## 6. Done in W7, and still open
+## 6. Done, and still open
 
 - [x] Sections 2 and 3 listed, each written and checked by CI from the resolved dependencies.
 - [x] Every package section 5 could not name has a licence: Phase 4 W7 read each one's Termux recipe (the dagger), and a subpackage that carries no text points to its parent's. CI fails if a named text is not in the payload, or if a review is no longer needed.
 - [x] Whether the vendored files need a notice inside them: no. t1 and CodeForge have the same owner and the same licence text, and native/PROVENANCE.md and `native/patches/` record every change made to t1's files.
-- [ ] **The userland's texts in the app's licence page.** They ship in the APK, inside the payload, and on the device in the runtime's `share/doc` and `share/LICENSES`, but the licence page does not list them yet. Before the first binary release.
+- [x] **The userland's texts in the app's licence page** (Phase 5 W1). runtime/notices.py writes them from the payload's own licence files into `app/assets/licenses/userland.txt`: each distinct text once, under the packages that carry it, with a link in the payload followed to its text. A text the payload lacks fails the run, and CI checks the file against the pins. About → *Open-source licenses* lists them after the Flutter, Dart and editor page packages. The first run found one link the payload can't follow: libdb's `copyright` names `share/LICENSES/AGPL-3.0-only.txt`, a name termux-licenses 2.2 introduced in August 2026, while the payload carries the bootstrap's 2.1, which has the same text as `AGPL-V3.txt`. Section 5 marks it with a double dagger, and the app shows that text. On the device, the link stays broken until a re-pin adds termux-licenses 2.2 to the pinned core set.
 - [ ] **A licence review by a person qualified to give one,** of this file and SOURCE_OFFER.md, before the first binary release.
