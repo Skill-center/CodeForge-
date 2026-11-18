@@ -1866,3 +1866,18 @@ jobs:
           failed=$(grep -E '^api-[0-9]+ ' app/ci-results/runtime-gates/summary.txt | grep -vc ' verdict=pass' || true)
           echo "legs not passed: $failed"
           [ "$failed" = "0" ]
+
+  # The release build (Phase 5 W1, release.yml): a push whose subject line
+  # carries [release] runs a dry run after this run's own build passed: an
+  # arm64 App Bundle and APK signed with throwaway keys, every release check,
+  # and the source archive. It publishes nothing. Publishing waits for a tag
+  # trigger here, which stays off until the owner's keys exist and the owner
+  # decides the first release (docs/BUILD_AND_RELEASE.md §4).
+  release:
+    name: Release (dry run)
+    needs: quality-and-build
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release]')
+    uses: ./.github/workflows/release.yml
+    with:
+      dry_run: true
+    secrets: inherit

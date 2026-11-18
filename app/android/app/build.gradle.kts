@@ -64,12 +64,27 @@ android {
         timeOutInMs = 10 * 60 * 1000
     }
 
+    // The release key (Phase 5 W1, docs/BUILD_AND_RELEASE.md §4), from the
+    // environment: the release workflow (.github/workflows/release.yml) points
+    // it at Play's upload key for the App Bundle and at the owner's release key
+    // for the APK, or at a throwaway key it makes for a dry run. Without it a
+    // release build is debug-signed, so `flutter run --release` works locally;
+    // nothing signed that way is published.
+    val releaseStore = providers.environmentVariable("CODEFORGE_SIGNING_STORE_FILE").orNull
+    if (!releaseStore.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStore)
+                storePassword = providers.environmentVariable("CODEFORGE_SIGNING_STORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("CODEFORGE_SIGNING_KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("CODEFORGE_SIGNING_KEY_PASSWORD").orNull
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Phase 1: debug-signed so `flutter run --release` works locally.
-            // Release signing arrives with the runtime/release work (ADR-0010);
-            // CI never publishes an artifact signed this way.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 }

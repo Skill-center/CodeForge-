@@ -1,0 +1,468 @@
+name: Release
+
+# The release build (Phase 5 W1; docs/BUILD_AND_RELEASE.md §4, ADR-0010).
+# ci.yml calls this workflow for a push whose subject line carries the
+# release tag: a dry run, which builds, signs with throwaway keys and checks
+# everything a release needs, and publishes nothing. A manual run can't be
+# used: GitHub starts one only for a workflow on the default branch.
+#
+# Publishing is written and switched off: it runs only for a v* tag with
+# dry_run false and the eight signing secrets present, and ci.yml has no tag
+# trigger until the owner's keys exist and the owner decides the first
+# release (PHASE_5_PLAN §10). It makes a draft GitHub Release, which the
+# owner publishes: the APK, the source archive, SHA256SUMS,
+# THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md. The App Bundle stays an
+# artifact, for the owner to upload to Play.
+#
+# A dry run never uses the owner's keys, even once they exist: a run's
+# artifacts can be downloaded by anyone signed in to GitHub, and a binary
+# signed with a real key would be a release.
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: Build, sign with throwaway keys and check; publish nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION_FILE: .flutter-version
+  # A dry run's keystores are made in the job and thrown away with it, so
+  # their password is not a secret.
+  DRY_RUN_PASSWORD: codeforge-dry-run
+
+jobs:
+  asked:
+    name: Release · asked for?
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      asked: ${{ steps.asked.outputs.asked }}
+      label: ${{ steps.asked.outputs.label }}
+      publish: ${{ steps.asked.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: app/pubspec.yaml
+          sparse-checkout-cone-mode: false
+
+      # As Test Lab's: the tag counts on the subject line only, so a commit
+      # that mentions it in its body starts nothing.
+      - name: Asked for in the subject line?
+        id: asked
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+        run: |
+          version=$(sed -n 's/^version: *\([0-9][0-9.]*\).*/\1/p' app/pubspec.yaml)
+          subject=$(printf '%s\n' "$MESSAGE" | head -n 1)
+          publish=false
+          if [ "$DRY_RUN" != true ] && [ "${REF#refs/tags/v}" != "$REF" ]; then
+            asked=true; publish=true; label="${REF#refs/tags/v}"
+          else
+            case "$subject" in
+              *"[release]"*) asked=true ;;
+              *) asked=false
+                 echo "The tag is in the message's body, not its subject line: no release build." ;;
+            esac
+            label="$version-dry-run.${SHA:0:7}"
+          fi
+          if ! printf '%s' "$label" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._+-]*$'; then
+            echo "::error title=Release label::'$label' is not a usable version label."
+            exit 1
+          fi
+          {
+            echo "asked=$asked"
+            echo "label=$label"
+            echo "publish=$publish"
+          } | tee -a "$GITHUB_OUTPUT"
+          echo "release: asked=$asked label=$label publish=$publish" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Release · arm64 App Bundle and APK
+    needs: asked
+    if: needs.asked.outputs.asked == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      LABEL: ${{ needs.asked.outputs.label }}
+      PUBLISH: ${{ needs.asked.outputs.publish }}
+      OUT: ${{ github.workspace }}/dist
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Read the Flutter pin
+        id: flutter_pin
+        working-directory: .
+        run: echo "version=$(tr -d '[:space:]' < "$FLUTTER_VERSION_FILE")" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.flutter_pin.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: |
+          actual=$(flutter --version | awk '/^Flutter / { print $2; exit }')
+          want="${{ steps.flutter_pin.outputs.version }}"
+          echo "flutter=$actual pinned=$want"
+          [ "$actual" = "$want" ] || { echo "::error title=Flutter pin::Flutter $actual, pinned $want."; exit 1; }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: editor/.nvmrc
+          cache: npm
+          cache-dependency-path: editor/package-lock.json
+
+      # The editor page, built and verified as ci.yml's editor job does: the
+      # release carries what this commit's editor/ builds.
+      - name: Build the editor page
+        working-directory: editor
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+          npm run verify
+
+      - name: Resolve dependencies and generate code
+        run: |
+          flutter pub get
+          dart run build_runner build
+          dart run pigeon --input pigeons/storage_api.dart
+          dart run pigeon --input pigeons/runtime_api.dart
+          dart run pigeon --input pigeons/search_api.dart
+
+      - name: Restore the Gradle distribution
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: gradle-dist-${{ hashFiles('app/android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Fetch Gradle
+        run: bash tool/ci/fetch_gradle.sh
+
+      # The pinned files of both ABIs: the build's payload takes arm64's, and
+      # the notices check reads both.
+      - name: Restore the runtime's pinned files
+        uses: actions/cache/restore@v6
+        with:
+          path: runtime/generated/cache
+          key: runtime-pins-v1-${{ hashFiles('runtime/pins.json') }}
+
+      - name: Fetch the pinned files
+        working-directory: .
+        run: |
+          for arch in aarch64 x86_64; do
+            python3 runtime/pins.py bootstrap --arch "$arch" --cache runtime/generated/cache \
+              --out runtime/generated/bootstrap
+            python3 runtime/pins.py fetch --arch "$arch" --cache runtime/generated/cache \
+              --out "runtime/generated/debs/$arch"
+          done > "$RUNNER_TEMP/fetch.txt" 2>&1 || { tail -n 30 "$RUNNER_TEMP/fetch.txt"; exit 1; }
+          tail -n 2 "$RUNNER_TEMP/fetch.txt"
+
+      # Two keys, as a release has: Play's upload key signs the App Bundle and
+      # the owner's release key the APK (Play re-signs the bundle with its
+      # own key, so the two channels' builds differ in signature). A dry run
+      # makes both here, names them, and they go with the job.
+      - name: Signing keys
+        id: keys
+        env:
+          UPLOAD_KEYSTORE: ${{ secrets.CODEFORGE_UPLOAD_KEYSTORE }}
+          UPLOAD_STORE_PASSWORD: ${{ secrets.CODEFORGE_UPLOAD_STORE_PASSWORD }}
+          UPLOAD_KEY_ALIAS: ${{ secrets.CODEFORGE_UPLOAD_KEY_ALIAS }}
+          RELEASE_KEYSTORE: ${{ secrets.CODEFORGE_RELEASE_KEYSTORE }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.CODEFORGE_RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.CODEFORGE_RELEASE_KEY_ALIAS }}
+          HAS_UPLOAD_KEY_PASSWORD: ${{ secrets.CODEFORGE_UPLOAD_KEY_PASSWORD != '' }}
+          HAS_RELEASE_KEY_PASSWORD: ${{ secrets.CODEFORGE_RELEASE_KEY_PASSWORD != '' }}
+        run: |
+          keys="$RUNNER_TEMP/keys"
+          mkdir -p "$keys" "$OUT"
+          fingerprint() {   # store password alias -> the certificate's SHA-256
+            keytool -list -v -keystore "$1" -storepass "$2" -alias "$3" \
+              | sed -n 's/^[[:space:]]*SHA256: //p' | head -n 1
+          }
+          if [ "$PUBLISH" = true ]; then
+            missing=""
+            for name in UPLOAD_KEYSTORE UPLOAD_STORE_PASSWORD UPLOAD_KEY_ALIAS \
+                        RELEASE_KEYSTORE RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS; do
+              [ -n "${!name}" ] || missing="$missing CODEFORGE_$name"
+            done
+            [ "$HAS_UPLOAD_KEY_PASSWORD" = true ] || missing="$missing CODEFORGE_UPLOAD_KEY_PASSWORD"
+            [ "$HAS_RELEASE_KEY_PASSWORD" = true ] || missing="$missing CODEFORGE_RELEASE_KEY_PASSWORD"
+            if [ -n "$missing" ]; then
+              echo "::error title=Release keys::Missing secrets:$missing (docs/BUILD_AND_RELEASE.md §4)."
+              exit 1
+            fi
+            printf '%s' "$UPLOAD_KEYSTORE" | base64 -d > "$keys/upload.keystore"
+            printf '%s' "$RELEASE_KEYSTORE" | base64 -d > "$keys/release.keystore"
+            upload_alias="$UPLOAD_KEY_ALIAS"; release_alias="$RELEASE_KEY_ALIAS"
+            upload_sha=$(fingerprint "$keys/upload.keystore" "$UPLOAD_STORE_PASSWORD" "$upload_alias")
+            release_sha=$(fingerprint "$keys/release.keystore" "$RELEASE_STORE_PASSWORD" "$release_alias")
+            kind="the owner's keys"
+          else
+            for name in upload release; do
+              keytool -genkeypair -noprompt -keystore "$keys/$name.keystore" -storetype PKCS12 \
+                -storepass "$DRY_RUN_PASSWORD" -keypass "$DRY_RUN_PASSWORD" -alias "dry-run-$name" \
+                -keyalg RSA -keysize 3072 -validity 2 \
+                -dname "CN=CodeForge dry run $name key - throwaway - never published, O=CodeForge CI" \
+                2>&1 | grep -v '^Generating' || true
+            done
+            upload_alias=dry-run-upload; release_alias=dry-run-release
+            upload_sha=$(fingerprint "$keys/upload.keystore" "$DRY_RUN_PASSWORD" "$upload_alias")
+            release_sha=$(fingerprint "$keys/release.keystore" "$DRY_RUN_PASSWORD" "$release_alias")
+            kind="throwaway keys made in this job (a dry run)"
+          fi
+          [ -n "$upload_sha" ] && [ -n "$release_sha" ] \
+            || { echo "::error title=Release keys::A keystore's certificate could not be read."; exit 1; }
+          {
+            echo "upload_store=$keys/upload.keystore"
+            echo "upload_alias=$upload_alias"
+            echo "upload_sha256=$upload_sha"
+            echo "release_store=$keys/release.keystore"
+            echo "release_alias=$release_alias"
+            echo "release_sha256=$release_sha"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "signing: $kind"
+            echo "upload key (App Bundle): $upload_alias, certificate SHA-256 $upload_sha"
+            echo "release key (APK): $release_alias, certificate SHA-256 $release_sha"
+          } | tee "$OUT/signing.txt" >> "$GITHUB_STEP_SUMMARY"
+          cat "$OUT/signing.txt"
+
+      # Release mode: AOT Dart, R8, the release lint; arm64 alone, so the
+      # build carries arm64's sealed payload (android/build.gradle.kts).
+      - name: Build the App Bundle (arm64, upload key)
+        env:
+          CODEFORGE_SIGNING_STORE_FILE: ${{ steps.keys.outputs.upload_store }}
+          CODEFORGE_SIGNING_KEY_ALIAS: ${{ steps.keys.outputs.upload_alias }}
+          CODEFORGE_SIGNING_STORE_PASSWORD: ${{ needs.asked.outputs.publish == 'true' && secrets.CODEFORGE_UPLOAD_STORE_PASSWORD || env.DRY_RUN_PASSWORD }}
+          CODEFORGE_SIGNING_KEY_PASSWORD: ${{ needs.asked.outputs.publish == 'true' && secrets.CODEFORGE_UPLOAD_KEY_PASSWORD || env.DRY_RUN_PASSWORD }}
+        run: |
+          timeout --kill-after=30s 30m flutter build appbundle --release \
+            --target-platform android-arm64 > "$OUT/build-bundle.txt" 2>&1 \
+            || { grep -n -A 12 -E 'What went wrong|error:|FAILURE:' "$OUT/build-bundle.txt" | head -n 40
+                 tail -n 20 "$OUT/build-bundle.txt"; exit 1; }
+          grep -E 'sealed payload|CodeForge ABIs|Built ' "$OUT/build-bundle.txt" || true
+          cp build/app/outputs/bundle/release/app-release.aab "$OUT/codeforge-$LABEL-arm64-v8a.aab"
+
+      - name: Build the APK (arm64, release key)
+        env:
+          CODEFORGE_SIGNING_STORE_FILE: ${{ steps.keys.outputs.release_store }}
+          CODEFORGE_SIGNING_KEY_ALIAS: ${{ steps.keys.outputs.release_alias }}
+          CODEFORGE_SIGNING_STORE_PASSWORD: ${{ needs.asked.outputs.publish == 'true' && secrets.CODEFORGE_RELEASE_STORE_PASSWORD || env.DRY_RUN_PASSWORD }}
+          CODEFORGE_SIGNING_KEY_PASSWORD: ${{ needs.asked.outputs.publish == 'true' && secrets.CODEFORGE_RELEASE_KEY_PASSWORD || env.DRY_RUN_PASSWORD }}
+        run: |
+          timeout --kill-after=30s 30m flutter build apk --release \
+            --target-platform android-arm64 > "$OUT/build-apk.txt" 2>&1 \
+            || { grep -n -A 12 -E 'What went wrong|error:|FAILURE:' "$OUT/build-apk.txt" | head -n 40
+                 tail -n 20 "$OUT/build-apk.txt"; exit 1; }
+          cp build/app/outputs/flutter-apk/app-release.apk "$OUT/codeforge-$LABEL-arm64-v8a.apk"
+
+      # Everything a release must pass, each reported; the gate below fails
+      # the job if any did, naming them.
+      - name: The checks
+        id: checks
+        env:
+          UPLOAD_SHA256: ${{ steps.keys.outputs.upload_sha256 }}
+          RELEASE_SHA256: ${{ steps.keys.outputs.release_sha256 }}
+        run: |
+          aab="$OUT/codeforge-$LABEL-arm64-v8a.aab"
+          apk="$OUT/codeforge-$LABEL-arm64-v8a.apk"
+          failed=""
+          check() {   # name command... : runs it, keeps its output, records a failure
+            local name="$1"; shift
+            echo "=== $name"
+            if "$@" > "$OUT/check-$name.txt" 2>&1; then
+              echo "$name=pass"
+            else
+              echo "$name=FAIL"; failed="$failed $name"
+            fi
+            cat "$OUT/check-$name.txt"
+          }
+          # Play's limit is per device: the base module an arm64 phone downloads.
+          check bundle-size python3 ../runtime/check-bundle-size.py "$aab" \
+            --json "$OUT/bundle-size.json" --apk "$apk"
+          check runtime python3 tool/ci/check_runtime_apk.py "$apk" --abi arm64-v8a
+          check page-alignment python3 ../runtime/check-page-alignment.py "$apk" \
+            --report "$OUT/page-alignment.txt" --require-compliant
+          check manifest python3 tool/ci/check_manifest.py build/app release
+          check notices python3 ../runtime/notices.py --cache ../runtime/generated/cache --check
+          check bundle-signer bash tool/ci/check_signer.sh "$aab" "$UPLOAD_SHA256"
+          check apk-signer bash tool/ci/check_signer.sh "$apk" "$RELEASE_SHA256"
+          {
+            echo "label=$LABEL"
+            echo "apk_bytes=$(stat -c%s "$apk") aab_bytes=$(stat -c%s "$aab")"
+            grep -h -E "base module against|^permissions:|^manifest_check=|^page alignment:|^runtime_apk_check=|^signer=" \
+              "$OUT"/check-*.txt || true
+            if [ -n "$failed" ]; then echo "release_checks=FAIL:$failed"; else echo "release_checks=pass"; fi
+          } | tee "$OUT/release-checks.txt"
+          cat "$OUT/release-checks.txt" >> "$GITHUB_STEP_SUMMARY"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+          [ -z "$failed" ]
+
+      - name: Keep the App Bundle and the APK
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: codeforge-${{ env.LABEL }}-app
+          path: dist/
+          retention-days: 14
+          if-no-files-found: warn
+
+  sources:
+    name: Release · the source archive
+    needs: asked
+    if: needs.asked.outputs.asked == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LABEL: ${{ needs.asked.outputs.label }}
+      CACHE: runtime/generated/sources-cache
+    steps:
+      - uses: actions/checkout@v7
+
+      # Blobless: the history and trees only, about 65 MB; sources.py fetches
+      # the blobs it reads (SOURCE_OFFER.md, runtime/sources.py).
+      - name: Clone termux-packages
+        run: |
+          git clone --filter=blob:none --no-checkout --quiet \
+            https://github.com/termux/termux-packages.git "$RUNNER_TEMP/termux-packages"
+          git -C "$RUNNER_TEMP/termux-packages" log -1 --format='termux-packages at %H (%cI)'
+
+      # The upstream files, kept by their SHA-256 under the pins' hash, as the
+      # payload's files are: a file in the cache is verified before it is used.
+      - name: Restore the upstream files
+        id: restore
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.CACHE }}
+          key: runtime-sources-v1-${{ hashFiles('runtime/pins.json', 'SOURCE_OFFER.md') }}
+          restore-keys: runtime-sources-v1-
+
+      - name: Build the source archive
+        run: |
+          mkdir -p dist "$CACHE"
+          ls "$CACHE" | sort > "$RUNNER_TEMP/cache-before.txt"
+          set -o pipefail
+          timeout --kill-after=30s 45m python3 runtime/sources.py build \
+            --termux "$RUNNER_TEMP/termux-packages" --cache "$CACHE" \
+            --out "dist/codeforge-$LABEL-sources.tar" --label "$LABEL" 2>&1 | tee dist/sources.txt
+          grep '^sources:' dist/sources.txt >> "$GITHUB_STEP_SUMMARY"
+
+      # Saved when something new was downloaded, even by a run that failed
+      # later, under a new key: a cache entry can't be overwritten.
+      - name: Keep the upstream files
+        if: always()
+        id: changed
+        run: |
+          ls "$CACHE" 2>/dev/null | grep -v '\.part$' | sort > "$RUNNER_TEMP/cache-after.txt" || true
+          if cmp -s "$RUNNER_TEMP/cache-before.txt" "$RUNNER_TEMP/cache-after.txt"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save the upstream files
+        if: always() && steps.changed.outputs.changed == 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.CACHE }}
+          key: runtime-sources-v1-${{ hashFiles('runtime/pins.json', 'SOURCE_OFFER.md') }}-${{ github.run_id }}
+
+      - name: Keep the source archive
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: codeforge-${{ env.LABEL }}-sources
+          path: dist/
+          retention-days: 14
+          if-no-files-found: warn
+
+  assemble:
+    name: Release · checksums and the draft release
+    needs: [asked, build, sources]
+    if: ${{ !cancelled() && needs.asked.outputs.asked == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      LABEL: ${{ needs.asked.outputs.label }}
+      PUBLISH: ${{ needs.asked.outputs.publish }}
+    steps:
+      - name: Both halves built?
+        env:
+          BUILD: ${{ needs.build.result }}
+          SOURCES: ${{ needs.sources.result }}
+        run: |
+          echo "build=$BUILD sources=$SOURCES"
+          if [ "$BUILD" != success ] || [ "$SOURCES" != success ]; then
+            echo "::error title=Release::Nothing to assemble: the build $BUILD, the source archive $SOURCES."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: codeforge-${{ env.LABEL }}-*
+          path: downloaded
+          merge-multiple: true
+
+      # The release's files and their checksums. The App Bundle goes to Play,
+      # not to the release: its checksum is in the report, not in SHA256SUMS.
+      - name: Checksums
+        run: |
+          mkdir -p release
+          cp "downloaded/codeforge-$LABEL-arm64-v8a.apk" "downloaded/codeforge-$LABEL-sources.tar" \
+            THIRD_PARTY_NOTICES.md SOURCE_OFFER.md release/
+          ( cd release && sha256sum -- * > SHA256SUMS && cat SHA256SUMS )
+          {
+            echo "### Release $LABEL ($([ "$PUBLISH" = true ] && echo 'a draft release' || echo 'a dry run: nothing published'))"
+            echo '```'
+            cat release/SHA256SUMS
+            sha256sum "downloaded/codeforge-$LABEL-arm64-v8a.aab" | sed 's|downloaded/||; s|$|  (Play; not a release file)|'
+            cat downloaded/signing.txt
+            echo '```'
+          } | tee release/RELEASE_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the checksums
+        uses: actions/upload-artifact@v7
+        with:
+          name: codeforge-${{ env.LABEL }}-release
+          path: |
+            release/SHA256SUMS
+            release/RELEASE_REPORT.md
+            release/THIRD_PARTY_NOTICES.md
+            release/SOURCE_OFFER.md
+          retention-days: 14
+
+      # Off until ci.yml gains a tag trigger (see the top of this file).
+      - name: Publish a draft release
+        if: needs.asked.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --draft --verify-tag --title "CodeForge $LABEL" \
+            --notes-file release/RELEASE_REPORT.md \
+            release/codeforge-"$LABEL"-arm64-v8a.apk release/codeforge-"$LABEL"-sources.tar \
+            release/SHA256SUMS release/THIRD_PARTY_NOTICES.md release/SOURCE_OFFER.md
