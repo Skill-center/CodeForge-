@@ -36,7 +36,6 @@ void main() {
   });
 
   const panels = <(String, Widget, String)>[
-    ('search', SearchPanel(), 'Arrives in Phase 4'),
     ('source control', GitPanel(), 'Arrives in Phase 7'),
     ('extensions', ExtensionsPanel(), 'Arrives in Phase 8'),
     ('run', RunPanel(), 'Running arrives in Phase 5, debugging in Phase 9'),
@@ -63,14 +62,4 @@ void main() {
     expect(chip.tooltip, 'Git arrives in Phase 7');
   });
 
-  testWidgets('the search panel points to Go to File', (tester) async {
-    await tester.pumpWidget(
-      TestHarness().wrap(const Scaffold(body: SearchPanel())),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.textContaining('Go to File… in the command palette'),
-      findsOneWidget,
-    );
-  });
 }

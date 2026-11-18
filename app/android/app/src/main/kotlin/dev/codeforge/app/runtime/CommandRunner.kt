@@ -57,6 +57,18 @@ data class CommandOutput(
     }
 }
 
+/**
+ * Takes a command's stdout line by line as it comes (Phase 4 W6: a
+ * project's search reads ripgrep's `--json` lines), instead of keeping it.
+ */
+interface LineSink {
+    /** One line, without its \n. False stops the command, with everything it started. */
+    fun line(text: String): Boolean
+
+    /** A line longer than the limit was dropped unread. */
+    fun overlong() {}
+}
+
 /** What became of a command. [failure] is null when it ran and exited, whatever its exit code. */
 data class CommandResult(
     val exitCode: Int?,
@@ -107,9 +119,35 @@ class CommandRunner(
     private val statusDirectory: File,
     private val clock: () -> Long = System::nanoTime,
 ) {
-    fun run(request: CommandRequest): CommandResult {
-        val started = clock()
-        fun elapsed(): Long = (clock() - started) / 1_000_000L
+    fun run(request: CommandRequest): CommandResult = execute(request, null, null, emptyList())
+
+    /**
+     * Runs [request] like [run], with its stdout going to [lines] line by line
+     * as it comes (lines over [maxLineBytes] dropped), so the result's stdout is
+     * empty but counted. [started] gets the session once the command runs, so
+     * another thread can end it. A sink that answers false ends it the same way.
+     * [extraRoots] are folders the command may also run in, besides the
+     * runtime's home and workspace: a project's search runs in the project, as
+     * ripgrep reads its globs from the folder it runs in (Phase 4 W6).
+     */
+    fun stream(
+        request: CommandRequest,
+        lines: LineSink,
+        maxLineBytes: Int = DEFAULT_MAX_LINE_BYTES,
+        started: (SessionRegistry.Session) -> Unit = {},
+        extraRoots: List<File> = emptyList(),
+    ): CommandResult = execute(request, LineStream(lines, maxLineBytes), started, extraRoots)
+
+    private class LineStream(val sink: LineSink, val maxLineBytes: Int)
+
+    private fun execute(
+        request: CommandRequest,
+        streaming: LineStream?,
+        started: ((SessionRegistry.Session) -> Unit)?,
+        extraRoots: List<File>,
+    ): CommandResult {
+        val startedAt = clock()
+        fun elapsed(): Long = (clock() - startedAt) / 1_000_000L
 
         val program = request.program
         if (program.isEmpty() || program == "." || program == ".." || program.contains('/') || program.contains('\u0000')) {
@@ -123,7 +161,7 @@ class CommandRunner(
             return CommandResult.failed(CommandFailure.NOT_FOUND, "the runtime has no $program")
         }
         val directory = try {
-            directoryFor(request.directory)
+            directoryFor(request.directory, extraRoots)
         } catch (refused: IllegalArgumentException) {
             return CommandResult.failed(CommandFailure.BAD_REQUEST, refused.message)
         }
@@ -165,8 +203,15 @@ class CommandRunner(
             } catch (ignored: IOException) {
                 // Its stdin is closed either way.
             }
-            val stdout = CappedReader(process.inputStream, limit)
+            val stdout: OutputReader = if (streaming == null) {
+                CappedReader(process.inputStream, limit)
+            } else {
+                LineReader(process.inputStream, streaming.maxLineBytes, streaming.sink) {
+                    sessions.end(session, EndReason.ENDED)
+                }
+            }
             val stderr = CappedReader(process.errorStream, limit)
+            started?.invoke(session)
             val readers = listOf(
                 Thread(stdout, "codeforge-stdout-${session.id}"),
                 Thread(stderr, "codeforge-stderr-${session.id}"),
@@ -201,15 +246,15 @@ class CommandRunner(
         }
     }
 
-    /** The folder a command runs in: the home, or one inside the home or the workspace. */
-    fun directoryFor(requested: File?): File {
+    /** The folder a command runs in: the home, or one inside the home, the workspace or [extraRoots]. */
+    fun directoryFor(requested: File?, extraRoots: List<File> = emptyList()): File {
         if (requested == null) return environment.home
         val canonical = try {
             requested.canonicalFile
         } catch (unreadable: IOException) {
             throw IllegalArgumentException("not a folder the runtime can use: $requested")
         }
-        val allowed = listOf(environment.home, environment.workspace).map { it.canonicalFile }
+        val allowed = (listOf(environment.home, environment.workspace) + extraRoots).map { it.canonicalFile }
         val inside = allowed.any { root -> canonical == root || canonical.path.startsWith(root.path + File.separator) }
         if (!inside) {
             throw IllegalArgumentException("commands run in the runtime's home or workspace, not $requested")
@@ -280,6 +325,9 @@ class CommandRunner(
         const val MAX_OUTPUT_LIMIT = 1024 * 1024
         const val READER_JOIN_MS = 2000L
 
+        /** The longest stdout line [stream] passes on. */
+        const val DEFAULT_MAX_LINE_BYTES = 8 * 1024 * 1024
+
         private const val ENOENT = 2
 
         /** Linux's numbers, the same on arm64 and x86_64. */
@@ -318,8 +366,13 @@ class CommandRunner(
     }
 }
 
+/** A reader of one output stream, which runs on its own thread. */
+internal interface OutputReader : Runnable {
+    fun output(): CommandOutput
+}
+
 /** Reads a stream to its end, keeping its first [limit] bytes and counting all. */
-internal class CappedReader(private val stream: InputStream, private val limit: Int) : Runnable {
+internal class CappedReader(private val stream: InputStream, private val limit: Int) : OutputReader {
     private val kept = ByteArrayOutputStream(minOf(limit, 8192))
 
     @Volatile
@@ -348,8 +401,91 @@ internal class CappedReader(private val stream: InputStream, private val limit: 
         }
     }
 
-    fun output(): CommandOutput = synchronized(kept) {
+    override fun output(): CommandOutput = synchronized(kept) {
         val bytes = kept.toByteArray()
         CommandOutput(String(bytes, Charsets.UTF_8), total, total > bytes.size)
+    }
+}
+
+/**
+ * Reads a stream to its end and hands each line to [sink] as it completes
+ * (Phase 4 W6). A line over [maxLine] bytes is dropped as it streams by, and
+ * the sink hears of it. When the sink answers false, [stop] runs once and the
+ * rest is read and dropped, so the command never blocks on a full pipe while
+ * it is ended. Every byte is counted.
+ */
+internal class LineReader(
+    private val stream: InputStream,
+    private val maxLine: Int,
+    private val sink: LineSink,
+    private val stop: () -> Unit,
+) : OutputReader {
+    @Volatile
+    private var total = 0L
+
+    private val line = ByteArrayOutputStream()
+    private var dropping = false
+    private var stopped = false
+
+    override fun run() {
+        val buffer = ByteArray(64 * 1024)
+        try {
+            while (true) {
+                val count = stream.read(buffer)
+                if (count < 0) break
+                total += count
+                if (!stopped) take(buffer, count)
+            }
+            if (!stopped && (line.size() > 0 || dropping)) finishLine()
+        } catch (closed: IOException) {
+            // Cut off (CommandRunner closes a stream that outlives its command).
+        } finally {
+            try {
+                stream.close()
+            } catch (ignored: IOException) {
+                // Done either way.
+            }
+        }
+    }
+
+    private fun take(buffer: ByteArray, count: Int) {
+        var start = 0
+        var i = 0
+        while (i < count && !stopped) {
+            if (buffer[i] == NEWLINE) {
+                append(buffer, start, i - start)
+                finishLine()
+                start = i + 1
+            }
+            i++
+        }
+        if (!stopped && start < count) append(buffer, start, count - start)
+    }
+
+    private fun append(buffer: ByteArray, offset: Int, length: Int) {
+        if (dropping || length == 0) return
+        if (line.size() + length > maxLine) {
+            dropping = true
+            line.reset()
+        } else {
+            line.write(buffer, offset, length)
+        }
+    }
+
+    private fun finishLine() {
+        if (dropping) {
+            sink.overlong()
+        } else if (!sink.line(String(line.toByteArray(), Charsets.UTF_8))) {
+            stopped = true
+            stop()
+        }
+        line.reset()
+        dropping = false
+    }
+
+    override fun output(): CommandOutput = CommandOutput("", total, total > 0)
+
+    private companion object {
+        const val NEWLINE: Byte = 10
     }
 }

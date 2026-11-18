@@ -226,7 +226,8 @@ jobs:
               && dart run drift_dev schema generate drift_schemas/app/ \
                 test/drift/app/generated/ \
               && dart run pigeon --input pigeons/storage_api.dart \
-              && dart run pigeon --input pigeons/runtime_api.dart
+              && dart run pigeon --input pigeons/runtime_api.dart \
+              && dart run pigeon --input pigeons/search_api.dart
           } > ci-results/codegen-bootstrap.txt 2>&1 || status=$?
           tail -40 ci-results/codegen-bootstrap.txt
           exit "$status"
@@ -319,6 +320,7 @@ jobs:
                 test/drift/app/generated/ \
               && dart run pigeon --input pigeons/storage_api.dart \
               && dart run pigeon --input pigeons/runtime_api.dart \
+              && dart run pigeon --input pigeons/search_api.dart \
               && dart format $(find lib -name '*.g.dart' -o -name '*.steps.dart') \
                 test/drift/app/generated
           } > ci-results/codegen.txt 2>&1 || status=$?
@@ -1136,6 +1138,7 @@ jobs:
           dart run build_runner build
           dart run pigeon --input pigeons/storage_api.dart
           dart run pigeon --input pigeons/runtime_api.dart
+          dart run pigeon --input pigeons/search_api.dart
 
       - name: Restore the Gradle distribution
         if: steps.asked.outputs.asked == 'true'
@@ -1422,6 +1425,7 @@ jobs:
           dart run build_runner build
           dart run pigeon --input pigeons/storage_api.dart
           dart run pigeon --input pigeons/runtime_api.dart
+          dart run pigeon --input pigeons/search_api.dart
 
       # The Gradle distribution: cached between runs, and fetched with
       # retries when the cache has none, because services.gradle.org stalls
@@ -1607,6 +1611,7 @@ jobs:
             cat ci-results/gate/watch.txt 2>/dev/null || true
             cat ci-results/gate/measure.txt 2>/dev/null || true
             cat ci-results/gate/runtime.txt 2>/dev/null || true
+            cat ci-results/gate/search.txt 2>/dev/null || true
             grep -E '^runtime_apk=|^runtime_apk_check=|^page alignment' ci-results/gate/runtime-apks.txt 2>/dev/null || true
             grep -E 'base module|per device|MB' ci-results/gate/bundle-size.txt 2>/dev/null | head -n 6 || true
             cat ci-results/gate/gate-result.txt 2>/dev/null || true
@@ -1706,6 +1711,7 @@ jobs:
           dart run build_runner build
           dart run pigeon --input pigeons/storage_api.dart
           dart run pigeon --input pigeons/runtime_api.dart
+          dart run pigeon --input pigeons/search_api.dart
 
       - name: Restore the Gradle distribution
         uses: actions/cache/restore@v6

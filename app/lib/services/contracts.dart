@@ -224,8 +224,3 @@ final class GitSummary {
 abstract interface class GitService {
   Future<Result<GitSummary>> summary();
 }
-
-/// Workspace search. Phase 3 provides the real impl.
-abstract interface class SearchService {
-  Future<Result<List<String>>> searchFiles(String query);
-}

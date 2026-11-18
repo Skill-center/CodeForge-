@@ -6,6 +6,8 @@ import android.content.res.Configuration
 import dev.codeforge.app.runtime.RuntimeApi
 import dev.codeforge.app.runtime.RuntimeHost
 import dev.codeforge.app.storage.StorageApi
+import dev.codeforge.app.search.SearchApi
+import dev.codeforge.app.search.SearchHost
 import dev.codeforge.app.storage.StorageBroker
 import dev.codeforge.app.storage.StorageEvents
 import io.flutter.embedding.android.FlutterActivity
@@ -32,6 +34,7 @@ class MainActivity : FlutterActivity() {
     private var keyboardChannel: MethodChannel? = null
     private var storage: StorageBroker? = null
     private var runtime: RuntimeHost? = null
+    private var search: SearchHost? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -77,6 +80,10 @@ class MainActivity : FlutterActivity() {
         }
         storage = StorageBroker(this, StorageEvents(messenger)).also { StorageApi.setUp(messenger, it) }
         runtime = RuntimeHost(this, messenger).also { RuntimeApi.setUp(messenger, it) }
+        val broker = storage
+        if (broker != null) {
+            search = SearchHost(this, messenger, broker::searchOps).also { SearchApi.setUp(messenger, it) }
+        }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -88,6 +95,9 @@ class MainActivity : FlutterActivity() {
         RuntimeApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
         runtime?.close()
         runtime = null
+        SearchApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
+        search?.close()
+        search = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 

@@ -31,6 +31,7 @@ import '../support/fake_bench_surface.dart';
 import '../support/fake_editor_surface.dart';
 import '../support/fake_hardware_keyboard.dart';
 import '../support/fake_runtime_service.dart';
+import '../support/fake_search_service.dart';
 import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';
 import '../support/memory_project_storage.dart';
@@ -48,6 +49,7 @@ final class TestHarness {
     this.broker,
     MemoryProjectStorage? projects,
     FakeRuntimeService? runtime,
+    FakeSearchService? search,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -57,7 +59,8 @@ final class TestHarness {
        hardwareKeyboard = hardwareKeyboard ?? FakeHardwareKeyboard(),
        backup = backup ?? FakeBackupService(),
        projects = projects ?? MemoryProjectStorage(),
-       runtime = runtime ?? FakeRuntimeService();
+       runtime = runtime ?? FakeRuntimeService(),
+       search = search ?? FakeSearchService();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -90,6 +93,10 @@ final class TestHarness {
   /// test says otherwise, so opening a workspace makes it ready.
   final FakeRuntimeService runtime;
 
+  /// The search host (Phase 4 W6): every search waits for the test to
+  /// answer, unless a test sets its results.
+  final FakeSearchService search;
+
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
 
@@ -118,6 +125,7 @@ final class TestHarness {
     hardwareKeyboardSourceProvider.overrideWithValue(hardwareKeyboard),
     backupServiceProvider.overrideWithValue(backup),
     runtimeServiceProvider.overrideWithValue(runtime),
+    searchServiceProvider.overrideWithValue(search),
     // The fake clock never sees a background isolate finish (Phase 3 W6).
     textDigesterProvider.overrideWithValue(digestTextInline),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),

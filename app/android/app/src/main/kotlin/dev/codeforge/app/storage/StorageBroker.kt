@@ -300,6 +300,17 @@ class StorageBroker(private val activity: Activity, private val events: StorageE
         timer.shutdownNow()
     }
 
+    /**
+     * Operations on [treeUri] for a search's walk (Phase 4 W6, SearchHost),
+     * which runs on its own threads and stops through [signal] and [cancel]:
+     * the same grant check as every call here.
+     */
+    fun searchOps(treeUri: String, signal: CancellationSignal, cancel: Cancellation): DocumentOps {
+        val uri = parseTree(treeUri)
+        grantFor(uri) ?: throw StorageException(StorageProblem.ACCESS_LOST, "The app keeps no grant for that folder.")
+        return DocumentOps(ResolverBackend(resolver, uri, signal), cacheFor(uri), cancel)
+    }
+
     private fun ops(treeUri: String, call: Call, write: Boolean = false): DocumentOps {
         val uri = parseTree(treeUri)
         val grant = grantFor(uri)

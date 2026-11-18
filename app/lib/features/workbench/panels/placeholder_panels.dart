@@ -1,30 +1,12 @@
-/// Honest placeholder panels for later phases: search, git, extensions,
-/// run. Each states exactly what it will become and when, in ROADMAP's
-/// phases (checked at Phase 3's exit: search across files moved to Phase 4
-/// by the owner's decision of 2026-11-11).
+/// Honest placeholder panels for later phases: git, extensions, run. Each
+/// states exactly what it will become and when, in ROADMAP's phases. Search
+/// left this file when it arrived in Phase 4 W6 (search_panel.dart).
 library;
 
 import 'package:material_ui/material_ui.dart';
 
 import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/icons.dart';
-
-class SearchPanel extends StatelessWidget {
-  const SearchPanel({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const CfEmptyState(
-      icon: CfIcons.search,
-      title: 'Workspace search',
-      message:
-          'Full-text search across your project, with results grouped by '
-          'file. To open a file by name, use Go to File… in the command '
-          'palette (Ctrl+P).',
-      phaseNote: 'Arrives in Phase 4',
-    );
-  }
-}
 
 class GitPanel extends StatelessWidget {
   const GitPanel({super.key});

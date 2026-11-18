@@ -40,6 +40,10 @@
 #                                  app's back (run-as in a project, adb shell
 #                                  in a folder), each reload's delay, and the
 #                                  app sent to the background and back
+#   search.txt / search.json       Phase 4 W6 G8: search across files (ripgrep
+#                                  in a project, the scan in the gate folder,
+#                                  cancelling, opening at the line), its times
+#                                  recorded; search_logcat.txt the host's lines
 #   measure.txt / measure.json     Phase 3 W6 G7 (record-only): a 10,000-file
 #                                  project opened and indexed, 1 and 10 MiB
 #                                  through dart:io and through the broker, a
@@ -1515,6 +1519,63 @@ cat "$RESULTS/runtime.txt" >> "$RESULTS/attempts.txt"
 "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
 "$ADB" uninstall "$APP_ID.test" >/dev/null 2>&1 || true
 [ "$runtime_instrumented_ok$runtime_pair_ok" = "11" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Search (Phase 4 W6, G8: ripgrep in a project, the scan in a folder, cancelling, opening at the line)"
+# integration_test/search_test.dart, in the build with the x86_64 payload
+# (still selected from the runtime group): a 10,000-file project the test
+# writes, searched by the runtime's ripgrep once the runtime is ready, with
+# exact counts (a literal, a whole word, a regular expression, globs, case,
+# .gitignore, a skipped folder, a binary file, a pattern ripgrep refuses);
+# a search cancelled at its first results, with no ripgrep left; a result
+# opened from the Search panel with the cursor on its match; then the gate
+# folder through Android's picker (folder_driver answers it), scanned by
+# CodeForge's own scan; and ADR-0013's copy of that folder into the app's
+# storage. The times are recorded (search.json), never judged here.
+search_run() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  folder_fixture_push search_fixture.txt || return 1
+  # many/0001.txt … many/1000.txt, each holding its number, as in the
+  # measurements; extra/ holds a needle and a binary file, and node_modules/
+  # a needle no search may find.
+  "$ADB" shell "mkdir -p $FOLDER_ROOT/$GATE_FOLDER/many $FOLDER_ROOT/$GATE_FOLDER/extra $FOLDER_ROOT/$GATE_FOLDER/node_modules && cd $FOLDER_ROOT/$GATE_FOLDER/many && i=1 && while [ \$i -le 1000 ]; do echo \$i > \$(printf '%04d' \$i).txt; i=\$((i + 1)); done && cd .. && echo 'a needle in the folder' > extra/needle.txt && echo needle > extra/blob.dat && head -c 4 /dev/zero >> extra/blob.dat && echo needle > node_modules/skip.txt" \
+    < /dev/null >> "$RESULTS/search_fixture.txt" 2>&1 || return 1
+  echo "many: $("$ADB" shell ls "$FOLDER_ROOT/$GATE_FOLDER/many" < /dev/null | wc -l) entries" \
+    | tee -a "$RESULTS/search_fixture.txt"
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=30m ITEST_ATTEMPTS=1 run_itest search_itest integration_test/search_test.dart || return 1
+}
+FOLDER_UI="$RESULTS/search_ui.xml" folder_driver \
+  > "$RESULTS/search_driver.txt" 2>&1 &
+search_driver_pid=$!
+search_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if search_run; then
+    search_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "search attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$search_driver_pid" 2>/dev/null || true
+wait "$search_driver_pid" 2>/dev/null || true
+"$ADB" logcat -d -s CodeForgeSearch:I < /dev/null > "$RESULTS/search_logcat.txt" 2>&1 || true
+python3 tool/ci/join_report.py SEARCH_JSON "$RESULTS/search_itest.txt" \
+  "$RESULTS/search.json" || echo "search report failed (record-only)"
+{
+  echo "search_group=$([ "$search_ok" = "1" ] && echo pass || echo fail)"
+  echo "search_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/search_driver.txt")"
+  grep -oE 'search gate: .*' "$RESULTS/search_itest.txt" | sed 's/^search gate: /search: /'
+  grep -oE 'search (ripgrep|scan) .*' "$RESULTS/search_logcat.txt" | sed 's/^/host: /' | tail -n 30
+} | tee "$RESULTS/search.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/search.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no gate folders, and no app.
+"$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$search_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

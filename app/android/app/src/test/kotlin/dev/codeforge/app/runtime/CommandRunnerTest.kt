@@ -91,6 +91,54 @@ class CommandRunnerTest {
     }
 
     @Test
+    fun streamedLinesArriveInOrderAndTheSinkCanEndTheCommand() {
+        val lines = mutableListOf<String>()
+        var started = false
+        // Three lines, then a long sleep: the sink ends it all at the second line.
+        val result = runner.stream(
+            CommandRequest("sh", listOf("-c", "echo one; echo two; echo three; sleep $marker"), timeoutMs = 20_000L),
+            object : LineSink {
+                override fun line(text: String): Boolean {
+                    lines.add(text)
+                    return lines.size < 2
+                }
+            },
+            started = { started = true },
+        )
+        assertTrue("the session was handed over", started)
+        assertEquals(listOf("one", "two"), lines)
+        assertEquals(CommandFailure.ENDED, result.failure)
+        assertEquals("", result.stdout.text)
+        assertTrue("ended at once, not after the sleep", result.durationMs < 10_000L)
+    }
+
+    @Test
+    fun aStreamedLineOverTheLimitIsDroppedAndTheRestGoesOn() {
+        val lines = mutableListOf<String>()
+        var overlong = 0
+        val script = "echo short; i=0; while [ \$i -lt 600 ]; do printf xxxxxxxxxx; i=\$((i + 1)); done; echo; echo last"
+        val result = runner.stream(
+            CommandRequest("sh", listOf("-c", script), timeoutMs = 20_000L),
+            object : LineSink {
+                override fun line(text: String): Boolean {
+                    lines.add(text)
+                    return true
+                }
+
+                override fun overlong() {
+                    overlong += 1
+                }
+            },
+            maxLineBytes = 1000,
+        )
+        assertNull(result.detail, result.failure)
+        assertEquals(0, result.exitCode)
+        assertEquals(listOf("short", "last"), lines)
+        assertEquals(1, overlong)
+        assertEquals(6L + 6001L + 5L, result.stdout.bytes)
+    }
+
+    @Test
     fun outputPastTheLimitIsCountedNotKept() {
         val line = "0123456789".repeat(4)
         val result = sh("i=0; while [ \$i -lt 3000 ]; do echo $line; i=\$((i + 1)); done", outputLimit = 1024)
@@ -119,6 +167,26 @@ class CommandRunnerTest {
         assertEquals(CommandFailure.BAD_REQUEST, outside.failure)
         val escape = runner.run(CommandRequest("sh", listOf("-c", "pwd"), directory = File(project, "../../..")))
         assertEquals(CommandFailure.BAD_REQUEST, escape.failure)
+    }
+
+    @Test
+    fun aStreamMayRunInTheExtraRootsItIsGivenAndNowhereElse() {
+        val projects = temp.newFolder("projects")
+        val project = File(projects, "p").apply { mkdirs() }
+        val sink = object : LineSink {
+            val lines = mutableListOf<String>()
+
+            override fun line(text: String): Boolean = lines.add(text)
+        }
+        val allowed = runner.stream(
+            CommandRequest("sh", listOf("-c", "pwd"), directory = project, timeoutMs = 20_000L),
+            sink,
+            extraRoots = listOf(projects),
+        )
+        assertNull(allowed.detail, allowed.failure)
+        assertEquals(listOf(project.canonicalPath), sink.lines)
+        val refused = runner.stream(CommandRequest("sh", listOf("-c", "pwd"), directory = project), sink)
+        assertEquals("without the extra root, the project is outside", CommandFailure.BAD_REQUEST, refused.failure)
     }
 
     @Test

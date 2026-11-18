@@ -41,6 +41,7 @@ import 'file_actions.dart';
 import 'panels/editor_pane.dart';
 import 'panels/explorer_panel.dart';
 import 'panels/placeholder_panels.dart';
+import 'panels/search_panel.dart';
 import 'panels/terminal_pane.dart';
 
 const List<CfActivity> _activities = [
@@ -772,7 +773,7 @@ class _ActivityBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (activity) {
       ShellActivity.explorer => ExplorerPanel(onFileOpened: onFileOpened),
-      ShellActivity.search => const SearchPanel(),
+      ShellActivity.search => SearchPanel(onFileOpened: onFileOpened),
       ShellActivity.git => const GitPanel(),
       ShellActivity.extensions => const ExtensionsPanel(),
       ShellActivity.run => const RunPanel(),

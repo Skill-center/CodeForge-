@@ -1,6 +1,7 @@
 package dev.codeforge.app.runtime
 
 import java.util.concurrent.CopyOnWriteArrayList
+import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.locks.ReentrantReadWriteLock
 
@@ -221,6 +222,24 @@ class RuntimeHub(
                 Toolchain.unavailable(failure.toString())
             }
             deliver(Runnable { answer(report) })
+        }
+    }
+
+    /**
+     * Runs [request] on the calling thread with its stdout going to [lines]
+     * (Phase 4 W6: a project's search through ripgrep; CommandRunner.stream),
+     * while no install can touch the prefix. Null at once unless the runtime
+     * is READY or DEGRADED and no install holds the prefix.
+     */
+    fun stream(
+        request: CommandRequest,
+        lines: LineSink,
+        started: (SessionRegistry.Session) -> Unit,
+        extraRoots: List<File> = emptyList(),
+    ): CommandResult? {
+        if (!usable(snapshot().state) || commandsFactory == null) return null
+        return withPrefix { commands ->
+            commands.runner.stream(request, lines, started = started, extraRoots = extraRoots)
         }
     }
 

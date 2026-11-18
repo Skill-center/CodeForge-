@@ -11,10 +11,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../application/editor/find_controller.dart';
 import '../../../design_system/components/buttons.dart';
+import '../../../design_system/components/inputs.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
 import '../../../design_system/tokens/icons.dart';
-import '../../../design_system/tokens/typography.dart';
 
 /// Narrower than this, the option toggles get a row of their own.
 const double findBarWideWidth = 560;
@@ -132,7 +132,7 @@ class _FindBarState extends ConsumerState<FindBar> {
                   onPressed: controller.toggleReplace,
                 ),
                 Expanded(
-                  child: _BarField(
+                  child: CfCodeField(
                     key: const ValueKey('find_query'),
                     controller: _query,
                     focusNode: _queryFocus,
@@ -171,7 +171,7 @@ class _FindBarState extends ConsumerState<FindBar> {
                 children: [
                   const SizedBox(width: CfSpacing.minTouchTarget),
                   Expanded(
-                    child: _BarField(
+                    child: CfCodeField(
                       key: const ValueKey('find_replacement'),
                       controller: _replacement,
                       focusNode: _replacementFocus,
@@ -240,14 +240,14 @@ class _Options extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _OptionToggle(
+        CfOptionToggle(
           key: const ValueKey('find_case'),
           label: 'Aa',
           tooltip: 'Match case',
           on: find.caseSensitive,
           onPressed: controller.toggleCaseSensitive,
         ),
-        _OptionToggle(
+        CfOptionToggle(
           key: const ValueKey('find_word'),
           label: 'ab',
           underline: true,
@@ -255,168 +255,12 @@ class _Options extends StatelessWidget {
           on: find.wholeWord,
           onPressed: controller.toggleWholeWord,
         ),
-        _OptionToggle(
+        CfOptionToggle(
           key: const ValueKey('find_regex'),
           label: '.*',
           tooltip: 'Regular expression',
           on: find.regexp,
           onPressed: controller.toggleRegexp,
-        ),
-      ],
-    );
-  }
-}
-
-/// A two-state option drawn as text, as desktop editors show these.
-class _OptionToggle extends StatelessWidget {
-  const _OptionToggle({
-    super.key,
-    required this.label,
-    required this.tooltip,
-    required this.on,
-    required this.onPressed,
-    this.underline = false,
-  });
-
-  final String label;
-  final String tooltip;
-  final bool on;
-  final VoidCallback onPressed;
-  final bool underline;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = CfColors.of(context);
-    // One node for TalkBack: a toggle with its state, tappable.
-    return Semantics(
-      container: true,
-      button: true,
-      toggled: on,
-      label: tooltip,
-      onTap: onPressed,
-      excludeSemantics: true,
-      child: Tooltip(
-        message: tooltip,
-        child: Material(
-          color: on ? colors.accentEmberSoft : Colors.transparent,
-          borderRadius: BorderRadius.circular(CfRadius.sm),
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(CfRadius.sm),
-            child: SizedBox.square(
-              dimension: CfSpacing.minTouchTarget,
-              child: Center(
-                child: Text(
-                  label,
-                  style: CfTypography.code(colors).copyWith(
-                    color: on ? colors.accentEmber : colors.textSecondary,
-                    decoration: underline ? TextDecoration.underline : null,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A one-line field of the bar, in the code font, with an optional count
-/// at its end.
-class _BarField extends StatelessWidget {
-  const _BarField({
-    super.key,
-    required this.controller,
-    required this.focusNode,
-    required this.hint,
-    required this.textInputAction,
-    required this.onChanged,
-    required this.onSubmitted,
-    this.summary = '',
-    this.summaryKey,
-    this.problem = false,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final String hint;
-  final TextInputAction textInputAction;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onSubmitted;
-  final String summary;
-  final Key? summaryKey;
-  final bool problem;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = CfColors.of(context);
-    // The field fills its 48 dp row, so all of the row takes taps (G7); the
-    // box drawn behind it is inset, so stacked rows do not touch.
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: CfSpacing.xs),
-            child: ListenableBuilder(
-              listenable: focusNode,
-              builder: (context, _) => DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.surfaceSunken,
-                  borderRadius: BorderRadius.circular(CfRadius.sm),
-                  border: Border.all(
-                    color: problem
-                        ? colors.danger
-                        : focusNode.hasFocus
-                        ? colors.accentEmber
-                        : colors.borderSubtle,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        TextField(
-          controller: controller,
-          focusNode: focusNode,
-          autocorrect: false,
-          enableSuggestions: false,
-          textInputAction: textInputAction,
-          textAlignVertical: TextAlignVertical.center,
-          style: CfTypography.code(colors),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: false,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            hintText: hint,
-            constraints: const BoxConstraints(
-              minHeight: CfSpacing.minTouchTarget,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: CfSpacing.md,
-              vertical: CfSpacing.sm,
-            ),
-            suffixIcon: summary.isEmpty
-                ? null
-                : Padding(
-                    padding: const EdgeInsets.only(right: CfSpacing.md),
-                    child: Text(
-                      summary,
-                      key: summaryKey,
-                      style: CfTypography.status(colors).copyWith(
-                        color: problem ? colors.danger : colors.textSecondary,
-                      ),
-                    ),
-                  ),
-            suffixIconConstraints: const BoxConstraints(),
-          ),
-          onChanged: onChanged,
-          onSubmitted: (_) => onSubmitted(),
-          // Keep the keyboard: Enter steps to the next match, it does not end
-          // the search.
-          onEditingComplete: () {},
         ),
       ],
     );

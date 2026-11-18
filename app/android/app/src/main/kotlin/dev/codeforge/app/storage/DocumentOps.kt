@@ -79,6 +79,22 @@ class DocumentOps(
     fun stat(path: String): DocumentRow = resolve(path, StoragePaths.parse(path))
 
     /**
+     * [folder]'s entries for a walk (Phase 4 W6, the search's scan), by row
+     * instead of by path: the valid names that are unique, as [list] gives
+     * them, so a walk finds only what the explorer can open.
+     */
+    fun entries(folder: DocumentRow, folderPath: String): List<DocumentRow> {
+        val listing = children(folder, folderPath)
+        return listing.rows.filter { it.name !in listing.repeated }
+    }
+
+    /** [file]'s bytes, by row; [StorageProblem.TOO_LARGE] above [cap], whatever size it claims. */
+    fun bytes(file: DocumentRow, cap: Int): ByteArray {
+        cancel.check()
+        return backend.openRead(file.id).use { Streams.readCapped(it, cap.coerceIn(0, READ_CEILING), cancel) }
+    }
+
+    /**
      * A file's bytes, refused above [maxBytes], and the file as it was
      * right after they were read. A file that changed during the read is
      * read again, twice at most.

@@ -3,8 +3,6 @@ import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/fakes.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../support/memory_file_service.dart';
-
 void main() {
   group('honest availability fakes', () {
     test('terminal reports unavailable with a phase-accurate reason', () {
@@ -16,13 +14,6 @@ void main() {
     test('git summary is a labeled demo branch', () async {
       final git = FakeGitService();
       expect((await git.summary()).orThrow.branch, 'main');
-    });
-
-    test('search matches demo filenames', () async {
-      final search = FakeSearchService(MemoryFileService());
-      final hits = (await search.searchFiles('main')).orThrow;
-      expect(hits, ['main.js']);
-      expect((await search.searchFiles('')).orThrow, isEmpty);
     });
   });
 }

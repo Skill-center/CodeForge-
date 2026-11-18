@@ -21,6 +21,8 @@ import '../services/platform/app_directories.dart';
 import '../services/platform/backup_channel.dart';
 import '../services/runtime/native/pigeon_runtime_service.dart';
 import '../services/runtime/runtime_service.dart';
+import '../services/search/native/pigeon_search_service.dart';
+import '../services/search/search_service.dart';
 import '../services/settings/settings_store.dart';
 import '../services/shell/shell_state.dart';
 import '../services/storage/app_database.dart';
@@ -138,6 +140,12 @@ final gitServiceProvider = Provider<GitService>((ref) {
   return FakeGitService();
 });
 
+/// Search across files (Phase 4 W6), through the Kotlin search host
+/// (android/…/search/SearchHost.kt). Without a host (`flutter test`) every
+/// search fails at once; tests override this with a fake.
 final searchServiceProvider = Provider<SearchService>((ref) {
-  return FakeSearchService(ref.watch(fileServiceProvider));
+  ref.keepAlive();
+  final service = PigeonSearchService();
+  ref.onDispose(() => unawaited(service.dispose()));
+  return service;
 });
