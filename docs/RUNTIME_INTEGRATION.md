@@ -1,6 +1,6 @@
 # Runtime Integration
 
-**Status:** Design accepted (ADR-0001/0005); implementation Phase 4: the kernel and the pins since W2, the host's install and audit since W3 (§2–3) · Basis: [EXISTING_RUNTIME_AUDIT.md](EXISTING_RUNTIME_AUDIT.md)
+**Status:** Design accepted (ADR-0001/0005); **built in Phase 4** ([report](phases/PHASE_4_REPORT.md)): the kernel and the pins in W2, the host's install and audit in W3, commands and tools in W4, the real targets in W5 (API 26 to 36 and an arm64 phone), search across files in W6, and in W7 the install through the kernel's own entry point, with CodeForge's recorded patch. Every item of §6 is met · Basis: [EXISTING_RUNTIME_AUDIT.md](EXISTING_RUNTIME_AUDIT.md)
 
 This document defines *how* the audited t1 sealed runtime becomes CodeForge's execution foundation. The audit's conclusion: **integration, not research** — the model is proven at targetSdk 36 on API 36; our job is to embed it without breaking its invariants.
 
@@ -105,6 +105,8 @@ Git operations on SAF trees: Phase 7 spike decides between (a) running git on a 
 | **Google Play** | sealed AAB: base ≤ 200 MB/device (arm64 only) + `pack_buildtools` as on-demand PFD | Play delivers packs; **no runtime code download ever** |
 
 Both shapes run the identical sealed execution model; `check-bundle-size.py` + exec audit gate both. The apt shape is **not shipped** (audit §1: unpublishable, and dual mechanisms violate the port guide's "do not have both").
+
+**As at Phase 4's end:** CI builds APKs only: the release APK with one ABI's payload (x86_64 in CI, 149.5 MB), and the gate's arm64 phone APK. No binary is distributed. The signed App Bundle, the source archive beside it, and the closed test are proposed for Phase 5's first work package ([docs/store/](store/README.md), ADR-0010). The build-tools pack is not built yet. The userland's licences are listed in THIRD_PARTY_NOTICES §5, and its copyleft packages' source is offered as SOURCE_OFFER.md decides.
 
 ## 6. Phase 4 acceptance (measurable)
 

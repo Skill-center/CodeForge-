@@ -1,6 +1,6 @@
 # ADR-0009: GitHub Actions as the build authority; evidence-gate CI philosophy from t1
 
-**Status:** Accepted · 2026-11-05 · amended 2026-11-11 (owner decisions: arm64 runs on Firebase Test Lab; no nightly run) · as built in Phase 4 W5 (2026-11-18: the runtime gates and the Test Lab job) · amended 2026-11-18 (owner request: CI and the phase gate in one workflow)
+**Status:** Accepted · 2026-11-05 · amended 2026-11-11 (owner decisions: arm64 runs on Firebase Test Lab; no nightly run) · as built in Phase 4 W5 (2026-11-18: the runtime gates and the Test Lab job) · amended 2026-11-18 (owner request: CI and the phase gate in one workflow) · Test Lab's shutdown on 2027-09-30 is in ROADMAP's decision queue (below)
 
 ## Context
 The development sandbox cannot build Android (no Flutter/Java/Android SDK; dl.google.com unreachable). The user explicitly wants GitHub Actions for builds. The audited t1 project demonstrates a rigorous CI discipline: JVM gates, emulator E2E on TCG `aosp_atd` images, exec-model publishability gates, size/alignment checks, fail-closed signing — with evidence published per run.

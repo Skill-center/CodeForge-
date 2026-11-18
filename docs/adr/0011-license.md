@@ -1,6 +1,6 @@
 # ADR-0011: License — Apache-2.0 (path B); GPLv3 exposure kept out; release-gating
 
-**Status:** **Accepted (owner decision 2026-11-12): path B, Apache-2.0** · proposed 2026-11-05 ("decide later") · **2026-11-11:** the owner confirmed that the decision is made by Phase 4's start
+**Status:** **Accepted (owner decision 2026-11-12): path B, Apache-2.0** · proposed 2026-11-05 ("decide later") · **2026-11-11:** the owner confirmed that the decision is made by Phase 4's start · **Phase 4 W7 (2026-11-18):** THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md completed, the source offer's mechanism decided; three items remain before the first binary release (SOURCE_OFFER.md)
 
 ## Context
 Owner chose "decide later". The audit found:

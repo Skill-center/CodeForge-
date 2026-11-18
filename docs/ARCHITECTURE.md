@@ -169,6 +169,13 @@ app/lib/
 - **The panel** (`features/workbench/panels/search_panel.dart`) shares the find bar's toggles and field, now in the design system (`design_system/components/inputs.dart`). A tap opens the file through `DocumentController` and moves the editor's cursor with `cmd.gotoLine`. It focuses the editor only when a hardware keyboard is attached.
 - **The host** (§3) picks the engine: the runtime's ripgrep for a project while the runtime is ready, CodeForge's own scan otherwise and for folders from shared storage.
 
+### 2.10 As built in Phase 4 W3–W5 (the runtime in the app)
+
+- **The service** (`services/runtime/runtime_service.dart`, implemented by the Pigeon client in `services/runtime/native/`, API `pigeons/runtime_api.dart`): the runtime's state and problem, the install's progress, the start audit, one-shot commands and the tool probes.
+- **The controller** (`application/runtime_controller.dart`) keeps the host's newest snapshot. The install is lazy: the workbench asks for the runtime when a workspace opens, and the editor works on its files meanwhile. `RuntimeToolsController` keeps the tool probes.
+- **The screens:** the workbench's status strip shows the runtime's state, and Settings → Linux runtime (`features/settings/runtime_screen.dart`) shows its status, the install and start times, the audit, the space used, and each tool against its pinned version (RUNTIME_INTEGRATION.md §3).
+- **The edge:** nothing in Dart starts a process. A command is a program name from the runtime's `bin` and its arguments; the host checks, runs, bounds and ends it (SECURITY.md §2.1).
+
 ## 3. Android host structure
 
 ```
@@ -192,7 +199,13 @@ As built (Phase 3), in `app/android/app/src/main/kotlin/dev/codeforge/app/`:
 - `storage/StorageBroker.kt` implements the Pigeon `StorageApi` (`app/pigeons/storage_api.dart`; CI generates `StorageApi.g.kt` and the Dart client): the folder picker (`ACTION_OPEN_DOCUMENT_TREE`) and its grants, the create-document picker for saving logs, and change notices, which return through the `StorageEvents` Flutter API. `DocumentOps.kt` carries out the operations over `DocumentsContract` through a `DocumentBackend` (`ResolverBackend.kt` in the app, a fake provider in the JVM tests). `StoragePaths.kt` resolves and scopes paths, `StorageErrors.kt` words failures, and `FolderWatches.kt` keeps a watched folder's children query open for the provider's notices.
 - `CodeForgeBackupAgent.kt`, `BackupPolicy.kt` and `BackupSwitch.kt` (ADR-0012).
 - 44 JVM tests in CI (`:app:testDebugUnitTest`): the backup agent's choice, the broker's names, path resolution and scoping, its operations over the fake provider, and capped reads. `FolderWatches.kt` has none, since it needs a real provider; the gate's `watch` group runs it.
-- The tree's `RuntimeHost.kt` and `SessionRegistry.kt` arrive with Phases 4–5. The editor's WebView is hosted by `webview_flutter`, so there is no `WebViewHost.kt` so far.
+- The editor's WebView is hosted by `webview_flutter`, so there is no `WebViewHost.kt` so far.
+
+As built (Phase 4), beside those:
+- **`runtime/`** (W3–W5, RUNTIME_INTEGRATION.md §3): `RuntimeHost.kt` implements the Pigeon `RuntimeApi` over the process's one `RuntimeHub`, which owns the state and a worker thread. `SealedRuntime.kt` installs the payload through the vendored kernel's `SealedInstaller.install` (since W7, with CodeForge's recorded patch; native/PROVENANCE.md), from the APK's assets (`PayloadSource.kt`), and runs `ExecAudit` at every start. `RuntimeCommands.kt` makes the command side once per process: `RuntimeEnvironment.kt`, `SessionRegistry.kt` (each command a session, ended with its whole process group), `CommandRunner.kt` (through `libcodeforge-spawn.so`, with a time limit and an output cap) and `Toolchain.kt` (the probes).
+- **`search/`** (W6, §2.9): `SearchHost.kt` implements the Pigeon `SearchApi`: ripgrep from the runtime for projects (`RipgrepSearch.kt`, which reads its JSON with `MiniJson.kt`), and CodeForge's own scan for folders and while the runtime is not ready (`TextScan.kt`, over the app's files or the storage broker's).
+- **The vendored modules** (W2): `native/sealed-runtime/` and `native/runtime-core/`, built as Gradle modules of the app, with their own JVM tests.
+- **138 JVM tests** in CI at Phase 4's end (`:app:testDebugUnitTest`, CI 44297145654), and the kernel's 23 (`:native:sealed-runtime:test`). The instrumented tests (`src/androidTest/`) run on the gate's emulators and in Test Lab (TESTING.md §1.4).
 
 The host is a **thin orchestration layer**: it contains no provisioning logic of its own — that lives in the vendored, JVM-tested modules. `harness-core`'s rule carries over: *UI never contains provisioning logic; provisioning never contains UI.*
 
@@ -203,7 +216,7 @@ The host is a **thin orchestration layer**: it contains no provisioning logic of
 | App settings (theme, font, keymap) | shared_preferences | Phase 1 | typed wrapper, schema version key |
 | Workspace registry, tabs, layout, sessions | **Drift (SQLite)** | Phase 2 | versioned schema, migrations tested; one DB per app, workspace-scoped rows |
 | Editor buffers (crash-safe) | **Drift (SQLite)**: a snapshot and an append-only change log per unsaved document | Phase 2 (W5) | hot-exit journal; ADR-0008 amendment, EDITOR_ARCHITECTURE.md §7 |
-| Runtime state (installed payload manifest, markers) | files in runtime root (t1 layout) | Phase 4 | dpkg/manifest is source of truth, mirrored into RuntimeService |
+| Runtime state (installed payload manifest, markers) | files in runtime root (t1 layout) | Phase 4 | dpkg/manifest is source of truth, mirrored into RuntimeService. *As built (W3): the runtime under `<filesDir>/coding-harness/` (t1's `HarnessPaths`), and CodeForge's install marker beside it in `codeforge/installed.properties`, with the installed manifest and the last start audit. A start is warm only when the marker names this APK's ABI and payload identity; the marker is written last* |
 | Credentials (Git tokens, SSH keys) | Android Keystore-backed encrypted store | Phase 7 | never in plain prefs, never logged |
 | Extension manifests/permissions | Drift + files | Phase 8 | signed manifest hash, explicit grants |
 
@@ -239,3 +252,7 @@ Phase 1 ships the **entire UI skeleton with fake services** — every screen nav
 - the Drift session store with the hot-exit journal (§2.6).
 
 The workbench's demo code view gave way to the real editor pane. Features still reach files only through controllers, and the import lint enforces it. The exit report is [PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md).
+
+**Phase 3** added the workspace layer: projects in the app's storage, folders through the storage broker, outside changes and the logs (§2.8). Its report is [PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md).
+
+**Phase 4** swapped in the runtime: the fake runtime service gave way to the Pigeon client of the sealed runtime's host (§2.10, §3), and search across files arrived with its two engines (§2.9). The terminal and Git services are still fakes, for Phases 5 and 7. The exit report is [PHASE_4_REPORT.md](phases/PHASE_4_REPORT.md).

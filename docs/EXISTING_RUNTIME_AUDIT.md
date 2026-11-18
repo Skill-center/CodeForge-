@@ -72,7 +72,7 @@ dpkg records shipped packages as installed; ExecAudit = 0
 
 `ExecModelTest` additionally proves the rule itself: nativeLibraryDir exec ✅, same bytes in app data ❌, prefix symlink into APK ✅, official-prefix shebang via preload ✅, direct data-dir script exec ❌.
 
-**Gap:** these gates ran on x86_64. The arm64-v8a payload is built and is the upload ABI, and the *apt* shape was device-tested on arm64 — but **sealed-on-arm64-hardware is not yet evidenced**. CodeForge Phase 4 must run the same gates on arm64 (R2).
+**Gap:** these gates ran on x86_64. The arm64-v8a payload is built and is the upload ABI, and the *apt* shape was device-tested on arm64 — but **sealed-on-arm64-hardware is not yet evidenced**. CodeForge Phase 4 must run the same gates on arm64 (R2). **Closed in Phase 4 W5:** the two gates, ported to CodeForge's host, passed on a physical Google Pixel 8a with Android 14 in Firebase Test Lab (CI 44240926191), and on emulators with API 26, 27, 28, 34 and 36 (phase gate 44239443885). API 26 to 28, which t1 never ran, found one fault in t1's kernel: an API 33 call, fixed in CodeForge's copy in W7 (native/PROVENANCE.md, *Patches*).
 
 ## 6. Size truth (measured, not estimated)
 
@@ -91,7 +91,7 @@ Assets are delivered whole by Play (not ABI-split): the upload bundle therefore 
 
 | Component | Finding | Implication |
 |---|---|---|
-| t1 repo | **No LICENSE file**, no headers on original code | Owner (m-cyber12) holds rights; must add an explicit license before CodeForge vendors it |
+| t1 repo | **No LICENSE file**, no headers on original code | Owner (m-cyber12) holds rights; must add an explicit license before CodeForge vendors it. **Done 2026-11-13:** t1's main `d9789a2` carries the Apache License 2.0, and Phase 4 W2 vendored from it |
 | `terminal-emulator`, `terminal-view` | Derived from `termux/termux-app` @ `8629e632`; upstream root license **GPLv3-only**, with an exception noting jackpal Android-Terminal-Emulator code is **Apache-2.0**; copied files carry no headers (one support file has an Apache header) | **Conservative reading: GPLv3 applies to the Termux-modified modules.** If CodeForge ships them, the combined app should be GPLv3. A permissive CodeForge is possible by *not* shipping these modules (xterm.js frontend + own/Apache-2.0 PTY) — see ADR-0006/0011 |
 | `harness-core`, `sealed-runtime`, JNI preload, scripts, CI | Original t1 code (owner-written) | Owner can license freely; keep attribution |
 | Userland binaries (bash, git, coreutils…) | Termux packages: mixed OSS (GPL/LGPL/MIT/PSF/Ruby/Artistic…) | Shipping them in the APK is aggregation, compatible with any app license, **but** GPL components require license texts + source offer (Termux publishes build sources). Add `THIRD_PARTY_NOTICES` + source-offer doc before any binary release |
@@ -105,4 +105,4 @@ Assets are delivered whole by Play (not ABI-split): the upload bundle therefore 
 **Leave:** `HarnessBootstrap`, `provision/*`, `AptPackInstaller`, standalone `MainActivity`, apt build shape, diagnostics-branch publishing.
 **Port:** `ExecModelTest`, `SealedShellTest` into CodeForge's host; the four sealed invariants (symlinks-not-copies; verify-while-writing; version-resolved deps + DT_NEEDED sonames; explicit interpreter env) are non-negotiable and already JVM-tested.
 
-Integration mechanics: [RUNTIME_INTEGRATION.md](RUNTIME_INTEGRATION.md). Vendor provenance will be recorded in `native/PROVENANCE.md` when modules are copied (Phase 4).
+Integration mechanics: [RUNTIME_INTEGRATION.md](RUNTIME_INTEGRATION.md). Vendor provenance is recorded in [native/PROVENANCE.md](../native/PROVENANCE.md) (since Phase 4 W2): every vendored file with t1's SHA-256 and CodeForge's, and since W7 the one recorded patch. **As taken (Phase 4):** less of `harness-core` than listed above (three classes, the rest written by CodeForge for its own host), no PTY JNI yet (Phase 5 writes its own), and the store templates adapted in [docs/store/](store/README.md) (W7).

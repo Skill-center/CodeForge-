@@ -8,7 +8,7 @@
 
 **Phase 3 update (2026-11-12):** Pigeon (the storage broker's typed API), schema v2, the Kotlin unit tests in CI and the renderer (Impeller since W6) are **as built and CI-proven** (run ids in [phases/PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md)). Phase 3 added two dependencies, both for development: Pigeon 29.2.0 and, for the Kotlin tests, JUnit 4.13.2. It added two fonts: a subset of Material Symbols Rounded (Apache-2.0) and CodeForge's own file glyphs (UI_DESIGN_SYSTEM). Phase 3 ended on Flutter 3.47.9. At acceptance (2026-11-12) the owner decided to move to 3.50.0, which needs AGP 9.1.1 and KGP 2.4.10 or later, with both plugins upgraded together (BUILD_AND_RELEASE §3).
 
-**Phase 4 update (2026-11-13, W1):** Flutter **3.50.0** with the Android pins of its template (Kotlin's Gradle plugin 2.4.20, Gradle 9.5.0, and AGP 9.3.3, the 9.3 line's latest patch rather than the template's 9.3.1, whose lint crashes on JDK 17 in release builds), upgraded together as the owner decided, and `package:material_ui` 1.10.0 in place of the framework's Material library, which 3.50 deprecates, are **as built and CI-proven**: CI 43373527631 (`+846: All tests passed!`, analysis clean, 230 files formatted with none changed, 44 Kotlin tests). All 87 files that imported the framework's Material moved by Flutter's own fix, and none of the 26 golden images changed. The workflows moved to the Node 24 majors of GitHub's actions in W1 as well (§6).
+**Phase 4 update (2026-11-13, W1; the runtime's rows in §3 as built at Phase 4's end, 2026-11-18):** Flutter **3.50.0** with the Android pins of its template (Kotlin's Gradle plugin 2.4.20, Gradle 9.5.0, and AGP 9.3.3, the 9.3 line's latest patch rather than the template's 9.3.1, whose lint crashes on JDK 17 in release builds), upgraded together as the owner decided, and `package:material_ui` 1.10.0 in place of the framework's Material library, which 3.50 deprecates, are **as built and CI-proven**: CI 43373527631 (`+846: All tests passed!`, analysis clean, 230 files formatted with none changed, 44 Kotlin tests). All 87 files that imported the framework's Material moved by Flutter's own fix, and none of the 26 golden images changed. The workflows moved to the Node 24 majors of GitHub's actions in W1 as well (§6).
 
 ---
 
@@ -24,7 +24,7 @@
 | JDK | Temurin | 17 | t1 CI standard; Flutter/AGP compatible |
 | compileSdk / targetSdk | **36 / 36** | — | Spec + Play requirement (Aug 31 2026); sealed model makes it work |
 | minSdk | **26** (owner choice) | — | ADR-0007 gate: t1 declares 29; verify or raise in Phase 4 |
-| NDK | pinned | **28.2.13676358** — as built (`flutter.ndkVersion` of 3.47.9 and of 3.50.0); no first-party native code in Phase 1 | Phase 4 re-evaluates against t1's 27.2.12479018 + explicit 16 KB linker flags when native runtime modules arrive |
+| NDK | pinned | **28.2.13676358** — as built (`flutter.ndkVersion` of 3.47.9 and of 3.50.0); no first-party native code in Phase 1. **Phase 4 (W2–W3):** the same NDK builds the vendored `native/runtime-core` (its JNI libraries and the launcher, `libcodeforge-spawn.so`), stated in its build script because a library cannot read Flutter's value | Re-evaluated in Phase 4: t1's 27.2.12479018 is not needed. NDK r28 aligns to 16 KB pages by default, and t1's explicit linker flags (`-Wl,-z,max-page-size=16384`) are kept. CI checks the release APK: all 257 shipped userland objects and the 3 built here are 16 KB aligned (CI 44300179086) |
 | Renderer | Flutter engine | **Impeller** since Phase 3 W6, Flutter's default (no `EnableImpeller` entry in the manifest); **Skia** in Phases 1–2 (`EnableImpeller=false`) | Phase 1 chose Skia because Impeller's OpenGLES backend never sized its surface on the software-GL CI emulator (gate run 1). Flutter 3.47 deprecates the opt-out. W6's gate run with Impeller (43238952262) passed every group on its OpenGLES backend, so Impeller stays (PHASE_3_PLAN W6); its cold start on the emulator, timed beside the same build on Skia, is in PHASE_3_PLAN *As built (W6)*. Impeller on a phone joins the exit session's checklist (W7) |
 | State management | **Riverpod** | 3.4.3 | Compile-safe DI + reactive state; spec mandate; active maintenance |
 | Material widgets | **material_ui** (flutter/packages, BSD-3-Clause) | 1.10.0 (Phase 4 W1) | Flutter 3.50 deprecates the framework's Material library, and analysis fails on the deprecation, so the app imports `package:material_ui` instead. The Flutter team's own package: the framework's Material code, frozen there since 3.44, developed here since (1.0.0 matched the frozen copy). Pure Dart, so no ABI or native-code concern; no network; it replaces the framework copy in the build rather than adding to it. Pinned at the version the lockfile already resolved for go_router 18.1.3, which imports it. Routes keep go_router's `NoTransitionPage` (built explicitly since W1). `analysis_options.yaml` enables `migrate_design_widgets`, so a new import of the framework's copy fails analysis |
@@ -53,16 +53,16 @@
 
 ## 3. Runtime (vendored, not dependency-managed)
 
-From t1 @ `0e26d7a` — versions as shipped in the audited sealed payload:
+From t1 @ `0e26d7a`, the audited sealed payload, rebuilt by CodeForge from pinned inputs since Phase 4 W2: the bootstrap `2026.02.12-r1+apt.android-7` refreshed by the core set in `runtime/pins.json` (resolved 2026-11-13T09:43:19Z), 112 packages, each with its SHA-256. **As built** (Phase 4; checked on the device by Settings → Linux runtime and by the runtime gates on API 26 to 36 and an arm64 phone):
 
 | Tool | Version | Status |
 |---|---|---|
-| Node.js | **26.12.1** | P0, proven from APK at target 36 |
-| Python | Termux current (OpenSSL 3.6.5) | P0, proven |
-| Git | 2.56.0 | P0, proven |
-| bash / coreutils | 5.3.9 / Termux base | P0, proven |
-| Perl / Ruby | 5.44.0 / 4.0.7 | P1, proven (already in core tier) |
-| ripgrep | 15.2.0 (+pcre2) | workspace search backend, proven |
+| Node.js / npm | **26.13.1** / 12.2.2 | P0, runs from the APK at target 36 (Phase 4 W4–W5) |
+| Python / pip | 3.14.10 / 26.3 (OpenSSL 3.6.5) | P0, runs |
+| Git | 2.56.1 | P0, runs |
+| bash / coreutils | 5.3.9 / 9.9 | P0, runs |
+| Perl / Ruby | 5.44.0-1 / 4.0.9 | P1, runs (already in the core set) |
+| ripgrep | 15.2.0 (+pcre2 10.49) | search across files in projects since Phase 4 W6 |
 | clang/cmake/make | Termux current | P1, on-demand pack (PFD / full variant) |
 | TypeScript LSP / Pyright | via sealed Node/npm | P1, Phase 6 compatibility spike required |
 

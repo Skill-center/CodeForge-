@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Budgets accepted Phase 0 from audited measurements · Benchmark suite built incrementally (spec §9: measure, never assume)
+**Status:** Budgets accepted Phase 0 from audited measurements · Benchmark suite built incrementally (spec §9: measure, never assume) · the runtime's figures as at Phase 4's end (2026-11-18; PHASE_4_REPORT.md)
 
 ---
 
@@ -9,7 +9,7 @@
 | Metric | Baseline (t1 measured) | CodeForge budget | Gate |
 |---|---|---|---|
 | Sealed base AAB per device (arm64) | 136.0 MB | ≤ 180 MB incl. Flutter engine + editor assets (Play cap 200) · **Phase 4 W3: 147.3 MB** (phase gate 43808489945) | `check-bundle-size.py` every release build; in the phase gate since Phase 4 W3 |
-| GitHub "full" APK (core + build-tools) | ~250 MB est. (136 + ~110 pack compressed) | ≤ 300 MB; measured at Phase 4 · **W3, without build-tools:** 164.2 MB (arm64, the phone's profile build), 149.4 MB (release x86_64) | release gate |
+| GitHub "full" APK (core + build-tools) | ~250 MB est. (136 + ~110 pack compressed) | ≤ 300 MB; measured at Phase 4 · **W3, without build-tools:** 164.2 MB (arm64, the phone's profile build), 149.4 MB (release x86_64) · **Phase 4's end:** 149.5 MB release x86_64 (149,476,001 B). The userland's zip (98.0 MB) and 259 native libraries (48.7 MB compressed, 121.6 MB once Android extracts them) make up nearly all of it (CI 44300179086; the same in 44292608356). The build-tools pack is not built yet | release gate |
 | Installed core userland | 360–380 MB on-device | unchanged (reuse, no duplication) · **Phase 4 W3, emulator:** the prefix holds 274.8 MB in 13,894 files, each counted once; its folder takes 397.3 MB on disk (`du -sk`), beside 140.0 MB of libraries Android extracted | RuntimeService size report (Settings → Runtime) |
 | Editor bundle (gz) | — | ≤ 1.5 MB | editor build gate |
 | Flutter UI assets (fonts/icons) | — | ≤ 3 MB | build gate |
@@ -21,8 +21,8 @@ Rule carried from t1: **unique-inode bytes are storage truth** (hardlinks make n
 | Metric | Budget | Measured how |
 |---|---|---|
 | Cold start → interactive shell UI (no runtime) | ≤ 1.5 s mid-range | `adb shell am start -W` + frame trace, 10-run median |
-| Runtime first install (payload extract+verify) | ≤ 60 s mid-range (t1: 13,858 files verified) · **Phase 4 W3, emulator:** 3.5 s for 13,894 files, 6.6 s through the app (phase gate 43808489945); the phone figure in W5 | instrumented timing event |
-| Runtime warm start (re-verify skip) | ≤ 100 ms (t1 measured 11 ms) · **Phase 4 W3, emulator:** 18 ms, the median of five (phase gate 43808489945) | instrumented timing (`RuntimeInstallTest` c) |
+| Runtime first install (payload extract+verify) | ≤ 60 s mid-range (t1: 13,858 files verified) · **Phase 4 W3, emulator:** 3.5 s for 13,894 files, 6.6 s through the app (phase gate 43808489945) · **W5:** a Pixel 8a (Android 14, Test Lab) 13.6 s, and 17.6 s through the app's startup path (CI 44240926191); the emulator legs on API 26 to 36, 6.0 to 9.1 s (phase gate 44239443885) | instrumented timing event |
+| Runtime warm start (re-verify skip) | ≤ 100 ms (t1 measured 11 ms) · **Phase 4 W3, emulator:** 18 ms, the median of five (phase gate 43808489945) · **W5:** the Pixel 8a 73 ms, the median of five, samples 64 to 79 ms (CI 44240926191); the legs 12 to 37 ms | instrumented timing (`RuntimeInstallTest` c) |
 | Search a project (ripgrep), 10,000 files | **Proposed in Phase 4 W6, accepted by the owner on 2026-11-18:** the first result ≤ 0.5 s and all ≤ 2 s on a mid-range phone · **measured:** a Pixel 8a 61 ms / 118 ms, medians of three, debug build (Test Lab, CI 44275357542); the emulator 58 / 146 ms (phase gate 44275357542). The first search after a start: 159 / 267 ms on the phone | the gate's `search` group; Test Lab's phone search |
 | Search a folder from shared storage (the scan), 1,000 files | **Proposed in Phase 4 W6, accepted by the owner on 2026-11-18:** all ≤ 6 s on a mid-range phone, each result shown as soon as its file is read · **measured, emulator only:** 4.6 s for the gate folder's 1,007 files, four read at a time (phase gate 44275357542); 5.1 s one at a time (phase gate 44264577788). Each file is an open the documents provider answers | the gate's `search` group (Test Lab can't answer the folder picker; a phone session can) |
 | Stop a search | **Proposed in Phase 4 W6, accepted by the owner on 2026-11-18:** ≤ 250 ms from Stop to its summary, with nothing left running · **measured:** 85 ms and 67 ms on the emulator, no `rg` left | the gate's `search` group |

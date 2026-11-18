@@ -2,7 +2,7 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 3, workspace and files, was accepted on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
+> **Status: Phase 4, runtime integration, has finished its work and awaits the owner's acceptance ([report](docs/phases/PHASE_4_REPORT.md)). Phase 3, workspace and files, was accepted on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
 > - Projects live in the app's own storage, and folders open through Android's own picker, with no storage permission.
 > - Home lists the recent projects and folders with their status, and each keeps its tabs, unsaved text and explorer view.
 > - The explorer creates, renames, moves, copies and deletes, and Go to File finds a file by name.
@@ -10,14 +10,16 @@
 > - CodeMirror 6 runs in a hardened Android System WebView, with many tabs, find and replace, a symbol toolbar and hardware shortcuts. Unsaved text survives the app being killed.
 > - Android backup is the user's choice, off by default.
 >
-> The runtime and the terminal arrive in Phases 4–5, and the screens say so honestly. Phase 4 is under way ([plan](docs/phases/PHASE_4_PLAN.md)):
+> The runtime arrived in Phase 4, and the terminal comes in Phase 5; the screens say so honestly. Phase 4 ([plan](docs/phases/PHASE_4_PLAN.md), [report](docs/phases/PHASE_4_REPORT.md)):
 > - Its first package moved CodeForge to Flutter 3.50.0.
 > - Its second vendored t1's sealed-runtime kernel and pinned every input of the runtime.
 > - Its third puts the runtime in the app, so far on the CI emulator. It installs when a workspace opens, verifying every file, while the editor works. It starts again in about 18 ms, and it checks at every start that every program comes from the app. Settings → Runtime shows all of it.
 > - Its fourth runs the runtime's tools: Settings → Linux runtime checks node, python, git, bash, perl, ruby and rg, each against its pinned version, and every command ends with all the processes it started. For now the app runs only those checks: running your own code comes with Phase 5.
 > - Its fifth proves the runtime on real targets: Android 8.0, 8.1, 9, 14 and 16 emulators, and a physical Pixel 8a (Android 14) in Firebase Test Lab, where the first install took 13.6 s and a warm start 73 ms. So Android 8.0 and later is confirmed.
+> - Its sixth searches across files: the runtime's ripgrep in projects, about 120 ms for 10,000 files on the Pixel 8a, and CodeForge's own scan in folders from shared storage. A result opens at its line.
+> - Its seventh completed the third-party notices, which CI keeps current, decided how the userland's source code is offered, drafted the Play listing, the Data safety answers and the privacy policy ([docs/store](docs/store/README.md)), and fixed t1's kernel in place. The release build asks for no permissions, and CI checks it.
 >
-> Every claim is backed by a CI run: see the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
+> Every claim is backed by a CI run: see the **[Phase 4 Report](docs/phases/PHASE_4_REPORT.md)** and the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
 
 ---
 
@@ -25,7 +27,10 @@
 
 | Document | What it answers |
 |---|---|
-| **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)** | What Phase 3 built (projects, folders, the explorer, outside changes), gate-by-gate evidence, the measurements, what is not met, and the owner's decisions |
+| **[Phase 4 Report](docs/phases/PHASE_4_REPORT.md)** | What Phase 4 built (the toolchain, the sealed runtime in the app, its tools, the real-device gates, search, the notices and Play's drafts), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
+| [Phase 4 phone checklist](docs/phases/PHASE_4_PHONE_CHECKLIST.md) | The runtime on your phone: the install time, the audit, the tools' versions, search, in about 20 minutes |
+| [Play drafts](docs/store/README.md) | The listing, the Data safety answers, the privacy policy, the release checklist, and the proposed closed test |
+| [Phase 3 Report](docs/phases/PHASE_3_REPORT.md) | What Phase 3 built (projects, folders, the explorer, outside changes), gate-by-gate evidence, the measurements, what is not met, and the owner's decisions |
 | [Phase 3 phone checklist](docs/phases/PHASE_3_PHONE_CHECKLIST.md) | The exit session: every check parked since Phase 1, on one phone, in about 75 minutes |
 | [Phase 2 Report](docs/phases/PHASE_2_REPORT.md) | What Phase 2 built (the editor), gate-by-gate evidence (CI run ids, hashes, measurements), parked phone checks, limitations, what's next |
 | [Phase 1 Report](docs/phases/PHASE_1_REPORT.md) | What Phase 1 built (the shell and the design system), with its evidence |
@@ -34,9 +39,9 @@
 | [Runtime Audit](docs/EXISTING_RUNTIME_AUDIT.md) | The existing Linux environment (`m-cyber12/t1`), fully audited |
 | [Architecture](docs/ARCHITECTURE.md) · [Repo Structure](docs/REPOSITORY_STRUCTURE.md) | How the system is built and where everything lives |
 | [Tech Stack](docs/TECH_STACK.md) | Every dependency, verified versions, rejection reasons |
-| [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
+| [Phase 4 Plan](docs/phases/PHASE_4_PLAN.md) · [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
 | [Roadmap](docs/ROADMAP.md) | Phases 0–10, dependencies, decision queue |
-| [ADRs](docs/adr/) | 12 architecture decision records |
+| [ADRs](docs/adr/) | 13 architecture decision records |
 
 ## The foundation
 
@@ -66,8 +71,8 @@ app/                     ← the Flutter app
   android/               ← Kotlin host, minSdk 26 / target 36
 editor/                  ← the editor page: TypeScript + CodeMirror 6, protocol v1, benchmark pages, build and verify tools
 .github/workflows/       ← ci.yml (every push: Flutter + editor jobs; with [phase-gate], the emulator and runtime gates too)
-docs/                    ← architecture, ADRs 0001–0013, phase plans and reports
-README.md · AGENTS.md · CONTRIBUTING.md
+docs/                    ← architecture, ADRs 0001–0013, phase plans and reports; store/ = the Play drafts
+README.md · AGENTS.md · CONTRIBUTING.md · LICENSE · THIRD_PARTY_NOTICES.md · SOURCE_OFFER.md
 ```
 
 `native/` (the vendored sealed-runtime kernel; [PROVENANCE](native/PROVENANCE.md)) and `runtime/` (its pinned supply chain; [README](runtime/README.md)) arrived in Phase 4 W2 — see [REPOSITORY_STRUCTURE.md](docs/REPOSITORY_STRUCTURE.md). Nothing is scaffolded before it's used.

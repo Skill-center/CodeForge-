@@ -1,6 +1,6 @@
 # Phase 3 exit session: every parked phone check
 
-**Status:** ready for the owner's session. Prepared in Phase 3 W7, as the owner decided on 2026-11-11: one session at Phase 3's exit, with every check parked since Phase 1 ([ROADMAP.md](../ROADMAP.md), *Parked owner checks*). Results go into [PHASE_3_REPORT.md](PHASE_3_REPORT.md) §8. Non-blocking for acceptance unless the owner decides otherwise (PHASE_3_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of phase gate [43384226759](https://github.com/Skill-center/CodeForge-/actions/runs/43384226759) (commit 81a7b4d: Phase 3's app on Phase 4 W1's toolchain, Flutter 3.50.0), kept until 2026-12-13. Phase 3's own build (gate 43284276984, artifact 13975424637, commit a78cbee) stays downloadable until 2026-12-12 · **Time:** about 75 minutes, in any number of sittings; do §9 last.
+**Status:** ready for the owner's session. Prepared in Phase 3 W7, as the owner decided on 2026-11-11: one session at Phase 3's exit, with every check parked since Phase 1 ([ROADMAP.md](../ROADMAP.md), *Parked owner checks*). Results go into [PHASE_3_REPORT.md](PHASE_3_REPORT.md) §8. Non-blocking for acceptance unless the owner decides otherwise (PHASE_3_PLAN.md §5) · **Build:** the `codeforge-phone-profile-arm64` artifact of phase gate [43384226759](https://github.com/Skill-center/CodeForge-/actions/runs/43384226759) (commit 81a7b4d: Phase 3's app on Phase 4 W1's toolchain, Flutter 3.50.0), kept until 2026-12-13. Phase 3's own build (gate 43284276984, artifact 13975424637, commit a78cbee) stays downloadable until 2026-12-12 · **The newer build (Phase 4 W7, preferred):** the same artifact of Phase 4's last phase gate ([PHASE_4_REPORT.md](PHASE_4_REPORT.md) §6). It has everything above plus the runtime and search, so [PHASE_4_PHONE_CHECKLIST.md](PHASE_4_PHONE_CHECKLIST.md) runs on the same install, and none of the steps below changes. It is larger (about 164 MB), and the runtime installs the first time a workspace opens · **Time:** about 75 minutes, in any number of sittings; do §9 last.
 
 The emulator gate runs every group on each `[phase-gate]` commit. A phone adds what an emulator can't: a real ARM CPU and GPU (Impeller draws with it), your Android's own folder picker, your keyboard, TalkBack, and a real Google account.
 
@@ -17,6 +17,8 @@ The emulator gate runs every group on each `[phase-gate]` commit. A phone adds w
 2. **Uninstall any earlier CodeForge build first.** Every CI build is signed with its own throwaway key, so Android refuses to install over another one.
 3. Unzip, open the APK on the phone, and allow "install unknown apps" for your browser or file manager when asked. With adb: `adb uninstall dev.codeforge.app`, then `adb install codeforge-phone-profile-arm64.apk`.
 4. **Keep the APK file:** §9 installs this same file again.
+
+**Or the newer build** (Phase 4 W7, preferred): the `codeforge-phone-profile-arm64` artifact of Phase 4's last phase gate, linked in [PHASE_4_REPORT.md](PHASE_4_REPORT.md) §6. Install it the same way. Its runtime installs when a workspace first opens: 17.6 s through the app on a Pixel 8a, and longer on a slower phone. The editor works meanwhile.
 
 This is a profile build: optimised like a release, with a Developer section in Settings. The debug build of the same commit is the `codeforge-debug-apk` artifact of CI [43384226740](https://github.com/Skill-center/CodeForge-/actions/runs/43384226740) (all ABIs, kept until 2027-02-11); no check below needs it.
 
@@ -126,11 +128,11 @@ adb shell ps -A -o PID,NAME | grep sandboxed_process
 
 Then, for each process id the second command printed: `adb shell dumpsys meminfo <id> | grep "TOTAL PSS"`. The sum is the figure the gate reports (230.3 MB in the final gate, a release build on the emulator). Keep all the lines.
 
-**FULL against NORMAL** (ADR-0008) times the database on the phone's flash. It runs the repository's large-file integration test, which needs Flutter 3.47.9 and the repository on the computer (`flutter test integration_test/large_files_test.dart -d <device>`, from `app/`). Skip it unless you have them; PHASE_3_REPORT §8 proposes moving it to Phase 4's Firebase Test Lab runs.
+~~**FULL against NORMAL** (ADR-0008)~~ **Done; skip it.** Firebase Test Lab measured it on a Pixel 8a on 2026-11-18 (CI 44240926191): about 0.1 ms more per change with `FULL`, so the session store syncs with `FULL` since Phase 4 W6 (ADR-0008).
 
 ## 9. Backup with your Google account (15 minutes; Phase 3 W1, ADR-0012; do it last)
 
-This check uninstalls the app twice, so it erases what the steps above created. **Reinstall the same APK file each time:** Android restores data only into an app signed with the same key.
+This check uninstalls the app twice, so it erases what the steps above created. **Reinstall the same APK file each time:** Android restores data only into an app signed with the same key. With the newer build, the runtime is never part of a backup (only the projects, the database and the settings are), so it installs again from the APK after each reinstall.
 
 1. CodeForge → **Settings → PRIVACY.** *Back up with Android* should be off, and the row should read "Off".
 2. Turn it on. Open the demo project, type a line into `main.js` without saving, and create a file with a few words in it, saved.

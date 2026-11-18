@@ -18,7 +18,8 @@ CodeForge-/
 │   │   │                         #   editor/: WebView surface, page verification;
 │   │   │                         #   editor/bench/: benchmark pages + their WebView;
 │   │   │                         #   perf/: frame timing recorder;
-│   │   │                         #   runtime/: the runtime's state + its Pigeon client (Ph. 4)
+│   │   │                         #   runtime/: the runtime's state + its Pigeon client (Ph. 4);
+│   │   │                         #   search/: search across files + its Pigeon client (Ph. 4 W6)
 │   │   ├── application/          # controllers + providers; editor/: the editor host;
 │   │   │                         #   documents/: open documents and tabs;
 │   │   │                         #   bench/: the engine benchmark runner
@@ -31,8 +32,9 @@ CodeForge-/
 │   │   └── routing/
 │   ├── android/                  # Kotlin host (MainActivity; W4: the paths channel);
 │   │                             #   app/src/main/…/runtime/: RuntimeHost and the sealed
-│   │                             #   runtime's install and audit (Phase 4 W3); app/src/
-│   │                             #   androidTest/: the instrumented runtime tests
+│   │                             #   runtime's install and audit (Phase 4 W3), commands
+│   │                             #   and tools (W4); …/search/: the search host (W6);
+│   │                             #   app/src/androidTest/: the instrumented runtime tests
 │   ├── assets/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
 │   │   ├── editor_bench/         # benchmark pages (gitignored except README; the phase
@@ -54,6 +56,7 @@ CodeForge-/
 │   ├── test/                     # vitest: protocol, change sets vs CM6, controller, bridge
 │   │   └── fixtures/             # JSON contract fixtures, shared with the Dart tests
 │   ├── tool/                     # build.mjs, verify_bundle.mjs, check_licenses.mjs,
+│   │                             #   notices.mjs (THIRD_PARTY_NOTICES §3, Phase 4 W7),
 │   │                             #   page_kit.mjs (shared), build_bench.mjs,
 │   │                             #   bench_cdp.mjs (DevTools driver), bench_report.mjs
 │   ├── bench/                    # benchmark harness, CM6 + Monaco adapters, page template,
@@ -82,17 +85,22 @@ CodeForge-/
 │   ├── pins.json                 # every input pinned: bootstrap per ABI, packages, SHA-256
 │   ├── pins.py                   # check · fetch (fails closed) · bootstrap · resolve ([repin]) ·
 │   │                             #   info (the payload's JSON for the app, W3)
-│   ├── notices.py                # drafts THIRD_PARTY_NOTICES / SOURCE_OFFER from the pins
+│   ├── notices.py                # writes THIRD_PARTY_NOTICES §5 and SOURCE_OFFER's copyleft
+│   │                             #   table from the payload's licence files, with W7's
+│   │                             #   reviews; fails on a package with no licence named
 │   ├── provenance.py             # checks native/PROVENANCE.md against the vendored files;
 │   │                             #   copy re-vendors them from a t1 checkout (W3)
 │   ├── README.md                 # how the supply chain fits together
 │   ├── ci-results/               # the runtime job's evidence (committed back)
-│   └── tests/                    # t1's 2 script tests, CodeForge's 3 + fixtures, live check
+│   └── tests/                    # t1's 2 script tests, CodeForge's 4 (pins, notices,
+│                                 #   provenance, the launcher) + fixtures, live check
 │
 ├── docs/                         # all project documentation (spec §13)
 │   ├── adr/                      # architecture decision records
 │   ├── phases/                   # per-phase plans + exit reports, phone checklists;
 │   │                             #   evidence/: owner device runs (screenshots, raw results)
+│   ├── store/                    # Play drafts (Phase 4 W7): listing, Data safety, privacy
+│   │                             #   policy, release checklist
 │   └── *.md
 │
 ├── .github/
@@ -103,8 +111,9 @@ CodeForge-/
 ├── CONTRIBUTING.md
 ├── README.md
 ├── LICENSE                       # Apache License 2.0 (ADR-0011, 2026-11-12)
-├── THIRD_PARTY_NOTICES.md        # drafted in Phase 4 W2; complete before the first binary release
-└── SOURCE_OFFER.md               # the copyleft userland's source offer; same
+├── THIRD_PARTY_NOTICES.md        # completed in Phase 4 W7; CI writes and checks its lists
+└── SOURCE_OFFER.md               # the copyleft userland's source offer (its mechanism decided
+                                  #   in W7); published before the first binary release
 ```
 
 ## Boundary rules

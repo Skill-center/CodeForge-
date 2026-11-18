@@ -86,7 +86,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 ### 2.4 Added in Phase 4
 
 - **Release build** (`ci.yml`, since W1): see §3.
-- **Sealed runtime tests** (`ci.yml`, since W2, gate G2): `:native:sealed-runtime:test` runs t1's kernel tests (22) on the JVM after the Kotlin tests. The counts go to `ci-results/sealed-runtime-tests.txt`, and `sealed_runtime_tests` is one of the gates *Enforce quality gates* checks.
+- **Sealed runtime tests** (`ci.yml`, since W2, gate G2): `:native:sealed-runtime:test` runs t1's kernel tests (22; 23 since W7, with the test of CodeForge's recorded patch) on the JVM after the Kotlin tests. The counts go to `ci-results/sealed-runtime-tests.txt`, and `sealed_runtime_tests` is one of the gates *Enforce quality gates* checks.
 - **The runtime job** (`ci.yml`, since W2, gate G2) runs beside the editor and quality jobs, with Python 3 and no Flutter. In order:
   1. the `runtime/` script tests (t1's two and CodeForge's three);
   2. `provenance.py check`: native/PROVENANCE.md against the vendored files;
@@ -94,7 +94,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   4. the pinned bootstrap and packages fetched for both ABIs, verified and cached (§3);
   5. a live fail-closed check: one pinned package pointed at a version the repository lacks must fail the fetch;
   6. the payloads, built by t1's script from the pinned files (informative until W3);
-  7. the notices, checked current.
+  7. the notices, checked current. **Since W7** this step writes THIRD_PARTY_NOTICES §5 and SOURCE_OFFER's copyleft table in commit-back runs and checks them otherwise. It fails if a package's licence is not named, or if a text a W7 review points to is missing from the payload (`runtime/notices.py`, `REVIEWED`).
 
   A `[repin]` commit first re-resolves the pins against the live repository. Its evidence goes to `runtime/ci-results/`, which `[bootstrap]` and `[repin]` runs commit back, along with the pins and the regenerated notices. It takes about 3½ minutes.
 - **The runtime in the build** (`ci.yml`, since W3, gate G3):
@@ -124,6 +124,12 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 - **One workflow** (since W6; the owner, 2026-11-18): `phase-gate.yml`'s four jobs moved into `ci.yml` with their steps unchanged, renamed (*Phase gate · emulator (API 36)*, *· runtime build*, *· runtime API n*, *· runtime evidence*). A `[phase-gate]` push now starts one run instead of two, and its verdict covers the build, the tests and the gate together.
   - **When:** the gate's jobs run when the head commit of a push carries `[phase-gate]`, or in a manual run with the `phase_gate` input (once the workflow is on `main`), and never for a pull request. They need no other job, so they start beside the build, as before.
   - **Queues:** runs on a branch queue one after another, plain runs and gate runs separately. A push never waits behind a gate, which takes about 50 minutes, and two gates never overlap: each commits its evidence back, and the newer must land last. As before, a newer queued run replaces an older queued one, and a superseded gate is cancelled by hand (`gh run cancel`).
+
+- **The notices** (since W7, gate G9): every list in THIRD_PARTY_NOTICES.md is written from the resolved dependencies and checked on every push, so a stale list fails CI.
+  - §2, the Dart packages: the quality job's *Dependency license gate* (`app/tool/check_licenses.dart`); `[bootstrap]` runs write it (`--write-notices`), and the diagnostics commit-back carries it.
+  - §3, the editor page's packages: the editor job's *Licence gate* (`editor/tool/notices.mjs --check`; `node tool/notices.mjs` writes it).
+  - §5 and SOURCE_OFFER's copyleft table: the runtime job (above, step 7).
+- **Release manifest** (`ci.yml`, quality job, since W7): `tool/ci/check_manifest.py build/app release` reads the release build's merged manifest and fails on any permission but androidx.core's own signature permission. The store listing and the Data safety answers say the app asks for none (docs/store/). Its output goes to `ci-results/release-manifest.txt`, and `release_manifest` is one of the gates *Enforce quality gates* checks.
 
 ## 3. Toolchain pins in CI
 
@@ -186,8 +192,8 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 
 - SemVer `MAJOR.MINOR.PATCH`; `versionName` from tag, `versionCode` monotonic (CI run number + offset). Phase milestones tag `v0.N.0`; public release starts `v1.0.0` at Phase 10 exit.
 - GitHub Release: `CodeForge-vX.Y.Z-arm64.apk` (full), `-x86_64.apk` (emulator/dev), `SHA256SUMS`, `PINS.json` (Flutter/AGP/NDK/bootstrap/package versions), source tarball link. Pre-release flag until Phase 10.
-- Play: AAB arm64 base + `pack_buildtools` on-demand; internal → closed → production promotion is manual; data-safety answers from t1 `store/data-safety.md` template (nothing collected).
-- **License gate:** no binary release until `THIRD_PARTY_NOTICES.md` and the source offer for GPL userland components are published with the release (ADR-0011 resolved on 2026-11-12: Apache-2.0).
+- Play: AAB arm64 base + `pack_buildtools` on-demand; internal → closed → production promotion is manual; data-safety answers from t1 `store/data-safety.md` template (nothing collected). **Drafted in Phase 4 W7:** [docs/store/](store/README.md) holds the listing, the Data safety answers, the privacy policy and the release checklist, and proposes the closed test's start. The release workflow (a signed arm64 App Bundle, its size checked against Play's 200 MB base limit, the source archive as a release asset) is not built yet: it is proposed for Phase 5's first work package.
+- **License gate:** no binary release until `THIRD_PARTY_NOTICES.md` and the source offer for GPL userland components are published with the release (ADR-0011 resolved on 2026-11-12: Apache-2.0). **Phase 4 W7:** both are complete and CI keeps their lists current; SOURCE_OFFER.md decides the mechanism (the source archive as a release asset, and a written offer). Three items remain before the first distribution, the closed test included: the archive and the offer in About, built with the release workflow; the userland's texts in the app's licence page; and a licence review by a qualified person.
 
 ## 6. Local developer builds (documented for CONTRIBUTING)
 
