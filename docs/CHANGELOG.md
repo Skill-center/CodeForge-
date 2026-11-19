@@ -4,6 +4,31 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 5 W2, the PTY and terminal sessions (plan: [phases/PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md))
+- **A pseudo-terminal CodeForge writes itself** ([ADR-0014](adr/0014-pty-and-sessions.md), [TERMINAL_ARCHITECTURE.md](TERMINAL_ARCHITECTURE.md) §1). It is the launcher's new terminal mode: the launcher opens the PTY, runs the program on it as its session's leader, and relays between it and the app under a small framed protocol (input, window sizes). Nothing forks inside the app's process, and a session's whole tree ends as a command's does. No Termux code (AGENTS §4).
+- **Terminal sessions in the host:**
+  - **The shell:** the runtime's bash with CodeForge's rc file (a prompt, then `~/.bashrc`), or a named program such as node's REPL. With no bash, the session fails; it never falls back to another shell.
+  - **Output:** a 1 MiB buffer for a view that attaches later. Batches go at most every 16 ms, the first bytes at once. Credit flow control: a flood blocks in the kernel instead of filling the app.
+  - **Limits:** at most eight sessions, the ninth refused. *End all* ends them all.
+  - **Folders and environment:** a project's folder, named by the host, never a path from Dart. The terminal's `TERM`, `COLORTERM` and `TERMINFO`.
+  - **The API:** a Pigeon API with a Flutter API for output, and Dart's client. The workbench's pane keeps its preview until W3's xterm.js view.
+- **Measured** on the emulators, API 26 to 36 (phase gates 44461809588 and 44475934378):
+  - a keystroke's echo through the whole host path: p95 0.68 to 3.19 ms, against ADR-0006's 50 ms;
+  - a 10 MiB flood: whole in 0.67 to 0.88 s, the Java heap growing at most 2,155 KiB;
+  - *End all*: 102 to 114 ms, leaving no process.
+
+  On a Google Pixel 8a with Android 14 (Test Lab): echo p95 8.38 ms, the flood whole in 1.04 s, *End all* in 112 ms.
+- **Found and fixed:**
+  - Phase 3's outside changes: a batch under way when the app went to the background could still reload a clean document while away. Now nothing is taken in until the app comes back, as designed (the emulator's watch group).
+  - *End all* returned a moment before the sessions' places were free, so a start right after it could be refused (API 26).
+  - An end could not reach a session whose view had stopped acknowledging.
+- **SECURITY §2.2** begins with the sessions' threats, T1 to T8; W5 completes it with the limits and the foreground service.
+- Verified by:
+  - CI 44445690182 (`test-pty.py`, 19 tests);
+  - the bootstrap run 44451456079 (`+902: All tests passed!`; `kotlin_tests=161`, 23 more), and 44474274477 after the watch fix (`+904: All tests passed!`);
+  - phase gates 44454605348 and 44461809588, then 44475934378, the first to pass whole;
+  - Test Lab in CI 44482754814: 25 of 25 tests on the phone, `TerminalSessionTest`'s seven among them (PHASE_5_PLAN *As built (W2)*).
+
 ### Added — Phase 5 W1, the release workflow, the source archive, and the licences in the app (plan: [phases/PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md))
 - **The release workflow** (`.github/workflows/release.yml`). A `[release]` tag in a commit's subject line runs a dry run after CI's own build:
   - an arm64 App Bundle signed with an upload key, and an APK signed with a release key, both throwaway keys made in the job;

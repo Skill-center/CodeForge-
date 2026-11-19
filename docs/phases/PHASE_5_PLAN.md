@@ -1,6 +1,6 @@
 # Phase 5 Plan — Terminal & Execution
 
-**Status:** **In progress.** Proposed on 2026-11-18, the day Phase 4 was accepted. **W1 done on 2026-11-18** (CI 44381310978 and 44399784786, whose release dry run passed whole; phase gate 44405049032; see *As built (W1)*). **The owner's decisions on 2026-11-18** (§10): start with W1; the release build gets network access from Phase 5; the release workflow runs dry until the owner adds the keys; the owner arranges the licence review, and no public binary goes out before it · **Spec reference:** §8 Phase 5 (terminal and execution), §6.4 (the terminal connects to the existing environment), §6.5 (the capability model), §7 (security), §10 (the end-to-end scenario) · **Architecture:** [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md), [ADR-0006](../adr/0006-terminal-frontend.md) (xterm.js), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [SECURITY.md](../SECURITY.md) §2, [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Builds on:** Phase 4 ([report](PHASE_4_REPORT.md)): the sealed runtime, its exec model and launcher, search
+**Status:** **In progress.** Proposed on 2026-11-18, the day Phase 4 was accepted. **W1 done on 2026-11-18** (CI 44381310978 and 44399784786, whose release dry run passed whole; phase gate 44405049032; see *As built (W1)*). **W2 done on 2026-11-19** (phase gate 44475934378 on API 26 to 36, and Test Lab's arm64 phone in CI 44482754814; see *As built (W2)*). **The owner's decisions on 2026-11-18** (§10): start with W1; the release build gets network access from Phase 5; the release workflow runs dry until the owner adds the keys; the owner arranges the licence review, and no public binary goes out before it · **Spec reference:** §8 Phase 5 (terminal and execution), §6.4 (the terminal connects to the existing environment), §6.5 (the capability model), §7 (security), §10 (the end-to-end scenario) · **Architecture:** [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md), [ADR-0006](../adr/0006-terminal-frontend.md) (xterm.js), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [SECURITY.md](../SECURITY.md) §2, [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [ADR-0010](../adr/0010-distribution.md), [ADR-0011](../adr/0011-license.md) · **Builds on:** Phase 4 ([report](PHASE_4_REPORT.md)): the sealed runtime, its exec model and launcher, search
 
 ---
 
@@ -142,6 +142,44 @@ ROADMAP's row: a write, run, output loop, with multiple sessions, Run File and R
     - a 10 MB flood arrives whole, with the host's memory bounded;
     - the ninth session is refused;
     - *End all* leaves no process.
+
+**As built (W2):**
+- **G2 met:**
+  - **The launcher's terminal mode on CI's Linux machine:** `runtime/tests/test-pty.py`, 19 tests, in CI 44445690182 and every run since. Nine broken copies of the launcher each fail some of them.
+  - **`TerminalSessionTest` on the runtime legs:** API 26 to 36 in phase gates 44461809588 and 44475934378 (seven tests a leg, and the seven figures the gate requires).
+  - **`TerminalSessionTest` on the arm64 phone:** Test Lab in CI 44482754814 (`e2e0f59`), on a Google Pixel 8a (`akita`) with Android 14. All seven passed, among 25 test cases, with the seven figures:
+    - echo p50 3.85 ms, p95 8.38 ms;
+    - the 10 MiB flood whole in 1.04 s (43 batches), never more than the window unacknowledged;
+    - End all in 112 ms, leaving no process;
+    - node's prompt in 493 ms.
+- **The design is (a), the launcher's terminal mode** (ADR-0014). On the emulators a keystroke's echo through the whole host path took p95 0.68 to 5.12 ms over the three phase gates (44454605348, 44461809588 and 44475934378). The relay alone adds about 0.12 ms on Linux. ADR-0006's budget is 50 ms.
+- **What was built** (TERMINAL_ARCHITECTURE §1, SECURITY §2.2):
+  - **The launcher** opens the PTY and relays, under a framed protocol on its stdin: input, and window sizes.
+  - **`TerminalSession`:** a 1 MiB ring buffer, batches at most every 16 ms with the first bytes at once, credit flow control with a 256 KiB window, and a writer thread.
+  - **`Terminals`:** the spec's checks, and bash with CodeForge's rc file.
+  - **`SessionRegistry`:** the cap of 8, End all, and a sweep of the shell's session as the last resort.
+  - **The environment:** the terminal's four variables.
+  - **The rest:** a bounded command pool (16), the Pigeon API with a Flutter API for output, the host, and Dart's client. The workbench keeps the honest fake until W3's view.
+- **Evidence:**
+  - **test-pty.py:** CI 44445690182.
+  - **JVM and Dart:** the bootstrap run 44451456079, `kotlin_tests=161` (23 more: `TerminalSessionTest`'s 22 and one in `RuntimeHubTest`), and `+902: All tests passed!` (7 more: the Pigeon client, the fake, the codes). After the watch fix, the bootstrap run 44474274477: `+904: All tests passed!` (its two tests), `kotlin_tests=161`.
+  - **The phase gates:**
+    - 44454605348, which found End all's race on API 26;
+    - 44461809588: all five legs passed. Its emulator gate failed twice: first fetching Gradle's Kotlin library (a transient failure), then in the watch group (the finding below);
+    - 44475934378, after the watch fix: everything passed, the watch group at its first attempt and a cold start of 1,344 ms (median of 10).
+- **Deviations, and why:**
+  - **Window sizes travel as frames on the launcher's stdin,** not on a FIFO: a resize keeps its order among the keystrokes, and a session needs no file.
+  - **Output goes through a Flutter API** (`TerminalEvents`), as the runtime's and search's events do. The credit window already bounds what is in flight, so an event channel's buffering would add nothing.
+  - **`TERMINFO`** joins the terminal's environment: Termux's ncurses looks for its descriptions under Termux's own prefix.
+  - **The instrumented class installs a payload of its own** (`files/runtime-gate/terminal`), as `RuntimeCommandsTest` does, so neither depends on the other's order.
+- **What the work found:**
+  - **On the phone a keystroke's echo takes about ten times as long as on the emulators:** p95 8.38 ms. The emulators' median p95 was 0.88 ms, over the fifteen legs of the three phase gates (0.68 to 5.12 ms). The phone's figure is still 17 % of ADR-0006's budget.
+    - Each sample follows 40 ms of quiet, as between keystrokes. The echo then wakes several threads in turn: the host's writer, the launcher, the kernel's terminal work, the launcher again, and the host's reader. Idle cores are the likely cause; this was not measured further.
+    - W6 measures the whole path, with xterm.js, on the phone, against the rest of the budget.
+  - **A batch of outside changes under way when the app went to the background took a change in while away** (phase gate 44461809588, the emulator's watch group; Phase 3 W5's code). Going away cancelled the batch's timer, not a batch already listing a folder, which then checked the open documents and reloaded a clean one. The batch now stops when the app is away, and a check under way takes nothing in once the app is away (`checkDisk`'s `active`). Coming back lists every folder and checks every document anyway. Two tests hold the fake service's listing or stat until the app is away.
+  - **End all returned before the places were free.** A session gives its place back when its reader has finished, a moment after its launcher exits. On API 26 the next start came first, and was refused (phase gate 44454605348, test g). `endAll` now waits for the sessions to be finished too, and the JVM test checks that the places are free when it returns. Without the fix that check failed in 7 of 8 runs.
+  - **An end must reach a session whose view stopped acknowledging.** A reader waiting for credit would never see its launcher's end-of-file. It now reads freely once the session is ending, and, after the launcher has exited, once the view has been silent for 2 s. Found while writing the flood test; the JVM test *anEndFromTheRegistryReachesASessionWhoseViewStoppedAcknowledging* holds it.
+  - **The Kotlin is checked locally before CI:** the Kotlin compiler (npm's `kotlin-compiler`, 2.4.21, against the project's 2.4.20) and a Java runtime (PyPI's `jdk4py`) type-check the runtime package against stubs, and run `TerminalSessionTest` with real processes. Thirteen of fourteen broken copies of the Kotlin each failed some of its tests; the fourteenth is equivalent (bash without `-i` is interactive on a terminal anyway).
 
 ### W3 — The terminal view: xterm.js in the workbench (2 sessions) → G3
 
