@@ -1,25 +1,25 @@
-terminal_group=fail
-terminal_compose_failures=9
-terminal: started ms=1094 size=46x22
+terminal_group=pass
+terminal_compose_failures=0
+terminal: started ms=1001 size=45x23
 terminal: typed_echo=ok
 terminal: fit where=portrait columns=46 rows=23 stty=ok nano=ok top=ok top_lines=9
 terminal: fit where=landscape columns=60 rows=7 stty=ok nano=ok top=ok top_lines=7
 terminal: fit where=portrait again columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9
-terminal: compose_lines=11 compose_ms=14489
+terminal: compose_lines=11 compose_ms=10734
 terminal: closed=ok dropped_messages=0
-compose: FAIL latin-predictive: "hhelhellohello wworld" (expected "hello world")
-compose: FAIL autocorrect-replace: "tethe" (expected "the")
-compose: FAIL pinyin: "nniha你好" (expected "你好")
-compose: FAIL japanese: "kかんかんj漢字" (expected "漢字")
-compose: FAIL hangul: "한한ㄱ글글" (expected "한글")
+compose: ok   latin-predictive: "hello world"
+compose: ok   autocorrect-replace: "the"
+compose: ok   pinyin: "你好"
+compose: ok   japanese: "漢字"
+compose: ok   hangul: "한글"
 compose: ok   emoji: "😀👍🏽👩‍💻"
-compose: FAIL cancel-composition: "axyzb" (expected "ab")
-compose: FAIL ime-backspace: "cococopcopy" (expected "copy")
-compose: FAIL backspace-after-commit: "wword" (expected "word")
-compose: FAIL words-and-spaces: "ls --la src" (expected "ls -la src")
-probe 20:03:21.503 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
-probe 20:03:23.772 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+111ms pointerdown xterm-screen  hasFocus=false","+112ms touchstart xterm-screen  hasFocus=false","+114ms touchend xterm-screen  hasFocus=false","+129ms focus window  hasFocus=true","+129ms focus xterm-helper-textarea value=\"\" hasFocus=true","+132ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+146ms mousedown xterm-screen  hasFocus=true","+162ms click xterm-screen  hasFocus=true"]}
-probe 20:03:24.535 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
-probe 20:03:27.446 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+75ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+76ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+84ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+88ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+132ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+132ms beforeinput xterm
-probe 20:03:43.436 probe arm: {"hasFocus":true,"visibility":"visible","active":"BODY"}
-probe 20:03:45.634 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"BODY"},"events":["+36ms pointerdown xterm-screen  hasFocus=true","+36ms touchstart xterm-screen  hasFocus=true","+52ms touchend xterm-screen  hasFocus=true","+55ms focus xterm-helper-textarea value=\"\" hasFocus=true","+62ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+77ms mousedown xterm-screen  hasFocus=true","+78ms click xterm-screen  hasFocus=true","+924ms blur xterm-helper-textarea value=\"\" hasFocus=true","+924ms focusout xterm-helper-textarea value=\"\" hasFocus=true"]}
+compose: ok   cancel-composition: "ab"
+compose: ok   ime-backspace: "copy"
+compose: ok   backspace-after-commit: "word"
+compose: ok   words-and-spaces: "ls -la src"
+probe 20:51:33.963 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
+probe 20:51:36.215 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+69ms pointerdown xterm-screen  hasFocus=false","+70ms touchstart xterm-screen  hasFocus=false","+71ms touchend xterm-screen  hasFocus=false","+76ms focus window  hasFocus=true","+76ms focus xterm-helper-textarea value=\"\" hasFocus=true","+78ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+81ms mousedown xterm-screen  hasFocus=true","+84ms click xterm-screen  hasFocus=true"]}
+probe 20:51:36.966 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
+probe 20:51:40.199 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+170ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+172ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+202ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+213ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+243ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+248ms beforeinput x
+probe 20:51:55.691 probe arm: {"hasFocus":true,"visibility":"visible","active":"BODY"}
+probe 20:51:57.887 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"BODY"},"events":["+64ms pointerdown xterm-screen  hasFocus=true","+64ms touchstart xterm-screen  hasFocus=true","+67ms touchend xterm-screen  hasFocus=true","+67ms focus xterm-helper-textarea value=\"\" hasFocus=true","+69ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+76ms mousedown xterm-screen  hasFocus=true","+76ms click xterm-screen  hasFocus=true","+792ms blur xterm-helper-textarea value=\"\" hasFocus=true","+793ms focusout xterm-helper-textarea value=\"\" hasFocus=true"]}
