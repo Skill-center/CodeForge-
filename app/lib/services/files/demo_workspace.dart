@@ -53,8 +53,9 @@ if __name__ == "__main__":
 # Demo Workspace
 
 A sample project, written to this device the first time CodeForge
-opened it. Edits are real: Save writes them to these files. Terminals
-and runtimes arrive in later phases.
+opened it. Edits are real: Save writes them to these files. Run runs
+`main.js` or `app.py` in the Linux runtime, and its output shows in a
+terminal.
 
 - `main.js` — JavaScript entry point
 - `app.py` — Python sample
@@ -75,7 +76,10 @@ void main() {
   "name": "codeforge-demo",
   "version": "0.1.0",
   "type": "module",
-  "private": true
+  "private": true,
+  "scripts": {
+    "start": "node main.js"
+  }
 }
 ''',
   };

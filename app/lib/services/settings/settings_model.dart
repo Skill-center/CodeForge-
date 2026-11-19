@@ -19,6 +19,7 @@ final class AppSettings {
     this.toolbarKeys = '',
     this.welcomeSeen = false,
     this.showHiddenFiles = false,
+    this.saveBeforeRun = true,
   });
 
   final ThemeMode themeMode;
@@ -32,6 +33,9 @@ final class AppSettings {
   final bool welcomeSeen;
   final bool showHiddenFiles;
 
+  /// Run saves unsaved changes first (Phase 5 W4).
+  final bool saveBeforeRun;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     double? editorFontSize,
@@ -40,6 +44,7 @@ final class AppSettings {
     String? toolbarKeys,
     bool? welcomeSeen,
     bool? showHiddenFiles,
+    bool? saveBeforeRun,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -49,6 +54,7 @@ final class AppSettings {
       toolbarKeys: toolbarKeys ?? this.toolbarKeys,
       welcomeSeen: welcomeSeen ?? this.welcomeSeen,
       showHiddenFiles: showHiddenFiles ?? this.showHiddenFiles,
+      saveBeforeRun: saveBeforeRun ?? this.saveBeforeRun,
     );
   }
 
@@ -60,6 +66,7 @@ final class AppSettings {
     'toolbarKeys': toolbarKeys,
     'welcomeSeen': welcomeSeen,
     'showHiddenFiles': showHiddenFiles,
+    'saveBeforeRun': saveBeforeRun,
   };
 
   /// Tolerant decode: unknown/invalid values fall back to defaults instead
@@ -94,6 +101,9 @@ final class AppSettings {
       showHiddenFiles: json['showHiddenFiles'] is bool
           ? json['showHiddenFiles']! as bool
           : defaults.showHiddenFiles,
+      saveBeforeRun: json['saveBeforeRun'] is bool
+          ? json['saveBeforeRun']! as bool
+          : defaults.saveBeforeRun,
     );
   }
 
@@ -106,7 +116,8 @@ final class AppSettings {
       other.toolbarPreset == toolbarPreset &&
       other.toolbarKeys == toolbarKeys &&
       other.welcomeSeen == welcomeSeen &&
-      other.showHiddenFiles == showHiddenFiles;
+      other.showHiddenFiles == showHiddenFiles &&
+      other.saveBeforeRun == saveBeforeRun;
 
   @override
   int get hashCode => Object.hash(
@@ -117,5 +128,6 @@ final class AppSettings {
     toolbarKeys,
     welcomeSeen,
     showHiddenFiles,
+    saveBeforeRun,
   );
 }

@@ -248,6 +248,10 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   late TerminalService _service;
   late TerminalView _view;
   final Map<int, _Pipe> _pipes = {};
+
+  /// Changes to sessions that have no tab yet: a run that ended before its
+  /// start answered still ends in its tab (Phase 5 W4).
+  final Map<int, TerminalInfo> _early = {};
   final List<StreamSubscription<Object?>> _subscriptions = [];
 
   /// The panel's size in cells, as the page last fitted a view to it: new
@@ -260,6 +264,7 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     _service = ref.watch(terminalServiceProvider);
     _view = ref.watch(terminalViewProvider);
     _pipes.clear();
+    _early.clear();
     _subscriptions
       ..add(_service.output.listen(_onOutput))
       ..add(_service.changes.listen(_onChanged))
@@ -284,24 +289,61 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   /// Starts a session in the open project's folder (the runtime's home for
   /// a folder from shared storage) and shows it.
   Future<void> newSession() async {
+    final workspace = ref.read(currentWorkspaceProvider);
+    final label = 'Terminal ${_freeNumber()}';
+    await _start(
+      TerminalSpec(
+        project: workspace is ProjectLocation ? workspace.folder : null,
+        label: label,
+      ),
+      name: label,
+    );
+  }
+
+  /// Starts a session for a run (Phase 5 W4): [spec]'s program in its
+  /// project's folder, in a tab named by its label, shown at once. Answers
+  /// the session's id.
+  Future<Result<int>> run(TerminalSpec spec) =>
+      _start(spec, name: spec.label ?? spec.program ?? 'Run');
+
+  /// Ends session [id] with everything it started, keeping its tab and its
+  /// output: a run's Stop.
+  Future<Result<void>> end(int id) => _service.end(id);
+
+  Future<Result<int>> _start(TerminalSpec spec, {required String name}) async {
     if (!state.canStart) {
-      if (state.tabs.length >= maxTerminalSessions) {
-        state = state.copyWith(
-          message: 'Eight terminals are open: close one first.',
-        );
+      final full = state.tabs.length >= maxTerminalSessions;
+      final message = full
+          ? 'Eight terminals are open: close one first.'
+          : state.available
+          ? 'A terminal is starting.'
+          : state.unavailableReason;
+      if (full) {
+        state = state.copyWith(message: message);
       }
-      return;
+      return Err(
+        TerminalFailure(
+          message,
+          problem: full
+              ? TerminalProblem.tooMany
+              : state.available
+              ? TerminalProblem.notReady
+              : TerminalProblem.unavailable,
+        ),
+      );
     }
     state = state.copyWith(starting: true, message: null);
     unawaited(_view.start());
-    final workspace = ref.read(currentWorkspaceProvider);
-    final label = 'Terminal ${_freeNumber()}';
     final started = await _service.start(
       TerminalSpec(
-        project: workspace is ProjectLocation ? workspace.folder : null,
+        project: spec.project,
+        program: spec.program,
+        arguments: spec.arguments,
+        environment: spec.environment,
         rows: _size.rows,
         columns: _size.columns,
-        label: label,
+        bufferBytes: spec.bufferBytes,
+        label: name,
       ),
     );
     switch (started) {
@@ -312,9 +354,10 @@ final class TerminalController extends Notifier<TerminalPanelState> {
           fields: {'error': failure.message},
         );
         state = state.copyWith(starting: false, message: failure.message);
+        return Err(failure);
       case Ok(:final value):
         _pipes.putIfAbsent(value.id, _Pipe.new);
-        final tab = _tabFrom(value, name: label);
+        final tab = _tabFrom(_early.remove(value.id) ?? value, name: name);
         state = state.copyWith(
           starting: false,
           tabs: [...state.tabs, tab],
@@ -322,6 +365,7 @@ final class TerminalController extends Notifier<TerminalPanelState> {
           selection: false,
         );
         await _openView(value.id, activate: true);
+        return Ok(value.id);
     }
   }
 
@@ -708,6 +752,13 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   }
 
   void _onChanged(TerminalInfo info) {
+    if (!state.tabs.any((tab) => tab.sessionId == info.id)) {
+      _early[info.id] = info;
+      if (_early.length > maxTerminalSessions) {
+        _early.remove(_early.keys.first);
+      }
+      return;
+    }
     _updateTab(
       info.id,
       (tab) => TerminalTab(

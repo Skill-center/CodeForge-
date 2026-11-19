@@ -26,6 +26,9 @@ enum WorkbenchIntent {
   goToFile,
   undo,
   redo,
+  runFile,
+  runProject,
+  stopRun,
 }
 
 /// Shortcut names the page forwards (protocol `appShortcuts`) → intents.

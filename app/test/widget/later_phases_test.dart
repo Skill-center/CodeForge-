@@ -1,11 +1,12 @@
 /// What the app says is still to come (Phase 3 W7): Settings' *Coming in
 /// later phases* and the workbench's placeholder panels name ROADMAP's
 /// phases, and nothing built already (Phase 3's folders, Phase 4's
-/// runtime) is listed as coming.
+/// runtime, Phase 5's Run) is listed as coming.
 library;
 
 import 'package:codeforge/design_system/components/feedback.dart';
 import 'package:codeforge/features/workbench/panels/placeholder_panels.dart';
+import 'package:codeforge/features/workbench/panels/run_panel.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -38,7 +39,8 @@ void main() {
   const panels = <(String, Widget, String)>[
     ('source control', GitPanel(), 'Arrives in Phase 7'),
     ('extensions', ExtensionsPanel(), 'Arrives in Phase 8'),
-    ('run', RunPanel(), 'Running arrives in Phase 5, debugging in Phase 9'),
+    // Run arrived in Phase 5 W4; debugging is still to come.
+    ('run', RunPanel(), 'Debugging arrives in Phase 9'),
   ];
   for (final (name, panel, note) in panels) {
     testWidgets('the $name panel says: $note', (tester) async {

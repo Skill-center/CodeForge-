@@ -1,6 +1,7 @@
 /// The capability model (spec §6.5, docs/RUNTIME_INTEGRATION.md §3; Phase 4
 /// W4): which language a file is for its capabilities, shell scripts
-/// included, and what the runtime's readiness flips.
+/// included (and Ruby and Perl since Phase 5 W4), and what the runtime's
+/// readiness flips.
 library;
 
 import 'package:codeforge/core/editor/capabilities.dart';
@@ -50,8 +51,30 @@ void main() {
     expect(shebangInterpreter('echo'), isNull);
   });
 
-  test('JavaScript, Python and shell turn executable once it is ready', () {
-    for (final language in ['javascript', 'python', shellLanguage]) {
+  test('Ruby and Perl scripts are languages here too (Phase 5 W4)', () {
+    expect(capabilityLanguageFor('tool.rb'), rubyLanguage);
+    expect(capabilityLanguageFor('lib/Report.PL'), perlLanguage);
+    expect(
+      capabilityLanguageFor('bin/report', firstLine: '#!/usr/bin/env perl'),
+      perlLanguage,
+    );
+    expect(
+      capabilityLanguageFor('bin/serve', firstLine: '#!/usr/bin/ruby -w'),
+      rubyLanguage,
+    );
+    expect(
+      capabilityLanguageFor('notes.txt', firstLine: '#!/usr/bin/env ruby'),
+      plainTextLanguage,
+    );
+    // The editor still shows them as plain text; the status strip names
+    // them itself.
+    expect(languageForPath('tool.rb'), plainTextLanguage);
+    expect(runtimeOnlyLanguages, {shellLanguage, rubyLanguage, perlLanguage});
+    expect(runtimeLanguageNames.keys, runtimeInterpreters.keys);
+  });
+
+  test('every language the runtime runs turns executable once ready', () {
+    for (final language in runtimeInterpreters.keys) {
       final before = capabilitiesOf(language, runtimeReady: false);
       final after = capabilitiesOf(language, runtimeReady: true);
       expect(before.executable, isFalse, reason: language);
@@ -70,6 +93,14 @@ void main() {
     expect(
       capabilitiesOf(shellLanguage, runtimeReady: true).interpreter,
       'bash',
+    );
+    expect(
+      capabilitiesOf(rubyLanguage, runtimeReady: true).interpreter,
+      'ruby',
+    );
+    expect(
+      capabilitiesOf(perlLanguage, runtimeReady: true).interpreter,
+      'perl',
     );
   });
 

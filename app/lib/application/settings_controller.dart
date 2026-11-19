@@ -61,6 +61,9 @@ final class SettingsController extends Notifier<AppSettings> {
 
   Future<void> setShowHiddenFiles(bool value) =>
       _persist(state.copyWith(showHiddenFiles: value));
+
+  Future<void> setSaveBeforeRun(bool value) =>
+      _persist(state.copyWith(saveBeforeRun: value));
 }
 
 final settingsControllerProvider =

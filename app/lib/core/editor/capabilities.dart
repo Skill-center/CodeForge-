@@ -3,8 +3,8 @@
 /// *analyzable* when its language server passes its smoke suite (Phase 6),
 /// *compilable* with the build-tools pack, and *executable* when the sealed
 /// runtime can run it. Since Phase 4 W4, JavaScript, Python and shell
-/// scripts are executable once the runtime is ready. Only the flag changes
-/// here: Run arrives in Phase 5.
+/// scripts are executable once the runtime is ready; Ruby and Perl joined
+/// them with Run (Phase 5 W4, core/run/run_commands.dart).
 library;
 
 import 'languages.dart';
@@ -13,11 +13,38 @@ import 'languages.dart';
 /// them as plain text; here they are a language of their own.
 const String shellLanguage = 'shell';
 
+/// Ruby and Perl, which the runtime carries (Phase 4 W4's tools). Like shell
+/// scripts, the editor shows them as plain text.
+const String rubyLanguage = 'ruby';
+const String perlLanguage = 'perl';
+
+/// The languages the runtime runs that the editor shows as plain text: the
+/// status strip names them itself.
+const Set<String> runtimeOnlyLanguages = {
+  shellLanguage,
+  rubyLanguage,
+  perlLanguage,
+};
+
 /// The runtime's program for each language it can execute.
 const Map<String, String> runtimeInterpreters = {
   'javascript': 'node',
   'python': 'python',
   shellLanguage: 'bash',
+  rubyLanguage: 'ruby',
+  perlLanguage: 'perl',
+};
+
+/// File extensions (lower case) of Ruby and Perl scripts.
+const Map<String, String> scriptLanguageByExtension = {
+  'rb': rubyLanguage,
+  'pl': perlLanguage,
+};
+
+/// `#!` interpreters of Ruby and Perl scripts.
+const Map<String, String> scriptLanguageByInterpreter = {
+  'ruby': rubyLanguage,
+  'perl': perlLanguage,
 };
 
 /// File extensions (lower case) of shell scripts.
@@ -55,9 +82,10 @@ final class LanguageCapabilities {
 }
 
 /// The language a file is for its capabilities: what the editor detects
-/// ([languageForPath]), or [shellLanguage] for a shell script, by extension
-/// or by `#!` line. Like [languageForPath], an extension the editor knows
-/// as plain text (`.txt`) stays plain whatever its first line says.
+/// ([languageForPath]), or one of [runtimeOnlyLanguages] for a shell, Ruby
+/// or Perl script, by extension or by `#!` line. Like [languageForPath], an
+/// extension the editor knows as plain text (`.txt`) stays plain whatever
+/// its first line says.
 String capabilityLanguageFor(String path, {String? firstLine}) {
   final natural = languageForPath(path, firstLine: firstLine);
   if (natural != plainTextLanguage) {
@@ -70,20 +98,30 @@ String capabilityLanguageFor(String path, {String? firstLine}) {
     if (shellExtensions.contains(extension)) {
       return shellLanguage;
     }
+    final script = scriptLanguageByExtension[extension];
+    if (script != null) {
+      return script;
+    }
     if (editorLanguageByExtension.containsKey(extension)) {
       return natural;
     }
   }
-  if (firstLine != null &&
-      shellInterpreters.contains(shebangInterpreter(firstLine))) {
-    return shellLanguage;
+  if (firstLine != null) {
+    final interpreter = shebangInterpreter(firstLine);
+    if (shellInterpreters.contains(interpreter)) {
+      return shellLanguage;
+    }
+    final script = scriptLanguageByInterpreter[interpreter];
+    if (script != null) {
+      return script;
+    }
   }
   return natural;
 }
 
 /// The capabilities of [language], with the runtime ready or not. Only the
-/// runtime's readiness flips anything in Phase 4: executable, for the
-/// languages in [runtimeInterpreters].
+/// runtime's readiness flips anything: executable, for the languages in
+/// [runtimeInterpreters].
 LanguageCapabilities capabilitiesOf(
   String language, {
   required bool runtimeReady,
@@ -101,4 +139,6 @@ const Map<String, String> runtimeLanguageNames = {
   'javascript': 'JavaScript',
   'python': 'Python',
   shellLanguage: 'shell scripts',
+  rubyLanguage: 'Ruby',
+  perlLanguage: 'Perl',
 };

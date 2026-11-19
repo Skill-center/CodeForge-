@@ -109,6 +109,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: const Icon(CfIcons.chevronRight, size: 18),
                 onTap: () => context.go('/settings/runtime'),
               ),
+              // Run (Phase 5 W4) saves unsaved changes first, by default.
+              CfSettingsTile(
+                key: const ValueKey('settings_save_before_run'),
+                leading: const Icon(CfIcons.save),
+                title: 'Save before running',
+                subtitle: 'Run saves unsaved changes first',
+                trailing: Switch(
+                  value: settings.saveBeforeRun,
+                  onChanged: (value) => ref
+                      .read(settingsControllerProvider.notifier)
+                      .setSaveBeforeRun(value),
+                ),
+                onTap: () => ref
+                    .read(settingsControllerProvider.notifier)
+                    .setSaveBeforeRun(!settings.saveBeforeRun),
+              ),
               // ROADMAP's phases. Folders, Phase 3's, open from Home.
               const CfSectionHeader('Coming in later phases'),
               const CfSettingsTile(

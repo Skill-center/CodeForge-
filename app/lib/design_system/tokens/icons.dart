@@ -234,6 +234,9 @@ abstract final class CfIcons {
     matchTextDirection: true,
   );
 
+  /// `replay`
+  static const IconData replay = IconData(0xe042, fontFamily: fontFamily);
+
   /// `restart_alt`
   static const IconData restartAlt = IconData(0xf053, fontFamily: fontFamily);
 
@@ -251,6 +254,9 @@ abstract final class CfIcons {
 
   /// `speed`
   static const IconData speed = IconData(0xe9e4, fontFamily: fontFamily);
+
+  /// `stop`
+  static const IconData stop = IconData(0xe047, fontFamily: fontFamily);
 
   /// `terminal`
   static const IconData terminal = IconData(0xeb8e, fontFamily: fontFamily);

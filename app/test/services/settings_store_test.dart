@@ -17,9 +17,18 @@ void main() {
         toolbarKeys: '; => {}',
         welcomeSeen: true,
         showHiddenFiles: true,
+        saveBeforeRun: false,
       );
       final decoded = decodeSettings(encodeSettings(settings));
       expect(decoded, settings);
+    });
+
+    test('Run saves first unless the user turned it off', () {
+      expect(const AppSettings().saveBeforeRun, isTrue);
+      const off = '{"schemaVersion":1,"data":{"saveBeforeRun":false}}';
+      expect(decodeSettings(off).saveBeforeRun, isFalse);
+      const wrong = '{"schemaVersion":1,"data":{"saveBeforeRun":"no"}}';
+      expect(decodeSettings(wrong).saveBeforeRun, isTrue);
     });
 
     test('null/empty payload yields defaults', () {

@@ -1,6 +1,7 @@
-/// Honest placeholder panels for later phases: git, extensions, run. Each
+/// Honest placeholder panels for later phases: git and extensions. Each
 /// states exactly what it will become and when, in ROADMAP's phases. Search
-/// left this file when it arrived in Phase 4 W6 (search_panel.dart).
+/// left this file when it arrived in Phase 4 W6 (search_panel.dart), Run
+/// when it arrived in Phase 5 W4 (run_panel.dart).
 library;
 
 import 'package:material_ui/material_ui.dart';
@@ -36,22 +37,6 @@ class ExtensionsPanel extends StatelessWidget {
           'Language packs and tools from a curated, Play-compliant catalog. '
           'No arbitrary code downloads.',
       phaseNote: 'Arrives in Phase 8',
-    );
-  }
-}
-
-class RunPanel extends StatelessWidget {
-  const RunPanel({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const CfEmptyState(
-      icon: CfIcons.playArrow,
-      title: 'Run & debug',
-      message:
-          'Run Python, Node.js and shell tasks in the sealed runtime with '
-          'live output.',
-      phaseNote: 'Running arrives in Phase 5, debugging in Phase 9',
     );
   }
 }

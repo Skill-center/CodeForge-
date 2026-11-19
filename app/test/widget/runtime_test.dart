@@ -332,9 +332,8 @@ void main() {
     );
     expect(
       _subtitle(tester, 'runtime_languages'),
-      'JavaScript, Python and shell scripts\n'
-      'Executable once the runtime is ready. Running them from the editor '
-      'arrives in Phase 5',
+      'JavaScript, Python, shell scripts, Ruby and Perl\n'
+      'Run runs them once the runtime is ready',
     );
 
     await tester.scrollUntilVisible(
@@ -372,9 +371,8 @@ void main() {
     await _scrollTo(tester, 'runtime_languages');
     expect(
       _subtitle(tester, 'runtime_languages'),
-      'JavaScript, Python and shell scripts\n'
-      'Executable here, with node, python, bash. Running them from the '
-      'editor arrives in Phase 5',
+      'JavaScript, Python, shell scripts, Ruby and Perl\n'
+      'Run runs them here, with node, python, bash, ruby, perl',
     );
   });
 
@@ -466,14 +464,13 @@ void main() {
   test('the language chip says what the runtime can do with a language', () {
     expect(
       languageCapabilityTooltip(capabilitiesOf('python', runtimeReady: true)),
-      'Python: executable in the Linux runtime (python). Run arrives in '
-      'Phase 5',
+      'Python: Run uses python in the Linux runtime',
     );
     expect(
       languageCapabilityTooltip(
         capabilitiesOf(shellLanguage, runtimeReady: false),
       ),
-      'Shell scripts: executable once the Linux runtime is ready',
+      'Shell scripts: Run needs the Linux runtime, which is not ready',
     );
     expect(
       languageCapabilityTooltip(capabilitiesOf('markdown', runtimeReady: true)),
@@ -504,7 +501,10 @@ void main() {
       ),
       'Not in this runtime',
     );
-    expect(runtimeLanguagesLine(), 'JavaScript, Python and shell scripts');
+    expect(
+      runtimeLanguagesLine(),
+      'JavaScript, Python, shell scripts, Ruby and Perl',
+    );
     expect(ToolHealth.fromCode('mismatch'), ToolHealth.mismatch);
     expect(ToolHealth.fromCode('later'), ToolHealth.unavailable);
     expect(ExecFailure.fromCode('timed_out'), ExecFailure.timedOut);

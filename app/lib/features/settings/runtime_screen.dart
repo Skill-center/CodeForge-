@@ -93,7 +93,8 @@ String runtimeToolLine(RuntimeTool tool) {
   };
 }
 
-/// "JavaScript, Python and shell scripts": what the runtime can execute.
+/// "JavaScript, Python, shell scripts, Ruby and Perl": what the runtime
+/// can execute.
 String runtimeLanguagesLine() {
   final names = [
     for (final language in runtimeInterpreters.keys)
@@ -437,11 +438,9 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
               ),
               title: runtimeLanguagesLine(),
               subtitle: ready
-                  ? 'Executable here, with '
-                        '${runtimeInterpreters.values.join(', ')}. Running '
-                        'them from the editor arrives in Phase 5'
-                  : 'Executable once the runtime is ready. Running them '
-                        'from the editor arrives in Phase 5',
+                  ? 'Run runs them here, with '
+                        '${runtimeInterpreters.values.join(', ')}'
+                  : 'Run runs them once the runtime is ready',
             ),
             const CfSectionHeader('Storage'),
             _SizeTile(size: _size, onMeasure: status.usable ? _measure : null),

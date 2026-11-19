@@ -17,6 +17,7 @@ import '../../application/documents/document_controller.dart';
 import '../../application/editor/editor_providers.dart';
 import '../../application/editor/find_controller.dart';
 import '../../application/file_watch_controller.dart';
+import '../../application/run/run_controller.dart';
 import '../../application/runtime_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../application/workbench_intents.dart';
@@ -41,6 +42,7 @@ import 'file_actions.dart';
 import 'panels/editor_pane.dart';
 import 'panels/explorer_panel.dart';
 import 'panels/placeholder_panels.dart';
+import 'panels/run_panel.dart';
 import 'panels/search_panel.dart';
 import 'panels/terminal_pane.dart';
 
@@ -210,6 +212,29 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
           final command = intent == WorkbenchIntent.undo ? 'undo' : 'redo';
           unawaited(ref.read(editorHostProvider).exec(command));
         }
+      case WorkbenchIntent.runFile:
+        if (active != null) {
+          unawaited(ref.read(runControllerProvider.notifier).runFile(active));
+        } else {
+          showFileMessage(context, 'Open a file to run it.');
+        }
+      case WorkbenchIntent.runProject:
+        unawaited(_runProject());
+      case WorkbenchIntent.stopRun:
+        unawaited(ref.read(runControllerProvider.notifier).stopLatest());
+    }
+  }
+
+  /// Run Project: asks which of the project's scripts, or its entry file.
+  Future<void> _runProject() async {
+    final run = ref.read(runControllerProvider.notifier);
+    final runs = await run.projectRuns();
+    if (!mounted) {
+      return;
+    }
+    final choice = await pickProjectRun(context, runs);
+    if (choice != null) {
+      await run.runCommand(choice);
     }
   }
 
@@ -298,6 +323,13 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         showFileMessage(context, notice.message);
       }
     });
+    // What Run could not do (Phase 5 W4), said once.
+    ref.listen(runControllerProvider.select((s) => s.message), (_, message) {
+      if (message != null) {
+        showFileMessage(context, message);
+        ref.read(runControllerProvider.notifier).dismissMessage();
+      }
+    });
 
     // Top-level routes are reached with go(), so there is nothing beneath
     // them to pop: system back (incl. predictive back) returns home, like the
@@ -347,6 +379,11 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
               _onIntent(WorkbenchIntent.gotoLine),
           const SingleActivator(LogicalKeyboardKey.keyP, control: true): () =>
               _onIntent(WorkbenchIntent.goToFile),
+          // VS Code's Run Without Debugging, and its Stop.
+          const SingleActivator(LogicalKeyboardKey.f5, control: true): () =>
+              _onIntent(WorkbenchIntent.runFile),
+          const SingleActivator(LogicalKeyboardKey.f5, shift: true): () =>
+              _onIntent(WorkbenchIntent.stopRun),
         },
         child: Focus(
           autofocus: true,
@@ -357,6 +394,7 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
                       shell: shell,
                       editorPaneKey: _editorPaneKey,
                       terminalPaneKey: _terminalPaneKey,
+                      onActivitySelected: _onActivitySelected,
                       onToggleTerminal: _toggleTerminal,
                     )
                   : _DockedLayout(
@@ -419,12 +457,14 @@ class _CompactPortraitLayout extends ConsumerWidget {
     required this.shell,
     required this.editorPaneKey,
     required this.terminalPaneKey,
+    required this.onActivitySelected,
     required this.onToggleTerminal,
   });
 
   final ShellState shell;
   final GlobalKey editorPaneKey;
   final GlobalKey terminalPaneKey;
+  final ValueChanged<String> onActivitySelected;
   final VoidCallback onToggleTerminal;
 
   @override
@@ -457,7 +497,7 @@ class _CompactPortraitLayout extends ConsumerWidget {
                       .setTerminalStop(TerminalStop.closed),
                 ),
               ),
-            const _StatusStripRow(),
+            _StatusStripRow(onRunChip: () => onActivitySelected('run')),
           ],
         );
       },
@@ -544,7 +584,7 @@ class _DockedLayout extends ConsumerWidget {
                       ),
                     ),
                   ],
-                  const _StatusStripRow(),
+                  _StatusStripRow(onRunChip: () => onActivitySelected('run')),
                 ],
               );
             },
@@ -613,7 +653,10 @@ class _WorkbenchTopBar extends ConsumerWidget {
 }
 
 class _StatusStripRow extends ConsumerWidget {
-  const _StatusStripRow();
+  const _StatusStripRow({required this.onRunChip});
+
+  /// The run chip's tap: the Run panel.
+  final VoidCallback onRunChip;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -660,13 +703,16 @@ class _StatusStripRow extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  _RunChip(onTap: onRunChip),
                   if (activeDoc != null) ...[
                     CfStatusChip(
                       key: const ValueKey('status_language'),
                       label:
                           !activeDoc.largeFile &&
-                              capabilities?.language == shellLanguage
-                          ? shellLanguage
+                              runtimeOnlyLanguages.contains(
+                                capabilities?.language,
+                              )
+                          ? capabilities!.language
                           : activeDoc.language,
                       color: activeDoc.largeFile ? colors.warning : null,
                       tooltip: activeDoc.largeFile
@@ -703,8 +749,8 @@ class _StatusStripRow extends ConsumerWidget {
   }
 }
 
-/// The language chip's tooltip: what the runtime can do with the language
-/// (Phase 4 W4); null for a language it cannot run.
+/// The language chip's tooltip: what Run can do with the language (Phase 4
+/// W4, Phase 5 W4); null for a language it cannot run.
 String? languageCapabilityTooltip(LanguageCapabilities? capabilities) {
   final interpreter = capabilities?.interpreter;
   if (capabilities == null || interpreter == null) {
@@ -714,9 +760,32 @@ String? languageCapabilityTooltip(LanguageCapabilities? capabilities) {
       runtimeLanguageNames[capabilities.language] ?? capabilities.language;
   final title = '${name[0].toUpperCase()}${name.substring(1)}';
   return capabilities.executable
-      ? '$title: executable in the Linux runtime ($interpreter). '
-            'Run arrives in Phase 5'
-      : '$title: executable once the Linux runtime is ready';
+      ? '$title: Run uses $interpreter in the Linux runtime'
+      : '$title: Run needs the Linux runtime, which is not ready';
+}
+
+/// The newest run's status (Phase 5 W4): running, its exit code, or the
+/// signal that ended it. A tap opens the Run panel.
+class _RunChip extends ConsumerWidget {
+  const _RunChip({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final run = ref.watch(runControllerProvider.select((s) => s.latest));
+    if (run == null) {
+      return const SizedBox.shrink();
+    }
+    return CfStatusChip(
+      key: const ValueKey('status_run'),
+      icon: run.running ? CfIcons.playArrow : CfIcons.stop,
+      label: '${run.command.title}: ${run.status.toLowerCase()}',
+      color: runStatusColor(CfColors.of(context), run),
+      tooltip: 'The last run: ${run.command.commandLine}',
+      onTap: onTap,
+    );
+  }
 }
 
 /// The runtime's state in the status strip (Phase 4 W3).
@@ -798,7 +867,7 @@ class _ActivityBody extends StatelessWidget {
       ShellActivity.search => SearchPanel(onFileOpened: onFileOpened),
       ShellActivity.git => const GitPanel(),
       ShellActivity.extensions => const ExtensionsPanel(),
-      ShellActivity.run => const RunPanel(),
+      ShellActivity.run => RunPanel(onRunStarted: onFileOpened),
     };
   }
 }

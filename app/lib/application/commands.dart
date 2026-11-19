@@ -104,6 +104,9 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
     ('edit.gotoLine', 'Go to Line…', 'Edit', WorkbenchIntent.gotoLine),
     ('edit.undo', 'Undo', 'Edit', WorkbenchIntent.undo),
     ('edit.redo', 'Redo', 'Edit', WorkbenchIntent.redo),
+    ('run.file', 'Run Current File', 'Run', WorkbenchIntent.runFile),
+    ('run.project', 'Run Project…', 'Run', WorkbenchIntent.runProject),
+    ('run.stop', 'Stop the Last Run', 'Run', WorkbenchIntent.stopRun),
   ]) {
     registry.register(
       CfCommand(

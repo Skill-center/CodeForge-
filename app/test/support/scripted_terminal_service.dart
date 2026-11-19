@@ -98,8 +98,8 @@ final class ScriptedTerminalService implements TerminalService {
     _output.add(TerminalOutput(id, offset, data));
   }
 
-  /// Session [id]'s shell exits with [code].
-  void exit(int id, {int code = 0}) {
+  /// Session [id]'s program exits with [code], or is ended by [signal].
+  void exit(int id, {int? code = 0, int? signal}) {
     final info = infos[id]!;
     final exited = TerminalInfo(
       id: id,
@@ -108,7 +108,8 @@ final class ScriptedTerminalService implements TerminalService {
       rows: info.rows,
       columns: info.columns,
       received: _offsets[id] ?? 0,
-      exitCode: code,
+      exitCode: signal == null ? code : null,
+      signal: signal,
     );
     infos[id] = exited;
     _changes.add(exited);

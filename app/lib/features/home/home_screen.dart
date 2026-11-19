@@ -532,9 +532,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: CfSpacing.lg),
             const CfBanner(
               message:
-                  'Editing, projects and folders are real. The terminal '
-                  'and runtimes arrive in later phases, and their panels '
-                  'say so.',
+                  'Editing, projects, folders, the Linux runtime, its '
+                  'terminal and Run are real. Language servers, Git, '
+                  'extensions and debugging arrive in later phases, and '
+                  'their panels say so.',
             ),
           ],
         ),
