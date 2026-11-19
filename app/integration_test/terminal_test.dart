@@ -12,10 +12,10 @@
 ///      without wrapping. The panel is maximized (the full stop): beside the
 ///      editor on a phone on its side, the dock alone has a row or two.
 ///   3. Scripted composition loses nothing: with `cat > .cf-compose.txt`
-///      running and the soft keyboard down, the gate's DevTools driver
-///      (editor/tool/terminal_cdp.mjs) plays the composition suite into the
-///      page and compares the file with the cases, line by line; this test
-///      waits for its end mark.
+///      running, the soft keyboard down and the input methods off, the
+///      gate's DevTools driver (editor/tool/terminal_cdp.mjs) plays the
+///      composition suite into the page and compares the file with the
+///      cases, line by line; this test waits for its end mark.
 ///
 /// The input comes from outside the app, as in the keys group: the test asks
 /// in the device log (`TERMGATE <run>.<n> tap <x> <y>`, `text <word>`,
@@ -339,11 +339,11 @@ void main() {
       what: 'cat to start',
     );
     // A tap gives the page the app's focus again after the turns, then the
-    // keyboard goes down: the suite's compositions are scripted (DevTools),
-    // and the input method on screen finishes any composition it did not
-    // start (Gboard committed every step of every case in phase gate
-    // 44589259655). The driver focuses the terminal's input itself, which
-    // brings up no keyboard, as in the editor's suite.
+    // keyboard goes down. The suite's compositions are scripted (DevTools),
+    // and a connected input method finishes any composition it did not
+    // start, shown or not (Gboard committed every step of every case in
+    // phase gates 44589259655 and 44596547784): the driver turns the input
+    // methods off while it plays, and focuses the terminal's input itself.
     await tapToFocus(
       what: 'the terminal to have the keyboard before the composition',
     );

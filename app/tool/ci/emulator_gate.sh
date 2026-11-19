@@ -1656,11 +1656,32 @@ terminal_driver() {
         ;;
       compose)
         echo "request $id: the composition suite ($(date +%T))"
+        # The suite's compositions are scripted, and a connected input method
+        # finishes any composition it did not start, shown or not: Gboard
+        # committed every step of every case in phase gates 44589259655 and
+        # 44596547784. The input methods are off while the suite plays (the
+        # editor's suite, whose page is never tapped, has none connected),
+        # and come back afterwards.
+        ime_default=$("$ADB" shell settings get secure default_input_method \
+          < /dev/null 2>/dev/null | tr -d '\r')
+        ime_enabled=$("$ADB" shell ime list -s < /dev/null 2>/dev/null | tr -d '\r')
+        for ime_id in $ime_enabled; do
+          "$ADB" shell ime disable "$ime_id" < /dev/null > /dev/null 2>&1 || true
+        done
+        echo "request $id: input methods off: $(echo $ime_enabled | tr ' ' ','); now" \
+          "'$("$ADB" shell settings get secure default_input_method < /dev/null 2>/dev/null | tr -d '\r')'"
         node ../editor/tool/terminal_cdp.mjs --adb "$ADB" --package "$APP_ID" \
           --file files/workspaces/demo/.cf-compose.txt \
           --out "$RESULTS/terminal_compose.json" \
           > "$RESULTS/terminal_cdp.txt" 2>&1 < /dev/null
         status=$?
+        for ime_id in $ime_enabled; do
+          "$ADB" shell ime enable "$ime_id" < /dev/null > /dev/null 2>&1 || true
+        done
+        if [ -n "$ime_default" ] && [ "$ime_default" != "null" ]; then
+          "$ADB" shell ime set "$ime_default" < /dev/null > /dev/null 2>&1 || true
+        fi
+        echo "request $id: input methods back: '$("$ADB" shell settings get secure default_input_method < /dev/null 2>/dev/null | tr -d '\r')'"
         echo "request $id: the composition suite exited $status ($(date +%T))"
         tail -n 14 "$RESULTS/terminal_cdp.txt"
         ;;
