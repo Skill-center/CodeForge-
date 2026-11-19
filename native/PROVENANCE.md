@@ -101,7 +101,7 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | `native/runtime-core/src/main/AndroidManifest.xml` | the runtime core's manifest, empty: the app decides how native libraries are packaged |
 | `native/runtime-core/src/main/jni/Android.mk` | ndk-build for `harness-exec.c` with t1's 16 KB flags; t1's own also builds `termux.c`, this one never does (ADR-0011) |
 | `native/patches/t1-0001-runtime-manifest-read.patch` | CodeForge's fix to t1's kernel, applied to the vendored copy (*Patches*) |
-| `native/runtime-core/src/main/jni/codeforge-spawn.c` | the launcher every runtime command starts through (W4), built as `libcodeforge-spawn.so`: a session and process group of its own, a child subreaper, default signals, no core files; it ends the whole group and every descendant when the command exits or when it is stopped, and writes what happened to a status file (docs/SECURITY.md §2) |
+| `native/runtime-core/src/main/jni/codeforge-spawn.c` | the launcher every runtime command starts through (W4), built as `libcodeforge-spawn.so`: a session and process group of its own, a child subreaper, default signals, no core files; it ends the whole group and every descendant when the command exits or when it is stopped, and writes what happened to a status file (docs/SECURITY.md §2). **Since Phase 5 W2** its terminal mode (`--terminal ROWSxCOLS`) runs a terminal session's shell on a pseudo-terminal it opens, as the leader of a session of its own, and relays between the terminal and its stdin (frames: input, window sizes) and stdout, bounded both ways; written clean-room from POSIX's and Linux's manual pages, with no Termux code (AGENTS §4; ADR-0014) |
 | `native/sealed-runtime/build.gradle.kts` | the module's build script: t1's, in the Kotlin DSL |
 | `runtime/README.md` | how the supply chain fits together, and its commands |
 | `runtime/pins.json` | the pins: the bootstrap, the core set, and every resolved package with its SHA-256 |
@@ -115,6 +115,7 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | `runtime/tests/test-sources.py` | sources.py's tests, on a local termux-packages history and upstream, without the network |
 | `runtime/tests/test-provenance.py` | provenance.py's tests |
 | `runtime/tests/test-spawn.py` | the launcher's tests (W4), on the host's C compiler: output and exit status, its own session and group, clean signals, a child left behind, a tree stopped whole, processes that left the group, exec failures, and nothing left behind |
+| `runtime/tests/test-pty.py` | the launcher's terminal mode's tests (Phase 5 W2, gate G2), with real pseudo-terminals and the host's bash: echo, bytes unchanged both ways, `stty size` after a resize and SIGWINCH, Ctrl-C to the job in front, the shell's session and controlling terminal, the exit code with the output before it, the tree ended by a stop, a closed stdin, a broken stdout or a bad frame, a 10 MB flood whole under flow control, input larger than every buffer, failures, and the relay's cost to an echo (ADR-0014) |
 | `runtime/tests/live-fail-closed.py` | CI's check that a missing pinned package fails closed against the real repository |
 <!-- own:end -->
 

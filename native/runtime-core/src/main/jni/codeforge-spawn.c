@@ -39,22 +39,63 @@
  * exec_failed or spawn_failed), exit or signal (the command's), exec_errno,
  * stop_signal (what asked this program to stop), ended (processes it had to
  * signal after the command, or with it when stopped) and remaining
- * (processes it could not end, which is 0 unless the kernel refused).
+ * (processes it could not end, which is 0 unless the kernel refused), and
+ * child (the command's pid, once it is started).
+ *
+ * Terminal mode (Phase 5 W2; docs/TERMINAL_ARCHITECTURE.md, ADR-0014):
+ *
+ *   libcodeforge-spawn.so [--status FILE] [--grace MS] --terminal ROWSxCOLS -- PROGRAM [ARGUMENT...]
+ *
+ * The command runs on a pseudo-terminal this program opens (posix_openpt,
+ * grantpt, unlockpt and ptsname, from POSIX; TIOCSCTTY and TIOCSWINSZ, from
+ * Linux's ioctl_tty(2)). It leads a session of its own with the terminal as
+ * its controlling terminal, so job control, Ctrl-C and SIGWINCH work as in
+ * any terminal. This program stays outside that session, keeps everything
+ * above (its own group, the subreaper, the clean signals, the status file),
+ * and relays:
+ *
+ *   * the terminal's output to its stdout, as it comes, bytes unchanged;
+ *   * frames from its stdin to the terminal. A frame is a type byte, the
+ *     payload's length in two bytes (big-endian), then the payload. Type 1
+ *     is input, as typed. Type 2 is a window size: rows, then columns, each
+ *     in two bytes (big-endian); the kernel sends SIGWINCH to the
+ *     terminal's foreground job. Any other type, or a size of another
+ *     length, ends the session (stop_cause=protocol): a stream out of step
+ *     must never reach the shell as keystrokes.
+ *
+ * Both directions are bounded. While its stdout is full, it reads nothing
+ * from the terminal, so a program flooding the terminal blocks in the
+ * kernel and nothing is lost; while the program reads no input, it reads no
+ * more frames. The session ends like a terminal that hangs up when its stdin
+ * ends (the app closed the session, or went away), its stdout breaks, or a
+ * stop signal comes: SIGHUP, SIGTERM and SIGCONT to the whole tree, then
+ * SIGKILL after the grace period (an interactive bash ignores SIGTERM and
+ * ends on SIGHUP). When the command exits, what it left is ended as in
+ * command mode, and the output written before is relayed first.
+ *
+ * Terminal mode's status file also has mode=terminal, tty (the terminal's
+ * name), stop_cause (signal, input_closed, output_closed, protocol or
+ * relay_failed) when it was stopped, and reason=terminal_failed when no
+ * terminal could be opened.
  */
 #define _GNU_SOURCE
 
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
+#include <sys/signalfd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -67,10 +108,44 @@
 /* How long the SIGKILL phase may take before the count of survivors is final. */
 #define KILL_WAIT_MS 3000
 
+/* Terminal mode's frames on stdin: a type, a 16-bit length, the payload. */
+#define FRAME_INPUT 1
+#define FRAME_SIZE 2
+#define FRAME_HEADER 3
+#define FRAME_MAX_PAYLOAD 65535
+/* Output read from the terminal and not yet taken by the reader of stdout. */
+#define OUTPUT_CAPACITY (64 * 1024)
+/* Input waiting for the program to read it: room for at least one frame. */
+#define INPUT_CAPACITY (128 * 1024)
+/* Frames read and not yet applied: room for two whole frames. */
+#define FRAMES_CAPACITY (2 * (FRAME_HEADER + FRAME_MAX_PAYLOAD))
+/* How long the output is relayed after the session ended: when the command
+ * exited by itself (its last words), and when it was stopped. */
+#define DRAIN_EXITED_MS 10000
+#define DRAIN_STOPPED_MS 500
+/* An exited session's relay gives up once its reader takes nothing for this long. */
+#define DRAIN_IDLE_MS 2000
+
 static pid_t self;
 static pid_t group;
 static int subreaper;
 static const char *status_path;
+static pid_t child_pid;
+static int terminal_mode;
+static char tty_name[64];
+
+enum {
+    CAUSE_NONE,
+    CAUSE_SIGNAL,
+    CAUSE_INPUT_CLOSED,
+    CAUSE_OUTPUT_CLOSED,
+    CAUSE_PROTOCOL,
+    CAUSE_RELAY_FAILED,
+};
+
+static const char *const cause_names[] = {
+    "", "signal", "input_closed", "output_closed", "protocol", "relay_failed",
+};
 
 typedef struct {
     pid_t pid;
@@ -110,10 +185,18 @@ static void write_status(const char *text) {
     if (rename(temporary, status_path) != 0) unlink(temporary);
 }
 
-/* The status file: the identity lines, then `body` (key=value lines, or ""). */
+/*
+ * The status file: the identity lines (with terminal mode's and the
+ * command's pid once known), then `body` (key=value lines, or "").
+ */
 static void report(const char *body) {
+    char terminal[128] = "";
+    if (terminal_mode) snprintf(terminal, sizeof(terminal), "mode=terminal\ntty=%s\n", tty_name);
+    char child[32] = "";
+    if (child_pid > 0) snprintf(child, sizeof(child), "child=%d\n", (int) child_pid);
     char text[1024];
-    snprintf(text, sizeof(text), "pid=%d\ngroup=%d\nsubreaper=%d\n%s", (int) self, (int) group, subreaper, body);
+    snprintf(text, sizeof(text), "pid=%d\ngroup=%d\nsubreaper=%d\n%s%s%s",
+        (int) self, (int) group, subreaper, terminal, child, body);
     write_status(text);
 }
 
@@ -244,18 +327,22 @@ static void wait_a_little(const sigset_t *waited, long limit_ms, command_t *comm
     reap(command);
 }
 
+/* The first signals: SIGTERM and SIGCONT; with SIGHUP first in terminal mode, as a hang-up. */
+static void tell_to_end(pid_t pid) {
+    note_signalled(pid);
+    if (terminal_mode) kill(pid, SIGHUP);
+    kill(pid, SIGTERM);
+    kill(pid, SIGCONT);
+}
+
 /*
- * Ends everything: SIGTERM and SIGCONT to each target, SIGKILL to the ones
- * left after `grace_ms`. Returns how many are left at the end.
+ * Ends everything: the first signals to each target (tell_to_end), SIGKILL
+ * to the ones left after `grace_ms`. Returns how many are left at the end.
  */
 static int end_everything(const sigset_t *waited, long grace_ms, command_t *command) {
     static pid_t found[MAX_PROCESSES];
     int count = live_targets(found, MAX_PROCESSES);
-    for (int i = 0; i < count; i++) {
-        note_signalled(found[i]);
-        kill(found[i], SIGTERM);
-        kill(found[i], SIGCONT);
-    }
+    for (int i = 0; i < count; i++) tell_to_end(found[i]);
     long deadline = now_ms() + grace_ms;
     while (count > 0 && now_ms() < deadline) {
         wait_a_little(waited, deadline - now_ms(), command);
@@ -266,11 +353,7 @@ static int end_everything(const sigset_t *waited, long grace_ms, command_t *comm
             for (int j = 0; j < signalled_count; j++) {
                 if (signalled[j] == found[i]) known = 1;
             }
-            if (!known) {
-                note_signalled(found[i]);
-                kill(found[i], SIGTERM);
-                kill(found[i], SIGCONT);
-            }
+            if (!known) tell_to_end(found[i]);
         }
     }
     long kill_deadline = now_ms() + KILL_WAIT_MS;
@@ -305,13 +388,298 @@ static void reset_signals(void) {
     sigprocmask(SIG_SETMASK, &none, NULL);
 }
 
+/* ── Terminal mode ─────────────────────────────────────────────────── */
+
+static unsigned char output_buffer[OUTPUT_CAPACITY];
+static size_t output_length;
+static unsigned char input_buffer[INPUT_CAPACITY];
+static size_t input_length;
+static unsigned char frames[FRAMES_CAPACITY];
+static size_t frames_length;
+/* No process holds the terminal any more (its reads end in EIO): input is dropped. */
+static int terminal_gone;
+
+static void set_nonblocking(int file) {
+    int flags = fcntl(file, F_GETFL);
+    if (flags >= 0) fcntl(file, F_SETFL, flags | O_NONBLOCK);
+}
+
+static void consume(unsigned char *buffer, size_t *length, size_t count) {
+    memmove(buffer, buffer + count, *length - count);
+    *length -= count;
+}
+
+static unsigned short window_dimension(unsigned long value) {
+    if (value < 1) return 1;
+    if (value > 9999) return 9999;
+    return (unsigned short) value;
+}
+
+/* The window's size, for the terminal and its foreground job (SIGWINCH). */
+static void set_window(int master, unsigned long rows, unsigned long columns) {
+    struct winsize size;
+    memset(&size, 0, sizeof(size));
+    size.ws_row = window_dimension(rows);
+    size.ws_col = window_dimension(columns);
+    ioctl(master, TIOCSWINSZ, &size);
+}
+
+/* "ROWSxCOLS", both positive decimal numbers. 0, or -1 when it is not that. */
+static int parse_size(const char *text, unsigned long *rows, unsigned long *columns) {
+    char *end;
+    errno = 0;
+    if (text[0] < '0' || text[0] > '9') return -1;
+    *rows = strtoul(text, &end, 10);
+    if (errno != 0 || *end != 'x' || end[1] < '0' || end[1] > '9') return -1;
+    *columns = strtoul(end + 1, &end, 10);
+    if (errno != 0 || *end != '\0' || *rows == 0 || *columns == 0) return -1;
+    return 0;
+}
+
+/*
+ * Opens the terminal: the master for this program, the slave for the
+ * command, each closed on exec, the slave in UTF-8 mode (IUTF8: erasing in
+ * the line editor of the kernel takes a whole character) at the given size.
+ * 0, or -1 with errno set.
+ */
+static int open_terminal(int *master_out, int *slave_out, unsigned long rows, unsigned long columns) {
+    int master = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC);
+    if (master < 0) return -1;
+    int failure = 0;
+    if (grantpt(master) != 0 || unlockpt(master) != 0) {
+        failure = errno;
+    } else {
+        int named = ptsname_r(master, tty_name, sizeof(tty_name));
+        if (named != 0) failure = errno != 0 ? errno : named;
+    }
+    if (failure != 0) {
+        close(master);
+        errno = failure;
+        return -1;
+    }
+    fcntl(master, F_SETFD, FD_CLOEXEC);
+    int slave = open(tty_name, O_RDWR | O_NOCTTY | O_CLOEXEC);
+    if (slave < 0) {
+        failure = errno;
+        close(master);
+        errno = failure;
+        return -1;
+    }
+    struct termios settings;
+    if (tcgetattr(slave, &settings) == 0) {
+#ifdef IUTF8
+        settings.c_iflag |= IUTF8;
+#endif
+        tcsetattr(slave, TCSANOW, &settings);
+    }
+    set_window(master, rows, columns);
+    *master_out = master;
+    *slave_out = slave;
+    return 0;
+}
+
+/*
+ * In the command's process, before exec: a session of its own, led by it,
+ * with the terminal as its controlling terminal and as its stdin, stdout and
+ * stderr. 0, or -1 with errno set.
+ */
+static int take_terminal(int slave) {
+    if (setsid() < 0) return -1;
+    if (ioctl(slave, TIOCSCTTY, 0) != 0) return -1;
+    if (dup2(slave, STDIN_FILENO) < 0 || dup2(slave, STDOUT_FILENO) < 0 || dup2(slave, STDERR_FILENO) < 0) return -1;
+    if (slave > STDERR_FILENO) close(slave);
+    return 0;
+}
+
+/* Writes waiting input to the terminal. Input for a terminal no process holds is dropped. */
+static void write_input(int master) {
+    while (input_length > 0 && !terminal_gone) {
+        ssize_t count = write(master, input_buffer, input_length);
+        if (count > 0) {
+            consume(input_buffer, &input_length, (size_t) count);
+        } else if (count < 0 && errno == EINTR) {
+            continue;
+        } else if (count < 0 && errno == EAGAIN) {
+            return;
+        } else {
+            terminal_gone = 1;
+        }
+    }
+    if (terminal_gone) input_length = 0;
+}
+
+/* Reads what the terminal has, as far as there is room. -1 once no process holds it (EIO). */
+static int read_output(int master) {
+    while (output_length < OUTPUT_CAPACITY) {
+        ssize_t count = read(master, output_buffer + output_length, OUTPUT_CAPACITY - output_length);
+        if (count > 0) {
+            output_length += (size_t) count;
+            return 0;
+        }
+        if (count < 0 && errno == EINTR) continue;
+        if (count < 0 && errno == EAGAIN) return 0;
+        terminal_gone = 1;
+        input_length = 0;
+        return -1;
+    }
+    return 0;
+}
+
+/* Hands waiting output to the reader of stdout. -1 when stdout is broken. */
+static int write_output(void) {
+    while (output_length > 0) {
+        ssize_t count = write(STDOUT_FILENO, output_buffer, output_length);
+        if (count > 0) {
+            consume(output_buffer, &output_length, (size_t) count);
+        } else if (count < 0 && errno == EINTR) {
+            continue;
+        } else if (count < 0 && errno == EAGAIN) {
+            return 0;
+        } else {
+            output_length = 0;
+            return -1;
+        }
+    }
+    return 0;
+}
+
+/*
+ * Applies the frames read so far, in their order, while there is room for
+ * their input. -1 on a frame that is not one of the two kinds.
+ */
+static int apply_frames(int master) {
+    size_t at = 0;
+    while (frames_length - at >= FRAME_HEADER) {
+        unsigned type = frames[at];
+        size_t length = ((size_t) frames[at + 1] << 8) | frames[at + 2];
+        if (frames_length - at - FRAME_HEADER < length) break;
+        const unsigned char *payload = frames + at + FRAME_HEADER;
+        if (type == FRAME_INPUT) {
+            if (!terminal_gone) {
+                if (INPUT_CAPACITY - input_length < length) break;
+                memcpy(input_buffer + input_length, payload, length);
+                input_length += length;
+            }
+        } else if (type == FRAME_SIZE && length == 4) {
+            set_window(master, ((unsigned long) payload[0] << 8) | payload[1],
+                ((unsigned long) payload[2] << 8) | payload[3]);
+        } else {
+            return -1;
+        }
+        at += FRAME_HEADER + length;
+    }
+    if (at > 0) consume(frames, &frames_length, at);
+    return 0;
+}
+
+/*
+ * Relays between the terminal and stdin and stdout until the command exits
+ * or the session has to end. Answers why it has to end (CAUSE_NONE when the
+ * command exited) and the stop signal, when one came.
+ */
+static int relay(int master, int signals, command_t *command, int *stop_signal) {
+    set_nonblocking(master);
+    set_nonblocking(STDIN_FILENO);
+    set_nonblocking(STDOUT_FILENO);
+    int input_open = 1;
+    int cause = CAUSE_NONE;
+    while (!command->done && cause == CAUSE_NONE) {
+        struct pollfd watch[4];
+        short terminal_events = 0;
+        if (!terminal_gone && output_length < OUTPUT_CAPACITY) terminal_events |= POLLIN;
+        if (!terminal_gone && input_length > 0) terminal_events |= POLLOUT;
+        watch[0].fd = signals;
+        watch[0].events = POLLIN;
+        watch[1].fd = terminal_events != 0 ? master : -1;
+        watch[1].events = terminal_events;
+        watch[2].fd = input_open && frames_length < FRAMES_CAPACITY ? STDIN_FILENO : -1;
+        watch[2].events = POLLIN;
+        watch[3].fd = output_length > 0 ? STDOUT_FILENO : -1;
+        watch[3].events = POLLOUT;
+        for (int i = 0; i < 4; i++) watch[i].revents = 0;
+        if (poll(watch, 4, -1) < 0) {
+            if (errno == EINTR) continue;
+            cause = CAUSE_RELAY_FAILED;
+            break;
+        }
+        if (watch[0].revents != 0) {
+            struct signalfd_siginfo info;
+            while (read(signals, &info, sizeof(info)) == (ssize_t) sizeof(info)) {
+                int sig = (int) info.ssi_signo;
+                if (sig == SIGCHLD) {
+                    reap(command);
+                } else if (sig != SIGPIPE && cause == CAUSE_NONE) {
+                    /* SIGPIPE needs nothing: the write that caused it saw EPIPE. */
+                    *stop_signal = sig;
+                    cause = CAUSE_SIGNAL;
+                }
+            }
+        }
+        short terminal = watch[1].revents;
+        if (terminal & (POLLOUT | POLLERR | POLLHUP)) write_input(master);
+        if ((terminal & (POLLIN | POLLERR | POLLHUP)) && output_length < OUTPUT_CAPACITY) read_output(master);
+        if (watch[2].revents != 0) {
+            ssize_t count = read(STDIN_FILENO, frames + frames_length, FRAMES_CAPACITY - frames_length);
+            if (count > 0) {
+                frames_length += (size_t) count;
+            } else if (count == 0 || (errno != EINTR && errno != EAGAIN)) {
+                input_open = 0;
+            }
+        }
+        /* At once, without waiting for the next poll: a keystroke's echo is never held up. */
+        if (apply_frames(master) != 0) {
+            if (cause == CAUSE_NONE) cause = CAUSE_PROTOCOL;
+        } else if (input_length > 0) {
+            write_input(master);
+            if (apply_frames(master) != 0 && cause == CAUSE_NONE) cause = CAUSE_PROTOCOL;
+        }
+        if (!input_open && cause == CAUSE_NONE) cause = CAUSE_INPUT_CLOSED;
+        if (output_length > 0 && write_output() != 0 && cause == CAUSE_NONE) cause = CAUSE_OUTPUT_CLOSED;
+    }
+    return cause;
+}
+
+/*
+ * After the session has ended: relays the output still waiting until no
+ * process holds the terminal (EIO) and stdout has taken all of it, for at
+ * most `limit_ms`, and no longer once stdout takes nothing for DRAIN_IDLE_MS.
+ */
+static void drain(int master, long limit_ms) {
+    long started = now_ms();
+    long progress = started;
+    while (now_ms() - started < limit_ms && now_ms() - progress < DRAIN_IDLE_MS) {
+        if (terminal_gone && output_length == 0) return;
+        struct pollfd watch[2];
+        watch[0].fd = !terminal_gone && output_length < OUTPUT_CAPACITY ? master : -1;
+        watch[0].events = POLLIN;
+        watch[1].fd = output_length > 0 ? STDOUT_FILENO : -1;
+        watch[1].events = POLLOUT;
+        watch[0].revents = 0;
+        watch[1].revents = 0;
+        if (poll(watch, 2, 20) < 0 && errno != EINTR) return;
+        if (watch[0].revents != 0) {
+            size_t before = output_length;
+            read_output(master);
+            if (output_length > before) progress = now_ms();
+        }
+        if (watch[1].revents != 0) {
+            size_t before = output_length;
+            if (write_output() != 0) return;
+            if (output_length < before) progress = now_ms();
+        }
+    }
+}
+
 static int usage(void) {
-    fputs("usage: libcodeforge-spawn.so [--status FILE] [--grace MS] -- PROGRAM [ARGUMENT...]\n", stderr);
+    fputs("usage: libcodeforge-spawn.so [--status FILE] [--grace MS] [--terminal ROWSxCOLS] -- PROGRAM [ARGUMENT...]\n",
+        stderr);
     return 125;
 }
 
 int main(int argc, char **argv) {
     long grace_ms = 1000;
+    unsigned long rows = 24;
+    unsigned long columns = 80;
     int index = 1;
     for (; index < argc; index++) {
         if (strcmp(argv[index], "--status") == 0 && index + 1 < argc) {
@@ -320,6 +688,9 @@ int main(int argc, char **argv) {
             grace_ms = atol(argv[++index]);
             if (grace_ms < 0) grace_ms = 0;
             if (grace_ms > 60000) grace_ms = 60000;
+        } else if (strcmp(argv[index], "--terminal") == 0 && index + 1 < argc) {
+            if (parse_size(argv[++index], &rows, &columns) != 0) return usage();
+            terminal_mode = 1;
         } else if (strcmp(argv[index], "--") == 0) {
             index++;
             break;
@@ -340,6 +711,13 @@ int main(int argc, char **argv) {
     setrlimit(RLIMIT_CORE, &no_core);
 
     char text[512];
+    int master = -1;
+    int slave = -1;
+    if (terminal_mode && open_terminal(&master, &slave, rows, columns) != 0) {
+        snprintf(text, sizeof(text), "reason=terminal_failed\nexec_errno=%d\nended=0\nremaining=0\n", errno);
+        report(text);
+        return 125;
+    }
     report("");
 
     sigset_t waited;
@@ -348,7 +726,18 @@ int main(int argc, char **argv) {
     sigaddset(&waited, SIGTERM);
     sigaddset(&waited, SIGINT);
     sigaddset(&waited, SIGHUP);
+    /* The relay writes to a pipe the app may close: EPIPE, never a death by SIGPIPE. */
+    if (terminal_mode) sigaddset(&waited, SIGPIPE);
     sigprocmask(SIG_BLOCK, &waited, NULL);
+    int signals = -1;
+    if (terminal_mode) {
+        signals = signalfd(-1, &waited, SFD_NONBLOCK | SFD_CLOEXEC);
+        if (signals < 0) {
+            snprintf(text, sizeof(text), "reason=terminal_failed\nexec_errno=%d\nended=0\nremaining=0\n", errno);
+            report(text);
+            return 125;
+        }
+    }
 
     /* exec's failure, if any, comes back through this pipe; success closes it. */
     int failure_pipe[2];
@@ -369,12 +758,23 @@ int main(int argc, char **argv) {
         sigemptyset(&none);
         sigprocmask(SIG_SETMASK, &none, NULL);
         close(failure_pipe[0]);
+        if (terminal_mode && take_terminal(slave) != 0) {
+            /* Negative: the terminal failed, not exec. */
+            int failure = -errno;
+            ssize_t ignored = write(failure_pipe[1], &failure, sizeof(failure));
+            (void) ignored;
+            _exit(126);
+        }
         execv(program[0], program);
         int failure = errno;
         ssize_t ignored = write(failure_pipe[1], &failure, sizeof(failure));
         (void) ignored;
         _exit(failure == ENOENT ? 127 : 126);
     }
+    child_pid = command.child;
+    report("");
+    /* The command holds the slave now; once no process does, the master's reads end in EIO. */
+    if (slave >= 0) close(slave);
     close(failure_pipe[1]);
     int exec_errno = 0;
     ssize_t got;
@@ -389,26 +789,38 @@ int main(int argc, char **argv) {
             if (waitpid(command.child, &command.status, 0) == command.child) command.done = 1;
             else if (errno != EINTR) break;
         }
+        if (exec_errno < 0) {
+            snprintf(text, sizeof(text), "reason=terminal_failed\nexec_errno=%d\nended=0\nremaining=0\n", -exec_errno);
+            report(text);
+            return 125;
+        }
         snprintf(text, sizeof(text), "reason=exec_failed\nexec_errno=%d\nended=0\nremaining=0\n", exec_errno);
         report(text);
         return exec_errno == ENOENT ? 127 : 126;
     }
 
-    while (!command.done && stop_signal == 0) {
-        siginfo_t info;
-        int sig = sigwaitinfo(&waited, &info);
-        if (sig < 0) {
-            if (errno == EINTR) continue;
-            break;
-        }
-        if (sig == SIGCHLD) {
-            reap(&command);
-        } else {
-            stop_signal = sig;
+    int cause = CAUSE_NONE;
+    if (terminal_mode) {
+        cause = relay(master, signals, &command, &stop_signal);
+    } else {
+        while (!command.done && stop_signal == 0) {
+            siginfo_t info;
+            int sig = sigwaitinfo(&waited, &info);
+            if (sig < 0) {
+                if (errno == EINTR) continue;
+                break;
+            }
+            if (sig == SIGCHLD) {
+                reap(&command);
+            } else {
+                stop_signal = sig;
+            }
         }
     }
+    int stopping = stop_signal != 0 || cause != CAUSE_NONE;
 
     int remaining = end_everything(&waited, grace_ms, &command);
+    if (terminal_mode && cause != CAUSE_OUTPUT_CLOSED) drain(master, stopping ? DRAIN_STOPPED_MS : DRAIN_EXITED_MS);
     if (!command.done) {
         /* Ended above with everything else; collect its status. */
         int status = 0;
@@ -418,7 +830,7 @@ int main(int argc, char **argv) {
         }
     }
     int ended = signalled_count;
-    if (stop_signal == 0) {
+    if (!stopping) {
         /* The command had exited by itself: count only what it left behind. */
         for (int i = 0; i < signalled_count; i++) {
             if (signalled[i] == command.child) ended--;
@@ -431,18 +843,20 @@ int main(int argc, char **argv) {
     if (command.done && WIFEXITED(command.status)) {
         exit_code = WEXITSTATUS(command.status);
         snprintf(outcome, sizeof(outcome), "exit=%d", exit_code);
-        reason = stop_signal ? "stopped" : "exited";
+        reason = stopping ? "stopped" : "exited";
     } else if (command.done && WIFSIGNALED(command.status)) {
         exit_code = 128 + WTERMSIG(command.status);
         snprintf(outcome, sizeof(outcome), "signal=%d", WTERMSIG(command.status));
-        reason = stop_signal ? "stopped" : "signaled";
+        reason = stopping ? "stopped" : "signaled";
     } else {
         exit_code = 128 + (stop_signal ? stop_signal : SIGKILL);
         snprintf(outcome, sizeof(outcome), "signal=%d", SIGKILL);
         reason = "stopped";
     }
-    snprintf(text, sizeof(text), "reason=%s\n%s\nstop_signal=%d\nended=%d\nremaining=%d\n",
-        reason, outcome, stop_signal, ended, remaining);
+    char cause_line[64] = "";
+    if (cause != CAUSE_NONE) snprintf(cause_line, sizeof(cause_line), "stop_cause=%s\n", cause_names[cause]);
+    snprintf(text, sizeof(text), "reason=%s\n%s\nstop_signal=%d\n%sended=%d\nremaining=%d\n",
+        reason, outcome, stop_signal, cause_line, ended, remaining);
     report(text);
     return exit_code;
 }
