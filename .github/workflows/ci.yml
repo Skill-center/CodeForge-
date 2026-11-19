@@ -1354,6 +1354,7 @@ jobs:
             --expect dev.codeforge.app.runtime.SealedShellTest:2 \
             --expect dev.codeforge.app.runtime.RuntimeInstallTest:7 \
             --expect dev.codeforge.app.runtime.RuntimeCommandsTest:6 \
+            --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
             --expect dev.codeforge.app.syncmodes.SyncModesTest:2 \
             --require exec_model_audit_outside_apk=0 \
             --require audit_outside_apk=0 \
@@ -1361,6 +1362,13 @@ jobs:
             --require sealed_shell_audit_outside_apk=0 \
             --require sealed_shell_first_start_audit_outside_apk=0 \
             --require sealed_shell_second_start_audit_outside_apk=0 \
+            --require terminal_bash=ok \
+            --require terminal_ninth=too_many \
+            --require terminal_end_all_left=0 \
+            --require terminal_end_all_processes_left=0 \
+            --require terminal_flood_whole=1 \
+            --require terminal_flood_within_window=1 \
+            --require terminal_echo_p95_under_budget=1 \
             --need-document CODEFORGE_SYNC_JSON \
             --need-document CODEFORGE_SEARCH_JSON \
             --meta "device=$DEVICE" --meta "gcloud_exit=$GCLOUD_EXIT" \
