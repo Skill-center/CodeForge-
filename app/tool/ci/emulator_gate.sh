@@ -60,7 +60,8 @@
 #                                  composition suite's lines as cat wrote
 #                                  them; the driver's and DevTools' logs;
 #                                  terminal_probe.txt, what the page saw of
-#                                  each tap, and terminal_first_tap.png)
+#                                  each tap and typed text, and
+#                                  terminal_first_tap.png)
 #   runtime.txt / runtime_*.txt    Phase 4 W3 G3: the sealed runtime. The
 #                                  instrumented tests' output and their
 #                                  report (first install, warm start, a
@@ -1597,9 +1598,10 @@ echo "::group::Terminal (Phase 5 W3, G3: typed text echoes, nano and top fit the
 # setting, and `compose` by running editor/tool/terminal_cdp.mjs, which
 # plays bench/terminal_composition_cases.json into the page over its
 # DevTools socket and compares what `cat` wrote (terminal_compose.json).
-# Each tap is recorded (terminal_probe.txt, from terminal_cdp.mjs --probe):
-# the touches, mouse events and focus changes the page saw, and its focus
-# after them; the first is also photographed (terminal_first_tap.png).
+# Each tap and each typed text is recorded (terminal_probe.txt, from
+# terminal_cdp.mjs --probe): the touches, keys, input and composition events
+# and focus changes the page saw, and its focus after them; the first tap is
+# also photographed (terminal_first_tap.png).
 terminal_probe() {
   node ../editor/tool/terminal_cdp.mjs --adb "$ADB" --package "$APP_ID" --probe "$1" \
     >> "$RESULTS/terminal_probe.txt" 2>&1 < /dev/null || true
@@ -1634,9 +1636,12 @@ terminal_driver() {
         fi
         ;;
       text)
+        terminal_probe arm
         "$ADB" shell input text "${1:-}" < /dev/null
         status=$?
         echo "request $id: text $* (exit $status, $(date +%T))"
+        sleep 2
+        terminal_probe read
         ;;
       key)
         "$ADB" shell input keyevent "${1:-}" < /dev/null
@@ -1695,7 +1700,7 @@ compose_failures=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1
   echo "terminal_compose_failures=$compose_failures"
   grep -oE 'TERMINAL_GATE .*' "$RESULTS/terminal_itest.txt" 2>/dev/null | sed 's/^TERMINAL_GATE /terminal: /'
   grep -E '\] (ok  |FAIL) ' "$RESULTS/terminal_cdp.txt" 2>/dev/null | sed 's/^\[terminal-cdp [0-9:]*\] /compose: /'
-  sed 's/^/tap /' "$RESULTS/terminal_probe.txt" 2>/dev/null | cut -c1-600
+  sed 's/^/probe /' "$RESULTS/terminal_probe.txt" 2>/dev/null | cut -c1-600
 } | tee "$RESULTS/terminal.txt"
 # The annotations have no slot left: attempts.txt carries the verdict.
 cat "$RESULTS/terminal.txt" >> "$RESULTS/attempts.txt"

@@ -115,6 +115,9 @@ class FakeTerminal implements TerminalLike {
   parse(): void {
     for (const write of this.writes.splice(0)) write.callback?.();
   }
+  input(data: string): void {
+    this.data.fire(data);
+  }
   paste(data: string): void {
     let text = data.replace(/\r?\n/g, '\r');
     if (this.modes.bracketedPasteMode) text = `\x1b[200~${text}\x1b[201~`;
@@ -342,6 +345,48 @@ describe('input', () => {
     controller.handle('session.paste', { sessionId: 1, text: '\x1b\x00' });
     controller.pasteIntoActive('\x07');
     expect(of('session.input')).toEqual([]);
+  });
+
+  it('sends the input method’s text once, as typed, and empties the textarea', () => {
+    const textarea = terminals[0].textarea as HTMLTextAreaElement;
+    expect(textarea.getAttribute('autocomplete')).toBe('off');
+    controller.handle('terminal.modifiers', { ctrl: true, alt: false });
+    const seenByXterm: string[] = [];
+    textarea.addEventListener('input', () => seenByXterm.push('input'));
+    textarea.dispatchEvent(new KeyboardEvent('keydown', { keyCode: 229, bubbles: true }));
+    textarea.value = 'c';
+    textarea.dispatchEvent(new InputEvent('input', { data: 'c', inputType: 'insertText', bubbles: true }));
+    textarea.value = 'at';
+    textarea.dispatchEvent(new InputEvent('input', { data: 'at', inputType: 'insertText', bubbles: true }));
+    expect(of('session.input').map((p) => p.data)).toEqual(['\x03', 'at']);
+    expect(textarea.value).toBe('');
+    expect(seenByXterm).toEqual([]);
+  });
+
+  it('shows a composition in xterm.js’s composition view until it ends', () => {
+    const textarea = terminals[0].textarea as HTMLTextAreaElement;
+    const box = document.createElement('div');
+    box.className = 'composition-view';
+    parent.querySelector('.xterm-screen')?.appendChild(box);
+    terminals[0].cursorX = 3;
+    terminals[0].cursorY = 2;
+    // happy-dom's CompositionEvent keeps no data: it is given here.
+    const composition = (type: string, data: string) => {
+      const update = new CompositionEvent(type, { bubbles: true });
+      Object.defineProperty(update, 'data', { value: data });
+      return update;
+    };
+    textarea.dispatchEvent(composition('compositionstart', ''));
+    textarea.dispatchEvent(composition('compositionupdate', 'かん'));
+    textarea.value = 'かん';
+    expect(box.classList.contains('active')).toBe(true);
+    expect(box.textContent).toBe('かん');
+    expect(box.style.left).toBe(`${3 * CELL_WIDTH}px`);
+    expect(box.style.top).toBe(`${2 * CELL_HEIGHT}px`);
+    textarea.value = '漢字';
+    textarea.dispatchEvent(composition('compositionend', '漢字'));
+    expect(box.classList.contains('active')).toBe(false);
+    expect(of('session.input').map((p) => p.data)).toEqual(['漢字']);
   });
 
   it('splits long input without breaking a surrogate pair', () => {

@@ -21,12 +21,14 @@
  *
  * Exit status: 0 when every case's line arrived whole, 1 otherwise.
  *
- * A probe, for the gate's record of a tap (the terminal driver runs it
- * around each `tap`): `--probe arm` records, from then on, the touches,
- * mouse events and focus changes the page sees, and `--probe read` prints
- * them with the page's focus state (`document.hasFocus()`, the focused
- * element). Only --adb and --package are needed; it prints one JSON line
- * and exits 0, or 1 when it found no terminal page.
+ * A probe, for the gate's record of a tap or of typed text (the terminal
+ * driver runs it around each `tap` and `text`): `--probe arm` records,
+ * from then on, the touches, mouse and keyboard events, the input and
+ * composition events (with their data and the textarea's text) and the
+ * focus changes the page sees, and `--probe read` prints them with the
+ * page's focus state (`document.hasFocus()`, the focused element). Only
+ * --adb and --package are needed; it prints one JSON line and exits 0, or
+ * 1 when it found no terminal page.
  * No dependencies: Node 22+ ships fetch and WebSocket (tool/cdp_kit.mjs).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -37,6 +39,17 @@ import { adb, logger, PageSession, pressKey, probeTargets, sleep, webViewForward
 
 const EDITOR = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TERMINAL_URL = 'https://appassets.androidplatform.net/terminal/';
+/**
+ * The page's title (src/terminal/page.html). A page the app loads with
+ * loadHtmlString keeps its base URL from DevTools' list, as the editor's
+ * drivers found (tool/large_cdp.mjs looks for its title too); phase gate
+ * 44575917666's probe, looking for the URL, found no page.
+ */
+const PAGE_TITLE = 'CodeForge terminal';
+
+/** The terminal page among the DevTools targets: by its title, or its URL where a WebView shows it. */
+const isTerminalPage = (target) =>
+  target.type === 'page' && (target.title === PAGE_TITLE || (target.url ?? '').startsWith(TERMINAL_URL));
 const END_MARK = 'COMPOSE-END';
 const STEP_GAP_MS = 60;
 const CASE_GAP_MS = 250;
@@ -123,15 +136,25 @@ const FOCUS_STATE = `({
   })(),
 })`;
 
-/** Starts recording what the page sees of a touch (capture phase: before the page's handlers). */
+/** Starts recording what the page sees of a touch or a key (capture phase: before the page's handlers). */
 const PROBE_ARM = `(() => {
   const probe = (window.__cfProbe = { since: Date.now(), events: [] });
   const name = (t) => (t ? (typeof t.className === 'string' && t.className ? t.className.split(' ')[0] : t.tagName || 'window') : null);
-  const types = ['touchstart', 'touchend', 'touchcancel', 'pointerdown', 'mousedown', 'click', 'contextmenu', 'focusin', 'focusout', 'focus', 'blur'];
+  const types = ['touchstart', 'touchend', 'touchcancel', 'pointerdown', 'mousedown', 'click', 'contextmenu', 'focusin', 'focusout', 'focus', 'blur',
+    'keydown', 'keypress', 'keyup', 'beforeinput', 'input', 'compositionstart', 'compositionupdate', 'compositionend'];
+  const detail = (e) => {
+    const parts = [];
+    if (e.key !== undefined) parts.push('key=' + JSON.stringify(e.key), 'kc=' + e.keyCode);
+    if (e.inputType !== undefined) parts.push('it=' + e.inputType);
+    if (e.data !== undefined) parts.push('data=' + JSON.stringify(e.data));
+    if (e.isComposing) parts.push('composing');
+    if (e.target && typeof e.target.value === 'string') parts.push('value=' + JSON.stringify(e.target.value.slice(-24)));
+    return parts.join(' ');
+  };
   for (const type of types) {
     window.addEventListener(type, (event) => {
-      if (window.__cfProbe !== probe || probe.events.length >= 200) return;
-      probe.events.push(\`+\${Date.now() - probe.since}ms \${type} \${name(event.target)} hasFocus=\${document.hasFocus()}\`);
+      if (window.__cfProbe !== probe || probe.events.length >= 400) return;
+      probe.events.push(\`+\${Date.now() - probe.since}ms \${type} \${name(event.target)} \${detail(event)} hasFocus=\${document.hasFocus()}\`);
     }, true);
   }
   // After the page's own handlers: whether it canceled the touch.
@@ -151,7 +174,7 @@ if (args.probe) {
   const find = async () => {
     if (!(await ensure().catch(() => false))) return null;
     const { targets } = await probeTargets(args.port);
-    return targets.find((t) => (t.url ?? '').startsWith(TERMINAL_URL)) ?? null;
+    return targets.find(isTerminalPage) ?? null;
   };
   const session = new PageSession({ find, waitMs: 10000, pollMs: 500 });
   const at = new Date().toISOString().slice(11, 23);
@@ -178,7 +201,7 @@ const ensureForward = webViewForwarder(args, log);
 async function findTerminal() {
   if (!(await ensureForward().catch(() => false))) return null;
   const { targets } = await probeTargets(args.port);
-  return targets.find((t) => (t.url ?? '').startsWith(TERMINAL_URL)) ?? null;
+  return targets.find(isTerminalPage) ?? null;
 }
 
 let failures = cases.length;

@@ -13,6 +13,7 @@
  * xterm.js is reached through [TerminalLike], so test/terminal_controller
  * drives this with a fake terminal; main.ts passes the real one.
  */
+import { IME_EVENTS, type ImeEvent, ImeInput } from './ime';
 import { applyModifiers, keySequence, sanitizePaste } from './keys';
 import {
   type ConfigurePayload,
@@ -77,6 +78,8 @@ export interface TerminalLike {
   options: { theme?: Record<string, string>; fontSize?: number; scrollback?: number };
   open(parent: HTMLElement): void;
   write(data: string, callback?: () => void): void;
+  /** Data as typed: what onData then fires. */
+  input(data: string, wasUserInput?: boolean): void;
   paste(data: string): void;
   focus(): void;
   blur(): void;
@@ -312,10 +315,22 @@ export class TerminalController {
       const onBlur = () => this.defer(() => this.setFocused(this.anyFocused()));
       textarea.addEventListener('focus', onFocus);
       textarea.addEventListener('blur', onBlur);
+      // No suggestions (Android's TYPE_TEXT_FLAG_NO_SUGGESTIONS): input
+      // methods then commit what is typed rather than compose words.
+      textarea.setAttribute('autocomplete', 'off');
+      // The input method's text, before xterm.js sees it (ime.ts).
+      const ime = new ImeInput(textarea, {
+        type: (data) => terminal.input(data, true),
+        paste: (text) => this.paste(sessionId, text),
+        compose: (text) => this.compose(view, text),
+      });
+      const onIme = (event: Event) => ime.handle(event as unknown as ImeEvent);
+      for (const type of IME_EVENTS) element.addEventListener(type, onIme, true);
       view.disposables.push({
         dispose: () => {
           textarea.removeEventListener('focus', onFocus);
           textarea.removeEventListener('blur', onBlur);
+          for (const type of IME_EVENTS) element.removeEventListener(type, onIme, true);
         },
       });
     }
@@ -463,6 +478,31 @@ export class TerminalController {
       this.pasting = false;
     }
     return undefined;
+  }
+
+  /**
+   * Shows the input method's composition at the cursor, in xterm.js's own
+   * composition view (its helper no longer sees compositions: ime.ts).
+   */
+  private compose(view: SessionView, text: string | null): void {
+    const box = view.element.querySelector<HTMLElement>('.composition-view');
+    if (!box) return;
+    if (!text) {
+      box.classList.remove('active');
+      box.textContent = '';
+      return;
+    }
+    const cell = this.metrics(view);
+    const buffer = view.terminal.buffer.active;
+    if (cell) {
+      box.style.left = `${Math.min(buffer.cursorX, view.terminal.cols - 1) * cell.width}px`;
+      box.style.top = `${buffer.cursorY * cell.height}px`;
+      box.style.height = `${cell.height}px`;
+      box.style.lineHeight = `${cell.height}px`;
+    }
+    box.style.fontSize = `${this.fontSize}px`;
+    box.textContent = text;
+    box.classList.add('active');
   }
 
   // ------------------------------------------------------------ selection and touch

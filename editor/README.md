@@ -35,7 +35,7 @@ message protocol:
 | `src/editor/` | `controller.ts` (documents, commands, search), `batcher.ts` (150 ms change batching), `languages.ts`, `theme.ts` |
 | `src/bridge.ts`, `src/main.ts` | host channel and page entry point |
 | `src/page.html` | page template: CSP, inline style, inline script |
-| `src/terminal/` | the terminal page: `protocol.ts` (terminal protocol v1) and `validate.ts`, `controller.ts` (one xterm.js per session, writes and their acknowledgements, input), `keys.ts` (extra keys, Ctrl and Alt, paste sanitizing), `touch.ts` (scrolling and selecting by touch), `bridge.ts`, `main.ts`, `page.html` |
+| `src/terminal/` | the terminal page: `protocol.ts` (terminal protocol v1) and `validate.ts`, `controller.ts` (one xterm.js per session, writes and their acknowledgements, input), `keys.ts` (extra keys, Ctrl and Alt, paste sanitizing), `touch.ts` (scrolling and selecting by touch), `ime.ts` (the input method's text, sent once and in order), `bridge.ts`, `main.ts`, `page.html` |
 | `test/fixtures/` | JSON contract fixtures, shared with the Dart tests (`terminal/` for the terminal protocol) |
 | `bench/terminal_composition_cases.json` | the terminal's composition suite, played on the emulator by `tool/terminal_cdp.mjs` |
 | `tool/` | `build.mjs` and `build_terminal.mjs`, `verify_bundle.mjs` and `verify_terminal.mjs`, `check_licenses.mjs`, `notices.mjs` |
