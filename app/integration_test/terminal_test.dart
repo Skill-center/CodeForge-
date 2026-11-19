@@ -48,7 +48,7 @@ import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 const String _prompt = r'demo $';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('terminal: echo, nano and top at the panel’s size, composition', (
     tester,
@@ -167,13 +167,29 @@ void main() {
 
     // 1. Typed text echoes.
     final surface = find.byKey(const ValueKey('terminal_surface'));
-    final centre = tester.getCenter(surface);
-    ask('tap ${(centre.dx * ratio).round()} ${(centre.dy * ratio).round()}');
-    await pumpUntil(
-      tester,
-      () => container.read(terminalControllerProvider).focused,
-      what: 'the terminal to take the keyboard after a tap',
-    );
+    // Touches from the device reach the app only when the binding lets them
+    // through: it drops them by default, which kept the first gate's tap
+    // from the page. The flag goes back after each tap, as the binding
+    // checks at the end of the test.
+    Future<void> tapToFocus({required String what}) async {
+      final centre = tester.getCenter(surface);
+      final x = (centre.dx * ratio).round();
+      final y = (centre.dy * ratio).round();
+      binding.shouldPropagateDevicePointerEvents = true;
+      try {
+        ask('tap $x $y');
+        await tester.pump(const Duration(seconds: 1));
+        await pumpUntil(
+          tester,
+          () => container.read(terminalControllerProvider).focused,
+          what: what,
+        );
+      } finally {
+        binding.shouldPropagateDevicePointerEvents = false;
+      }
+    }
+
+    await tapToFocus(what: 'the terminal to take the keyboard after a tap');
     ask('text echo%scf-typed-ok');
     await screenWhere(
       (screen) => screen.screen.any(
@@ -302,12 +318,7 @@ void main() {
     );
     // The page's input takes the keyboard again after the turns: the
     // driver's input events go to the focused element.
-    final again = tester.getCenter(surface);
-    ask('tap ${(again.dx * ratio).round()} ${(again.dy * ratio).round()}');
-    await tester.pump(const Duration(seconds: 1));
-    await pumpUntil(
-      tester,
-      () => container.read(terminalControllerProvider).focused,
+    await tapToFocus(
       what: 'the terminal to have the keyboard before the composition',
     );
     ask('compose');
