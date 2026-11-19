@@ -1,188 +1,188 @@
 --------- beginning of main
 --------- beginning of system
-11-19 18:43:17.880  5170  5201 I TestRunner: run started: 23 tests
-11-19 18:43:17.882  5170  5201 I TestRunner: started: dataDirectoryExecutionFollowsTargetSdk(dev.codeforge.app.runtime.ExecModelTest)
-11-19 18:43:17.885  5170  5201 I CodeForgeRuntimeGate: exec-model: targetSdk=36 sdk=28 abi=x86_64
-11-19 18:43:17.885  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_target_sdk=36
-11-19 18:43:17.885  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_device_sdk=28
-11-19 18:43:17.885  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_abi=x86_64
-11-19 18:43:17.885  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_data_exec_expected=allowed
-11-19 18:43:17.886  5170  5201 I CodeForgeRuntimeGate: exec-model: exec audit: 0 executable entries, 0 shipped in the APK, 0 binary executables outside it, 0 scripts outside it (run through the preload) | native libraries: /data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64 | scanned paths: 0 | verdict: publishable at any targetSdk (no binaries outside the APK) | 
-11-19 18:43:17.886  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_audit_outside_apk=0
-11-19 18:43:17.887  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_audit_truncated=false
-11-19 18:43:17.887  5170  5201 I ExecModel: measuring the sealed exec model at targetSdk 36
-11-19 18:43:17.990  5170  5201 I CodeForgeRuntimeGate: exec-model: native library directory -> ok (harness-probe-ok argv0=/data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64/libharnessprobe.so exe=/data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64/libharnessprobe.so ld_preload=(unset) argc=1)
-11-19 18:43:17.990  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_native_exec=ok
-11-19 18:43:18.094  5170  5201 I CodeForgeRuntimeGate: exec-model: app-private storage (legacy target, or Android 28 before the rule) -> ok (harness-probe-ok argv0=/data/user/0/dev.codeforge.app/files/exec-probe-copy.bin exe=/data/data/dev.codeforge.app/files/exec-probe-copy.bin ld_preload=(unset) argc=1)
-11-19 18:43:18.094  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_data_exec=allowed
-11-19 18:43:18.199  5170  5201 I CodeForgeRuntimeGate: exec-model: prefix symlink into the APK -> ok (harness-probe-ok argv0=/data/user/0/dev.codeforge.app/files/runtime-gate/exec-model/rootfs/data/data/com.termux/files/usr/bin/harness-probe exe=/data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64/libharnessprobe.so ld_preload=(unset) argc=1)
-11-19 18:43:18.199  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_prefix_link_exec=ok
-11-19 18:43:18.212  5170  5201 I CodeForgeRuntimeGate: exec-model: shebang translated by the preload -> ok (harness-probe-ok argv0=/data/user/0/dev.codeforge.app/files/runtime-gate/exec-model/rootfs/data/data/com.termux/files/usr/bin/harness-probe exe=/data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64/libharnessprobe.so ld_preload=/data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64/libharness-exec.so argc=2 arg1=/data/user/0/dev.codeforge.app/files/sealed-shebang.sh)
-11-19 18:43:18.212  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_shebang_preload=ok
-11-19 18:43:18.316  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_direct_script=allowed
-11-19 18:43:18.317  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_result=pass
-11-19 18:43:18.317  5170  5201 I TestRunner: finished: dataDirectoryExecutionFollowsTargetSdk(dev.codeforge.app.runtime.ExecModelTest)
-11-19 18:43:18.326  5170  5201 I TestRunner: started: a_shellAndToolsRunFromTheApkPayload(dev.codeforge.app.runtime.SealedShellTest)
-11-19 18:43:18.361  5170  5201 I CodeForgeRuntimeGate: sealed-shell: payload abi=x86_64 targetSdk=36 sdk=28
-11-19 18:43:18.361  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_abi=x86_64
-11-19 18:43:18.362  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_target_sdk=36
-11-19 18:43:18.362  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_device_sdk=28
-11-19 18:43:29.860  5170  5201 I CodeForgeRuntimeGate: sealed-shell: sealed payload: 13894 data files (274844694 bytes, 13894 verified), 1169 data links, 535 executables from the APK, in 11497 ms
-11-19 18:43:29.860  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_ms=11497
-11-19 18:43:29.860  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_files=13894
-11-19 18:43:29.860  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_verified=13894
-11-19 18:43:29.860  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_executables=535
-11-19 18:43:29.861  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bin/bash -> /data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64/libbash.so
-11-19 18:43:30.004  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bash -> exit 0 : SEALED-SHELL-OK | version=5.3.9(1)-release | prefix=/data/user/0/dev.codeforge.app/files/runtime-gate/sealed-shell/rootfs/data/data/com.termux/files/usr | path=/data/user/0/dev.codeforge.app/files/runtime-gate/sealed-shell/rootfs/data/data/com.termux/files/usr/bin:/system/bin | /data/user/0/dev.codeforge.app/files/runtime-gate/sealed-shell/rootfs/data/data/com.termux/files/usr/bin/sed | exit-ok |
-11-19 18:43:30.004  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_bash=ok
-11-19 18:43:30.004  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_bash_version=5.3.9(1)-release
-11-19 18:43:30.060  5170  5201 I CodeForgeRuntimeGate: sealed-shell: sed -> exit 0 : A1 | A2 |
-11-19 18:43:30.060  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_sed=ok
-11-19 18:43:30.081  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bin/git -> exit 0 : git version 2.56.1
-11-19 18:43:30.088  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_git=git version 2.56.1
-11-19 18:43:30.265  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bin/python -> exit 0 : py-ssl OpenSSL 3.6.5 29 Sep 2026
-11-19 18:43:30.265  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_python=py-ssl OpenSSL 3.6.5 29 Sep 2026
-11-19 18:43:30.280  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bin/node -> exit 0 : v26.13.1
-11-19 18:43:30.280  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_node=v26.13.1
-11-19 18:43:30.290  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bin/perl -> exit 0 : v5.44.0
-11-19 18:43:30.290  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_perl=v5.44.0
-11-19 18:43:30.310  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bin/ruby -> exit 0 : ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-linux-android]
-11-19 18:43:30.310  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_ruby=ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-l
-11-19 18:43:30.342  5170  5201 I CodeForgeRuntimeGate: sealed-shell: bin/rg -> exit 0 : ripgrep 15.2.0  features:+pcre2 simd(compile):+SSE2,+SSSE3,-AVX2 simd(runtime):+SSE2,+SSSE3,-AVX2  PCRE2 10.45 is available (JIT is availabl
-11-19 18:43:30.343  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_rg=ripgrep 15.2.0  features:+pcre2 simd(compile):+SSE2,+SSSE3,-
-11-19 18:43:30.606  5170  5201 I CodeForgeRuntimeGate: sealed-shell: exec audit: 559 executable entries, 535 shipped in the APK, 0 binary executables outside it, 24 scripts outside it (run through the preload) | native libraries: /data/app/dev.codeforge.app-xSEvch8b48DMn1vGpjHsyg==/lib/x86_64 | scanned paths: 7651 | verdict: publishable at any targetSdk (no binaries outside the APK) | 
-11-19 18:43:30.607  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_outside_apk=0
-11-19 18:43:30.607  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_shipped=535
-11-19 18:43:30.607  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_scanned=7651
-11-19 18:43:30.607  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_truncated=false
-11-19 18:43:30.611  5170  5201 I CodeForgeRuntimeGate: sealed-shell: 24 scripts in the payload run through the interpreter layer
-11-19 18:43:30.611  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_scripts=24
-11-19 18:43:30.611  5170  5201 I TestRunner: finished: a_shellAndToolsRunFromTheApkPayload(dev.codeforge.app.runtime.SealedShellTest)
-11-19 18:43:30.613  5170  5201 I TestRunner: started: b_startupInstallsOnceAndDpkgAgrees(dev.codeforge.app.runtime.SealedShellTest)
-11-19 18:43:30.623  5170  5170 I CodeForgeRuntime: runtime checking abi=null payload=null problem=null installMs=null warmStartMs=null relinked=null auditing=false outsideApk=null shipped=null auditMs=null
-11-19 18:43:30.625  5170  5170 I CodeForgeRuntime: runtime installing abi=x86_64 payload=3dc2163786c5abef problem=null installMs=null warmStartMs=null relinked=null auditing=false outsideApk=null shipped=null auditMs=null
-11-19 18:43:50.242  5170  5170 I CodeForgeRuntime: runtime ready abi=x86_64 payload=3dc2163786c5abef problem=null installMs=19616 warmStartMs=null relinked=null auditing=true outsideApk=null shipped=null auditMs=null
-11-19 18:43:50.614  5170  5170 I CodeForgeRuntime: runtime ready abi=x86_64 payload=3dc2163786c5abef problem=null installMs=19616 warmStartMs=null relinked=null auditing=false outsideApk=0 shipped=535 auditMs=362
-11-19 18:43:50.614  5170  5201 I CodeForgeRuntimeGate: sealed-shell: first startup -> ready installMs=19616 warmStartMs=null audit=0
-11-19 18:43:50.614  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_state=ready
-11-19 18:43:50.614  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_install_ms=19616
-11-19 18:43:50.614  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_ms=19619
-11-19 18:43:50.614  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_audit_outside_apk=0
-11-19 18:43:50.877  5170  5201 I CodeForgeRuntimeGate: sealed-shell: second startup took 27 ms (no re-extract)
-11-19 18:43:50.877  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_ms=27
-11-19 18:43:50.878  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_warm_ms=26
-11-19 18:43:50.878  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_relinked=0
-11-19 18:43:50.878  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_audit_outside_apk=0
-11-19 18:43:50.878  5170  5201 I CodeForgeRuntimeGate: sealed-shell: dpkg records the shipped packages as installed
-11-19 18:43:50.878  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_dpkg=ok
-11-19 18:43:50.878  5170  5201 I TestRunner: finished: b_startupInstallsOnceAndDpkgAgrees(dev.codeforge.app.runtime.SealedShellTest)
-11-19 18:43:50.882  5170  5201 I TestRunner: started: a_theToolsAreTheirPinnedVersions(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:00.456  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tools_ms=548
-11-19 18:44:00.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_node=26.13.1/ok pinned=26.13.1 ms=302 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
-11-19 18:44:00.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_python=3.14.10/ok pinned=3.14.10 ms=154 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
-11-19 18:44:00.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_git=2.56.1/ok pinned=2.56.1 ms=8 detail=git version 2.56.1
-11-19 18:44:00.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=7 detail=5.3.9(1)-release
-11-19 18:44:00.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=12 detail=5.44.0 3
-11-19 18:44:00.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=51 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
-11-19 18:44:00.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=8 detail=ripgrep 15.2.0
-11-19 18:44:00.457  5170  5201 I TestRunner: finished: a_theToolsAreTheirPinnedVersions(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:00.460  5170  5201 I TestRunner: started: b_theEnvironmentIsTheRuntimesOwnAndNothingElse(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:00.477  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_environment_names=ANDROID_DATA,ANDROID_ROOT,GEM_HOME,HOME,LANG,LC_ALL,LD_LIBRARY_PATH,LD_PRELOAD,NODE_PATH,PATH,PERL5LIB,PREFIX,PWD,PYTHONHOME,RUBYLIB,SHELL,SSL_CERT_FILE,TERM,TERMUX_APP__DATA_DIR,TERMUX__PREFIX,TERMUX__ROOTFS,TMPDIR,XDG_CACHE_HOME,XDG_CONFIG_HOME,XDG_DATA_HOME,XDG_STATE_HOME
-11-19 18:44:00.478  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_pythonhome=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr
-11-19 18:44:00.478  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_gem_home=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
-11-19 18:44:00.478  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_node_path=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules
-11-19 18:44:00.478  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_rubylib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0/x86_64-linux-android
-11-19 18:44:00.478  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_perl5lib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0
-11-19 18:44:00.479  5170  5201 I TestRunner: finished: b_theEnvironmentIsTheRuntimesOwnAndNothingElse(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:00.481  5170  5201 I TestRunner: started: c_aScriptWithTermuxsOfficialShebangRunsThroughThePreload(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:00.733  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_npm_version=12.2.2 exit=0 failure=null ms=248
-11-19 18:44:00.733  5170  5201 I TestRunner: finished: c_aScriptWithTermuxsOfficialShebangRunsThroughThePreload(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:00.736  5170  5201 I TestRunner: started: d_resultsAreTyped(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:00.756  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_cap=kept=1024 bytes=300000 truncated=true
-11-19 18:44:01.269  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_timeout=failure=timed_out ms=505 ended=1
-11-19 18:44:01.269  5170  5201 I TestRunner: finished: d_resultsAreTyped(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:01.271  5170  5201 I TestRunner: started: e_endingASessionLeavesNoChild(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:01.351  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tree=sleeps=5 with_marker=6 group=5702 in_group=5 setsid=true
-11-19 18:44:01.457  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_end=failure=ended ended=5 remaining=0 ms=100 left=0 in_group=0 processes_before=1 processes_after=1
-11-19 18:44:01.460  5170  5201 I TestRunner: finished: e_endingASessionLeavesNoChild(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:01.463  5170  5201 I TestRunner: started: f_aTimeLimitAndAnExitEndTheirTreesToo(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:02.497  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_timeout_tree=ended=3 left=0
-11-19 18:44:02.497  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE commands_exit_tree=exit=0 ended=1 left=0
-11-19 18:44:02.497  5170  5201 I TestRunner: finished: f_aTimeLimitAndAnExitEndTheirTreesToo(dev.codeforge.app.runtime.RuntimeCommandsTest)
-11-19 18:44:02.500  5170  5201 I TestRunner: started: a_theApkCarriesThePayloadAndThePreload(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:02.502  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE abi=x86_64
-11-19 18:44:02.502  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE payload=3dc2163786c5abef
-11-19 18:44:02.502  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE apk_bytes=204346549
-11-19 18:44:02.502  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE exec_manifest_entries=535
-11-19 18:44:02.502  5170  5201 I TestRunner: finished: a_theApkCarriesThePayloadAndThePreload(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:02.504  5170  5201 I TestRunner: started: b_aFirstInstallVerifiesEveryFileAndAuditsClean(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:11.238  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_ms=8733
-11-19 18:44:11.238  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_files=13894
-11-19 18:44:11.238  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_verified=13894
-11-19 18:44:11.238  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_bytes=274844694
-11-19 18:44:11.239  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_executables=535
-11-19 18:44:11.239  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_links=1169
-11-19 18:44:11.424  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_apk=0
-11-19 18:44:11.424  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_scripts=24
-11-19 18:44:11.424  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE audit_shipped=535
-11-19 18:44:11.424  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE audit_scanned=7611
-11-19 18:44:11.424  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE audit_truncated=false
-11-19 18:44:11.424  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE audit_ms=184
-11-19 18:44:11.625  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_bytes=274844694
-11-19 18:44:11.626  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_files=13894
-11-19 18:44:11.627  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE native_library_bytes=139993568
-11-19 18:44:11.628  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE installed_total_bytes=619184811
-11-19 18:44:11.628  5170  5201 I TestRunner: finished: b_aFirstInstallVerifiesEveryFileAndAuditsClean(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:11.634  5170  5201 I TestRunner: started: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:11.686  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_samples=9,13,10,7,10
-11-19 18:44:11.686  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_median=10
-11-19 18:44:11.686  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_budget_ms=100
-11-19 18:44:11.839  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_outside_apk=0
-11-19 18:44:11.840  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_ms=153
-11-19 18:44:11.840  5170  5201 I TestRunner: finished: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:11.842  5170  5201 I TestRunner: started: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:11.857  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE relinked_after_move=1
-11-19 18:44:11.857  5170  5201 I TestRunner: finished: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:11.860  5170  5201 I TestRunner: started: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:15.086  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_offset=33554432
-11-19 18:44:15.086  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_problem=corrupt
-11-19 18:44:15.086  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
-11-19 18:44:15.142  5170  5201 I TestRunner: finished: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:15.145  5170  5201 I TestRunner: started: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:23.561  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE digest_problem=corrupt
-11-19 18:44:23.561  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE digest_detail=digest differs: bin/am
-11-19 18:44:23.799  5170  5201 I TestRunner: finished: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:23.802  5170  5201 I TestRunner: started: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:23.802  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE kernel_manifest_stream=read 1 sdk=28
-11-19 18:44:23.802  5170  5201 I TestRunner: finished: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-19 18:44:23.806  5170  5201 I TestRunner: started: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:32.045  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_first_answer_ms=26
-11-19 18:44:32.061  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash=ok
-11-19 18:44:32.082  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash_exit=3
-11-19 18:44:32.083  5170  5201 I TestRunner: finished: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:32.090  5170  5201 I TestRunner: started: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:32.134  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_stty=24x80,40x120
-11-19 18:44:32.240  5170  5201 I TestRunner: finished: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:32.242  5170  5201 I TestRunner: started: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:32.404  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_prompt_ms=160
-11-19 18:44:32.461  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_repl=ok exit=0
-11-19 18:44:32.461  5170  5201 I TestRunner: finished: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:32.464  5170  5201 I TestRunner: started: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:35.058  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_us=p50=1119 p95=1647 max=3902 n=50
-11-19 18:44:35.060  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_p95_under_budget=1
-11-19 18:44:35.166  5170  5201 I TestRunner: finished: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:35.168  5170  5201 I TestRunner: started: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:35.845  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood=bytes=10485760 batches=41 ms=675 high_water=262144 window=262144 buffer=1048576 heap_growth_kib=-169 native_growth_kib=2
-11-19 18:44:35.845  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_whole=1
-11-19 18:44:35.845  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_within_window=1
-11-19 18:44:35.846  5170  5201 I TestRunner: finished: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:35.847  5170  5201 I TestRunner: started: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:35.964  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_ninth=too_many
-11-19 18:44:36.076  5170  5201 I TestRunner: finished: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:36.080  5170  5201 I TestRunner: started: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:36.151  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_tree=sleeps=5 with_marker=7
-11-19 18:44:36.258  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all=left=0 ms=105 shell=ended/4 script=ended/3 remaining=0 processes_before=1 processes_after=1
-11-19 18:44:36.259  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_left=0
-11-19 18:44:36.259  5170  5201 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_processes_left=0
-11-19 18:44:36.259  5170  5201 I TestRunner: finished: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
-11-19 18:44:36.261  5170  5201 I TestRunner: run finished: 23 tests, 0 failed, 0 ignored
+11-19 19:25:42.414  5112  5134 I TestRunner: run started: 23 tests
+11-19 19:25:42.415  5112  5134 I TestRunner: started: dataDirectoryExecutionFollowsTargetSdk(dev.codeforge.app.runtime.ExecModelTest)
+11-19 19:25:42.420  5112  5134 I CodeForgeRuntimeGate: exec-model: targetSdk=36 sdk=28 abi=x86_64
+11-19 19:25:42.420  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_target_sdk=36
+11-19 19:25:42.420  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_device_sdk=28
+11-19 19:25:42.420  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_abi=x86_64
+11-19 19:25:42.420  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_data_exec_expected=allowed
+11-19 19:25:42.421  5112  5134 I CodeForgeRuntimeGate: exec-model: exec audit: 0 executable entries, 0 shipped in the APK, 0 binary executables outside it, 0 scripts outside it (run through the preload) | native libraries: /data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64 | scanned paths: 0 | verdict: publishable at any targetSdk (no binaries outside the APK) | 
+11-19 19:25:42.421  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_audit_outside_apk=0
+11-19 19:25:42.421  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_audit_truncated=false
+11-19 19:25:42.421  5112  5134 I ExecModel: measuring the sealed exec model at targetSdk 36
+11-19 19:25:42.524  5112  5134 I CodeForgeRuntimeGate: exec-model: native library directory -> ok (harness-probe-ok argv0=/data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64/libharnessprobe.so exe=/data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64/libharnessprobe.so ld_preload=(unset) argc=1)
+11-19 19:25:42.524  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_native_exec=ok
+11-19 19:25:42.526  5112  5134 I CodeForgeRuntimeGate: exec-model: app-private storage (legacy target, or Android 28 before the rule) -> ok (harness-probe-ok argv0=/data/user/0/dev.codeforge.app/files/exec-probe-copy.bin exe=/data/data/dev.codeforge.app/files/exec-probe-copy.bin ld_preload=(unset) argc=1)
+11-19 19:25:42.527  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_data_exec=allowed
+11-19 19:25:42.534  5112  5134 I CodeForgeRuntimeGate: exec-model: prefix symlink into the APK -> ok (harness-probe-ok argv0=/data/user/0/dev.codeforge.app/files/runtime-gate/exec-model/rootfs/data/data/com.termux/files/usr/bin/harness-probe exe=/data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64/libharnessprobe.so ld_preload=(unset) argc=1)
+11-19 19:25:42.534  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_prefix_link_exec=ok
+11-19 19:25:42.538  5112  5134 I CodeForgeRuntimeGate: exec-model: shebang translated by the preload -> ok (harness-probe-ok argv0=/data/user/0/dev.codeforge.app/files/runtime-gate/exec-model/rootfs/data/data/com.termux/files/usr/bin/harness-probe exe=/data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64/libharnessprobe.so ld_preload=/data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64/libharness-exec.so argc=2 arg1=/data/user/0/dev.codeforge.app/files/sealed-shebang.sh)
+11-19 19:25:42.538  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_shebang_preload=ok
+11-19 19:25:42.540  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_direct_script=allowed
+11-19 19:25:42.540  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_model_result=pass
+11-19 19:25:42.540  5112  5134 I TestRunner: finished: dataDirectoryExecutionFollowsTargetSdk(dev.codeforge.app.runtime.ExecModelTest)
+11-19 19:25:42.544  5112  5134 I TestRunner: started: a_shellAndToolsRunFromTheApkPayload(dev.codeforge.app.runtime.SealedShellTest)
+11-19 19:25:42.551  5112  5134 I CodeForgeRuntimeGate: sealed-shell: payload abi=x86_64 targetSdk=36 sdk=28
+11-19 19:25:42.551  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_abi=x86_64
+11-19 19:25:42.552  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_target_sdk=36
+11-19 19:25:42.552  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_device_sdk=28
+11-19 19:25:46.804  5112  5134 I CodeForgeRuntimeGate: sealed-shell: sealed payload: 13894 data files (274844694 bytes, 13894 verified), 1169 data links, 535 executables from the APK, in 4251 ms
+11-19 19:25:46.804  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_ms=4251
+11-19 19:25:46.804  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_files=13894
+11-19 19:25:46.804  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_verified=13894
+11-19 19:25:46.804  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_install_executables=535
+11-19 19:25:46.804  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bin/bash -> /data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64/libbash.so
+11-19 19:25:47.123  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bash -> exit 0 : SEALED-SHELL-OK | version=5.3.9(1)-release | prefix=/data/user/0/dev.codeforge.app/files/runtime-gate/sealed-shell/rootfs/data/data/com.termux/files/usr | path=/data/user/0/dev.codeforge.app/files/runtime-gate/sealed-shell/rootfs/data/data/com.termux/files/usr/bin:/system/bin | /data/user/0/dev.codeforge.app/files/runtime-gate/sealed-shell/rootfs/data/data/com.termux/files/usr/bin/sed | exit-ok |
+11-19 19:25:47.123  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_bash=ok
+11-19 19:25:47.145  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_bash_version=5.3.9(1)-release
+11-19 19:25:47.187  5112  5134 I CodeForgeRuntimeGate: sealed-shell: sed -> exit 0 : A1 | A2 |
+11-19 19:25:47.188  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_sed=ok
+11-19 19:25:47.204  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bin/git -> exit 0 : git version 2.56.1
+11-19 19:25:47.205  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_git=git version 2.56.1
+11-19 19:25:47.362  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bin/python -> exit 0 : py-ssl OpenSSL 3.6.5 29 Sep 2026
+11-19 19:25:47.362  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_python=py-ssl OpenSSL 3.6.5 29 Sep 2026
+11-19 19:25:47.377  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bin/node -> exit 0 : v26.13.1
+11-19 19:25:47.377  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_node=v26.13.1
+11-19 19:25:47.392  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bin/perl -> exit 0 : v5.44.0
+11-19 19:25:47.392  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_perl=v5.44.0
+11-19 19:25:47.405  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bin/ruby -> exit 0 : ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-linux-android]
+11-19 19:25:47.405  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_ruby=ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-l
+11-19 19:25:47.415  5112  5134 I CodeForgeRuntimeGate: sealed-shell: bin/rg -> exit 0 : ripgrep 15.2.0  features:+pcre2 simd(compile):+SSE2,+SSSE3,-AVX2 simd(runtime):+SSE2,+SSSE3,-AVX2  PCRE2 10.45 is available (JIT is availabl
+11-19 19:25:47.415  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_rg=ripgrep 15.2.0  features:+pcre2 simd(compile):+SSE2,+SSSE3,-
+11-19 19:25:47.606  5112  5134 I CodeForgeRuntimeGate: sealed-shell: exec audit: 559 executable entries, 535 shipped in the APK, 0 binary executables outside it, 24 scripts outside it (run through the preload) | native libraries: /data/app/dev.codeforge.app-bFGMMjLnhXY44wq5WnbKfA==/lib/x86_64 | scanned paths: 7651 | verdict: publishable at any targetSdk (no binaries outside the APK) | 
+11-19 19:25:47.607  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_outside_apk=0
+11-19 19:25:47.607  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_shipped=535
+11-19 19:25:47.607  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_scanned=7651
+11-19 19:25:47.607  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_truncated=false
+11-19 19:25:47.608  5112  5134 I CodeForgeRuntimeGate: sealed-shell: 24 scripts in the payload run through the interpreter layer
+11-19 19:25:47.608  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_audit_scripts=24
+11-19 19:25:47.609  5112  5134 I TestRunner: finished: a_shellAndToolsRunFromTheApkPayload(dev.codeforge.app.runtime.SealedShellTest)
+11-19 19:25:47.610  5112  5134 I TestRunner: started: b_startupInstallsOnceAndDpkgAgrees(dev.codeforge.app.runtime.SealedShellTest)
+11-19 19:25:47.618  5112  5112 I CodeForgeRuntime: runtime checking abi=null payload=null problem=null installMs=null warmStartMs=null relinked=null auditing=false outsideApk=null shipped=null auditMs=null
+11-19 19:25:47.622  5112  5112 I CodeForgeRuntime: runtime installing abi=x86_64 payload=3dc2163786c5abef problem=null installMs=null warmStartMs=null relinked=null auditing=false outsideApk=null shipped=null auditMs=null
+11-19 19:25:52.306  5112  5112 I CodeForgeRuntime: runtime ready abi=x86_64 payload=3dc2163786c5abef problem=null installMs=4683 warmStartMs=null relinked=null auditing=true outsideApk=null shipped=null auditMs=null
+11-19 19:25:52.496  5112  5112 I CodeForgeRuntime: runtime ready abi=x86_64 payload=3dc2163786c5abef problem=null installMs=4683 warmStartMs=null relinked=null auditing=false outsideApk=0 shipped=535 auditMs=189
+11-19 19:25:52.496  5112  5134 I CodeForgeRuntimeGate: sealed-shell: first startup -> ready installMs=4683 warmStartMs=null audit=0
+11-19 19:25:52.496  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_state=ready
+11-19 19:25:52.496  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_install_ms=4683
+11-19 19:25:52.496  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_ms=4689
+11-19 19:25:52.496  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_first_start_audit_outside_apk=0
+11-19 19:25:52.680  5112  5134 I CodeForgeRuntimeGate: sealed-shell: second startup took 11 ms (no re-extract)
+11-19 19:25:52.680  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_ms=11
+11-19 19:25:52.680  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_warm_ms=10
+11-19 19:25:52.680  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_relinked=0
+11-19 19:25:52.680  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_second_start_audit_outside_apk=0
+11-19 19:25:52.681  5112  5134 I CodeForgeRuntimeGate: sealed-shell: dpkg records the shipped packages as installed
+11-19 19:25:52.681  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE sealed_shell_dpkg=ok
+11-19 19:25:52.681  5112  5134 I TestRunner: finished: b_startupInstallsOnceAndDpkgAgrees(dev.codeforge.app.runtime.SealedShellTest)
+11-19 19:25:52.686  5112  5134 I TestRunner: started: a_theToolsAreTheirPinnedVersions(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:57.277  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tools_ms=368
+11-19 19:25:57.278  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_node=26.13.1/ok pinned=26.13.1 ms=126 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
+11-19 19:25:57.278  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_python=3.14.10/ok pinned=3.14.10 ms=158 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
+11-19 19:25:57.278  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_git=2.56.1/ok pinned=2.56.1 ms=9 detail=git version 2.56.1
+11-19 19:25:57.278  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=8 detail=5.3.9(1)-release
+11-19 19:25:57.278  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=14 detail=5.44.0 3
+11-19 19:25:57.278  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=42 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
+11-19 19:25:57.278  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=8 detail=ripgrep 15.2.0
+11-19 19:25:57.278  5112  5134 I TestRunner: finished: a_theToolsAreTheirPinnedVersions(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:57.280  5112  5134 I TestRunner: started: b_theEnvironmentIsTheRuntimesOwnAndNothingElse(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:57.292  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_environment_names=ANDROID_DATA,ANDROID_ROOT,GEM_HOME,HOME,LANG,LC_ALL,LD_LIBRARY_PATH,LD_PRELOAD,NODE_PATH,PATH,PERL5LIB,PREFIX,PWD,PYTHONHOME,RUBYLIB,SHELL,SSL_CERT_FILE,TERM,TERMUX_APP__DATA_DIR,TERMUX__PREFIX,TERMUX__ROOTFS,TMPDIR,XDG_CACHE_HOME,XDG_CONFIG_HOME,XDG_DATA_HOME,XDG_STATE_HOME
+11-19 19:25:57.293  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_pythonhome=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr
+11-19 19:25:57.293  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_gem_home=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
+11-19 19:25:57.293  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_node_path=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules
+11-19 19:25:57.293  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_rubylib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0/x86_64-linux-android
+11-19 19:25:57.293  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_perl5lib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0
+11-19 19:25:57.293  5112  5134 I TestRunner: finished: b_theEnvironmentIsTheRuntimesOwnAndNothingElse(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:57.295  5112  5134 I TestRunner: started: c_aScriptWithTermuxsOfficialShebangRunsThroughThePreload(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:57.513  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_npm_version=12.2.2 exit=0 failure=null ms=215
+11-19 19:25:57.513  5112  5134 I TestRunner: finished: c_aScriptWithTermuxsOfficialShebangRunsThroughThePreload(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:57.516  5112  5134 I TestRunner: started: d_resultsAreTyped(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:57.545  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_cap=kept=1024 bytes=300000 truncated=true
+11-19 19:25:58.063  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_timeout=failure=timed_out ms=505 ended=1
+11-19 19:25:58.063  5112  5134 I TestRunner: finished: d_resultsAreTyped(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:58.066  5112  5134 I TestRunner: started: e_endingASessionLeavesNoChild(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:58.146  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_tree=sleeps=5 with_marker=6 group=5301 in_group=5 setsid=true
+11-19 19:25:58.252  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_end=failure=ended ended=5 remaining=0 ms=100 left=0 in_group=0 processes_before=1 processes_after=1
+11-19 19:25:58.254  5112  5134 I TestRunner: finished: e_endingASessionLeavesNoChild(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:58.257  5112  5134 I TestRunner: started: f_aTimeLimitAndAnExitEndTheirTreesToo(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:59.279  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_timeout_tree=ended=3 left=0
+11-19 19:25:59.279  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE commands_exit_tree=exit=0 ended=1 left=0
+11-19 19:25:59.279  5112  5134 I TestRunner: finished: f_aTimeLimitAndAnExitEndTheirTreesToo(dev.codeforge.app.runtime.RuntimeCommandsTest)
+11-19 19:25:59.282  5112  5134 I TestRunner: started: a_theApkCarriesThePayloadAndThePreload(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:25:59.284  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE abi=x86_64
+11-19 19:25:59.284  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE payload=3dc2163786c5abef
+11-19 19:25:59.284  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE apk_bytes=204346549
+11-19 19:25:59.285  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE exec_manifest_entries=535
+11-19 19:25:59.285  5112  5134 I TestRunner: finished: a_theApkCarriesThePayloadAndThePreload(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:25:59.286  5112  5134 I TestRunner: started: b_aFirstInstallVerifiesEveryFileAndAuditsClean(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:03.909  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_ms=4622
+11-19 19:26:03.909  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_files=13894
+11-19 19:26:03.909  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_verified=13894
+11-19 19:26:03.909  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_bytes=274844694
+11-19 19:26:03.909  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_executables=535
+11-19 19:26:03.909  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE first_install_links=1169
+11-19 19:26:04.062  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_apk=0
+11-19 19:26:04.062  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE audit_outside_scripts=24
+11-19 19:26:04.062  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE audit_shipped=535
+11-19 19:26:04.062  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE audit_scanned=7611
+11-19 19:26:04.062  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE audit_truncated=false
+11-19 19:26:04.062  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE audit_ms=151
+11-19 19:26:04.286  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_bytes=274844694
+11-19 19:26:04.286  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE prefix_files=13894
+11-19 19:26:04.286  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE native_library_bytes=139993568
+11-19 19:26:04.286  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE installed_total_bytes=619184811
+11-19 19:26:04.287  5112  5134 I TestRunner: finished: b_aFirstInstallVerifiesEveryFileAndAuditsClean(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:04.289  5112  5134 I TestRunner: started: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:04.350  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_samples=19,7,9,15,7
+11-19 19:26:04.350  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_ms_median=9
+11-19 19:26:04.350  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE warm_start_budget_ms=100
+11-19 19:26:04.500  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_outside_apk=0
+11-19 19:26:04.500  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE warm_audit_ms=149
+11-19 19:26:04.500  5112  5134 I TestRunner: finished: c_aWarmStartSkipsTheExtraction(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:04.501  5112  5134 I TestRunner: started: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:04.512  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE relinked_after_move=1
+11-19 19:26:04.512  5112  5134 I TestRunner: finished: d_aLinkThatPointsElsewhereIsRepointed(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:04.514  5112  5134 I TestRunner: started: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:06.207  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_offset=33554432
+11-19 19:26:06.207  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_problem=corrupt
+11-19 19:26:06.207  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
+11-19 19:26:06.258  5112  5134 I TestRunner: finished: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:06.259  5112  5134 I TestRunner: started: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:10.282  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE digest_problem=corrupt
+11-19 19:26:10.282  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE digest_detail=digest differs: bin/am
+11-19 19:26:10.678  5112  5134 I TestRunner: finished: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:10.681  5112  5134 I TestRunner: started: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:10.683  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE kernel_manifest_stream=read 1 sdk=28
+11-19 19:26:10.683  5112  5134 I TestRunner: finished: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-19 19:26:10.686  5112  5134 I TestRunner: started: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:15.031  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_first_answer_ms=24
+11-19 19:26:15.047  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash=ok
+11-19 19:26:15.067  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash_exit=3
+11-19 19:26:15.068  5112  5134 I TestRunner: finished: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:15.070  5112  5134 I TestRunner: started: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:15.110  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_stty=24x80,40x120
+11-19 19:26:15.216  5112  5134 I TestRunner: finished: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:15.218  5112  5134 I TestRunner: started: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:15.350  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_prompt_ms=130
+11-19 19:26:15.406  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_repl=ok exit=0
+11-19 19:26:15.407  5112  5134 I TestRunner: finished: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:15.409  5112  5134 I TestRunner: started: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:17.969  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_us=p50=703 p95=1225 max=10382 n=50
+11-19 19:26:17.969  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_p95_under_budget=1
+11-19 19:26:18.080  5112  5134 I TestRunner: finished: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:18.105  5112  5134 I TestRunner: started: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:18.969  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood=bytes=10485760 batches=41 ms=862 high_water=262144 window=262144 buffer=1048576 heap_growth_kib=-107 native_growth_kib=27
+11-19 19:26:18.969  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_whole=1
+11-19 19:26:18.969  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_within_window=1
+11-19 19:26:18.969  5112  5134 I TestRunner: finished: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:18.971  5112  5134 I TestRunner: started: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:19.096  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_ninth=too_many
+11-19 19:26:19.205  5112  5134 I TestRunner: finished: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:19.208  5112  5134 I TestRunner: started: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:19.283  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_tree=sleeps=5 with_marker=7
+11-19 19:26:19.390  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all=left=0 ms=105 shell=ended/4 script=ended/3 remaining=0 processes_before=1 processes_after=1
+11-19 19:26:19.390  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_left=0
+11-19 19:26:19.390  5112  5134 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_processes_left=0
+11-19 19:26:19.390  5112  5134 I TestRunner: finished: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
+11-19 19:26:19.393  5112  5134 I TestRunner: run finished: 23 tests, 0 failed, 0 ignored
