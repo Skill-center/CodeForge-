@@ -2,7 +2,9 @@
 /// in the real app on the emulator, with a session on the sealed runtime.
 ///   1. Typed text echoes: the gate taps the terminal and types through
 ///      Android's input pipeline (`adb shell input text`, then Enter); the
-///      shell echoes the command and runs it.
+///      shell echoes the command and runs it. The tap brings up the soft
+///      keyboard (Gboard, beside the emulator's hardware keyboard), which
+///      then goes down again, as the keyboard key leaves it.
 ///   2. nano and top draw at the panel's size, in portrait, after a turn to
 ///      landscape and after the turn back: `stty size` says the page's size,
 ///      nano's title sits on the top row (its name in the middle) and its
@@ -27,6 +29,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:codeforge/app.dart';
+import 'package:codeforge/application/keyboard_state.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/application/runtime_controller.dart';
 import 'package:codeforge/application/shell_controller.dart';
@@ -205,6 +208,19 @@ void main() {
       what: 'the typed command to run',
     );
     report('typed_echo=ok');
+
+    // The panel's size is measured without the soft keyboard the tap brought
+    // up, as the extra-keys row's keyboard key leaves it: with the keyboard
+    // up, a phone on its side leaves the terminal a row.
+    bool focusedNow() => container.read(terminalControllerProvider).focused;
+    bool keyboardUp() => container.read(softKeyboardVisibleProvider);
+    final terminals = container.read(terminalControllerProvider.notifier);
+    await terminals.focus(focused: false);
+    await pumpUntil(
+      tester,
+      () => !focusedNow() && !keyboardUp(),
+      what: 'the soft keyboard to go down',
+    );
 
     // 2. nano and top at the panel's size.
     Future<TerminalSnapshot> settledSize() async {
