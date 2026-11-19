@@ -174,8 +174,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(run.harness.files.writes.sublist(writes), ['main.js']);
     expect(
-      _container(tester).read(documentControllerProvider).documents['main.js']!
-          .dirty,
+      _container(
+        tester,
+      ).read(documentControllerProvider).documents['main.js']!.dirty,
       isFalse,
     );
     expect(run.service.specs, hasLength(1));
@@ -195,16 +196,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(run.harness.files.writes.length, writes);
     expect(
-      _container(tester).read(documentControllerProvider).documents['main.js']!
-          .dirty,
+      _container(
+        tester,
+      ).read(documentControllerProvider).documents['main.js']!.dirty,
       isTrue,
     );
     expect(run.service.specs, hasLength(1));
   });
 
-  testWidgets('Settings turns saving before a run off and on', (
-    tester,
-  ) async {
+  testWidgets('Settings turns saving before a run off and on', (tester) async {
     setSurface(tester, 412, 915);
     final harness = TestHarness(
       shell: const ShellState(lastRoute: '/settings'),
@@ -296,10 +296,7 @@ void main() {
       open: 'main.js',
     );
     expect(_key('run_runtime_not_ready'), findsOneWidget);
-    expect(
-      tester.widget<CfButton>(_key('run_current_file')).onPressed,
-      isNull,
-    );
+    expect(tester.widget<CfButton>(_key('run_current_file')).onPressed, isNull);
     expect(tester.widget<CfButton>(_key('run_project')).onPressed, isNull);
     _runCommand(tester, 'run.file');
     await tester.pumpAndSettle();

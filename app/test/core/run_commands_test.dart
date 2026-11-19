@@ -87,12 +87,10 @@ void main() {
         packageJson: manifest,
         rootFiles: ['package.json', 'main.js'],
       );
-      expect([for (final run in runs) run.title], [
-        'npm run test',
-        'npm run start',
-        'npm run build:all',
-        'server.js',
-      ]);
+      expect(
+        [for (final run in runs) run.title],
+        ['npm run test', 'npm run start', 'npm run build:all', 'server.js'],
+      );
       expect(runs.first.program, 'npm');
       expect(runs.first.arguments, ['run', 'test']);
       expect(runs.last.arguments, ['src/server.js']);

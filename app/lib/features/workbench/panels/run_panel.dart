@@ -118,10 +118,8 @@ class RunPanel extends ConsumerWidget {
               : ListView.builder(
                   key: const ValueKey('run_list'),
                   itemCount: run.runs.length,
-                  itemBuilder: (context, index) => _RunRow(
-                    run: run.runs[index],
-                    onShown: onRunStarted,
-                  ),
+                  itemBuilder: (context, index) =>
+                      _RunRow(run: run.runs[index], onShown: onRunStarted),
                 ),
         ),
       ],
