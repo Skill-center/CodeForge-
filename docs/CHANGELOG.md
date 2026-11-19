@@ -4,6 +4,29 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 5 W3, the terminal view (plan: [phases/PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md))
+- **A real terminal in the workbench:** xterm.js 6.0.0, with addon-fit 0.11.0 and addon-unicode11 0.9.0, on a page of its own. It is built in `editor/` with the editor page's kit: one file, an inline script whose hash the CSP pins, nothing fetched, the licences beside it ([TERMINAL_ARCHITECTURE.md](TERMINAL_ARCHITECTURE.md) §2.1). One WebView holds a terminal per session. The terminal pane now runs W2's sessions on the sealed runtime, and the preview is gone.
+- **The terminal protocol v1:** the editor protocol's envelope and rules, a strict validator on each side, and 67 contract fixtures shared by vitest and Dart. Output is acknowledged once xterm.js has parsed it, and that is the session's credit: a flood waits in the kernel, not in the app or the WebView.
+- **The panel** ([TERMINAL_ARCHITECTURE.md](TERMINAL_ARCHITECTURE.md) §3):
+  - tabs: new, rename, close (a running one asks first), and a swipe between them;
+  - the extra-keys row: Esc, Ctrl and Alt (latched for one key), Tab, the arrows, `|`, `~`, `/` and more, sent as the terminal's modes expect;
+  - Copy and Paste, pastes sanitized and bracketed when the program asks;
+  - touch: a drag scrolls (arrow keys in nano or less), a long press selects, a tap brings up the keyboard;
+  - the theme's colours and the bundled font;
+  - Maximize and Restore size, which beside the editor (landscape, tablets) leave the editor a peek.
+- **The input method's text takes one path** (`ime.ts`): sent once, in order, as it is committed; a composition shows at the cursor until it ends. xterm.js's own handling garbled Android's input methods.
+- **Proven on the emulator** (phase gate 44606021478, API 36, Gboard): typed text echoes and runs; nano and top draw at the panel's size in portrait, in landscape and in portrait again; the composition suite's ten cases (predictive Latin, autocorrect, pinyin, Japanese, Hangul, emoji, a canceled composition, the input method's backspace and more) arrive whole.
+- **Found and fixed,** each by the emulator's terminal group:
+  - the test binding dropped the gate's own touches;
+  - the page canceled every touch, and a WebView takes the focus only from a tap it sees, so a tap never brought the keyboard;
+  - `echo cf-typed-ok`, typed through Android's input pipeline, arrived as `echohoocf--ttypped-ok`;
+  - beside the editor, a phone on its side left an open terminal a row or two, or hid it;
+  - a connected input method finishes the compositions it did not start, shown or not, so the scripted suite plays with the input methods off, as the editor's suite has none connected.
+- **A WebView older than Chrome 87** is refused, saying what to update, as the editor is (the API 27 image has WebView 61).
+- Verified by:
+  - the bootstrap runs 44518519957 (`+1031: All tests passed!`) and 44572951140 (`+1033: All tests passed!`);
+  - phase gates 44520440304, 44557551890, 44575917666, 44589259655 and 44596547784, then 44606021478 (PHASE_5_PLAN *As built (W3)*).
+
 ### Added — Phase 5 W2, the PTY and terminal sessions (plan: [phases/PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md))
 - **A pseudo-terminal CodeForge writes itself** ([ADR-0014](adr/0014-pty-and-sessions.md), [TERMINAL_ARCHITECTURE.md](TERMINAL_ARCHITECTURE.md) §1). It is the launcher's new terminal mode: the launcher opens the PTY, runs the program on it as its session's leader, and relays between it and the app under a small framed protocol (input, window sizes). Nothing forks inside the app's process, and a session's whole tree ends as a command's does. No Termux code (AGENTS §4).
 - **Terminal sessions in the host:**
