@@ -105,6 +105,9 @@ class RuntimeHub(
     private val commandsLock = Any()
     private var commands: RuntimeCommands? = null
 
+    /** Told of every terminal session's start and exit (Phase 5 W2). */
+    private val terminalListeners = CopyOnWriteArrayList<(TerminalSession) -> Unit>()
+
     /** Commands hold it shared; an install holds it alone. */
     private val prefixLock = ReentrantReadWriteLock()
 
@@ -276,6 +279,18 @@ class RuntimeHub(
     fun terminals(): Terminals? = currentCommands()?.terminals
 
     /**
+     * Tells [listener] of every terminal session's start and exit, on the
+     * sessions' delivery thread, from the first session on.
+     */
+    fun addTerminalListener(listener: (TerminalSession) -> Unit) {
+        terminalListeners.add(listener)
+    }
+
+    fun removeTerminalListener(listener: (TerminalSession) -> Unit) {
+        terminalListeners.remove(listener)
+    }
+
+    /**
      * The user's End all for terminals (Phase 5 W2): ends every terminal
      * session with everything it started, on a command thread, and answers
      * how many still run.
@@ -301,7 +316,12 @@ class RuntimeHub(
 
     private fun commands(): RuntimeCommands? {
         val factory = commandsFactory ?: return null
-        return synchronized(commandsLock) { commands ?: factory().also { commands = it } }
+        return synchronized(commandsLock) {
+            commands ?: factory().also { made ->
+                made.terminals?.changed = { session -> for (listener in terminalListeners) listener(session) }
+                commands = made
+            }
+        }
     }
 
     /** [block] while no install can touch the prefix, if the runtime is usable; null otherwise. */

@@ -10,6 +10,8 @@ import dev.codeforge.app.search.SearchApi
 import dev.codeforge.app.search.SearchHost
 import dev.codeforge.app.storage.StorageBroker
 import dev.codeforge.app.storage.StorageEvents
+import dev.codeforge.app.terminal.TerminalApi
+import dev.codeforge.app.terminal.TerminalHost
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -35,6 +37,7 @@ class MainActivity : FlutterActivity() {
     private var storage: StorageBroker? = null
     private var runtime: RuntimeHost? = null
     private var search: SearchHost? = null
+    private var terminal: TerminalHost? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -84,6 +87,7 @@ class MainActivity : FlutterActivity() {
         if (broker != null) {
             search = SearchHost(this, messenger, broker::searchOps).also { SearchApi.setUp(messenger, it) }
         }
+        terminal = TerminalHost(this, messenger).also { TerminalApi.setUp(messenger, it) }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
@@ -98,6 +102,9 @@ class MainActivity : FlutterActivity() {
         SearchApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
         search?.close()
         search = null
+        TerminalApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
+        terminal?.close()
+        terminal = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 

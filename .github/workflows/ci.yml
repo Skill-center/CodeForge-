@@ -231,7 +231,8 @@ jobs:
                 test/drift/app/generated/ \
               && dart run pigeon --input pigeons/storage_api.dart \
               && dart run pigeon --input pigeons/runtime_api.dart \
-              && dart run pigeon --input pigeons/search_api.dart
+              && dart run pigeon --input pigeons/search_api.dart \
+              && dart run pigeon --input pigeons/terminal_api.dart
           } > ci-results/codegen-bootstrap.txt 2>&1 || status=$?
           tail -40 ci-results/codegen-bootstrap.txt
           exit "$status"
@@ -325,6 +326,7 @@ jobs:
               && dart run pigeon --input pigeons/storage_api.dart \
               && dart run pigeon --input pigeons/runtime_api.dart \
               && dart run pigeon --input pigeons/search_api.dart \
+              && dart run pigeon --input pigeons/terminal_api.dart \
               && dart format $(find lib -name '*.g.dart' -o -name '*.steps.dart') \
                 test/drift/app/generated
           } > ci-results/codegen.txt 2>&1 || status=$?
@@ -1181,6 +1183,7 @@ jobs:
           dart run pigeon --input pigeons/storage_api.dart
           dart run pigeon --input pigeons/runtime_api.dart
           dart run pigeon --input pigeons/search_api.dart
+          dart run pigeon --input pigeons/terminal_api.dart
 
       - name: Restore the Gradle distribution
         if: steps.asked.outputs.asked == 'true'
@@ -1470,6 +1473,7 @@ jobs:
           dart run pigeon --input pigeons/storage_api.dart
           dart run pigeon --input pigeons/runtime_api.dart
           dart run pigeon --input pigeons/search_api.dart
+          dart run pigeon --input pigeons/terminal_api.dart
 
       # The Gradle distribution: cached between runs, and fetched with
       # retries when the cache has none, because services.gradle.org stalls
@@ -1756,6 +1760,7 @@ jobs:
           dart run pigeon --input pigeons/storage_api.dart
           dart run pigeon --input pigeons/runtime_api.dart
           dart run pigeon --input pigeons/search_api.dart
+          dart run pigeon --input pigeons/terminal_api.dart
 
       - name: Restore the Gradle distribution
         uses: actions/cache/restore@v6

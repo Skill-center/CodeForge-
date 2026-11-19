@@ -111,6 +111,86 @@ final class RuntimeFailure extends Failure {
   String get kind => 'runtime';
 }
 
+/// Why a terminal session did not start, why a call about one was refused,
+/// or how one ended other than by its shell's own exit (Phase 5 W2). Each
+/// [code] is the terminal host's (TerminalSession.kt's TerminalFailure).
+enum TerminalProblem {
+  /// The runtime is not installed and started, or is being installed.
+  notReady('not_ready'),
+
+  /// The host refused the request: a path for a program, a protected
+  /// variable, a folder outside the projects.
+  badRequest('bad_request'),
+
+  /// No such program in the runtime: bash itself, or the one asked for.
+  notFound('not_found'),
+
+  /// Every place for a terminal is taken (eight sessions run).
+  tooMany('too_many'),
+
+  /// The shell is there and could not be executed.
+  cannotStart('cannot_start'),
+
+  /// No pseudo-terminal could be opened.
+  terminalFailed('terminal_failed'),
+
+  /// The runtime's launcher could not run.
+  launchFailed('launch_failed'),
+
+  /// The app ended it (a request, End all, a reinstall).
+  ended('ended'),
+
+  /// A signal ended the shell by itself.
+  signaled('signaled'),
+
+  /// The relay between the app and the terminal stopped.
+  lost('lost'),
+
+  /// No session has that id.
+  noSuchSession('no_such_session'),
+
+  /// The session has ended, so it takes no more input.
+  notRunning('not_running'),
+
+  /// More input waits than a session queues.
+  inputFull('input_full'),
+
+  /// The session still runs, so it cannot be forgotten.
+  stillRunning('still_running'),
+
+  /// No terminal host here: tests, or a build without one.
+  unavailable('unavailable'),
+
+  /// A code this build does not know.
+  unknown('unknown');
+
+  const TerminalProblem(this.code);
+
+  final String code;
+
+  /// The problem for a host's [code]; [unknown] for any other.
+  static TerminalProblem fromCode(String? code) {
+    for (final problem in values) {
+      if (problem.code == code) {
+        return problem;
+      }
+    }
+    return unknown;
+  }
+}
+
+/// A terminal session could not start, a call about one was refused, or
+/// it ended other than by its shell's own exit. [problem] tells the app
+/// how to react; [message] is what the user is told.
+final class TerminalFailure extends Failure {
+  const TerminalFailure(super.message, {required this.problem, super.cause});
+
+  final TerminalProblem problem;
+
+  @override
+  String get kind => 'terminal';
+}
+
 /// A child process failed to start, misbehaved, or exited unexpectedly.
 final class ProcessFailure extends Failure {
   const ProcessFailure(super.message, {this.exitCode, super.cause});

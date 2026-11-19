@@ -66,6 +66,9 @@ enum class TerminalFailure(val code: String) {
 
     /** More input waits than a session queues (TerminalSession.INPUT_QUEUE_BYTES). */
     INPUT_FULL("input_full"),
+
+    /** The session still runs, so it cannot be forgotten. */
+    STILL_RUNNING("still_running"),
 }
 
 /** How a terminal session ended. [failure] is null when its shell exited by itself, whatever its code. */
