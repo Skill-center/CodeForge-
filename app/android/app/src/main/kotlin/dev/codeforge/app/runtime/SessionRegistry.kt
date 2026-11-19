@@ -6,7 +6,15 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+
+/** What a session runs: a one-shot command, or a terminal (Phase 5 W2). */
+enum class SessionKind {
+    COMMAND,
+    TERMINAL,
+}
 
 /** Why a session was ended before its command exited by itself. */
 enum class EndReason(val code: String) {
@@ -35,6 +43,14 @@ data class LauncherStatus(
     val ended: Int?,
     /** Processes it could not end. */
     val remaining: Int?,
+    /** The command's pid, once it was started. */
+    val child: Int? = null,
+    /** "terminal" in terminal mode (Phase 5 W2); null for a command. */
+    val mode: String? = null,
+    /** The terminal's name (/dev/pts/N), in terminal mode. */
+    val tty: String? = null,
+    /** Why terminal mode stopped: signal, input_closed, output_closed, protocol or relay_failed. */
+    val stopCause: String? = null,
 ) {
     companion object {
         fun parse(text: String): LauncherStatus {
@@ -56,6 +72,10 @@ data class LauncherStatus(
                 stopSignal = number("stop_signal"),
                 ended = number("ended"),
                 remaining = number("remaining"),
+                child = number("child"),
+                mode = values["mode"],
+                tty = values["tty"],
+                stopCause = values["stop_cause"],
             )
         }
 
@@ -71,21 +91,28 @@ data class LauncherStatus(
 
 /**
  * Every child process of the runtime, in one place (Phase 4 W4;
- * docs/SECURITY.md §2): one-shot commands now, Phase 5's terminal sessions
- * later. A session is one launcher process (libcodeforge-spawn.so), which
+ * docs/SECURITY.md §2): one-shot commands, and since Phase 5 W2 terminal
+ * sessions. A session is one launcher process (libcodeforge-spawn.so), which
  * leads a process group of its own and is a subreaper for everything its
  * command starts. Ending a session means:
  *
  *   1. SIGTERM to the launcher (Process.destroy()). It sends SIGTERM and
- *      SIGCONT to its whole group and every descendant, waits [graceMs], then
- *      sends SIGKILL to whatever is left, and exits.
+ *      SIGCONT to its whole group and every descendant (with SIGHUP first
+ *      for a terminal), waits [graceMs], then sends SIGKILL to whatever is
+ *      left, and exits.
  *   2. Should the launcher itself still be there after that, SIGKILL to its
- *      process group ([killGroup]) and to the launcher.
+ *      process group ([killGroup]) and to the launcher; for a terminal, also
+ *      to every process group of the shell's session, which /proc lists
+ *      ([ProcessTable]): the shell leads a session of its own, apart from
+ *      the launcher's group.
  *
- * Each session has a deadline: the registry's watchdog thread ends it when
- * the deadline passes ([EndReason.TIMED_OUT]). [endAll] ends every session
- * and refuses new ones until [reopen]: what a reinstall does before it
- * touches the prefix.
+ * A command has a deadline: the registry's watchdog thread ends it when the
+ * deadline passes ([EndReason.TIMED_OUT]). A terminal has none, and at most
+ * [maxTerminals] run at once: a place is reserved before its launcher starts
+ * ([reserveTerminal]), so one more is refused without starting anything.
+ * [endAll] ends every session, or every one of a kind, and by default
+ * refuses new ones until [reopen]: what a reinstall does before it touches
+ * the prefix. The user's *End all* does not refuse.
  *
  * No Android type: the JVM tests drive it with real processes.
  */
@@ -94,12 +121,28 @@ class SessionRegistry(
     private val killGroup: (Int) -> Unit,
     /** How long the launcher lets a process end after SIGTERM. */
     val graceMs: Long = DEFAULT_GRACE_MS,
+    /** Terminal sessions at once (PHASE_5_PLAN §10 item 6). */
+    val maxTerminals: Int = DEFAULT_MAX_TERMINALS,
+    /** The processes /proc lists, for the last resort's sweep of a terminal's session. */
+    private val processes: () -> List<ProcessTable.Entry> = { ProcessTable.read() },
 ) {
+    /** A place for one terminal session, held from before its launcher starts until it ends. */
+    inner class TerminalPlace internal constructor() {
+        private val held = AtomicBoolean(true)
+
+        /** Gives the place back; once only, whoever calls it. */
+        fun release() {
+            if (held.compareAndSet(true, false)) terminals.decrementAndGet()
+        }
+    }
+
     inner class Session internal constructor(
         val id: Long,
         val label: String,
         val process: Process,
         val statusFile: File,
+        val kind: SessionKind,
+        internal val place: TerminalPlace?,
     ) {
         /** Why it was ended, or null while it runs or when its command exited by itself. */
         @Volatile
@@ -125,19 +168,51 @@ class SessionRegistry(
     private val running = ConcurrentHashMap<Long, Session>()
     private val ids = AtomicLong()
 
+    /** Terminal places held: reserved, or taken by a live terminal session. */
+    private val terminals = AtomicInteger()
+
     @Volatile
     private var refusing = false
 
     /** The sessions whose command has not finished. */
     fun live(): List<Session> = running.values.sortedBy { it.id }
 
+    /** The live sessions of [kind]. */
+    fun live(kind: SessionKind): List<Session> = live().filter { it.kind == kind }
+
+    /** Whether new sessions are refused: an install holds the prefix. */
+    val isRefusing: Boolean get() = refusing
+
+    /**
+     * A place for one more terminal session, or null when [maxTerminals] are
+     * held or the registry refuses new sessions. The caller registers its
+     * launcher with it, or releases it when the launcher could not start.
+     */
+    fun reserveTerminal(): TerminalPlace? {
+        while (true) {
+            if (refusing) return null
+            val held = terminals.get()
+            if (held >= maxTerminals) return null
+            if (terminals.compareAndSet(held, held + 1)) return TerminalPlace()
+        }
+    }
+
     /**
      * Takes [process] (a launcher just started) into the registry, to be
-     * ended after [timeoutMs]. A registry that refuses new sessions ends it
-     * at once.
+     * ended after [timeoutMs] (never when it is 0). A terminal comes with
+     * the [place] reserved for it, given back when it ends. A registry that
+     * refuses new sessions ends it at once.
      */
-    fun register(process: Process, statusFile: File, label: String, timeoutMs: Long): Session {
-        val session = Session(ids.incrementAndGet(), label, process, statusFile)
+    fun register(
+        process: Process,
+        statusFile: File,
+        label: String,
+        timeoutMs: Long,
+        kind: SessionKind = SessionKind.COMMAND,
+        place: TerminalPlace? = null,
+    ): Session {
+        require((kind == SessionKind.TERMINAL) == (place != null)) { "a terminal session, and only one, holds a place" }
+        val session = Session(ids.incrementAndGet(), label, process, statusFile, kind, place)
         running[session.id] = session
         if (refusing) {
             end(session, EndReason.ENDED)
@@ -167,20 +242,27 @@ class SessionRegistry(
         return true
     }
 
-    /** The command and its launcher are gone: no more timers for it. */
+    /** The command and its launcher are gone: no more timers for it, and its place is free. */
     fun finished(session: Session) {
         running.remove(session.id)
         session.timer?.cancel(false)
         session.force?.cancel(false)
+        session.place?.release()
     }
 
     /**
-     * Ends every live session, waits for them to exit (at most [waitMs]) and
-     * refuses new ones until [reopen]. Answers how many are still running.
+     * Ends every live session, or every one of [kind], and waits for them to
+     * exit (at most [waitMs]). With [refuse], new sessions are refused until
+     * [reopen]. Answers how many are still running.
      */
-    fun endAll(reason: EndReason, waitMs: Long = graceMs + LAUNCHER_KILL_WAIT_MS + FORCE_MARGIN_MS + 1000L): Int {
-        refusing = true
-        val sessions = live()
+    fun endAll(
+        reason: EndReason,
+        waitMs: Long = graceMs + LAUNCHER_KILL_WAIT_MS + FORCE_MARGIN_MS + 1000L,
+        kind: SessionKind? = null,
+        refuse: Boolean = true,
+    ): Int {
+        if (refuse) refusing = true
+        val sessions = if (kind == null) live() else live(kind)
         for (session in sessions) end(session, reason)
         val deadline = System.nanoTime() + waitMs * 1_000_000L
         for (session in sessions) {
@@ -203,8 +285,16 @@ class SessionRegistry(
 
     private fun force(session: Session) {
         if (!session.process.isAlive) return
-        val group = session.group()
-        if (group != null && group > 1) {
+        val status = LauncherStatus.read(session.statusFile)
+        val groups = linkedSetOf<Int>()
+        (status?.group ?: status?.pid)?.let(groups::add)
+        val shell = status?.child
+        if (session.kind == SessionKind.TERMINAL && shell != null) {
+            // The shell leads its own session; its jobs have groups of their own in it.
+            groups.addAll(ProcessTable.groupsInSession(processes(), shell))
+        }
+        for (group in groups) {
+            if (group <= 1) continue
             try {
                 killGroup(group)
             } catch (refused: Exception) {
@@ -218,9 +308,50 @@ class SessionRegistry(
         /** How long a process gets between SIGTERM and SIGKILL. */
         const val DEFAULT_GRACE_MS = 1000L
 
+        /** Terminal sessions at once: the ninth is refused (PHASE_5_PLAN §10 item 6). */
+        const val DEFAULT_MAX_TERMINALS = 8
+
         /** The launcher's own SIGKILL phase (KILL_WAIT_MS in codeforge-spawn.c). */
         const val LAUNCHER_KILL_WAIT_MS = 3000L
 
         const val FORCE_MARGIN_MS = 1000L
     }
+}
+
+/**
+ * The processes /proc lists, as far as this process may see them: on Android
+ * the app's own (/proc is mounted with hidepid). For the last resort of
+ * [SessionRegistry]: the process groups of a terminal's session.
+ */
+object ProcessTable {
+    data class Entry(val pid: Int, val parent: Int, val group: Int, val session: Int, val state: Char)
+
+    fun read(proc: File = File("/proc")): List<Entry> =
+        proc.listFiles().orEmpty().mapNotNull { directory ->
+            val pid = directory.name.toIntOrNull() ?: return@mapNotNull null
+            try {
+                parse(pid, File(directory, "stat").readText(Charsets.UTF_8))
+            } catch (gone: IOException) {
+                null
+            }
+        }
+
+    /** `pid (comm) state ppid pgrp session ...`: the command name may hold spaces and parentheses. */
+    fun parse(pid: Int, stat: String): Entry? {
+        val close = stat.lastIndexOf(')')
+        if (close < 0 || close + 2 > stat.length) return null
+        val fields = stat.substring(close + 2).split(' ')
+        if (fields.size < 4) return null
+        return Entry(
+            pid = pid,
+            parent = fields[1].toIntOrNull() ?: return null,
+            group = fields[2].toIntOrNull() ?: return null,
+            session = fields[3].toIntOrNull() ?: return null,
+            state = fields[0].firstOrNull() ?: return null,
+        )
+    }
+
+    /** The process groups with a live process in [session]. */
+    fun groupsInSession(entries: List<Entry>, session: Int): Set<Int> =
+        entries.filter { it.session == session && it.state != 'Z' && it.state != 'X' }.map { it.group }.toSet()
 }

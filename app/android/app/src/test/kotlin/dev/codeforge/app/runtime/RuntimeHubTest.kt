@@ -299,6 +299,38 @@ class RuntimeHubTest {
     }
 
     @Test
+    fun terminalsWaitForAReadyRuntimeToo() {
+        var made = 0
+        val hub = RuntimeHub(
+            runtimeFactory = { SealedRuntime(TestPayload().source(), TestPayload.configFor(root, libraries)) },
+            worker = direct,
+            deliver = { task -> task.run() },
+            apkBytes = { 42L },
+            commandsFactory = {
+                made++
+                commandsFor { CommandResult.failed(CommandFailure.LAUNCH_FAILED, "unused") }
+            },
+            commandExecutor = direct,
+        )
+        var started: TerminalStart? = null
+        hub.startTerminal(TerminalSpec(), null) { started = it }
+        assertEquals(TerminalFailure.NOT_READY, started!!.failure)
+        assertNull(started.session)
+        assertEquals("nothing is made before the runtime is ready", 0, made)
+        assertNull(hub.terminals())
+        var left: Int? = null
+        hub.endAllTerminals { left = it }
+        assertEquals(0, left)
+
+        hub.start { }
+        assertEquals(RuntimeState.READY, hub.snapshot().state)
+        hub.startTerminal(TerminalSpec(), null) { started = it }
+        // This command side was made without terminals: refused, typed, never a crash.
+        assertEquals(TerminalFailure.NOT_READY, started.failure)
+        assertEquals(1, made)
+    }
+
+    @Test
     fun aFailedInstallTakesNoCommands() {
         val payload = TestPayload(wrongDigestFor = "etc/profile")
         val hub = RuntimeHub(

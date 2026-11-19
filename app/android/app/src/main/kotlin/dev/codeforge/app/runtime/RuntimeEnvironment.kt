@@ -67,8 +67,15 @@ class RuntimeEnvironment(
         }
     }
 
-    /** Every variable a command running in [directory] gets, and nothing more. */
-    fun variables(directory: File): Map<String, String> {
+    /**
+     * Every variable a command running in [directory] gets, and nothing
+     * more. A [terminal] session's (Phase 5 W2) differ in four: TERM is
+     * xterm-256color instead of dumb, with COLORTERM=truecolor (the terminal
+     * view, xterm.js, draws both); SHELL is the runtime's bash; and TERMINFO
+     * names the payload's terminal descriptions, since ncurses looks for them
+     * under Termux's official prefix, which does not exist here.
+     */
+    fun variables(directory: File, terminal: Boolean = false): Map<String, String> {
         val variables = LinkedHashMap<String, String>()
         for (name in PASSED_FROM_ANDROID) {
             val value = host[name]
@@ -84,10 +91,18 @@ class RuntimeEnvironment(
         variables["XDG_CACHE_HOME"] = xdgCache.absolutePath
         variables["LANG"] = "C.UTF-8"
         variables["LC_ALL"] = "C.UTF-8"
-        // One-shot commands have no terminal (Phase 5's sessions will).
-        variables["TERM"] = "dumb"
-        val shell = File(bin, "sh")
+        if (terminal) {
+            variables["TERM"] = "xterm-256color"
+            variables["COLORTERM"] = "truecolor"
+        } else {
+            // One-shot commands have no terminal.
+            variables["TERM"] = "dumb"
+        }
+        val bash = File(bin, "bash")
+        val shell = if (terminal && bash.exists()) bash else File(bin, "sh")
         variables["SHELL"] = if (shell.exists()) shell.absolutePath else "/system/bin/sh"
+        val descriptions = File(prefix, "share/terminfo")
+        if (terminal && descriptions.isDirectory) variables["TERMINFO"] = descriptions.absolutePath
         variables["PREFIX"] = prefix.absolutePath
         // What harness-exec.c translates Termux's official paths to:
         // .../files/usr, .../files and the app's data directory, in the rootfs.

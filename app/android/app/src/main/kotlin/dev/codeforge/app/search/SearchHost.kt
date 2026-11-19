@@ -253,7 +253,7 @@ class SearchHost(
         const val TAG = "CodeForgeSearch"
 
         /** Where projects live: `<filesDir>/workspaces` (lib/services/platform/app_directories.dart). */
-        const val PROJECTS = "workspaces"
+        const val PROJECTS = RuntimeHubs.PROJECTS
 
         /** ripgrep's stderr kept: its complaints about files it could not read. */
         const val STDERR_LIMIT = 64 * 1024

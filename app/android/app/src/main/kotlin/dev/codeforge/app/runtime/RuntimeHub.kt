@@ -79,6 +79,10 @@ data class RuntimeStatus(
  * run only while the runtime is READY or DEGRADED, and never during an
  * install: an install first ends every session (SessionRegistry.endAll) and
  * holds the prefix's write lock, while each command holds its read lock.
+ *
+ * Terminal sessions (Phase 5 W2) start the same way, on [commandExecutor]
+ * under the read lock, but outlive the call: the registry holds them, and an
+ * install ends them with the rest before it touches the prefix.
  */
 class RuntimeHub(
     private val runtimeFactory: () -> SealedRuntime,
@@ -243,6 +247,55 @@ class RuntimeHub(
         }
     }
 
+    /**
+     * Starts a terminal session (Phase 5 W2) with [view] attached from its
+     * first byte, on a command thread while no install can touch the prefix,
+     * and answers with it or why not: NOT_READY at once unless the runtime
+     * is READY or DEGRADED.
+     */
+    fun startTerminal(spec: TerminalSpec, view: TerminalOutputListener?, answer: (TerminalStart) -> Unit) {
+        val state = snapshot().state
+        if (!usable(state) || commandsFactory == null) {
+            deliver(Runnable { answer(TerminalStart.failed(TerminalFailure.NOT_READY, "the runtime is ${state.code}")) })
+            return
+        }
+        commandExecutor.execute {
+            val started = try {
+                withPrefix { commands ->
+                    commands.terminals?.start(spec, view)
+                        ?: TerminalStart.failed(TerminalFailure.NOT_READY, "this runtime has no terminals")
+                } ?: TerminalStart.failed(TerminalFailure.NOT_READY, "the runtime is ${snapshot().state.code}")
+            } catch (failure: Exception) {
+                TerminalStart.failed(TerminalFailure.LAUNCH_FAILED, failure.toString())
+            }
+            deliver(Runnable { answer(started) })
+        }
+    }
+
+    /** The terminal sessions, once a command, a probe or a terminal has made the command side. */
+    fun terminals(): Terminals? = currentCommands()?.terminals
+
+    /**
+     * The user's End all for terminals (Phase 5 W2): ends every terminal
+     * session with everything it started, on a command thread, and answers
+     * how many still run.
+     */
+    fun endAllTerminals(answer: (Int) -> Unit) {
+        val terminals = terminals()
+        if (terminals == null) {
+            deliver(Runnable { answer(0) })
+            return
+        }
+        commandExecutor.execute {
+            val left = try {
+                terminals.endAll()
+            } catch (failure: Exception) {
+                terminals.list().count { it.state != TerminalState.EXITED }
+            }
+            deliver(Runnable { answer(left) })
+        }
+    }
+
     /** The command side, when a command or probe has made it. */
     fun currentCommands(): RuntimeCommands? = synchronized(commandsLock) { commands }
 
@@ -355,10 +408,15 @@ class RuntimeHub(
         lastProgressAt = Long.MIN_VALUE
         // No command may run while the prefix is replaced: every session is
         // ended (and new ones refused), then the install holds the prefix alone.
-        val sessions = currentCommands()?.sessions
-        sessions?.endAll(EndReason.ENDED)
+        currentCommands()?.sessions?.endAll(EndReason.ENDED)
         prefixLock.writeLock().lock()
+        // A terminal holds the prefix's lock only while it starts (Phase 5 W2),
+        // so one that started meanwhile (refused, and so ended at once) may
+        // still be ending, and the command side may have been made meanwhile:
+        // ended and waited for again, under the lock.
+        val sessions = currentCommands()?.sessions
         try {
+            sessions?.endAll(EndReason.ENDED)
             val result = runtime().install { done, total -> progress(done, total) }
             update {
                 copy(

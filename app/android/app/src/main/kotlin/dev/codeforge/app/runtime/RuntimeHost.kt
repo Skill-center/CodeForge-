@@ -10,6 +10,9 @@ import dev.codeforge.runtime.core.HarnessConfig
 import io.flutter.plugin.common.BinaryMessenger
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -165,6 +168,12 @@ internal fun ToolsReport.toMessage(): ToolsMessage =
 object RuntimeHubs {
     private const val TAG = "CodeForgeRuntime"
 
+    /** Commands, probes and terminal starts at once (Phase 5 W2: a bounded pool); more wait their turn. */
+    const val COMMAND_THREADS = 16
+
+    /** Where projects live, in the app's files: the folders a terminal may start in (SearchHost's too). */
+    const val PROJECTS = "workspaces"
+
     @Volatile
     private var hub: RuntimeHub? = null
 
@@ -181,11 +190,18 @@ object RuntimeHubs {
                 priority = Thread.NORM_PRIORITY - 1
             }
         }
-        // Commands run beside the worker (Phase 4 W4), each on a thread of its own.
+        // Commands run beside the worker (Phase 4 W4), at most COMMAND_THREADS
+        // at once (Phase 5 W2); the rest wait in order, and idle threads end.
         val threads = AtomicInteger()
-        val commandThreads = Executors.newCachedThreadPool { task ->
+        val commandThreads = ThreadPoolExecutor(
+            COMMAND_THREADS,
+            COMMAND_THREADS,
+            30L,
+            TimeUnit.SECONDS,
+            LinkedBlockingQueue<Runnable>(),
+        ) { task ->
             Thread(task, "codeforge-command-${threads.incrementAndGet()}").apply { isDaemon = true }
-        }
+        }.apply { allowCoreThreadTimeOut(true) }
         // HarnessPaths creates its folders: made on the worker or a command
         // thread, never the main thread, and once for both.
         val config = lazy { HarnessConfig.builder(app).build() }
@@ -200,6 +216,8 @@ object RuntimeHubs {
                     // The last resort when a launcher outlives its own kill
                     // phase: SIGKILL to its whole process group.
                     killGroup = { group -> Os.kill(-group, OsConstants.SIGKILL) },
+                    // A terminal may start in a project's folder, named by Dart, resolved here (E3).
+                    projects = File(app.filesDir, PROJECTS),
                 )
             },
             commandExecutor = commandThreads,
