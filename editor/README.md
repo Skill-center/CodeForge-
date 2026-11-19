@@ -1,11 +1,19 @@
-# CodeForge editor page
+# CodeForge editor and terminal pages
 
-The editor surface that the Flutter app hosts in a WebView: CodeMirror 6 behind
-a small, versioned message protocol. Dart owns documents, files, journaling and
-saving; this page owns rendering, input, selection and in-editor undo. Design
-and budgets: [EDITOR_ARCHITECTURE.md](../docs/EDITOR_ARCHITECTURE.md),
-[ADR-0004](../docs/adr/0004-editor-engine.md),
-[PHASE_2_PLAN.md](../docs/phases/PHASE_2_PLAN.md).
+The web pages the Flutter app hosts in WebViews, each behind a small, versioned
+message protocol:
+
+- **The editor page:** CodeMirror 6. Dart owns documents, files, journaling
+  and saving; the page owns rendering, input, selection and in-editor undo.
+  Design and budgets: [EDITOR_ARCHITECTURE.md](../docs/EDITOR_ARCHITECTURE.md),
+  [ADR-0004](../docs/adr/0004-editor-engine.md),
+  [PHASE_2_PLAN.md](../docs/phases/PHASE_2_PLAN.md).
+- **The terminal page** (Phase 5 W3): xterm.js 6, one terminal per session.
+  The host owns the sessions and their processes; the page draws them, turns
+  keys, the input method, touches and pastes into input, and acknowledges what
+  it has drawn. Design: [TERMINAL_ARCHITECTURE.md](../docs/TERMINAL_ARCHITECTURE.md),
+  [ADR-0006](../docs/adr/0006-terminal-frontend.md),
+  [PHASE_5_PLAN.md](../docs/phases/PHASE_5_PLAN.md) W3.
 
 | Command | What it does |
 |---|---|
@@ -13,8 +21,8 @@ and budgets: [EDITOR_ARCHITECTURE.md](../docs/EDITOR_ARCHITECTURE.md),
 | `npm run typecheck` | `tsc --noEmit`, strict |
 | `npm test` | vitest: protocol fixtures, change sets checked against CM6, batcher, languages, controller, bridge |
 | `npm run licenses` | runtime dependencies against the licence allowlist |
-| `npm run build` | writes `app/assets/editor/{editor.html,manifest.json,NOTICES.txt}` |
-| `npm run verify` | checks the built page and boots it against a fake host |
+| `npm run build` | writes `app/assets/editor/{editor.html,manifest.json,NOTICES.txt}` and `app/assets/terminal/{terminal.html,manifest.json,NOTICES.txt}` |
+| `npm run verify` | checks both built pages and boots each against a fake host (the terminal with the real xterm.js) |
 | `npm run ci` | all of the above, in CI order (the `editor` job in `.github/workflows/ci.yml`) |
 
 ## Layout
@@ -27,8 +35,10 @@ and budgets: [EDITOR_ARCHITECTURE.md](../docs/EDITOR_ARCHITECTURE.md),
 | `src/editor/` | `controller.ts` (documents, commands, search), `batcher.ts` (150 ms change batching), `languages.ts`, `theme.ts` |
 | `src/bridge.ts`, `src/main.ts` | host channel and page entry point |
 | `src/page.html` | page template: CSP, inline style, inline script |
-| `test/fixtures/` | JSON contract fixtures, shared with the Dart tests |
-| `tool/` | `build.mjs`, `verify_bundle.mjs`, `check_licenses.mjs` |
+| `src/terminal/` | the terminal page: `protocol.ts` (terminal protocol v1) and `validate.ts`, `controller.ts` (one xterm.js per session, writes and their acknowledgements, input), `keys.ts` (extra keys, Ctrl and Alt, paste sanitizing), `touch.ts` (scrolling and selecting by touch), `bridge.ts`, `main.ts`, `page.html` |
+| `test/fixtures/` | JSON contract fixtures, shared with the Dart tests (`terminal/` for the terminal protocol) |
+| `bench/terminal_composition_cases.json` | the terminal's composition suite, played on the emulator by `tool/terminal_cdp.mjs` |
+| `tool/` | `build.mjs` and `build_terminal.mjs`, `verify_bundle.mjs` and `verify_terminal.mjs`, `check_licenses.mjs`, `notices.mjs` |
 
 ## The page
 

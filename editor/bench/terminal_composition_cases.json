@@ -1,0 +1,55 @@
+{
+  "description": "IME composition suite for the terminal (Phase 5 W3, gate G3), played through the DevTools protocol by tool/terminal_cdp.mjs into the terminal page while `cat > file` runs in the session. compose = Input.imeSetComposition (caret at the end of the composing text); commit and insert = Input.insertText (commits an active composition); key = Input.dispatchKeyEvent. Every case ends with Enter, so `cat` writes it as one line; a case passes when its line equals `expected`. Unlike the editor's suite (composition_cases.json) a backspace inside a composition is the input method's own (the composition shrinks), as Gboard does it; a Backspace key after a commit reaches the terminal, whose line discipline erases one character.",
+  "cases": [
+    {
+      "id": "latin-predictive",
+      "steps": [["compose", "h"], ["compose", "he"], ["compose", "hel"], ["compose", "hello"], ["commit", "hello"], ["insert", " "], ["compose", "w"], ["compose", "wo"], ["compose", "world"], ["commit", "world"]],
+      "expected": "hello world"
+    },
+    {
+      "id": "autocorrect-replace",
+      "steps": [["compose", "t"], ["compose", "te"], ["compose", "teh"], ["commit", "the"]],
+      "expected": "the"
+    },
+    {
+      "id": "pinyin",
+      "steps": [["compose", "n"], ["compose", "ni"], ["compose", "nih"], ["compose", "niha"], ["compose", "nihao"], ["commit", "你好"]],
+      "expected": "你好"
+    },
+    {
+      "id": "japanese",
+      "steps": [["compose", "k"], ["compose", "か"], ["compose", "かn"], ["compose", "かん"], ["compose", "かんj"], ["compose", "かんじ"], ["commit", "漢字"]],
+      "expected": "漢字"
+    },
+    {
+      "id": "hangul",
+      "steps": [["compose", "ㅎ"], ["compose", "하"], ["compose", "한"], ["commit", "한"], ["compose", "ㄱ"], ["compose", "그"], ["compose", "글"], ["commit", "글"]],
+      "expected": "한글"
+    },
+    {
+      "id": "emoji",
+      "steps": [["insert", "😀"], ["insert", "👍🏽"], ["insert", "👩‍💻"]],
+      "expected": "😀👍🏽👩‍💻"
+    },
+    {
+      "id": "cancel-composition",
+      "steps": [["insert", "a"], ["compose", "x"], ["compose", "xyz"], ["compose", ""], ["insert", "b"]],
+      "expected": "ab"
+    },
+    {
+      "id": "ime-backspace",
+      "steps": [["compose", "c"], ["compose", "co"], ["compose", "cod"], ["compose", "co"], ["compose", "cop"], ["commit", "copy"]],
+      "expected": "copy"
+    },
+    {
+      "id": "backspace-after-commit",
+      "steps": [["compose", "w"], ["compose", "wo"], ["compose", "word"], ["commit", "words"], ["key", "Backspace"]],
+      "expected": "word"
+    },
+    {
+      "id": "words-and-spaces",
+      "steps": [["insert", "ls"], ["insert", " "], ["compose", "-"], ["commit", "-la"], ["insert", " "], ["compose", "s"], ["compose", "sr"], ["commit", "src"]],
+      "expected": "ls -la src"
+    }
+  ]
+}

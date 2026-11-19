@@ -92,14 +92,14 @@ The Dart and Flutter packages in the app's dependency closure: `pubspec.yaml`'s 
 
 <!-- dart:end -->
 
-## 3. The editor page's packages
+## 3. The web pages' packages
 
-The editor page is built from `editor/`: CodeMirror 6 and its language packages. Its build writes their licence texts to `NOTICES.txt`, which ships beside the page in the APK and appears in the app's licence page. `editor/tool/check_licenses.mjs` checks their licences, and `editor/tool/notices.mjs` writes and checks this list, on every CI run.
+Two pages are built from `editor/`: the editor (CodeMirror 6 and its language packages) and, since Phase 5 W3, the terminal (xterm.js 6 with its fit and Unicode 11 addons, all MIT). Each page's build writes its packages' licence texts to a `NOTICES.txt` that ships beside the page in the APK and appears in the app's licence page. `editor/tool/check_licenses.mjs` checks their licences, and `editor/tool/notices.mjs` writes and checks this list, on every CI run.
 
 <!-- editor:begin -->
 <!-- Written by editor/tool/notices.mjs from editor/package-lock.json. Do not edit by hand: CI checks it. -->
 
-**27 packages** can end up in the editor page's bundle: MIT 27. Their licence texts ship in the app as `assets/editor/NOTICES.txt` and appear in its licence page.
+**30 packages** can end up in the editor's or the terminal's page: MIT 30. Their licence texts ship in the app beside each page (`assets/editor/NOTICES.txt`, `assets/terminal/NOTICES.txt`) and appear in its licence page.
 
 | Package | Version | Licence |
 |---|---|---|
@@ -127,6 +127,9 @@ The editor page is built from `editor/`: CodeMirror 6 and its language packages.
 | @lezer/markdown | 1.8.1 | MIT |
 | @lezer/python | 1.1.19 | MIT |
 | @marijn/find-cluster-break | 1.0.4 | MIT |
+| @xterm/addon-fit | 0.11.0 | MIT |
+| @xterm/addon-unicode11 | 0.9.0 | MIT |
+| @xterm/xterm | 6.0.0 | MIT |
 | crelt | 1.0.7 | MIT |
 | style-mod | 4.1.4 | MIT |
 | w3c-keyname | 2.2.8 | MIT |

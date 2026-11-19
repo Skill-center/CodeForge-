@@ -101,6 +101,24 @@ jobs:
         continue-on-error: true
         run: node tool/verify_bundle.mjs 2>&1 | tee ../editor-results/verify.txt
 
+      # The terminal page (Phase 5 W3): xterm.js, built and verified the same
+      # way (tool/build_terminal.mjs, tool/verify_terminal.mjs: CSP hash,
+      # nothing external, manifest, budget, and a protocol round trip with
+      # the real xterm.js).
+      - name: Build the terminal page
+        id: build_terminal
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: |
+          node tool/build_terminal.mjs 2>&1 | tee ../editor-results/build_terminal.txt
+          cp ../app/assets/terminal/manifest.json ../editor-results/terminal_manifest.json
+
+      - name: Verify the terminal page
+        id: verify_terminal
+        if: steps.build_terminal.outcome == 'success'
+        continue-on-error: true
+        run: node tool/verify_terminal.mjs 2>&1 | tee ../editor-results/verify_terminal.txt
+
       - name: Upload editor results
         if: always()
         uses: actions/upload-artifact@v7
@@ -117,13 +135,23 @@ jobs:
           path: app/assets/editor/
           if-no-files-found: error
 
+      - name: Upload terminal page
+        if: steps.build_terminal.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: terminal-page
+          path: app/assets/terminal/
+          if-no-files-found: error
+
       - name: Enforce editor gates
         if: always()
         run: |
           fail=0
           for gate in "install=${{ steps.install.outcome }}" "typecheck=${{ steps.typecheck.outcome }}" \
                       "tests=${{ steps.tests.outcome }}" "licenses=${{ steps.licenses.outcome }}" \
-                      "build=${{ steps.build.outcome }}" "verify=${{ steps.verify.outcome }}"; do
+                      "build=${{ steps.build.outcome }}" "verify=${{ steps.verify.outcome }}" \
+                      "build_terminal=${{ steps.build_terminal.outcome }}" \
+                      "verify_terminal=${{ steps.verify_terminal.outcome }}"; do
             echo "$gate"
             [ "${gate#*=}" = "success" ] || fail=1
           done
@@ -193,6 +221,15 @@ jobs:
         with:
           name: editor-page
           path: app/assets/editor
+
+      # The terminal page (Phase 5 W3), the same way.
+      - name: Fetch the terminal page
+        id: terminal_page
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: terminal-page
+          path: app/assets/terminal
 
       # Captured so a failed resolution still reaches the diagnostics
       # commit (bootstrap) and the job summary.
@@ -795,9 +832,10 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in editor_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts release_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk release_manifest; do
+          for gate in editor_page terminal_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts release_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk release_manifest; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
+              terminal_page) outcome="${{ steps.terminal_page.outcome }}" ;;
               lockfile) outcome="${{ steps.lockfile.outcome }}" ;;
               codegen) outcome="${{ steps.codegen.outcome }}" ;;
               format) outcome="${{ steps.format.outcome }}" ;;

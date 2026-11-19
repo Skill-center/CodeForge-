@@ -23,6 +23,7 @@ import 'services/perf/frame_stats.dart';
 import 'services/runtime/userland_licenses.dart';
 import 'services/settings/settings_store.dart';
 import 'services/shell/shell_state.dart';
+import 'services/terminal/terminal_page.dart';
 
 Future<void> bootstrap() async {
   final startup = runZonedGuarded(
@@ -56,6 +57,8 @@ Future<void> bootstrap() async {
       LicenseRegistry.addLicense(bundledBenchLicenses);
       // The Linux userland's packages and their texts (Phase 5 W1).
       LicenseRegistry.addLicense(bundledUserlandLicenses);
+      // The terminal page's npm packages: xterm.js (Phase 5 W3).
+      LicenseRegistry.addLicense(bundledTerminalLicenses);
       // Settings → Developer → Frame timing (G6 on a real device).
       if (!kReleaseMode) {
         frameStats.start();

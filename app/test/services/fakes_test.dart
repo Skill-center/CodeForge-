@@ -5,10 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('honest availability fakes', () {
-    test('terminal reports unavailable with a phase-accurate reason', () {
+    test('terminal reports unavailable, and says what it needs', () {
       final terminal = FakeTerminalService();
       expect(terminal.availability, TerminalAvailability.unavailable);
-      expect(terminal.unavailableReason, contains('Phase 5'));
+      expect(terminal.unavailableReason, contains('on Android'));
     });
 
     test('git summary is a labeled demo branch', () async {

@@ -86,6 +86,12 @@ abstract final class CfIcons {
   /// `content_copy`
   static const IconData contentCopy = IconData(0xe14d, fontFamily: fontFamily);
 
+  /// `content_paste`
+  static const IconData contentPaste = IconData(
+    0xe14f,
+    fontFamily: fontFamily,
+  );
+
   /// `copy_all`
   static const IconData copyAll = IconData(0xe2ec, fontFamily: fontFamily);
 
@@ -239,6 +245,9 @@ abstract final class CfIcons {
 
   /// `search`
   static const IconData search = IconData(0xef7a, fontFamily: fontFamily);
+
+  /// `select_all`
+  static const IconData selectAll = IconData(0xe162, fontFamily: fontFamily);
 
   /// `settings`
   static const IconData settings = IconData(0xe8b8, fontFamily: fontFamily);

@@ -1,9 +1,10 @@
 /// Honest fakes (docs/ARCHITECTURE.md §2.4) for the services whose phase
-/// has not come yet. Each reports its real availability instead of
-/// pretending. Files stopped being fake in Phase 2 W4
-/// (services/files/local_file_service.dart), the runtime in Phase 4 W3
-/// (services/runtime/runtime_service.dart), and search in Phase 4 W6
-/// (services/search/search_service.dart).
+/// has not come yet, or that have no host here. Each reports its real
+/// availability instead of pretending. Files stopped being fake in Phase 2
+/// W4 (services/files/local_file_service.dart), the runtime in Phase 4 W3
+/// (services/runtime/runtime_service.dart), search in Phase 4 W6
+/// (services/search/search_service.dart), and the terminal in Phase 5 W3
+/// (services/terminal/native/pigeon_terminal_service.dart).
 library;
 
 import 'dart:typed_data';
@@ -12,9 +13,10 @@ import '../core/errors/failure.dart';
 import '../core/terminal/terminal_models.dart';
 import 'contracts.dart';
 
-/// No terminal host: every session call fails as unavailable. The
-/// workbench's pane uses this until its view arrives (Phase 5 W3); the
-/// Pigeon client (services/terminal/native/) is the real one.
+/// No terminal host: every session call fails as unavailable. Widget tests
+/// that do not exercise the terminal use this, and the pane then says the
+/// terminal needs Android; the Pigeon client (services/terminal/native/,
+/// Phase 5 W2) is the real one.
 final class FakeTerminalService implements TerminalService {
   static const TerminalFailure _unavailable = TerminalFailure(
     'The terminal needs the Linux runtime, on Android.',
@@ -26,8 +28,8 @@ final class FakeTerminalService implements TerminalService {
 
   @override
   String get unavailableReason =>
-      'The terminal arrives in Phase 5, on the Linux runtime. '
-      'This pane is a preview of the real thing.';
+      'The terminal runs on the Linux runtime, on Android. '
+      'Here it has no runtime to run on.';
 
   @override
   Stream<TerminalOutput> get output => const Stream<TerminalOutput>.empty();

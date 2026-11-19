@@ -414,6 +414,7 @@ class CfToolbarKey {
     this.icon,
     this.onPressed,
     this.onLongPress,
+    this.toggled,
   }) : assert(label != null || icon != null, 'a key needs a label or icon');
 
   /// Unique within the toolbar; the key's widget key is `toolbar_<id>`.
@@ -428,6 +429,10 @@ class CfToolbarKey {
   /// Null disables the key.
   final VoidCallback? onPressed;
   final VoidCallback? onLongPress;
+
+  /// For a key that latches (the terminal's Ctrl and Alt, Phase 5 W3):
+  /// whether it is on. Null for an ordinary key.
+  final bool? toggled;
 }
 
 /// The symbol toolbar above the soft keyboard (Phase 2 W6): a scrolling row
@@ -492,13 +497,19 @@ class _ToolbarKeyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
     final enabled = spec.onPressed != null;
-    final foreground = enabled ? colors.textPrimary : colors.textDisabled;
+    final on = spec.toggled ?? false;
+    final foreground = !enabled
+        ? colors.textDisabled
+        : on
+        ? colors.accentEmber
+        : colors.textPrimary;
     final icon = spec.icon;
     final label = spec.label ?? '';
     return Semantics(
       container: true,
       button: true,
       enabled: enabled,
+      toggled: spec.toggled,
       label: spec.semanticLabel,
       child: InkWell(
         key: ValueKey('toolbar_${spec.id}'),
@@ -520,8 +531,9 @@ class _ToolbarKeyButton extends StatelessWidget {
             ),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: colors.surfaceRaised,
+                color: on ? colors.accentEmberSoft : colors.surfaceRaised,
                 borderRadius: BorderRadius.circular(CfRadius.sm),
+                border: on ? Border.all(color: colors.accentEmber) : null,
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: CfSpacing.sm),

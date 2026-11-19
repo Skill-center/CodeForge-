@@ -6,7 +6,9 @@
 /// testWidgets' fake async zone. Folders from shared storage come from a
 /// fake storage broker (test/support/fake_storage_broker.dart), and
 /// projects from in-memory project folders
-/// (test/support/memory_project_storage.dart).
+/// (test/support/memory_project_storage.dart). The terminal (Phase 5 W3)
+/// is the honest fake unless a test passes a scripted service, and its page
+/// is scripted too (test/support/fake_terminal_surface.dart).
 library;
 
 import 'package:codeforge/app.dart';
@@ -16,6 +18,8 @@ import 'package:codeforge/application/keyboard_state.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/design_system/theme/theme.dart';
+import 'package:codeforge/services/contracts.dart';
+import 'package:codeforge/services/fakes.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -33,6 +37,7 @@ import '../support/fake_hardware_keyboard.dart';
 import '../support/fake_runtime_service.dart';
 import '../support/fake_search_service.dart';
 import '../support/fake_storage_broker.dart';
+import '../support/fake_terminal_surface.dart';
 import '../support/memory_file_service.dart';
 import '../support/memory_project_storage.dart';
 
@@ -50,6 +55,7 @@ final class TestHarness {
     MemoryProjectStorage? projects,
     FakeRuntimeService? runtime,
     FakeSearchService? search,
+    TerminalService? terminal,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -60,7 +66,8 @@ final class TestHarness {
        backup = backup ?? FakeBackupService(),
        projects = projects ?? MemoryProjectStorage(),
        runtime = runtime ?? FakeRuntimeService(),
-       search = search ?? FakeSearchService();
+       search = search ?? FakeSearchService(),
+       terminal = terminal ?? FakeTerminalService();
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -97,6 +104,13 @@ final class TestHarness {
   /// answer, unless a test sets its results.
   final FakeSearchService search;
 
+  /// The terminal host (Phase 5 W3): the honest fake, unavailable, unless a
+  /// test passes a scripted one.
+  final TerminalService terminal;
+
+  /// Every scripted terminal page created through this harness, newest last.
+  final List<FakeTerminalSurface> terminalSurfaces = [];
+
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
 
@@ -126,6 +140,8 @@ final class TestHarness {
     backupServiceProvider.overrideWithValue(backup),
     runtimeServiceProvider.overrideWithValue(runtime),
     searchServiceProvider.overrideWithValue(search),
+    terminalServiceProvider.overrideWithValue(terminal),
+    ...fakeTerminalOverrides(terminalSurfaces.add),
     // The fake clock never sees a background isolate finish (Phase 3 W6).
     textDigesterProvider.overrideWithValue(digestTextInline),
     ...fakeEditorOverrides(editorSurfaces.add, editorPageLoader),

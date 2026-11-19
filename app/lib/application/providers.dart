@@ -28,6 +28,7 @@ import '../services/shell/shell_state.dart';
 import '../services/storage/app_database.dart';
 import '../services/storage/drift_session_store.dart';
 import '../services/storage/session_store.dart';
+import '../services/terminal/native/pigeon_terminal_service.dart';
 import 'shell_controller.dart';
 
 /// Overridden in bootstrap with the real prefs-backed store.
@@ -122,8 +123,15 @@ final backupServiceProvider = Provider<BackupService>((ref) {
   return const ChannelBackupService();
 });
 
+/// Terminal sessions on the sealed runtime (Phase 5 W2–W3), through the
+/// Kotlin terminal host (android/…/terminal/TerminalHost.kt). Without a host
+/// (`flutter test`) every call fails as unavailable; tests override this
+/// with the honest fake (services/fakes.dart) or a scripted service.
 final terminalServiceProvider = Provider<TerminalService>((ref) {
-  return FakeTerminalService();
+  ref.keepAlive();
+  final service = PigeonTerminalService();
+  ref.onDispose(() => unawaited(service.dispose()));
+  return service;
 });
 
 /// The sealed runtime, through the Kotlin runtime host (Phase 4 W3,

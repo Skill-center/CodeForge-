@@ -1,5 +1,6 @@
 /// [EditorSurface] on the Android System WebView (webview_flutter 4.14.1),
-/// hardened as docs/SECURITY.md §3 describes.
+/// hardened as docs/SECURITY.md §3 describes. The terminal page runs in one
+/// too, with its own origin (Phase 5 W3).
 ///
 /// webview_flutter_android does not expose `onRenderProcessGone`, so if the
 /// WebView's renderer dies Android ends the app process, and the text comes
@@ -23,12 +24,20 @@ import 'editor_surface.dart';
 const String editorPageBaseUrl =
     'https://appassets.androidplatform.net/editor/';
 
+/// The terminal page's base URL (Phase 5 W3), the same way.
+const String terminalPageBaseUrl =
+    'https://appassets.androidplatform.net/terminal/';
+
 /// The one JavaScript channel the page posts through.
 const String editorChannelName = 'CodeForgeBridge';
 
 final class WebViewEditorSurface implements EditorSurface {
-  WebViewEditorSurface() : _controller = WebViewController();
+  /// [baseUrl] is the page's origin: the editor's by default, the terminal
+  /// page's for its own WebView (Phase 5 W3). Nothing is fetched from it.
+  WebViewEditorSurface({this.baseUrl = editorPageBaseUrl})
+    : _controller = WebViewController();
 
+  final String baseUrl;
   final WebViewController _controller;
   final StreamController<String> _messages =
       StreamController<String>.broadcast();
@@ -61,7 +70,7 @@ final class WebViewEditorSurface implements EditorSurface {
   Future<void> loadPage(String html) async {
     _html = html;
     await (_setup ??= _configure());
-    await _controller.loadHtmlString(html, baseUrl: editorPageBaseUrl);
+    await _controller.loadHtmlString(html, baseUrl: baseUrl);
   }
 
   /// Everything here happens before the first load: a JavaScript channel
@@ -143,7 +152,7 @@ final class WebViewEditorSurface implements EditorSurface {
       return;
     }
     await (_setup ??= _configure());
-    await _controller.loadHtmlString(html, baseUrl: editorPageBaseUrl);
+    await _controller.loadHtmlString(html, baseUrl: baseUrl);
   }
 
   @override

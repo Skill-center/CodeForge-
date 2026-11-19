@@ -17,16 +17,16 @@ import {
 } from './types';
 
 /** Returns null when valid, otherwise a short reason naming the bad path. */
-type Check = (value: unknown, path: string) => string | null;
+export type Check = (value: unknown, path: string) => string | null;
 
-const ID_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/;
+export const ID_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/;
 const DOC_ID_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
-const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/;
+export const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/;
 
-const isObject = (v: unknown): v is Record<string, unknown> =>
+export const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
-const str =
+export const str =
   (opts: { min?: number; max?: number; pattern?: RegExp; lfOnly?: boolean } = {}): Check =>
   (v, path) => {
     if (typeof v !== 'string') return `${path} must be a string`;
@@ -37,7 +37,7 @@ const str =
     return null;
   };
 
-const int =
+export const int =
   (opts: { min?: number; max?: number } = {}): Check =>
   (v, path) => {
     if (typeof v !== 'number' || !Number.isSafeInteger(v)) return `${path} must be an integer`;
@@ -46,7 +46,7 @@ const int =
     return null;
   };
 
-const num =
+export const num =
   (opts: { min?: number; max?: number } = {}): Check =>
   (v, path) => {
     if (typeof v !== 'number' || !Number.isFinite(v)) return `${path} must be a number`;
@@ -55,17 +55,17 @@ const num =
     return null;
   };
 
-const bool: Check = (v, path) => (typeof v === 'boolean' ? null : `${path} must be a boolean`);
+export const bool: Check = (v, path) => (typeof v === 'boolean' ? null : `${path} must be a boolean`);
 
-const oneOf =
+export const oneOf =
   (values: readonly string[]): Check =>
   (v, path) =>
     typeof v === 'string' && values.includes(v) ? null : `${path} must be one of: ${values.join(', ')}`;
 
-const anyValue: Check = () => null;
+export const anyValue: Check = () => null;
 
 /** Strict object: every required field present, optional fields typed, no others. */
-const obj =
+export const obj =
   (required: Record<string, Check>, optional: Record<string, Check> = {}): Check =>
   (v, path) => {
     if (!isObject(v)) return `${path} must be an object`;
@@ -86,7 +86,7 @@ const obj =
     return null;
   };
 
-const arrayOf =
+export const arrayOf =
   (item: Check, opts: { max?: number } = {}): Check =>
   (v, path) => {
     if (!Array.isArray(v)) return `${path} must be an array`;

@@ -53,6 +53,12 @@
 #                                  vs Monaco; information for ADR-0004), from
 #                                  editor_bench_<engine>.txt + the DevTools
 #                                  driver's editor_bench_cdp.json|.txt
+#   terminal.txt / terminal_*.txt  Phase 5 W3 G3: the terminal page in the
+#                                  app with a session on the runtime (typed
+#                                  echo; nano and top at the panel's size
+#                                  after turns; terminal_compose.json, the
+#                                  composition suite's lines as cat wrote
+#                                  them; the driver's and DevTools' logs)
 #   runtime.txt / runtime_*.txt    Phase 4 W3 G3: the sealed runtime. The
 #                                  instrumented tests' output and their
 #                                  report (first install, warm start, a
@@ -1576,6 +1582,108 @@ cat "$RESULTS/search.txt" >> "$RESULTS/attempts.txt"
 "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
 "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
 [ "$search_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Terminal (Phase 5 W3, G3: typed text echoes, nano and top fit the panel after a rotation, scripted composition loses nothing)"
+# integration_test/terminal_test.dart, in the build with the x86_64 payload
+# (still selected from the runtime group): the terminal page (xterm.js) in
+# the real app, with a session on the sealed runtime. The test asks for
+# outside input in the device log, as the keys group does
+# (TERMGATE <run>.<n> tap <x> <y> | text <word> | key <KEYCODE> |
+# rotate <0|1> | compose | done), and terminal_driver answers: taps, text
+# and keys through `adb shell input`, turns through the user rotation
+# setting, and `compose` by running editor/tool/terminal_cdp.mjs, which
+# plays bench/terminal_composition_cases.json into the page over its
+# DevTools socket and compares what `cat` wrote (terminal_compose.json).
+terminal_driver() {
+  local last="" line id kind status
+  echo "terminal driver: polling the log for requests ($(date +%T))"
+  while :; do
+    line=$("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null \
+      | grep 'TERMGATE ' | tail -n 1 | tr -d '\r')
+    # shellcheck disable=SC2086 # a request is a list of words by design.
+    set -- ${line#*TERMGATE }
+    id="${1:-}"
+    kind="${2:-}"
+    if [ -z "$id" ] || [ "$id" = "$last" ]; then
+      sleep 0.25
+      continue
+    fi
+    last="$id"
+    shift 2 || true
+    case "$kind" in
+      tap)
+        "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null
+        status=$?
+        echo "request $id: tap $* (exit $status, $(date +%T))"
+        ;;
+      text)
+        "$ADB" shell input text "${1:-}" < /dev/null
+        status=$?
+        echo "request $id: text $* (exit $status, $(date +%T))"
+        ;;
+      key)
+        "$ADB" shell input keyevent "${1:-}" < /dev/null
+        status=$?
+        echo "request $id: key $* (exit $status, $(date +%T))"
+        ;;
+      rotate)
+        "$ADB" shell settings put system accelerometer_rotation 0 < /dev/null
+        "$ADB" shell settings put system user_rotation "${1:-0}" < /dev/null
+        status=$?
+        echo "request $id: rotate $* (exit $status, $(date +%T))"
+        ;;
+      compose)
+        echo "request $id: the composition suite ($(date +%T))"
+        node ../editor/tool/terminal_cdp.mjs --adb "$ADB" --package "$APP_ID" \
+          --file files/workspaces/demo/.cf-compose.txt \
+          --out "$RESULTS/terminal_compose.json" \
+          > "$RESULTS/terminal_cdp.txt" 2>&1 < /dev/null
+        status=$?
+        echo "request $id: the composition suite exited $status ($(date +%T))"
+        tail -n 14 "$RESULTS/terminal_cdp.txt"
+        ;;
+      done) echo "request $id: done ($(date +%T))"; return 0 ;;
+      *) echo "request $id: unknown request '$kind'" ;;
+    esac
+  done
+}
+terminal_run() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  "$ADB" logcat -c < /dev/null
+  rm -f "$RESULTS/terminal_compose.json"
+  ITEST_LIMIT=25m ITEST_ATTEMPTS=1 run_itest terminal_itest integration_test/terminal_test.dart || return 1
+}
+terminal_driver > "$RESULTS/terminal_driver.txt" 2>&1 &
+terminal_driver_pid=$!
+terminal_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if terminal_run; then
+    terminal_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "terminal attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$terminal_driver_pid" 2>/dev/null || true
+wait "$terminal_driver_pid" 2>/dev/null || true
+# Portrait again, as the image started.
+"$ADB" shell settings put system user_rotation 0 < /dev/null || true
+compose_failures=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("failures", "missing"))' \
+  "$RESULTS/terminal_compose.json" 2>/dev/null || echo missing)
+[ "$compose_failures" = "0" ] || terminal_ok=0
+{
+  echo "terminal_group=$([ "$terminal_ok" = "1" ] && echo pass || echo fail)"
+  echo "terminal_compose_failures=$compose_failures"
+  grep -oE 'TERMINAL_GATE .*' "$RESULTS/terminal_itest.txt" 2>/dev/null | sed 's/^TERMINAL_GATE /terminal: /'
+  grep -E '\] (ok  |FAIL) ' "$RESULTS/terminal_cdp.txt" 2>/dev/null | sed 's/^\[terminal-cdp [0-9:]*\] /compose: /'
+} | tee "$RESULTS/terminal.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/terminal.txt" >> "$RESULTS/attempts.txt"
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$terminal_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

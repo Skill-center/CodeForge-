@@ -1,10 +1,12 @@
 /**
- * THIRD_PARTY_NOTICES.md's section for the editor page (Phase 4 W7): every
- * runtime package that can end up in the shipped bundle, from
- * package-lock.json, with its version and licence. Dev-only tools are not
+ * THIRD_PARTY_NOTICES.md's section for the web pages (Phase 4 W7; the
+ * terminal's since Phase 5 W3): every runtime package that can end up in the
+ * shipped editor or terminal page, from package-lock.json, with its version
+ * and licence. Dev-only tools are not
  * distributed and are left out, as in tool/check_licenses.mjs. The licence
- * texts themselves ship in the app as assets/editor/NOTICES.txt, written by
- * tool/build.mjs, and appear in the app's licence page (About).
+ * texts themselves ship in the app as assets/editor/NOTICES.txt and
+ * assets/terminal/NOTICES.txt, written by tool/build.mjs and
+ * tool/build_terminal.mjs, and appear in the app's licence page (About).
  *
  *   node tool/notices.mjs          rewrite the section
  *   node tool/notices.mjs --check  fail if it is stale (the editor job)
@@ -38,7 +40,7 @@ const section = [
   BEGIN,
   '<!-- Written by editor/tool/notices.mjs from editor/package-lock.json. Do not edit by hand: CI checks it. -->',
   '',
-  `**${rows.length} packages** can end up in the editor page's bundle: ${counts}. Their licence texts ship in the app as \`assets/editor/NOTICES.txt\` and appear in its licence page.`,
+  `**${rows.length} packages** can end up in the editor's or the terminal's page: ${counts}. Their licence texts ship in the app beside each page (\`assets/editor/NOTICES.txt\`, \`assets/terminal/NOTICES.txt\`) and appear in its licence page.`,
   '',
   '| Package | Version | Licence |',
   '|---|---|---|',

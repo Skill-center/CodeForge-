@@ -82,6 +82,10 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
   /// this state, so two workbenches during a route change never share it.
   final GlobalKey _editorPaneKey = GlobalKey(debugLabel: 'editor pane');
 
+  /// The terminal pane moves across the same way (Phase 5 W3): its page's
+  /// platform view is not rebuilt when the phone turns.
+  final GlobalKey _terminalPaneKey = GlobalKey(debugLabel: 'terminal pane');
+
   @override
   void initState() {
     super.initState();
@@ -352,12 +356,14 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
                   ? _CompactPortraitLayout(
                       shell: shell,
                       editorPaneKey: _editorPaneKey,
+                      terminalPaneKey: _terminalPaneKey,
                       onToggleTerminal: _toggleTerminal,
                     )
                   : _DockedLayout(
                       shell: shell,
                       form: form,
                       editorPaneKey: _editorPaneKey,
+                      terminalPaneKey: _terminalPaneKey,
                       onActivitySelected: _onActivitySelected,
                       onToggleTerminal: _toggleTerminal,
                     ),
@@ -405,11 +411,13 @@ class _CompactPortraitLayout extends ConsumerWidget {
   const _CompactPortraitLayout({
     required this.shell,
     required this.editorPaneKey,
+    required this.terminalPaneKey,
     required this.onToggleTerminal,
   });
 
   final ShellState shell;
   final GlobalKey editorPaneKey;
+  final GlobalKey terminalPaneKey;
   final VoidCallback onToggleTerminal;
 
   @override
@@ -436,6 +444,7 @@ class _CompactPortraitLayout extends ConsumerWidget {
               SizedBox(
                 height: terminalHeight,
                 child: TerminalPane(
+                  key: terminalPaneKey,
                   onClose: () => ref
                       .read(shellControllerProvider.notifier)
                       .setTerminalStop(TerminalStop.closed),
@@ -455,6 +464,7 @@ class _DockedLayout extends ConsumerWidget {
     required this.shell,
     required this.form,
     required this.editorPaneKey,
+    required this.terminalPaneKey,
     required this.onActivitySelected,
     required this.onToggleTerminal,
   });
@@ -462,6 +472,7 @@ class _DockedLayout extends ConsumerWidget {
   final ShellState shell;
   final CfFormFactor form;
   final GlobalKey editorPaneKey;
+  final GlobalKey terminalPaneKey;
   final ValueChanged<String> onActivitySelected;
   final VoidCallback onToggleTerminal;
 
@@ -516,6 +527,7 @@ class _DockedLayout extends ConsumerWidget {
                     SizedBox(
                       height: terminalHeight,
                       child: TerminalPane(
+                        key: terminalPaneKey,
                         onClose: () => ref
                             .read(shellControllerProvider.notifier)
                             .setTerminalStop(TerminalStop.closed),
