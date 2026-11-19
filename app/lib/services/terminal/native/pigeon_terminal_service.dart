@@ -96,7 +96,11 @@ final class PigeonTerminalService implements TerminalService {
         fields: {'op': 'acknowledge', 'code': error.code},
       );
     } on TimeoutException {
-      appLogger.warn('terminal', 'call_timed_out', fields: {'op': 'acknowledge'});
+      appLogger.warn(
+        'terminal',
+        'call_timed_out',
+        fields: {'op': 'acknowledge'},
+      );
     }
   }
 
@@ -163,8 +167,9 @@ final class PigeonTerminalService implements TerminalService {
   }
 
   /// A call that answers null when done, or the host's failure code.
-  static Result<void> _done(String? failure) =>
-      failure == null ? const Ok(null) : Err(terminalFailureFrom(failure, null));
+  static Result<void> _done(String? failure) => failure == null
+      ? const Ok(null)
+      : Err(terminalFailureFrom(failure, null));
 
   /// Runs one call: its result, or a [TerminalFailure] for a host that
   /// failed or never answered.

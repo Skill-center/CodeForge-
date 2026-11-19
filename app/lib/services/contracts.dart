@@ -241,7 +241,11 @@ abstract interface class TerminalService {
   Future<Result<void>> write(int id, Uint8List bytes);
 
   /// Tells session [id] its window's new size.
-  Future<Result<void>> resize(int id, {required int rows, required int columns});
+  Future<Result<void>> resize(
+    int id, {
+    required int rows,
+    required int columns,
+  });
 
   /// The view has drawn session [id]'s output before [offset].
   Future<void> acknowledge(int id, int offset);

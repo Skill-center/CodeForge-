@@ -116,19 +116,13 @@ void main() {
       expect(spec.environment, {'EDITOR': 'nano'});
       expect([spec.rows, spec.columns], [30, 100]);
 
-      await notice('output', [
-        7,
-        0,
-        Uint8List.fromList('hi\r\n'.codeUnits),
-      ]);
+      await notice('output', [7, 0, Uint8List.fromList('hi\r\n'.codeUnits)]);
       expect(output.single.sessionId, 7);
       expect(output.single.offset, 0);
       expect(String.fromCharCodes(output.single.bytes), 'hi\r\n');
       expect(output.single.end, 4);
 
-      await notice('changed', [
-        _info(7, state: 'exited', failure: 'ended'),
-      ]);
+      await notice('changed', [_info(7, state: 'exited', failure: 'ended')]);
       expect(changes.single.state, TerminalSessionState.exited);
       expect(changes.single.isRunning, isFalse);
       expect(changes.single.problem, TerminalProblem.ended);
@@ -287,7 +281,10 @@ void main() {
         expect(TerminalProblem.fromCode(key), value, reason: key);
         expect(terminalFailureFrom(key, null).message, isNotEmpty);
       }
-      expect(TerminalProblem.fromCode('something_new'), TerminalProblem.unknown);
+      expect(
+        TerminalProblem.fromCode('something_new'),
+        TerminalProblem.unknown,
+      );
       expect(TerminalProblem.fromCode(null), TerminalProblem.unknown);
       expect(
         TerminalSessionState.fromCode('starting'),
