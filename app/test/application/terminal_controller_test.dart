@@ -129,6 +129,16 @@ void main() {
     expect(service.resizes.last, (id: id, rows: 30, columns: 100));
   });
 
+  test('the page speaks only for the sessions the panel shows', () async {
+    final id = await start();
+    final resizes = service.resizes.length;
+    page().type(id + 5, 'rm -rf ~\r');
+    page().resize(id + 5, columns: 10, rows: 5);
+    await pumpEventQueue();
+    expect(service.writes, isEmpty);
+    expect(service.resizes, hasLength(resizes));
+  });
+
   test('closing a running session ends it, and the host forgets it', () async {
     final first = await start();
     final second = await start();

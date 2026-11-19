@@ -73,6 +73,19 @@ void main() {
     await view.dispose();
   });
 
+  testWidgets('a WebView older than the page’s floor is refused, with why', (
+    tester,
+  ) async {
+    await createView(tester, start: false);
+    page.engineMajor = 69;
+    await view.start();
+    await settle(tester);
+    expect(view.status.phase, TerminalViewPhase.failed);
+    expect(view.status.message, contains('version 69'));
+    expect(page.loads, 0);
+    await view.dispose();
+  });
+
   testWidgets('requests wait for nothing before the page is ready', (
     tester,
   ) async {

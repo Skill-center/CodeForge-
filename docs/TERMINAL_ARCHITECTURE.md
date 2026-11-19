@@ -1,6 +1,6 @@
 # Terminal Architecture
 
-**Status:** **Frontend decided 2026-11-12: xterm.js** (ADR-0006 by its rule; the owner chose Apache-2.0, ADR-0011) · **Backend built in Phase 5 W2** (§1, [ADR-0014](adr/0014-pty-and-sessions.md)): the PTY in CodeForge's launcher, CodeForge's own sessions, on t1's environment rules · The view: Phase 5 W3
+**Status:** **Frontend decided 2026-11-12: xterm.js** (ADR-0006 by its rule; the owner chose Apache-2.0, ADR-0011) · **Backend built in Phase 5 W2** (§1, [ADR-0014](adr/0014-pty-and-sessions.md)): the PTY in CodeForge's launcher, CodeForge's own sessions, on t1's environment rules · **View built in Phase 5 W3** (§2.1, §3): xterm.js in a WebView of its own, behind the terminal protocol v1
 
 ---
 
@@ -78,17 +78,60 @@ A command's (SECURITY §2.1, E2), with four differences: `TERM=xterm-256color` a
 
 **Decision rule:** if A passes and owner accepts GPLv3 (ADR-0011) → A. If owner wants permissive licensing → B (PTY JNI reused under its Apache-2.0 jackpal lineage, verified by legal review). If A fails perf → B. Recorded with numbers in PHASE_4_REPORT.md. **Applied 2026-11-12:** the owner chose a permissive licence (Apache-2.0), so B, xterm.js. The gate's budgets apply to xterm.js when Phase 5 builds it.
 
-## 3. Flutter-side terminal UX (either frontend)
+### 2.1 The terminal page, as built (Phase 5 W3)
 
-- Terminal lives in the workbench panel system: phone = bottom sheet (peek 64 dp / half / full); tablet = docked resizable panel. Sheet gestures never steal terminal scroll (gesture arena: terminal owns vertical drag inside its bounds).
-- **Terminal tabs** (Flutter UI): new session, rename, close (confirm if running), swipe between; session survives tab switches; optional persistence across app restarts = reattach if process alive, else "session ended (exit N)" tombstone.
-- **Extra-keys row** reuses the editor symbol toolbar component (Esc, Ctrl, Alt, Tab, arrows, |, ~, /) — terminal preset.
-- Copy/paste: long-press selection (frontend-native) + Flutter toolbar actions via bridge; paste sanitized (bracketed paste mode on).
-- **Run integrations (Phase 5):** "Run Current File" / "Run Project" resolve via RuntimeService capability model → spawn session with execution profile (`node file.js`, `python file.py`, `sh script.sh`, npm scripts discovered from package.json); status chip (running/exit N) + output deep-link. Run never blocks UI; cancellation = SIGTERM→SIGKILL escalation.
+```
+TerminalPane ── TerminalController ──TerminalService (Pigeon, §1.7)──▶ the sessions
+                     │      ▲
+          requests,  │      │ input, sizes, acks, title, bell,
+          writes     ▼      │ selection, focus, modifiers
+                  TerminalView ──surface── WebView: terminal.html (xterm.js, one terminal per session)
+```
+
+**The page** is built in `editor/` beside the editor's, with the same kit (`tool/page_kit.mjs`): one self-contained document (`tool/build_terminal.mjs` → `app/assets/terminal/terminal.html`, `manifest.json`, `NOTICES.txt`), inline script and style, the bundled JetBrains Mono, a CSP that pins the script's SHA-256 and denies everything else, no request at all. The app verifies it against its manifest before loading it (`services/terminal/terminal_page.dart`), under its own origin (`https://appassets.androidplatform.net/terminal/`). xterm.js 6.0.0 with addon-fit 0.11.0 (the panel's size) and addon-unicode11 0.9.0 (wide characters and emoji); the DOM renderer, no blinking cursor (nothing animates forever). At W3: 545.4 KiB, 174.2 KiB gzipped, against a budget of 256 KiB.
+
+**The terminal protocol v1** (`editor/src/terminal/protocol.ts` and `validate.ts`, mirrored by `app/lib/core/terminal/terminal_protocol.dart`; 36 valid and 31 invalid fixtures in `editor/test/fixtures/terminal/`, run by vitest and by Dart). The editor protocol's envelope and rules: `{v: 1, id, type, payload}`, unknown versions, types and fields rejected, every request answered once, except an accepted `session.write`, which `session.ack` answers.
+
+| From the host | | From the page | |
+|---|---|---|---|
+| `terminal.configure` | theme (21 colours from the tokens), font size, scrollback | `terminal.ready` | protocol, engine, version |
+| `terminal.focus` | give the shown terminal the keyboard, or take it | `terminal.focus` | the terminal took or lost the keyboard |
+| `terminal.modifiers` | Ctrl and Alt latched for the next key | `terminal.modifiers` | the latched keys were used |
+| `session.open` / `activate` / `close` | a session's view; open answers its fitted size | `session.input` | keys, the input method's text, mouse reports (`binary`) |
+| `session.write` | output, with a sequence number | `session.ack` | that write is parsed |
+| `session.key` | an extra key, by name or as one character, with modifiers | `session.resized` | the view's new size |
+| `session.paste` | text to paste | `session.title`, `session.bell` | the program's title, a bell |
+| `session.select`, `session.copy` | select all or nothing; the selection's text | `session.selection` | a selection began or ended |
+| `session.clear`, `session.snapshot` | clear the scrollback; the screen as text | `session.link` | a tapped link (W4's `file:line`) |
+| | | `terminal.log`, `response` | |
+
+**Output and flow control.** `TerminalController` decodes each session's bytes as UTF-8, holding back a sequence split between two batches, and writes each batch to its view with a sequence number. When xterm.js has parsed a write, the page sends `session.ack`, and only then does the controller acknowledge the batch's end to the host (§1.3). So the host's window, 256 KiB, is what the page has not yet parsed: a flood waits in the kernel, never in the app or the WebView. Output that arrives before a view is open (it can beat the start's answer) waits in the controller.
+
+**Input.** What xterm.js sends goes to the session as UTF-8; a mouse report marked `binary` as one byte per character. The extra keys travel as `session.key`, so the page sends the sequence the terminal's modes expect: `ESC O A` for Up once a program has asked for application cursor keys, `ESC [ 1 ; 5 A` for Ctrl+Up. Ctrl and Alt latch on the extra-keys row: the page applies them to the next typed character (Ctrl to C0, Alt as an ESC prefix) and reports them released. The input method goes through xterm.js's own composition handling; the composition suite proves it on the emulator (G3, `bench/terminal_composition_cases.json`).
+
+**Paste.** Pasted text, from the app's Paste or the WebView's own, loses every control character but tab and line breaks (an ESC could end bracketed paste early and run what follows), and its line breaks become CR. xterm.js then brackets it when the program asked. At most 256 Ki characters.
+
+**Touch.** xterm.js 6 reads no touch, so the page does (`touch.ts`): a drag scrolls the scrollback, or sends arrow keys in the alternate screen (less, man, nano), as Termux does; a long press selects the word under the finger (paths included) and moving on extends the selection; a tap focuses the terminal, which brings up the keyboard.
+
+**Sizes.** addon-fit sizes the shown terminal to the panel when the panel changes (at most every 50 ms). The page reports `session.resized`, and the controller resizes the session (`TIOCSWINSZ`, §1.1). New sessions start at the last size seen, so the shell rarely starts at 80×24.
+
+**A page restart.** The page lives as long as the app (`terminalViewProvider`) and loads with the first terminal. If it restarts, every session's view is opened again and refilled from the session's buffer (`TerminalService.attach`), skipping what the buffer already held.
+
+**The surface.** The terminal page runs in a WebView of its own, hardened as the editor's (`WebViewEditorSurface` with the terminal's origin; SECURITY §3). Android's WebViews share one renderer process, so the terminal adds its page's memory rather than a process; ADR-0006's budget, a delta of 80 MB or less, is measured in W6.
+
+## 3. Flutter-side terminal UX, as built (Phase 5 W3)
+
+- **The panel** is the workbench's terminal pane, on the three stops it has had since Phase 1 (phone: peek, half, full; tablet and landscape: docked and resizable). It keeps its page across a rotation, as the editor pane does (a GlobalKey). Without a terminal host (tests, the honest fake) it says the terminal needs Android.
+- **Tabs** (`features/workbench/panels/terminal_pane.dart`): New terminal (in the open project's folder; a folder from shared storage starts in the runtime's home until W4's copy), rename by a long press, close (a running session asks first: closing ends what it started), and a swipe across the tabs for the next or the previous. They share the header's width; the shown tab keeps a close button when there is room, and the menu always offers Close, Rename, Clear scrollback and End all (which asks first). A dot shows each session's state, and a bell rung in a hidden tab.
+- **The extra-keys row** is the editor's symbol toolbar component (`CfSymbolToolbar`) with the terminal's keys (`core/terminal/extra_keys.dart`): Esc, Ctrl, Alt, Tab, the arrows, `|`, `~`, `/`, then `-`, Home, End, PgUp and PgDn. Ctrl and Alt are latching keys (`CfToolbarKey.toggled`). At its end: Copy and Select all while there is a selection, then Paste and the keyboard. The row shows while the shown session runs and the panel has room for it (not at the peek stop).
+- **Copy and paste:** a long press selects in the page; Copy puts the selection on the clipboard and drops it; Paste sends the clipboard's text, which the page sanitizes.
+- **Endings:** a session that ended keeps its tab and its output, with a line saying how it ended (`exited with code N`, `ended`, `ended by signal N`) and Close. Persistence across app restarts (tombstones) comes with W5's foreground service.
+- **The appearance** follows the theme, the editor's font size and the user's text scale (`terminal_appearance.dart`): the tokens give the background, foreground, cursor, selection and an ANSI palette (red, green, yellow and blue are the status colours; magenta and cyan the keyword and operator colours).
+- **Run integrations (W4):** "Run Current File" / "Run Project" resolve via RuntimeService capability model → spawn session with execution profile (`node file.js`, `python file.py`, `sh script.sh`, npm scripts discovered from package.json); status chip (running/exit N) + output deep-link. Run never blocks UI; cancellation = SIGTERM→SIGKILL escalation.
 
 ## 4. Lifecycle & resource rules
 
 - Sessions owned by foreground service with notification ("2 terminal sessions running") — user can kill all from notification.
 - Backgrounded app: sessions keep running (service); the WebView frontend (B, chosen) may be detached — output is buffered in the host session's buffer and reattached on resume.
 - Memory pressure: inactive session scrollback trimmed to configured rows; frontends destroyed/recreated lazily; **processes are never killed silently** for memory — only scrollback/renderers are reclaimed.
-- Resize: panel/sheet size changes → rows/cols ioctl (A) or `fit` addon (B), debounced 100 ms; rotation tested with `vim`, `htop`, `node` REPL.
+- Resize: panel/sheet size changes → the `fit` addon (at most every 50 ms) → `session.resized` → the session's `TIOCSWINSZ` (§2.1). The emulator gate turns the phone with `nano` and `top` (G3); `vim` and `htop` are not in the runtime.

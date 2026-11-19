@@ -45,11 +45,19 @@
 |---|---|---|---|
 | Editor engine | **CodeMirror 6** (chosen: ADR-0004 Accepted 2026-11-06) | @codemirror/view **6.43.15**, state **6.7.6**, commands 6.11.1, language 6.13.1, search 6.7.2, autocomplete 6.20.4, @lezer/highlight 1.2.5, and the language packages for JavaScript 6.2.5, Python 6.2.1, JSON 6.0.2, HTML 6.4.12, CSS 6.3.1 and Markdown 6.5.2 | Mobile-native selection and IME, modular. As built, the shipped page with all of it is 285.1 KiB gzipped (budget 1.5 MB). It was chosen over Monaco on the emulator gate and the owner's low-end phone (PHASE_2_REPORT §7.1) |
 | Editor challenger | Monaco | 0.57.0 | Benchmarked in the Phase 2 gate; upstream states mobile browsers unsupported — uphill battle, evidence required to overturn CM6. As built (W3): an exact-pinned **dev** dependency of `editor/`, used only for the benchmark page (no web workers, in-process fallback); never part of the shipped editor page. Its bundled third-party notices (marked, DOMPurify) ship with the benchmark page |
-| Terminal frontend | **@xterm/xterm** | 6.0.0 (+ addon-fit 0.11.0) | **Chosen 2026-11-12** by ADR-0006's rule: the licence is permissive (Apache-2.0, ADR-0011). Built in Phase 5; versions re-verified then |
+| Terminal frontend | **@xterm/xterm** | **6.0.0** + @xterm/addon-fit **0.11.0** + @xterm/addon-unicode11 **0.9.0** — as built (Phase 5 W3), exact pins, re-verified on npm (6.0.0 is `latest`) | **Chosen 2026-11-12** by ADR-0006's rule: the licence is permissive (Apache-2.0, ADR-0011). The terminal page (TERMINAL_ARCHITECTURE §2.1) is 174.2 KiB gzipped at W3 (budget 256 KiB). addon-webgl 0.19.0 waits for W6's measurement; addon-search and addon-web-links are not used |
 | ~~Terminal frontend (primary candidate)~~ | ~~vendored **terminal-view** (native)~~ | — | **Not used** (2026-11-12): Termux-derived, conservatively GPLv3, which the Apache-2.0 app does not ship (ADR-0011) |
 | JS build | **esbuild** | 0.28.2 | Single-file bundle, deterministic, fast CI; no webpack |
 | JS language | TypeScript | **5.9.3** — as built (exact pin). npm `latest` is the 7.x Go-based rewrite; Phase 2 stayed on 5.9, and moving is a separate upgrade | Type-safe bridge protocol |
 | JS tests | **vitest** + happy-dom | 5.1.0 + 21.0.4 — as built | The page's unit and contract tests (187 at the Phase 2 exit) and the bundle verifier's DOM |
+
+### The terminal page's dependencies (Phase 5 W3)
+
+Each with AGENTS §5's paragraph; all three are exact pins in `editor/package.json`, installed with `npm ci` from the lockfile, checked by `tool/check_licenses.mjs` and listed in THIRD_PARTY_NOTICES §3.
+
+- **@xterm/xterm 6.0.0.** *Android and ARM64:* plain JavaScript and DOM, nothing native; it runs in Android's System WebView like the editor page (Chromium 87 or later is the floor both pages are built for), and the DOM renderer needs no GPU. *Licence:* MIT. *Maintenance:* the terminal behind VS Code, released by the xterm.js organisation; 6.0.0 is npm's `latest`, with betas of 6.1 in progress. *Offline:* bundled into the page, which makes no request. *Size:* 345 KB minified, about 90 KB gzipped, within the page's 256 KiB budget with the font. No dependencies of its own.
+- **@xterm/addon-fit 0.11.0.** Sizes the terminal to its panel, which is how the panel's size reaches the session. *Android and ARM64:* plain JavaScript. *Licence:* MIT. *Maintenance:* the same repository and release train as xterm.js. *Offline:* bundled. *Size:* 2 KB.
+- **@xterm/addon-unicode11 0.9.0.** Unicode 11 character widths, so wide characters and emoji take the cells the program expects. *Android and ARM64:* plain JavaScript. *Licence:* MIT. *Maintenance:* as above. *Offline:* bundled. *Size:* 31 KB minified.
 
 ## 3. Runtime (vendored, not dependency-managed)
 

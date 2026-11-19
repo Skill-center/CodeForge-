@@ -87,8 +87,17 @@ Future<int> _start(WidgetTester tester) async {
 
 Finder _key(String key) => find.byKey(ValueKey(key));
 
+/// Taps an extra key. The row scrolls, and a finder sees only the keys on
+/// screen: from the row's start, it steps right until [key] shows (the
+/// trailing keys always show).
 Future<void> _tapKey(WidgetTester tester, String key) async {
-  await tester.ensureVisible(_key(key));
+  final row = find.descendant(
+    of: _key('terminal_keys'),
+    matching: find.byType(Scrollable),
+  );
+  tester.state<ScrollableState>(row).position.jumpTo(0);
+  await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(_key(key), 80, scrollable: row);
   await tester.pumpAndSettle();
   await tester.tap(_key(key));
   await tester.pumpAndSettle();
@@ -335,7 +344,9 @@ void main() {
         await _start(tester);
         await _start(tester);
         expect(tester.takeException(), isNull, reason: stop.name);
-        if (stop == TerminalStop.peek) {
+        // The peek stop is the compact layout's: docked ones keep their
+        // own height at every stop.
+        if (stop == TerminalStop.peek && height > width) {
           expect(_key('terminal_keys'), findsNothing);
         }
       }

@@ -16,6 +16,7 @@ import 'package:flutter/widgets.dart';
 import '../../core/editor/protocol.dart'
     show BridgeMessage, ParsedMessage, PayloadReader, RejectedMessage;
 import '../../core/editor/rate_limiter.dart';
+import '../../core/editor/webview_floor.dart';
 import '../../core/errors/failure.dart';
 import '../../core/logging/logger.dart';
 import '../../core/terminal/terminal_protocol.dart';
@@ -26,6 +27,12 @@ const String _tag = 'terminal.view';
 
 /// Loads and verifies the terminal page (services/terminal/terminal_page).
 typedef TerminalPageLoader = Future<Result<TerminalPage>> Function();
+
+/// What the terminal says about a WebView older than [minimumWebViewMajor].
+String terminalWebViewTooOldMessage(int major) =>
+    "This phone's Android System WebView is version $major, and the terminal "
+    'needs version $minimumWebViewMajor or later. Update Android System '
+    'WebView (or Chrome) from the Play Store, then reopen CodeForge.';
 
 enum TerminalViewPhase { idle, loading, ready, failed }
 
@@ -267,6 +274,17 @@ final class TerminalView {
             'The terminal page speaks protocol ${value.protocol}; this app '
                 'needs $terminalProtocolVersion.',
           );
+          return;
+        }
+        // The page is built for the editor's floor (Chrome 87): an older
+        // WebView cannot parse it, so say what to update instead of
+        // waiting for a page that cannot start.
+        final engine = await _surface.engineMajorVersion();
+        if (_disposed) {
+          return;
+        }
+        if (engine != null && engine < minimumWebViewMajor) {
+          _fail('webview_too_old', terminalWebViewTooOldMessage(engine));
           return;
         }
         _armReadyTimer();

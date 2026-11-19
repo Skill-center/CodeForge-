@@ -620,11 +620,16 @@ final class TerminalController extends Notifier<TerminalPanelState> {
         if (starts > 1) {
           _reopenAll();
         }
+      // The page speaks only for the sessions this panel shows.
       case TerminalInput(:final sessionId, :final data, :final binary):
-        unawaited(_input(sessionId, data, binary: binary));
+        if (_pipes[sessionId]?.open ?? false) {
+          unawaited(_input(sessionId, data, binary: binary));
+        }
       case TerminalResized(:final sessionId, :final columns, :final rows):
-        _size = (columns: columns, rows: rows);
-        unawaited(_service.resize(sessionId, rows: rows, columns: columns));
+        if (_pipes[sessionId]?.open ?? false) {
+          _size = (columns: columns, rows: rows);
+          unawaited(_service.resize(sessionId, rows: rows, columns: columns));
+        }
       case TerminalAcknowledged(:final sessionId, :final seq):
         final end = _pipes[sessionId]?.acks.remove(seq);
         if (end != null) {

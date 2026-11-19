@@ -75,6 +75,9 @@ final class FakeTerminalSurface implements EditorSurface {
   int columns;
   int rows;
 
+  /// The engine version this page reports (null: it can't tell).
+  int? engineMajor;
+
   /// Whether a loaded page announces itself.
   bool announceReady = true;
 
@@ -125,7 +128,7 @@ final class FakeTerminalSurface implements EditorSurface {
   Stream<EditorSurfaceEvent> get events => _events.stream;
 
   @override
-  Future<int?> engineMajorVersion() async => null;
+  Future<int?> engineMajorVersion() async => engineMajor;
 
   @override
   Future<void> loadPage(String html) async {
