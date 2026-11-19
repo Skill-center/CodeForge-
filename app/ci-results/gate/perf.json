@@ -6,25 +6,25 @@
   "cold_start": {
     "apk": "release-x64",
     "method": "am start -W (TotalTime) after am force-stop, 10 runs",
-    "samples_ms": [1375,1413,1153,1146,1239,1513,1373,1338,1351,1334],
-    "median_ms": 1344,
+    "samples_ms": [872,1082,1006,1086,979,1025,1002,966,1006,948],
+    "median_ms": 1004,
     "budget_ms": 1500,
     "within_budget": true
   },
   "cold_start_skia": {
     "apk": "the same release build with EnableImpeller=false (comparison, not shipped)",
-    "samples_ms": [1288,1257,1308,1198,1137,1378,1291,1196,1189,1245],
-    "median_ms": 1251
+    "samples_ms": [946,973,958,913,882,866,1037,1112,916,968],
+    "median_ms": 952
   },
   "cold_start_again": {
     "apk": "release-x64, once more after the Skia block",
-    "samples_ms": [1522,1394,1341,1387,1258,1306,1477,1546,1252,1367],
-    "median_ms": 1377
+    "samples_ms": [1017,866,931,942,1010,989,939,972,1009,1098],
+    "median_ms": 980
   },
   "renderer": "impeller (Flutter's default since Phase 3 W6)",
   "apk_bytes": {
-    "debug": 84136362,
-    "cold_start_apk": 149636954
+    "debug": 84467995,
+    "cold_start_apk": 149876391
   },
   "nav_frame_profile": "not measured on CI in Phase 1 (requires a profile-mode build; see docs/phases/PHASE_1_REPORT.md)"
 }
