@@ -73,9 +73,20 @@ final class MemoryFileService implements FileService {
   /// Every folder listed through the service, in order (Phase 3 W5).
   final List<String> listed = [];
 
+  /// When set, a listing waits for it, as a slow provider's does (Phase 5
+  /// W2: the app going to the background while a batch lists a folder).
+  Future<void>? listingGate;
+
+  /// When set, a stat waits for it, then reads the stamp.
+  Future<void>? statGate;
+
   @override
   Future<Result<List<FileEntry>>> listDirectory(String path) async {
     listed.add(path);
+    final gate = listingGate;
+    if (gate != null) {
+      await gate;
+    }
     if (failListings[path] case final failure?) {
       return Err(failure);
     }
@@ -197,6 +208,10 @@ final class MemoryFileService implements FileService {
       return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
     }
     stats.add(path);
+    final gate = statGate;
+    if (gate != null) {
+      await gate;
+    }
     final stamp = _stamps[path];
     if (stamp != null) {
       return Ok(stamp);

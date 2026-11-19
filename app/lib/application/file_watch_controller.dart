@@ -150,7 +150,7 @@ final class FileWatchController extends Notifier<List<String>> {
     ) {
       _watchWanted();
       if (next != null && next != previous && _foreground) {
-        unawaited(_documents.checkDisk([next]));
+        unawaited(_documents.checkDisk(paths: [next], active: _isForeground));
       }
     });
     ref.listen(
@@ -169,6 +169,10 @@ final class FileWatchController extends Notifier<List<String>> {
 
   DocumentController get _documents =>
       ref.read(documentControllerProvider.notifier);
+
+  /// Whether the app is in the foreground: a check under way takes nothing
+  /// in once it is not.
+  bool _isForeground() => _foreground;
 
   /// The app went to the background: notices wait until it comes back.
   void paused() {
@@ -204,7 +208,7 @@ final class FileWatchController extends Notifier<List<String>> {
     // The documents do not wait for the listings: they are what the user
     // looks at.
     await Future.wait([
-      _documents.checkDisk(),
+      _documents.checkDisk(active: _isForeground),
       _relistAll(folders, generation),
     ]);
   }
@@ -306,15 +310,22 @@ final class FileWatchController extends Notifier<List<String>> {
     appLogger.debug('watch', 'batch', fields: {'folders': folders.length});
     for (final folder in folders) {
       await _relist(folder);
-      if (!ref.mounted || generation != _generation) {
+      // Gone to the background meanwhile: the rest waits for the app to come
+      // back, whose catch-up lists every folder and checks every document.
+      // A batch under way had taken a change in while away (Phase 5 W2's
+      // phase gate 44461809588, the watch group).
+      if (!ref.mounted || generation != _generation || !_foreground) {
         return;
       }
     }
     final open = ref.read(documentControllerProvider).openPaths;
-    await _documents.checkDisk([
-      for (final path in open)
-        if (folders.any((folder) => isWithin(path, folder))) path,
-    ]);
+    await _documents.checkDisk(
+      paths: [
+        for (final path in open)
+          if (folders.any((folder) => isWithin(path, folder))) path,
+      ],
+      active: _isForeground,
+    );
   }
 
   /// Lists [folder] again: through the explorer's listings when it has
@@ -362,7 +373,7 @@ final class FileWatchController extends Notifier<List<String>> {
     _recheck?.cancel();
     _recheck = Timer.periodic(_settings.recheckEvery, (_) {
       if (_foreground) {
-        unawaited(_documents.checkDisk());
+        unawaited(_documents.checkDisk(active: _isForeground));
       }
     });
   }

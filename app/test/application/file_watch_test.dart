@@ -5,6 +5,8 @@
 /// Plain tests in real time, with the watcher's pauses shortened.
 library;
 
+import 'dart:async';
+
 import 'package:codeforge/application/documents/disk_notices.dart';
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/documents/document_state.dart';
@@ -556,6 +558,60 @@ void main() {
         expect(root.valueOrNull!.map((e) => e.name), contains('away.txt'));
       },
     );
+
+    // Phase 5 W2's phase gate 44461809588 (the watch group): a batch under
+    // way when the app went to the background took a change in while away.
+    test('a batch listing when the app goes away takes nothing in', () async {
+      final w = _World();
+      await w.start();
+      await w.open('main.js');
+      final hold = Completer<void>();
+      final before = w.files.listed.length;
+      w.files.listingGate = hold.future;
+      // A change outside starts a batch, whose listing hangs.
+      w.files.putText('other.txt', 'new\n');
+      await _until(
+        () => w.files.listed.length > before,
+        what: 'the batch to list the root',
+      );
+      // The app goes away, then the open file changes outside.
+      w.watcher.paused();
+      w.files.putText('main.js', 'changed while away\n');
+      w.files.listingGate = null;
+      hold.complete();
+      await _quiet();
+      expect(w.pageText('main.js'), isNot('changed while away\n'));
+      await w.watcher.resumed();
+      await _until(
+        () => w.pageText('main.js') == 'changed while away\n',
+        what: 'the resume check',
+      );
+    });
+
+    test('a check reading when the app goes away takes nothing in', () async {
+      final w = _World();
+      await w.start();
+      await w.open('main.js');
+      final hold = Completer<void>();
+      final before = w.files.stats.length;
+      w.files.statGate = hold.future;
+      // The open file changes outside; the batch's check of it hangs.
+      w.files.putText('main.js', 'changed while away\n');
+      await _until(
+        () => w.files.stats.length > before,
+        what: 'the check to read the stamp',
+      );
+      w.watcher.paused();
+      w.files.statGate = null;
+      hold.complete();
+      await _quiet();
+      expect(w.pageText('main.js'), isNot('changed while away\n'));
+      await w.watcher.resumed();
+      await _until(
+        () => w.pageText('main.js') == 'changed while away\n',
+        what: 'the resume check',
+      );
+    });
   });
 
   group('watches that fail', () {

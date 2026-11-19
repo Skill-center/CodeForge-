@@ -698,34 +698,46 @@ final class DocumentController extends Notifier<DocumentsState> {
   ///   still has it is left alone; documents being opened or saved are not
   ///   looked at. A file touched without a new text only takes the new
   ///   stamp.
-  Future<void> checkDisk([Iterable<String>? paths]) async {
+  ///
+  /// [paths] are the documents to look at, every open one when null. While
+  /// [active] says no (the file watcher's: the app went to the background),
+  /// a check that is under way takes nothing in: what it found waits for
+  /// the next check (Phase 5 W2).
+  Future<void> checkDisk({
+    Iterable<String>? paths,
+    bool Function()? active,
+  }) async {
     final targets = (paths ?? state.openPaths).toSet();
-    await Future.wait([for (final path in targets) _checkOne(path)]);
+    await Future.wait([for (final path in targets) _checkOne(path, active)]);
   }
 
-  Future<void> _checkOne(String path) {
+  Future<void> _checkOne(String path, bool Function()? active) {
     final running = _checking[path];
     if (running != null) {
       // Looked at once more when the check in progress ends.
       _checkAgain.add(path);
       return running;
     }
-    final checking = _checkUntilQuiet(path);
+    final checking = _checkUntilQuiet(path, active);
     _checking[path] = checking;
     return checking;
   }
 
-  Future<void> _checkUntilQuiet(String path) async {
+  Future<void> _checkUntilQuiet(String path, bool Function()? active) async {
     try {
       do {
         _checkAgain.remove(path);
-        await _checkFile(path);
+        await _checkFile(path, active);
       } while (ref.mounted && _checkAgain.contains(path));
     } finally {
       // This very check: dropped from the map, not awaited.
       unawaited(_checking.remove(path));
     }
   }
+
+  /// Whether a check may still take in what it found: nobody said, or
+  /// [active] still says yes.
+  static bool _mayTakeIn(bool Function()? active) => active?.call() ?? true;
 
   /// A save or an open of [path] is in progress: its stamp is about to
   /// change.
@@ -742,14 +754,14 @@ final class DocumentController extends Notifier<DocumentsState> {
         !_busy(path);
   }
 
-  Future<void> _checkFile(String path) async {
+  Future<void> _checkFile(String path, bool Function()? active) async {
     final doc = state.documents[path];
     final stamp = doc?.stamp;
     if (doc == null || stamp == null || _busy(path)) {
       return;
     }
     final found = await _files.stat(path);
-    if (!ref.mounted || !_stillAsChecked(path, doc)) {
+    if (!ref.mounted || !_stillAsChecked(path, doc) || !_mayTakeIn(active)) {
       return;
     }
     switch (found) {
@@ -757,7 +769,7 @@ final class DocumentController extends Notifier<DocumentsState> {
         if (value == stamp || value == _ignoredStamps[doc.docId]) {
           return;
         }
-        await _takeIn(path, doc, value);
+        await _takeIn(path, doc, value, active);
       case Err<FileStamp>(failure: FileFailure(problem: FileProblem.notFound)):
         await _deletedOutside(path, doc);
       case Err<FileStamp>(:final failure):
@@ -773,9 +785,14 @@ final class DocumentController extends Notifier<DocumentsState> {
 
   /// Takes in [path]'s file, found with the stamp [found] that [doc] was
   /// not read or saved with.
-  Future<void> _takeIn(String path, OpenDocument doc, FileStamp found) async {
+  Future<void> _takeIn(
+    String path,
+    OpenDocument doc,
+    FileStamp found,
+    bool Function()? active,
+  ) async {
     final read = await _files.readText(path);
-    if (!ref.mounted || !_stillAsChecked(path, doc)) {
+    if (!ref.mounted || !_stillAsChecked(path, doc) || !_mayTakeIn(active)) {
       return;
     }
     final TextFile file;
