@@ -21,21 +21,12 @@ Got dependencies!
 17 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart
-Running Gradle task 'assembleDebug'...                             12.4s
+Running Gradle task 'assembleDebug'...                             15.8s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        2,174ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...        2,372ms
 00:00 +0: terminal: echo, nano and top at the panel’s size, composition
-TERMINAL_GATE started ms=896 size=46x22
-TERMGATE 1795092148676.1 tap 540 1443
-Some possible finders for the widgets at Offset(205.7, 549.7):
-  find.byKey(const Key('terminal_surface'))
-  find.byType(TerminalSurfaceView)
-  find.byType(TerminalPane)
-  find.byType(CustomMultiChildLayout)
-  find.byType(ScrollNotificationObserver)
-  find.byType(Scaffold)
-  find.byElementType(InheritedModelElement<_ModalRouteAspect>)
-  find.byElementType(InheritedModelElement<Object>)
+TERMINAL_GATE started ms=1047 size=46x22
+TERMGATE 1795105718856.1 tap 540 1443
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
 Timed out after 30 s waiting for the terminal to take the keyboard after a tap.
@@ -44,11 +35,13 @@ When the exception was thrown, this was the stack:
 #0      fail (package:matcher/src/expect/expect.dart:187:31)
 #1      pumpUntil (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/smoke_test.dart:28:7)
 <asynchronous suspension>
-#2      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart:172:5)
+#2      main.<anonymous closure>.tapToFocus (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart:182:9)
 <asynchronous suspension>
-#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+#3      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart:192:5)
 <asynchronous suspension>
-#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
 <asynchronous suspension>
 <asynchronous suspension>
 (elided one frame from package:stack_trace)
@@ -56,12 +49,12 @@ When the exception was thrown, this was the stack:
 The test description was:
   terminal: echo, nano and top at the panel’s size, composition
 ════════════════════════════════════════════════════════════════════════════════════════════════════
-00:46 +0 -1: terminal: echo, nano and top at the panel’s size, composition [E]
+00:52 +0 -1: terminal: echo, nano and top at the panel’s size, composition [E]
   Test failed. See exception logs above.
   The test description was: terminal: echo, nano and top at the panel’s size, composition
   
-00:46 +0 -1: (tearDownAll)
-00:47 +0 -1: Some tests failed.
+00:52 +0 -1: (tearDownAll)
+00:53 +0 -1: Some tests failed.
 
 Failing tests:
   /home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart: terminal: echo, nano and top at the panel’s size, composition
