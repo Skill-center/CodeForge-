@@ -21,40 +21,24 @@ Got dependencies!
 17 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart
-Running Gradle task 'assembleDebug'...                             15.8s
+Running Gradle task 'assembleDebug'...                             14.5s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        2,480ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...        1,694ms
 00:00 +0: terminal: echo, nano and top at the panel’s size, composition
-TERMINAL_GATE started ms=1166 size=46x22
-TERMGATE 1795111693015.1 tap 540 1443
-TERMGATE 1795111693015.2 text echo%scf-typed-ok
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following TestFailure was thrown running a test:
-Timed out after 30 s waiting for the typed command to echo. The screen (46x8):
-demo $ echohoocf--ttypped-ok
-
-When the exception was thrown, this was the stack:
-#0      fail (package:matcher/src/expect/expect.dart:187:31)
-#1      main.<anonymous closure>.screenWhere (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart:141:7)
-<asynchronous suspension>
-#2      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart:195:5)
-<asynchronous suspension>
-#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided one frame from package:stack_trace)
-
-The test description was:
-  terminal: echo, nano and top at the panel’s size, composition
-════════════════════════════════════════════════════════════════════════════════════════════════════
-01:02 +0 -1: terminal: echo, nano and top at the panel’s size, composition [E]
-  Test failed. See exception logs above.
-  The test description was: terminal: echo, nano and top at the panel’s size, composition
-  
-01:02 +0 -1: (tearDownAll)
-01:04 +0 -1: Some tests failed.
-
-Failing tests:
-  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart: terminal: echo, nano and top at the panel’s size, composition
+TERMINAL_GATE started ms=809 size=45x23
+TERMGATE 1795115443463.1 tap 540 1443
+TERMGATE 1795115443463.2 text echo%scf-typed-ok
+TERMGATE 1795115443463.3 key 66
+TERMINAL_GATE typed_echo=ok
+TERMINAL_GATE fit where=portrait columns=46 rows=23 stty=ok nano=ok top=ok top_lines=9
+TERMGATE 1795115443463.4 rotate 1
+TERMINAL_GATE fit where=landscape columns=60 rows=7 stty=ok nano=ok top=ok top_lines=7
+TERMGATE 1795115443463.5 rotate 0
+TERMINAL_GATE fit where=portrait again columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9
+TERMGATE 1795115443463.6 tap 540 1443
+TERMGATE 1795115443463.7 compose
+TERMINAL_GATE compose_lines=11 compose_ms=12468
+TERMGATE 1795115443463.8 done
+TERMINAL_GATE closed=ok dropped_messages=0
+00:44 +1: (tearDownAll)
+00:45 +1: All tests passed!
