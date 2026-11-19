@@ -356,6 +356,9 @@ class TerminalSessionTest {
         assertNull(ninth.session)
         assertEquals(TerminalFailure.TOO_MANY, ninth.failure)
         assertEquals(0, terminals.endAll())
+        // When End all returns, every place is free (phase gate 44454605348 found it otherwise on API 26).
+        assertEquals(emptyList<SessionRegistry.Session>(), sessions.live(SessionKind.TERMINAL))
+        assertNotNull("a place is free at once", sessions.reserveTerminal()?.also { it.release() })
         for (session in eight) assertEquals(TerminalFailure.ENDED, awaitExit(session).failure)
         awaitProcesses(0)
         // End all does not refuse: the places are free again.

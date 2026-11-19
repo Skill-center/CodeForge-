@@ -58,7 +58,10 @@ class TerminalSessionTest {
     fun endWhatIsLeft() {
         val terminals = installed?.terminals ?: return
         terminals.endAll()
-        for (session in terminals.list()) terminals.remove(session.id)
+        for (session in terminals.list()) {
+            awaitExit(session, 10_000L)
+            terminals.remove(session.id)
+        }
     }
 
     @Test

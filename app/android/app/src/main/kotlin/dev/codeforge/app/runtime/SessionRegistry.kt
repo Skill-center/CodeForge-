@@ -252,8 +252,9 @@ class SessionRegistry(
 
     /**
      * Ends every live session, or every one of [kind], and waits for them to
-     * exit (at most [waitMs]). With [refuse], new sessions are refused until
-     * [reopen]. Answers how many are still running.
+     * exit and to be finished (at most [waitMs] in all), so that a place a
+     * terminal held is free when this returns. With [refuse], new sessions
+     * are refused until [reopen]. Answers how many are still running.
      */
     fun endAll(
         reason: EndReason,
@@ -270,6 +271,18 @@ class SessionRegistry(
             if (left <= 0) break
             try {
                 session.process.waitFor(left, TimeUnit.MILLISECONDS)
+            } catch (interrupted: InterruptedException) {
+                Thread.currentThread().interrupt()
+                break
+            }
+        }
+        // Whoever reads a launcher's output (a command's runner, a terminal's
+        // reader) finishes its session once the launcher exits, and only then
+        // is a terminal's place free. Waited for too: phase gate 44454605348
+        // found End all returning before the places were (API 26).
+        while (sessions.any { running.containsKey(it.id) } && System.nanoTime() < deadline) {
+            try {
+                Thread.sleep(FINISH_POLL_MS)
             } catch (interrupted: InterruptedException) {
                 Thread.currentThread().interrupt()
                 break
@@ -315,6 +328,8 @@ class SessionRegistry(
         const val LAUNCHER_KILL_WAIT_MS = 3000L
 
         const val FORCE_MARGIN_MS = 1000L
+
+        private const val FINISH_POLL_MS = 5L
     }
 }
 
