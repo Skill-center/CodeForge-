@@ -3,7 +3,6 @@
 /// every test proves no timer outlives the view.
 library;
 
-
 import 'package:codeforge/application/terminal/terminal_view.dart';
 import 'package:codeforge/core/editor/rate_limiter.dart';
 import 'package:codeforge/core/errors/failure.dart';
@@ -162,10 +161,10 @@ void main() {
       ..bell(2);
     await settle(tester);
     final input = events.whereType<TerminalInput>().toList();
-    expect([for (final e in input) (e.sessionId, e.data, e.binary)], [
-      (2, 'ls\r', false),
-      (2, '\u001b[M !!', true),
-    ]);
+    expect(
+      [for (final e in input) (e.sessionId, e.data, e.binary)],
+      [(2, 'ls\r', false), (2, '\u001b[M !!', true)],
+    );
     final resized = events.whereType<TerminalResized>().single;
     expect((resized.columns, resized.rows), (40, 12));
     expect(events.whereType<TerminalSelectionChanged>().single.active, isTrue);

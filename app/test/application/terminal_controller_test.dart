@@ -29,9 +29,7 @@ void main() {
       overrides: [
         terminalServiceProvider.overrideWithValue(service),
         ...fakeTerminalOverrides(surfaces.add),
-        currentWorkspaceProvider.overrideWithValue(
-          const DemoProjectLocation(),
-        ),
+        currentWorkspaceProvider.overrideWithValue(const DemoProjectLocation()),
       ],
     );
     addTearDown(() async {
@@ -109,17 +107,20 @@ void main() {
     expect(service.acknowledged[id], [1, 4, bytes.length]);
   });
 
-  test('typed text reaches the session as UTF-8, mouse reports as bytes', () async {
-    final id = await start();
-    page().type(id, 'ls é\r');
-    page().type(id, '\u001b[M \u00a1!', binary: true);
-    await pumpEventQueue();
-    expect(service.writes[id]![0], utf8.encode('ls é\r'));
-    expect(
-      service.writes[id]![1],
-      Uint8List.fromList([0x1b, 0x5b, 0x4d, 0x20, 0xa1, 0x21]),
-    );
-  });
+  test(
+    'typed text reaches the session as UTF-8, mouse reports as bytes',
+    () async {
+      final id = await start();
+      page().type(id, 'ls é\r');
+      page().type(id, '\u001b[M \u00a1!', binary: true);
+      await pumpEventQueue();
+      expect(service.writes[id]![0], utf8.encode('ls é\r'));
+      expect(
+        service.writes[id]![1],
+        Uint8List.fromList([0x1b, 0x5b, 0x4d, 0x20, 0xa1, 0x21]),
+      );
+    },
+  );
 
   test('the panel’s size becomes the session’s', () async {
     final id = await start();
@@ -183,7 +184,12 @@ void main() {
     expect(page().modifiers, (ctrl: true, alt: false));
     await controller().sendKey('up');
     await pumpEventQueue();
-    expect(page().keys.single, (sessionId: id, key: 'up', ctrl: true, alt: false));
+    expect(page().keys.single, (
+      sessionId: id,
+      key: 'up',
+      ctrl: true,
+      alt: false,
+    ));
     expect(state().ctrl, isFalse);
     expect(page().modifiers, (ctrl: false, alt: false));
     // A key typed on the keyboard uses them up in the page.
@@ -232,19 +238,22 @@ void main() {
     expect(state().message, contains('Eight terminals'));
   });
 
-  test('a bell marks a hidden tab until it is shown; titles reach tabs', () async {
-    final first = await start();
-    final second = await start();
-    page().bell(first);
-    page().bell(second);
-    page().title(second, 'top');
-    await pumpEventQueue();
-    expect(state().tabs.first.bell, isTrue);
-    expect(state().tabs.last.bell, isFalse);
-    expect(state().tabs.last.title, 'top');
-    controller().activate(first);
-    expect(state().tabs.first.bell, isFalse);
-  });
+  test(
+    'a bell marks a hidden tab until it is shown; titles reach tabs',
+    () async {
+      final first = await start();
+      final second = await start();
+      page().bell(first);
+      page().bell(second);
+      page().title(second, 'top');
+      await pumpEventQueue();
+      expect(state().tabs.first.bell, isTrue);
+      expect(state().tabs.last.bell, isFalse);
+      expect(state().tabs.last.title, 'top');
+      controller().activate(first);
+      expect(state().tabs.first.bell, isFalse);
+    },
+  );
 
   test('End all ends every session', () async {
     await start();

@@ -115,8 +115,7 @@ final class ScriptedTerminalService implements TerminalService {
   }
 
   @override
-  Future<Result<List<TerminalInfo>>> sessions() async =>
-      Ok([...infos.values]);
+  Future<Result<List<TerminalInfo>>> sessions() async => Ok([...infos.values]);
 
   @override
   Future<Result<void>> write(int id, Uint8List bytes) async {

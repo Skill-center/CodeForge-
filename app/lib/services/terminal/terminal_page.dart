@@ -44,10 +44,7 @@ Future<Result<TerminalPage>> loadTerminalPage(AssetBundle bundle) async {
   try {
     final data = await bundle.load(terminalPageAsset);
     bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-    manifestText = await bundle.loadString(
-      terminalManifestAsset,
-      cache: false,
-    );
+    manifestText = await bundle.loadString(terminalManifestAsset, cache: false);
   } on Object catch (error) {
     return Err(
       StorageFailure(
@@ -105,8 +102,7 @@ Result<TerminalPage> verifyTerminalPage(List<int> bytes, String manifestText) {
 
 /// [terminalLicenses] from the app's own bundle, for
 /// `LicenseRegistry.addLicense` at startup.
-Stream<LicenseEntry> bundledTerminalLicenses() =>
-    terminalLicenses(rootBundle);
+Stream<LicenseEntry> bundledTerminalLicenses() => terminalLicenses(rootBundle);
 
 /// The terminal page's third-party notices (NOTICES.txt from
 /// editor/tool/build_terminal.mjs), one entry per npm package: the page

@@ -9,19 +9,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('the row starts with the plan’s keys, in order', () {
-    expect([for (final key in terminalExtraKeys.take(11)) key.id], [
-      'esc',
-      'ctrl',
-      'alt',
-      'tab',
-      'left',
-      'up',
-      'down',
-      'right',
-      'pipe',
-      'tilde',
-      'slash',
-    ]);
+    expect(
+      [for (final key in terminalExtraKeys.take(11)) key.id],
+      [
+        'esc',
+        'ctrl',
+        'alt',
+        'tab',
+        'left',
+        'up',
+        'down',
+        'right',
+        'pipe',
+        'tilde',
+        'slash',
+      ],
+    );
   });
 
   test('every key has its own id and a name a screen reader can say', () {

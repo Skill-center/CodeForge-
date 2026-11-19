@@ -4,7 +4,6 @@
 library;
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/services/terminal/terminal_page.dart';
@@ -81,10 +80,10 @@ void main() {
     final entries = await terminalLicenses(
       _Bundle({terminalNoticesAsset: notices}),
     ).toList();
-    expect([for (final entry in entries) entry.packages.single], [
-      '@xterm/addon-fit',
-      '@xterm/xterm',
-    ]);
+    expect(
+      [for (final entry in entries) entry.packages.single],
+      ['@xterm/addon-fit', '@xterm/xterm'],
+    );
     expect(await terminalLicenses(_Bundle({})).toList(), isEmpty);
   });
 }

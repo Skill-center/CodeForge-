@@ -211,7 +211,12 @@ void main() {
     final pane = await _pump(tester);
     final id = await _start(tester);
     await _tapKey(tester, 'toolbar_terminal_esc');
-    expect(pane.page.keys.last, (sessionId: id, key: 'escape', ctrl: false, alt: false));
+    expect(pane.page.keys.last, (
+      sessionId: id,
+      key: 'escape',
+      ctrl: false,
+      alt: false,
+    ));
     await _tapKey(tester, 'toolbar_terminal_tab');
     expect(pane.page.keys.last.key, 'tab');
 
@@ -219,7 +224,7 @@ void main() {
     expect(pane.page.modifiers, (ctrl: true, alt: false));
     expect(
       tester.getSemantics(_key('toolbar_terminal_ctrl')),
-      containsSemantics(
+      isSemantics(
         label: 'Control, for the next key',
         isButton: true,
         hasToggledState: true,
@@ -227,10 +232,20 @@ void main() {
       ),
     );
     await _tapKey(tester, 'toolbar_terminal_left');
-    expect(pane.page.keys.last, (sessionId: id, key: 'left', ctrl: true, alt: false));
+    expect(pane.page.keys.last, (
+      sessionId: id,
+      key: 'left',
+      ctrl: true,
+      alt: false,
+    ));
     expect(pane.page.modifiers, (ctrl: false, alt: false));
     await _tapKey(tester, 'toolbar_terminal_pipe');
-    expect(pane.page.keys.last, (sessionId: id, key: '|', ctrl: false, alt: false));
+    expect(pane.page.keys.last, (
+      sessionId: id,
+      key: '|',
+      ctrl: false,
+      alt: false,
+    ));
 
     // A key typed on the keyboard uses the latched Alt up in the page.
     await _tapKey(tester, 'toolbar_terminal_alt');
@@ -239,7 +254,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.getSemantics(_key('toolbar_terminal_alt')),
-      containsSemantics(
+      isSemantics(
         label: 'Alt, for the next key',
         hasToggledState: true,
         isToggled: false,

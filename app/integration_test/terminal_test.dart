@@ -209,7 +209,8 @@ void main() {
       final rows = size.rows;
       await write('clear; stty size\r');
       await screenWhere(
-        (screen) => screen.screen.any((line) => line.trim() == '$rows $columns'),
+        (screen) =>
+            screen.screen.any((line) => line.trim() == '$rows $columns'),
         what: 'stty size to say "$rows $columns" ($where)',
       );
       await screenWhere(promptAtCursor, what: 'the prompt after stty ($where)');
@@ -286,7 +287,9 @@ void main() {
     await checkFits('portrait again');
 
     // 3. Scripted composition loses nothing.
-    final file = File('${await applicationFilesPath()}/workspaces/demo/.cf-compose.txt');
+    final file = File(
+      '${await applicationFilesPath()}/workspaces/demo/.cf-compose.txt',
+    );
     if (file.existsSync()) {
       file.deleteSync();
     }

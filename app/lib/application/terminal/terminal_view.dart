@@ -70,7 +70,11 @@ final class TerminalInput extends TerminalViewEvent {
 
 /// The view of [sessionId] has a new size (the panel's).
 final class TerminalResized extends TerminalViewEvent {
-  const TerminalResized(this.sessionId, {required this.columns, required this.rows});
+  const TerminalResized(
+    this.sessionId, {
+    required this.columns,
+    required this.rows,
+  });
 
   final int sessionId;
   final int columns;
@@ -269,7 +273,10 @@ final class TerminalView {
         try {
           await _surface.loadPage(value.html);
         } on Object catch (error) {
-          _fail('page_load_failed', 'The terminal could not be loaded ($error).');
+          _fail(
+            'page_load_failed',
+            'The terminal could not be loaded ($error).',
+          );
         }
     }
   }
@@ -291,7 +298,10 @@ final class TerminalView {
     try {
       await _surface.reload();
     } on Object catch (error) {
-      _fail('page_reload_failed', 'The terminal could not be reloaded ($error).');
+      _fail(
+        'page_reload_failed',
+        'The terminal could not be reloaded ($error).',
+      );
     }
   }
 
@@ -413,7 +423,8 @@ final class TerminalView {
   Future<Result<String>> copy(int sessionId) async {
     final result = await _request('session.copy', {'sessionId': sessionId});
     return switch (result) {
-      Ok(:final value) when value is Map<String, Object?> && value['text'] is String =>
+      Ok(:final value)
+          when value is Map<String, Object?> && value['text'] is String =>
         Ok(value['text']! as String),
       Ok() => const Err(BridgeFailure('The terminal answered copy oddly.')),
       Err(:final failure) => Err(failure),
@@ -434,11 +445,16 @@ final class TerminalView {
           return Ok(TerminalSnapshot.fromJson(value));
         } on Object catch (error) {
           return Err(
-            BridgeFailure('The terminal answered a snapshot oddly.', cause: error),
+            BridgeFailure(
+              'The terminal answered a snapshot oddly.',
+              cause: error,
+            ),
           );
         }
       case Ok():
-        return const Err(BridgeFailure('The terminal answered a snapshot oddly.'));
+        return const Err(
+          BridgeFailure('The terminal answered a snapshot oddly.'),
+        );
       case Err(:final failure):
         return Err(failure);
     }
@@ -466,7 +482,11 @@ final class TerminalView {
     }
     _nextId += 1;
     final id = 'h$_nextId';
-    final encoded = BridgeMessage(id: id, type: type, payload: payload).encode();
+    final encoded = BridgeMessage(
+      id: id,
+      type: type,
+      payload: payload,
+    ).encode();
     assert(
       parseTerminalMessage(encoded, TerminalDirection.hostToTerminal)
           is ParsedMessage,
@@ -534,10 +554,7 @@ final class TerminalView {
     if (value is Map<String, Object?> &&
         value['cols'] is num &&
         value['rows'] is num) {
-      return Ok((
-        columns: value.integer('cols'),
-        rows: value.integer('rows'),
-      ));
+      return Ok((columns: value.integer('cols'), rows: value.integer('rows')));
     }
     return const Err(BridgeFailure('The terminal answered open oddly.'));
   }

@@ -157,10 +157,9 @@ void main() {
           throw StateError('$name not found in protocol.ts');
         }
         // `8 * 1024 * 1024`, `MAX_PASTE_CHARS + 64` or a plain number.
-        final expression = match.group(1)!.replaceAll(
-          'MAX_PASTE_CHARS',
-          '$maxPasteChars',
-        );
+        final expression = match
+            .group(1)!
+            .replaceAll('MAX_PASTE_CHARS', '$maxPasteChars');
         final sum = expression.split('+').map((term) {
           return term
               .split('*')

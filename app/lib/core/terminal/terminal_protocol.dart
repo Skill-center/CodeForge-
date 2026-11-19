@@ -155,17 +155,17 @@ final Check _theme = objectCheck({
 });
 
 final Map<String, Check> _hostToTerminal = {
-  'terminal.configure': objectCheck(
-    {},
-    {
-      'theme': _theme,
-      'fontSize': numberCheck(min: 8, max: 40),
-      'scrollback': intCheck(min: 0, max: maxTerminalScrollback),
-    },
-  ),
+  'terminal.configure': objectCheck({}, {
+    'theme': _theme,
+    'fontSize': numberCheck(min: 8, max: 40),
+    'scrollback': intCheck(min: 0, max: maxTerminalScrollback),
+  }),
   'terminal.focus': objectCheck({'focused': boolCheck}),
   'terminal.modifiers': objectCheck({'ctrl': boolCheck, 'alt': boolCheck}),
-  'session.open': objectCheck({'sessionId': _sessionId}, {'activate': boolCheck}),
+  'session.open': objectCheck(
+    {'sessionId': _sessionId},
+    {'activate': boolCheck},
+  ),
   'session.activate': objectCheck({'sessionId': _sessionId}),
   'session.close': objectCheck({'sessionId': _sessionId}),
   'session.write': objectCheck({

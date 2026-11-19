@@ -305,12 +305,10 @@ final class FakeTerminalSurface implements EditorSurface {
   );
 
   /// The panel changed size: the view of [sessionId] refitted.
-  void resize(int sessionId, {required int columns, required int rows}) =>
-      emit('session.resized', {
-        'sessionId': sessionId,
-        'cols': columns,
-        'rows': rows,
-      });
+  void resize(int sessionId, {required int columns, required int rows}) => emit(
+    'session.resized',
+    {'sessionId': sessionId, 'cols': columns, 'rows': rows},
+  );
 
   /// A long press selected [text] in session [sessionId].
   void select(int sessionId, String text) {
@@ -351,11 +349,8 @@ final class FakeTerminalSurface implements EditorSurface {
     );
   }
 
-  void _ok(String id, [Object? result]) => emit('response', {
-    're': id,
-    'ok': true,
-    if (result != null) 'result': result,
-  });
+  void _ok(String id, [Object? result]) =>
+      emit('response', {'re': id, 'ok': true, 'result': ?result});
 
   void _error(String id, String code, String message) => emit('response', {
     're': id,

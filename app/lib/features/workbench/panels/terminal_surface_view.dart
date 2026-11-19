@@ -100,7 +100,9 @@ class _TerminalSurfaceViewState extends ConsumerState<TerminalSurfaceView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         unawaited(
-          ref.read(terminalControllerProvider.notifier).configure(configuration),
+          ref
+              .read(terminalControllerProvider.notifier)
+              .configure(configuration),
         );
       }
     });

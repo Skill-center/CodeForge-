@@ -116,10 +116,13 @@ class _TerminalHeader extends ConsumerWidget {
             PopupMenuButton<_MenuAction>(
               key: const ValueKey('terminal_menu'),
               tooltip: 'Terminal actions',
-              icon: Icon(CfIcons.moreVert, size: 18, color: colors.textSecondary),
-              onSelected: (action) => unawaited(
-                _onMenu(context, ref, action, running: running),
+              icon: Icon(
+                CfIcons.moreVert,
+                size: 18,
+                color: colors.textSecondary,
               ),
+              onSelected: (action) =>
+                  unawaited(_onMenu(context, ref, action, running: running)),
               itemBuilder: (context) => [
                 if (panel.active != null)
                   const PopupMenuItem(
@@ -572,7 +575,11 @@ class _Banner extends StatelessWidget {
               ).textTheme.bodySmall?.copyWith(color: color),
             ),
           ),
-          TextButton(key: actionKey, onPressed: onAction, child: Text(actionLabel)),
+          TextButton(
+            key: actionKey,
+            onPressed: onAction,
+            child: Text(actionLabel),
+          ),
         ],
       ),
     );
@@ -635,7 +642,9 @@ class _ExtraKeysRow extends ConsumerWidget {
         ),
         CfToolbarKey(
           id: 'terminal_keyboard',
-          semanticLabel: panel.focused ? 'Hide the keyboard' : 'Show the keyboard',
+          semanticLabel: panel.focused
+              ? 'Hide the keyboard'
+              : 'Show the keyboard',
           icon: panel.focused ? CfIcons.keyboardHide : CfIcons.keyboard,
           onPressed: () => unawaited(controller.focus(focused: !panel.focused)),
         ),

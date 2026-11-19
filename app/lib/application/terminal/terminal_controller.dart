@@ -13,7 +13,6 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -226,8 +225,8 @@ final class _Pipe {
   /// until the rest arrives; malformed bytes become U+FFFD.
   String decode(Uint8List bytes) {
     (_decoder ??= const Utf8Decoder(
-      allowMalformed: true,
-    ).startChunkedConversion(StringConversionSink.fromStringSink(_decoded)))
+          allowMalformed: true,
+        ).startChunkedConversion(StringConversionSink.fromStringSink(_decoded)))
         .add(bytes);
     final text = _decoded.toString();
     _decoded.clear();
@@ -307,7 +306,11 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     );
     switch (started) {
       case Err(:final failure):
-        appLogger.warn(_tag, 'start_failed', fields: {'error': failure.message});
+        appLogger.warn(
+          _tag,
+          'start_failed',
+          fields: {'error': failure.message},
+        );
         state = state.copyWith(starting: false, message: failure.message);
       case Ok(:final value):
         _pipes.putIfAbsent(value.id, _Pipe.new);
@@ -733,10 +736,9 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   Future<void> _forget(int id) async {
     for (var attempt = 0; attempt < 20; attempt++) {
       final removed = await _service.remove(id);
-      if (removed case Err(
-        :final failure,
-      ) when failure is TerminalFailure &&
-          failure.problem == TerminalProblem.stillRunning) {
+      if (removed case Err(:final failure)
+          when failure is TerminalFailure &&
+              failure.problem == TerminalProblem.stillRunning) {
         await Future<void>.delayed(const Duration(milliseconds: 250));
         continue;
       }

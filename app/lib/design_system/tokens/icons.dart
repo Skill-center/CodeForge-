@@ -87,10 +87,7 @@ abstract final class CfIcons {
   static const IconData contentCopy = IconData(0xe14d, fontFamily: fontFamily);
 
   /// `content_paste`
-  static const IconData contentPaste = IconData(
-    0xe14f,
-    fontFamily: fontFamily,
-  );
+  static const IconData contentPaste = IconData(0xe14f, fontFamily: fontFamily);
 
   /// `copy_all`
   static const IconData copyAll = IconData(0xe2ec, fontFamily: fontFamily);
