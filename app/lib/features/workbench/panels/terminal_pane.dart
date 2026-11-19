@@ -1,8 +1,9 @@
 /// The terminal panel (Phase 5 W3; docs/TERMINAL_ARCHITECTURE.md §3), on the
 /// three-stop sheet the pane has had since Phase 1: tabs for the sessions
 /// (new, rename, close, swipe between them), the terminal page (xterm.js),
-/// and the extra-keys row with Copy and Paste. Without a terminal host
-/// (tests, the honest fake) it says so instead.
+/// and the extra-keys row with Copy and Paste. Its menu maximizes it (the
+/// full stop) and restores it. Without a terminal host (tests, the honest
+/// fake) it says so instead.
 library;
 
 import 'dart:async';
@@ -10,6 +11,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../application/shell_controller.dart';
 import '../../../application/terminal/terminal_controller.dart';
 import '../../../application/terminal/terminal_view.dart';
 import '../../../core/terminal/extra_keys.dart';
@@ -18,6 +20,7 @@ import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
 import '../../../design_system/tokens/icons.dart';
 import '../../../design_system/tokens/typography.dart';
+import '../../../services/shell/shell_state.dart';
 import '../terminal_dialogs.dart';
 import 'terminal_surface_view.dart';
 
@@ -78,6 +81,8 @@ class _TerminalHeader extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final controller = ref.read(terminalControllerProvider.notifier);
     final running = panel.tabs.where((tab) => tab.running).length;
+    final stop = ref.watch(shellControllerProvider).terminalStop;
+    final maximized = stop == TerminalStop.full;
     return Container(
       height: _headerExtent,
       padding: const EdgeInsets.only(left: CfSpacing.md),
@@ -142,6 +147,18 @@ class _TerminalHeader extends ConsumerWidget {
                     value: _MenuAction.clear,
                     child: Text('Clear scrollback'),
                   ),
+                if (!maximized)
+                  const PopupMenuItem(
+                    key: ValueKey('terminal_menu_maximize'),
+                    value: _MenuAction.maximize,
+                    child: Text('Maximize'),
+                  ),
+                if (maximized)
+                  const PopupMenuItem(
+                    key: ValueKey('terminal_menu_restore'),
+                    value: _MenuAction.restore,
+                    child: Text('Restore size'),
+                  ),
                 PopupMenuItem(
                   key: const ValueKey('terminal_menu_end_all'),
                   value: _MenuAction.endAll,
@@ -169,6 +186,7 @@ class _TerminalHeader extends ConsumerWidget {
     required int running,
   }) async {
     final controller = ref.read(terminalControllerProvider.notifier);
+    final shell = ref.read(shellControllerProvider.notifier);
     final active = panel.active;
     switch (action) {
       case _MenuAction.close:
@@ -181,6 +199,10 @@ class _TerminalHeader extends ConsumerWidget {
         }
       case _MenuAction.clear:
         await controller.clear();
+      case _MenuAction.maximize:
+        shell.setTerminalStop(TerminalStop.full);
+      case _MenuAction.restore:
+        shell.setTerminalStop(TerminalStop.half);
       case _MenuAction.endAll:
         if (await confirmEndAllTerminals(context, running)) {
           await controller.endAll();
@@ -189,7 +211,7 @@ class _TerminalHeader extends ConsumerWidget {
   }
 }
 
-enum _MenuAction { close, rename, clear, endAll }
+enum _MenuAction { close, rename, clear, maximize, restore, endAll }
 
 /// Asks for [tab]'s new name and gives it.
 Future<void> renameTerminal(

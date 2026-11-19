@@ -402,6 +402,13 @@ const double _compactReserve = 264;
 /// was already relative to the full-height body).
 const double _dockedReserve = 320;
 
+/// Height a maximized terminal (the full stop) leaves in docked layouts: the
+/// chrome (top bar 49 + status strip 24) and a 48 dp peek of the editor's
+/// page, under its tab strip's height, so the strip steps aside rather than
+/// squeeze the page to nothing. On a phone on its side the dock's own cap
+/// left the terminal a row or two (Phase 5 W3).
+const double _maximizedReserve = 121;
+
 /// Below a header plus a sliver of output the terminal is hidden rather than
 /// squeezed (its header alone is 49 dp).
 const double _minTerminalHeight = 60;
@@ -504,13 +511,15 @@ class _DockedLayout extends ConsumerWidget {
             builder: (context, constraints) {
               // Keep editor space on short landscape surfaces and while the
               // soft keyboard is up; below the minimum the dock is hidden
-              // entirely rather than overflowing.
-              final maxTerminal = (constraints.maxHeight - _dockedReserve)
+              // entirely rather than overflowing. Maximized, the terminal
+              // takes all but the chrome and a peek of the editor.
+              final maximized = shell.terminalStop == TerminalStop.full;
+              final reserve = maximized ? _maximizedReserve : _dockedReserve;
+              final maxTerminal = (constraints.maxHeight - reserve)
                   .clamp(0.0, double.infinity)
                   .toDouble();
-              final terminalHeight = shell.terminalHeight
-                  .clamp(0.0, maxTerminal)
-                  .toDouble();
+              final wanted = maximized ? maxTerminal : shell.terminalHeight;
+              final terminalHeight = wanted.clamp(0.0, maxTerminal).toDouble();
               final terminalOpen =
                   shell.terminalStop != TerminalStop.closed &&
                   terminalHeight >= _minTerminalHeight;
@@ -519,11 +528,12 @@ class _DockedLayout extends ConsumerWidget {
                   _WorkbenchTopBar(onToggleTerminal: onToggleTerminal),
                   Expanded(child: EditorPane(key: editorPaneKey)),
                   if (terminalOpen) ...[
-                    _HorizontalResizeHandle(
-                      onDrag: (dy) => ref
-                          .read(shellControllerProvider.notifier)
-                          .setTerminalHeight(shell.terminalHeight - dy),
-                    ),
+                    if (!maximized)
+                      _HorizontalResizeHandle(
+                        onDrag: (dy) => ref
+                            .read(shellControllerProvider.notifier)
+                            .setTerminalHeight(shell.terminalHeight - dy),
+                      ),
                     SizedBox(
                       height: terminalHeight,
                       child: TerminalPane(

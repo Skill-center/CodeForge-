@@ -20,6 +20,13 @@
  * --timeout <seconds> (default 300).
  *
  * Exit status: 0 when every case's line arrived whole, 1 otherwise.
+ *
+ * A probe, for the gate's record of a tap (the terminal driver runs it
+ * around each `tap`): `--probe arm` records, from then on, the touches,
+ * mouse events and focus changes the page sees, and `--probe read` prints
+ * them with the page's focus state (`document.hasFocus()`, the focused
+ * element). Only --adb and --package are needed; it prints one JSON line
+ * and exits 0, or 1 when it found no terminal page.
  * No dependencies: Node 22+ ships fetch and WebSocket (tool/cdp_kit.mjs).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -46,10 +53,14 @@ function parseArgs(argv) {
     else if (flag === '--out') args.out = value;
     else if (flag === '--cases') args.cases = value;
     else if (flag === '--timeout') args.timeout = Number(value);
+    else if (flag === '--probe') args.probe = value;
     else continue;
     i += 1;
   }
-  for (const required of ['adb', 'package', 'file', 'out']) {
+  if (args.probe !== undefined && args.probe !== 'arm' && args.probe !== 'read') {
+    throw new Error('--probe is arm or read');
+  }
+  for (const required of args.probe ? ['adb', 'package'] : ['adb', 'package', 'file', 'out']) {
     if (!args[required]) throw new Error(`--${required} is required`);
   }
   return args;
@@ -102,7 +113,61 @@ async function readBack(args, deadline) {
   return content;
 }
 
+/** The page's focus state, as an expression. */
+const FOCUS_STATE = `({
+  hasFocus: document.hasFocus(),
+  visibility: document.visibilityState,
+  active: (() => {
+    const e = document.activeElement;
+    return e ? (typeof e.className === 'string' && e.className ? e.className.split(' ')[0] : e.tagName) : null;
+  })(),
+})`;
+
+/** Starts recording what the page sees of a touch (capture phase: before the page's handlers). */
+const PROBE_ARM = `(() => {
+  const probe = (window.__cfProbe = { since: Date.now(), events: [] });
+  const name = (t) => (t ? (typeof t.className === 'string' && t.className ? t.className.split(' ')[0] : t.tagName || 'window') : null);
+  const types = ['touchstart', 'touchend', 'touchcancel', 'pointerdown', 'mousedown', 'click', 'contextmenu', 'focusin', 'focusout', 'focus', 'blur'];
+  for (const type of types) {
+    window.addEventListener(type, (event) => {
+      if (window.__cfProbe !== probe || probe.events.length >= 200) return;
+      probe.events.push(\`+\${Date.now() - probe.since}ms \${type} \${name(event.target)} hasFocus=\${document.hasFocus()}\`);
+    }, true);
+  }
+  // After the page's own handlers: whether it canceled the touch.
+  for (const type of ['touchstart', 'touchend']) {
+    window.addEventListener(type, (event) => {
+      if (window.__cfProbe === probe && event.defaultPrevented) probe.events.push(\`+\${Date.now() - probe.since}ms \${type} canceled by the page\`);
+    }, false);
+  }
+  return ${FOCUS_STATE};
+})()`;
+
+const PROBE_READ = `(() => ({ state: ${FOCUS_STATE}, events: window.__cfProbe ? window.__cfProbe.events : null }))()`;
+
 const args = parseArgs(process.argv.slice(2));
+if (args.probe) {
+  const ensure = webViewForwarder(args, () => {});
+  const find = async () => {
+    if (!(await ensure().catch(() => false))) return null;
+    const { targets } = await probeTargets(args.port);
+    return targets.find((t) => (t.url ?? '').startsWith(TERMINAL_URL)) ?? null;
+  };
+  const session = new PageSession({ find, waitMs: 10000, pollMs: 500 });
+  const at = new Date().toISOString().slice(11, 23);
+  try {
+    const result = await session.run(`probe ${args.probe}`, (cdp) =>
+      cdp.evaluate(args.probe === 'arm' ? PROBE_ARM : PROBE_READ, 10000),
+    );
+    console.log(`${at} probe ${args.probe}: ${JSON.stringify(result)}`);
+    session.close();
+    process.exit(0);
+  } catch (error) {
+    console.log(`${at} probe ${args.probe}: no terminal page (${String(error?.message ?? error)})`);
+    session.close();
+    process.exit(1);
+  }
+}
 const cases = JSON.parse(readFileSync(args.cases, 'utf8')).cases;
 const report = { schema: 1, tool: 'editor/tool/terminal_cdp.mjs', startedAt: new Date().toISOString(), cases: cases.length };
 const save = () => writeFileSync(args.out, `${JSON.stringify(report, null, 2)}\n`);

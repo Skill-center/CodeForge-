@@ -1,15 +1,18 @@
 /// The terminal panel (Phase 5 W3, gate G3's widget part): tabs (new,
 /// switch by tap and by swipe, rename, close with a question while running),
 /// the extra-keys row (keys in the terminal's modes, Ctrl latched for one
-/// key), copy and paste through the clipboard, and a layout that fits every
-/// stop. The page is scripted (test/support/fake_terminal_surface.dart) and
-/// the sessions too (test/support/scripted_terminal_service.dart).
+/// key), copy and paste through the clipboard, maximizing from the menu, and
+/// a layout that fits every stop. The page is scripted
+/// (test/support/fake_terminal_surface.dart) and the sessions too
+/// (test/support/scripted_terminal_service.dart).
 library;
 
 import 'dart:async';
 
+import 'package:codeforge/application/shell_controller.dart';
 import 'package:codeforge/application/terminal/terminal_controller.dart';
 import 'package:codeforge/core/files/workspace_location.dart';
+import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/features/workbench/panels/terminal_pane.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/services.dart';
@@ -309,6 +312,40 @@ void main() {
     await tester.tap(_key('terminal_end_all_confirm'));
     await tester.pumpAndSettle();
     expect(pane.service.endAllCalls, 1);
+  });
+
+  testWidgets('the menu maximizes the panel and restores it', (tester) async {
+    await _pump(tester, stop: TerminalStop.half);
+    await _start(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TerminalPane)),
+    );
+    ShellState shell() => container.read(shellControllerProvider);
+    await tester.tap(_key('terminal_menu'));
+    await tester.pumpAndSettle();
+    expect(_key('terminal_menu_restore'), findsNothing);
+    await tester.tap(_key('terminal_menu_maximize'));
+    await tester.pumpAndSettle();
+    expect(shell().terminalStop, TerminalStop.full);
+    await tester.tap(_key('terminal_menu'));
+    await tester.pumpAndSettle();
+    expect(_key('terminal_menu_maximize'), findsNothing);
+    await tester.tap(_key('terminal_menu_restore'));
+    await tester.pumpAndSettle();
+    expect(shell().terminalStop, TerminalStop.half);
+  });
+
+  testWidgets('maximized beside the editor, it leaves the editor a peek', (
+    tester,
+  ) async {
+    // A phone on its side: the dock's own cap would leave a row or two.
+    await _pump(tester, width: 915, height: 412);
+    await _start(tester);
+    expect(
+      tester.getSize(find.byType(EditorPane)).height,
+      moreOrLessEquals(48, epsilon: 0.5),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the panel meets the tap-target and label guidelines', (

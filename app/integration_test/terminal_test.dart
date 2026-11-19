@@ -7,7 +7,8 @@
 ///      landscape and after the turn back: `stty size` says the page's size,
 ///      nano's title sits on the top row (its name in the middle) and its
 ///      shortcuts on the two bottom rows, and top's lines fit the width
-///      without wrapping.
+///      without wrapping. The panel is maximized (the full stop): beside the
+///      editor on a phone on its side, the dock alone has a row or two.
 ///   3. Scripted composition loses nothing: with `cat > .cf-compose.txt`
 ///      running, the gate's DevTools driver (editor/tool/terminal_cdp.mjs)
 ///      plays the composition suite into the page and compares the file
@@ -231,16 +232,20 @@ void main() {
       );
       await screenWhere(promptAtCursor, what: 'the prompt after stty ($where)');
 
+      // nano keeps its two rows of shortcuts from five rows up.
+      final help = rows >= 5;
       await write('nano\r');
       final nano = await screenWhere(
         (screen) =>
             screen.alternate &&
             screen.screen.first.contains('GNU nano') &&
-            screen.screen.last.contains('^X'),
+            (!help || screen.screen.last.contains('^X')),
         what: 'nano to draw ($where)',
       );
       expect((nano.columns, nano.rows), (columns, rows));
-      expect(nano.screen[rows - 2], contains('^G'), reason: where);
+      if (help) {
+        expect(nano.screen[rows - 2], contains('^G'), reason: where);
+      }
       expect(nano.wrapped, 0, reason: where);
       final title = nano.screen.first;
       const name = 'New Buffer';

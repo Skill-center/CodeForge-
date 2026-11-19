@@ -72,7 +72,8 @@ CodeForge-/
 │   │   └── fixtures/             # JSON contract fixtures, shared with the Dart tests
 │   ├── tool/                     # build.mjs, verify_bundle.mjs, check_licenses.mjs,
 │   │                             #   build_terminal.mjs, verify_terminal.mjs and
-│   │                             #   terminal_cdp.mjs (the composition suite's driver),
+│   │                             #   terminal_cdp.mjs (the composition suite's driver,
+│   │                             #   and the gate's probe of each tap),
 │   │                             #   notices.mjs (THIRD_PARTY_NOTICES §3, Phase 4 W7),
 │   │                             #   page_kit.mjs (shared), build_bench.mjs,
 │   │                             #   bench_cdp.mjs (DevTools driver), bench_report.mjs

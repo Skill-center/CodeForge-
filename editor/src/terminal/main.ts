@@ -61,33 +61,50 @@ window.addEventListener('unhandledrejection', (event) => {
   bridge.log('error', `unhandled rejection: ${String(event.reason)}`);
 });
 
-// Touch: scrolling and selecting (touch.ts). The page keeps the events it
-// handles from the WebView, which would otherwise pan, zoom or synthesize a
-// mouse that starts xterm's own selection.
+// Touch: scrolling and selecting (touch.ts). The terminals' `touch-action:
+// none` keeps the WebView from panning and zooming. A tap's touches are left
+// to the WebView: from a tap it takes the app's focus (and xterm.js, from
+// the tap's mousedown, its input's), as in the editor's page; a page whose
+// view lacks the focus gets no focus event, so canceling a tap kept the
+// terminal from the keyboard (phase gate 44557551890). A drag's and a
+// selection's touches are canceled, so the WebView synthesizes no mouse
+// that would start xterm's own selection.
 const points = (list: TouchList): TouchPoint[] =>
   Array.from(list, (touch) => ({ clientX: touch.clientX, clientY: touch.clientY }));
 parent.addEventListener(
   'touchstart',
   (event) => {
-    if (controller.gestures.down(points(event.touches))) event.preventDefault();
+    controller.gestures.down(points(event.touches));
   },
-  { passive: false },
+  { passive: true },
 );
 parent.addEventListener(
   'touchmove',
   (event) => {
-    if (controller.gestures.move(points(event.touches))) event.preventDefault();
+    controller.gestures.move(points(event.touches));
+    if (controller.gestures.consuming) event.preventDefault();
   },
   { passive: false },
 );
 parent.addEventListener(
   'touchend',
   (event) => {
-    if (controller.gestures.up()) event.preventDefault();
+    const end = controller.gestures.up();
+    if (end === 'drag' || end === 'select') event.preventDefault();
   },
   { passive: false },
 );
 parent.addEventListener('touchcancel', () => controller.gestures.cancel());
+// A long press is the page's selection: neither the WebView's menu nor
+// xterm.js's right-click handling (which fills and selects its input).
+parent.addEventListener(
+  'contextmenu',
+  (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  },
+  true,
+);
 
 // A paste through the WebView itself takes the same sanitized path as the app's.
 parent.addEventListener(

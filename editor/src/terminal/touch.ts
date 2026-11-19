@@ -7,6 +7,11 @@
  *   - a long press selects the word under the finger, and moving on extends
  *     the selection; the app's toolbar then offers Copy;
  *   - a tap focuses the terminal, which brings up the keyboard.
+ * The page cancels a drag's and a long press's touches, never a tap's
+ * (main.ts): the WebView takes the app's focus only from a tap it sees,
+ * and until it has the focus Chromium dispatches no focus event to the
+ * page, so xterm.js's input would take the focus without the keyboard or
+ * a word to the host (phase gate 44557551890).
  * The gesture logic is DOM-free apart from the event shapes, so
  * test/terminal_touch.test.ts drives it with plain objects.
  */
@@ -41,6 +46,9 @@ export const TOUCH_SLOP = 8;
 
 type State = 'idle' | 'pressed' | 'dragging' | 'selecting';
 
+/** How a gesture ended: the page leaves a tap to the WebView and cancels a drag's or a selection's touches. */
+export type GestureEnd = 'tap' | 'drag' | 'select' | null;
+
 export class TouchGestures {
   private state: State = 'idle';
   private start: TouchPoint = { clientX: 0, clientY: 0 };
@@ -56,12 +64,20 @@ export class TouchGestures {
     },
   ) {}
 
-  /** True while a gesture is in progress (the page then keeps the event from the WebView). */
+  /** True while a gesture is in progress. */
   get active(): boolean {
     return this.state !== 'idle';
   }
 
-  /** A finger down; a second finger cancels the gesture. Returns whether the page handles it. */
+  /**
+   * True once the gesture is a drag or a selection: the page then keeps its
+   * moves from the WebView. A finger still within the slop may yet be a tap.
+   */
+  get consuming(): boolean {
+    return this.state === 'dragging' || this.state === 'selecting';
+  }
+
+  /** A finger down; a second finger cancels the gesture. Returns whether the page follows it. */
   down(points: readonly TouchPoint[]): boolean {
     if (points.length !== 1) {
       this.cancel();
@@ -99,12 +115,22 @@ export class TouchGestures {
     return true;
   }
 
-  up(): boolean {
+  /** The finger lifted: a press that never became a drag or a selection is a tap. */
+  up(): GestureEnd {
     const state = this.state;
     this.cancelTimer();
     this.state = 'idle';
-    if (state === 'pressed') this.target.tap(this.start);
-    return state !== 'idle';
+    switch (state) {
+      case 'pressed':
+        this.target.tap(this.start);
+        return 'tap';
+      case 'dragging':
+        return 'drag';
+      case 'selecting':
+        return 'select';
+      default:
+        return null;
+    }
   }
 
   cancel(): void {

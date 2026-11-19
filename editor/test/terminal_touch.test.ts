@@ -44,9 +44,28 @@ describe('terminal touch', () => {
     const { target, touch } = gestures();
     expect(touch.down(at(10, 10))).toBe(true);
     expect(touch.move(at(10 + TOUCH_SLOP - 1, 10))).toBe(true);
-    expect(touch.up()).toBe(true);
+    // Within the slop it may yet be a tap: its moves stay the WebView's.
+    expect(touch.consuming).toBe(false);
+    // A tap is left to the WebView (main.ts), which takes the focus from it.
+    expect(touch.up()).toBe('tap');
     expect(target.calls).toEqual(['tap 10,10']);
     expect(touch.active).toBe(false);
+  });
+
+  it('a drag and a selection are the page\'s: their touches are kept from the WebView', () => {
+    const { timers, touch } = gestures();
+    touch.down(at(50, 100));
+    touch.move(at(50, 100 + TOUCH_SLOP + 1));
+    expect(touch.consuming).toBe(true);
+    expect(touch.up()).toBe('drag');
+    expect(touch.consuming).toBe(false);
+
+    touch.down(at(30, 40));
+    expect(touch.consuming).toBe(false);
+    timers.run(); // the long press
+    expect(touch.consuming).toBe(true);
+    expect(touch.up()).toBe('select');
+    expect(touch.up()).toBeNull();
   });
 
   it('a drag down scrolls back by whole lines and carries the rest', () => {
@@ -103,7 +122,7 @@ describe('terminal touch', () => {
     touch.down(at(30, 40));
     expect(touch.move([...at(30, 50), ...at(80, 90)])).toBe(false);
     expect(timers.tasks.size).toBe(0);
-    expect(touch.up()).toBe(false);
+    expect(touch.up()).toBeNull();
     expect(touch.down([...at(1, 1), ...at(2, 2)])).toBe(false);
     expect(target.calls).toEqual([]);
   });

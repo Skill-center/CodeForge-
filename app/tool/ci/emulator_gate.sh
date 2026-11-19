@@ -58,7 +58,9 @@
 #                                  echo; nano and top at the panel's size
 #                                  after turns; terminal_compose.json, the
 #                                  composition suite's lines as cat wrote
-#                                  them; the driver's and DevTools' logs)
+#                                  them; the driver's and DevTools' logs;
+#                                  terminal_probe.txt, what the page saw of
+#                                  each tap, and terminal_first_tap.png)
 #   runtime.txt / runtime_*.txt    Phase 4 W3 G3: the sealed runtime. The
 #                                  instrumented tests' output and their
 #                                  report (first install, warm start, a
@@ -1595,6 +1597,13 @@ echo "::group::Terminal (Phase 5 W3, G3: typed text echoes, nano and top fit the
 # setting, and `compose` by running editor/tool/terminal_cdp.mjs, which
 # plays bench/terminal_composition_cases.json into the page over its
 # DevTools socket and compares what `cat` wrote (terminal_compose.json).
+# Each tap is recorded (terminal_probe.txt, from terminal_cdp.mjs --probe):
+# the touches, mouse events and focus changes the page saw, and its focus
+# after them; the first is also photographed (terminal_first_tap.png).
+terminal_probe() {
+  node ../editor/tool/terminal_cdp.mjs --adb "$ADB" --package "$APP_ID" --probe "$1" \
+    >> "$RESULTS/terminal_probe.txt" 2>&1 < /dev/null || true
+}
 terminal_driver() {
   local last="" line id kind status
   echo "terminal driver: polling the log for requests ($(date +%T))"
@@ -1613,9 +1622,16 @@ terminal_driver() {
     shift 2 || true
     case "$kind" in
       tap)
+        terminal_probe arm
         "$ADB" shell input tap "${1:-0}" "${2:-0}" < /dev/null
         status=$?
         echo "request $id: tap $* (exit $status, $(date +%T))"
+        sleep 2
+        terminal_probe read
+        if [ ! -s "$RESULTS/terminal_first_tap.png" ]; then
+          "$ADB" exec-out screencap -p > "$RESULTS/terminal_first_tap.png" 2>/dev/null < /dev/null \
+            || rm -f "$RESULTS/terminal_first_tap.png"
+        fi
         ;;
       text)
         "$ADB" shell input text "${1:-}" < /dev/null
@@ -1651,7 +1667,7 @@ terminal_driver() {
 terminal_run() {
   "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
   "$ADB" logcat -c < /dev/null
-  rm -f "$RESULTS/terminal_compose.json"
+  rm -f "$RESULTS/terminal_compose.json" "$RESULTS/terminal_probe.txt" "$RESULTS/terminal_first_tap.png"
   ITEST_LIMIT=25m ITEST_ATTEMPTS=1 run_itest terminal_itest integration_test/terminal_test.dart || return 1
 }
 terminal_driver > "$RESULTS/terminal_driver.txt" 2>&1 &
@@ -1679,6 +1695,7 @@ compose_failures=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1
   echo "terminal_compose_failures=$compose_failures"
   grep -oE 'TERMINAL_GATE .*' "$RESULTS/terminal_itest.txt" 2>/dev/null | sed 's/^TERMINAL_GATE /terminal: /'
   grep -E '\] (ok  |FAIL) ' "$RESULTS/terminal_cdp.txt" 2>/dev/null | sed 's/^\[terminal-cdp [0-9:]*\] /compose: /'
+  sed 's/^/tap /' "$RESULTS/terminal_probe.txt" 2>/dev/null | cut -c1-600
 } | tee "$RESULTS/terminal.txt"
 # The annotations have no slot left: attempts.txt carries the verdict.
 cat "$RESULTS/terminal.txt" >> "$RESULTS/attempts.txt"
