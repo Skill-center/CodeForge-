@@ -7,6 +7,7 @@ Downloading packages...
   drift_dev 2.35.2 (2.35.3 available)
   flutter_riverpod 3.4.3 (3.5.0 available)
   go_router 18.1.3 (18.1.4 available)
+  jni 1.1.2 (1.2.1 available)
   material_color_utilities 0.13.0 (0.13.1 available)
   material_ui 1.10.0 (1.11.1 available)
   native_toolchain_c 0.19.5 (0.19.6 available)
@@ -18,38 +19,38 @@ Downloading packages...
   sqlite3 3.9.0 (3.9.1 available)
   test_api 0.7.14 (0.7.15 available)
 Got dependencies!
-17 packages have newer versions incompatible with dependency constraints.
+18 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/search_test.dart
-Running Gradle task 'assembleDebug'...                             14.9s
+Running Gradle task 'assembleDebug'...                             17.1s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        2,282ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...        2,514ms
 00:00 +0: search: ripgrep in a 10,000-file project, the scan in the gate folder, cancelling, a result opened at its line
-search gate: project of 10000 files written in 3991 ms (setup)
-search gate: needle run 1: ripgrep done 200 lines in 200 files; first 153 ms, all 275 ms (host 108 / 226 ms)
-search gate: needle run 2: ripgrep done 200 lines in 200 files; first 70 ms, all 210 ms (host 61 / 199 ms)
-search gate: needle run 3: ripgrep done 200 lines in 200 files; first 25 ms, all 202 ms (host 23 / 186 ms)
-search gate: whole word: ripgrep done 100 lines in 100 files; first 38 ms, all 152 ms (host 33 / 147 ms)
-search gate: regular expression: ripgrep done 500 lines in 500 files; first 90 ms, all 219 ms (host 86 / 208 ms)
-search gate: include m2: ripgrep done 10 lines in 10 files; first 71 ms, all 107 ms (host 58 / 92 ms)
-search gate: exclude s0: ripgrep done 90 lines in 90 files; first 66 ms, all 148 ms (host 60 / 139 ms)
-search gate: match case: ripgrep done 0 lines in 0 files; first null ms, all 142 ms (host null / 137 ms)
-search gate: look-around: ripgrep failed (badQuery) 0 lines in 0 files; first null ms, all 41 ms (host null / 36 ms)
-search gate: cancelled at the first results: ripgrep cancelled 26 lines in 26 files; first 46 ms, all 76 ms (host 39 / 68 ms)
-search gate: cancelled: Stop asked at 1 lines, ended with 26 lines, 60 ms from Stop to the summary; ripgrep processes left: 0
-search gate: the panel query, prepared: ripgrep done 0 lines in 0 files; first null ms, all 39 ms (host null / 34 ms)
+search gate: project of 10000 files written in 5198 ms (setup)
+search gate: needle run 1: ripgrep done 200 lines in 200 files; first 179 ms, all 654 ms (host 142 / 614 ms)
+search gate: needle run 2: ripgrep done 200 lines in 200 files; first 126 ms, all 245 ms (host 97 / 211 ms)
+search gate: needle run 3: ripgrep done 200 lines in 200 files; first 61 ms, all 189 ms (host 54 / 186 ms)
+search gate: whole word: ripgrep done 100 lines in 100 files; first 63 ms, all 197 ms (host 49 / 182 ms)
+search gate: regular expression: ripgrep done 500 lines in 500 files; first 64 ms, all 257 ms (host 60 / 244 ms)
+search gate: include m2: ripgrep done 10 lines in 10 files; first 60 ms, all 108 ms (host 55 / 101 ms)
+search gate: exclude s0: ripgrep done 90 lines in 90 files; first 78 ms, all 220 ms (host 66 / 203 ms)
+search gate: match case: ripgrep done 0 lines in 0 files; first null ms, all 138 ms (host null / 131 ms)
+search gate: look-around: ripgrep failed (badQuery) 0 lines in 0 files; first null ms, all 44 ms (host null / 32 ms)
+search gate: cancelled at the first results: ripgrep cancelled 33 lines in 33 files; first 36 ms, all 71 ms (host 27 / 53 ms)
+search gate: cancelled: Stop asked at 1 lines, ended with 33 lines, 72 ms from Stop to the summary; ripgrep processes left: 0
+search gate: the panel query, prepared: ripgrep done 0 lines in 0 files; first null ms, all 63 ms (host null / 57 ms)
 search gate: opened m0/s0/f07.js at line 3, column 17 (offset 60)
-FOLDERGATE 1795121367724.1 pick cf-gate
-folder gate: request 1795121367724.1 answered picked
-search gate: folder scan run 1: scan done 100 lines in 100 files of 1007; first 2911 ms, all 10907 ms (host 2700 / 10694 ms)
-search gate: folder scan run 2: scan done 100 lines in 100 files of 1007; first 1222 ms, all 4978 ms (host 1216 / 4974 ms)
-search gate: folder scan run 3: scan done 100 lines in 100 files of 1007; first 1320 ms, all 5475 ms (host 1306 / 5472 ms)
-search gate: folder needle: scan done 1 lines in 1 files of 1007; first 678 ms, all 5560 ms (host 674 / 5556 ms)
-search gate: folder whole word: scan done 2 lines in 2 files of 1007; first 1107 ms, all 4953 ms (host 1098 / 4938 ms)
-search gate: copy of the gate folder into app storage, through the broker one file at a time: 1008 files and 7 folders, 4065 bytes, in 8805 ms
-SEARCH_JSON 1/4 {"schema":1,"kind":"codeforge-search","runs":3,"project":{"files":10000,"setupMs":3991,"needle":{"firstMs":{"medianMs":70,"runsMs":[153,70,25]},"allMs":{"medianMs":210,"runsMs":[275,210,202]},"hostFirstMs":{"medianMs":61,"runsMs":[108,61,23]},"hostAllMs":{"medianMs":199,"runsMs":[226,199,186]},"last":{"engine":"ripgrep","outcome":"done","files":200,"lines":200,"searched":null,"firstMs":25,"allMs":202,"hostFirstMs":23,"hostAllMs":186}},"wholeWord":{"engine":"ripgrep","outcome":"done","files":100,"lines":100,"searched":null,"firstMs":38,"allMs":152,"hostFirstMs":33,"hostAllMs":147},"regex":{"eng
-SEARCH_JSON 2/4 ine":"ripgrep","outcome":"done","files":500,"lines":500,"searched":null,"firstMs":90,"allMs":219,"hostFirstMs":86,"hostAllMs":208},"include":{"engine":"ripgrep","outcome":"done","files":10,"lines":10,"searched":null,"firstMs":71,"allMs":107,"hostFirstMs":58,"hostAllMs":92},"exclude":{"engine":"ripgrep","outcome":"done","files":90,"lines":90,"searched":null,"firstMs":66,"allMs":148,"hostFirstMs":60,"hostAllMs":139},"matchCase":{"engine":"ripgrep","outcome":"done","files":0,"lines":0,"searched":null,"firstMs":null,"allMs":142,"hostFirstMs":null,"hostAllMs":137},"refused":{"problem":"badQuery"}},
-SEARCH_JSON 3/4 "cancel":{"stopAtLines":1,"endedWithLines":26,"stopToSummaryMs":60,"ripgrepLeft":"0"},"open":{"path":"m0/s0/f07.js","line":3,"column":17},"folder":{"files":1007,"scan":{"firstMs":{"medianMs":1320,"runsMs":[2911,1222,1320]},"allMs":{"medianMs":5475,"runsMs":[10907,4978,5475]},"hostFirstMs":{"medianMs":1306,"runsMs":[2700,1216,1306]},"hostAllMs":{"medianMs":5472,"runsMs":[10694,4974,5472]},"last":{"engine":"scan","outcome":"done","files":100,"lines":100,"searched":1007,"firstMs":1320,"allMs":5475,"hostFirstMs":1306,"hostAllMs":5472}},"needle":{"engine":"scan","outcome":"done","files":1,"lines":1
-SEARCH_JSON 4/4 ,"searched":1007,"firstMs":678,"allMs":5560,"hostFirstMs":674,"hostAllMs":5556},"wholeWord":{"engine":"scan","outcome":"done","files":2,"lines":2,"searched":1007,"firstMs":1107,"allMs":4953,"hostFirstMs":1098,"hostAllMs":4938}},"copy":{"files":1008,"folders":7,"bytes":4065,"ms":8805,"how":"StorageBroker.list and read from Dart, dart:io writes"}}
-01:14 +1: (tearDownAll)
-01:15 +1: All tests passed!
+FOLDERGATE 1795160261171.1 pick cf-gate
+folder gate: request 1795160261171.1 answered picked
+search gate: folder scan run 1: scan done 100 lines in 100 files of 1007; first 3780 ms, all 16311 ms (host 3732 / 16263 ms)
+search gate: folder scan run 2: scan done 100 lines in 100 files of 1007; first 1567 ms, all 7969 ms (host 1562 / 7964 ms)
+search gate: folder scan run 3: scan done 100 lines in 100 files of 1007; first 1924 ms, all 7867 ms (host 1892 / 7860 ms)
+search gate: folder needle: scan done 1 lines in 1 files of 1007; first 1827 ms, all 8634 ms (host 1816 / 8624 ms)
+search gate: folder whole word: scan done 2 lines in 2 files of 1007; first 1343 ms, all 9116 ms (host 1340 / 9109 ms)
+search gate: copy of the gate folder into app storage, through the broker one file at a time: 1008 files and 7 folders, 4065 bytes, in 11476 ms
+SEARCH_JSON 1/4 {"schema":1,"kind":"codeforge-search","runs":3,"project":{"files":10000,"setupMs":5198,"needle":{"firstMs":{"medianMs":126,"runsMs":[179,126,61]},"allMs":{"medianMs":245,"runsMs":[654,245,189]},"hostFirstMs":{"medianMs":97,"runsMs":[142,97,54]},"hostAllMs":{"medianMs":211,"runsMs":[614,211,186]},"last":{"engine":"ripgrep","outcome":"done","files":200,"lines":200,"searched":null,"firstMs":61,"allMs":189,"hostFirstMs":54,"hostAllMs":186}},"wholeWord":{"engine":"ripgrep","outcome":"done","files":100,"lines":100,"searched":null,"firstMs":63,"allMs":197,"hostFirstMs":49,"hostAllMs":182},"regex":{"e
+SEARCH_JSON 2/4 ngine":"ripgrep","outcome":"done","files":500,"lines":500,"searched":null,"firstMs":64,"allMs":257,"hostFirstMs":60,"hostAllMs":244},"include":{"engine":"ripgrep","outcome":"done","files":10,"lines":10,"searched":null,"firstMs":60,"allMs":108,"hostFirstMs":55,"hostAllMs":101},"exclude":{"engine":"ripgrep","outcome":"done","files":90,"lines":90,"searched":null,"firstMs":78,"allMs":220,"hostFirstMs":66,"hostAllMs":203},"matchCase":{"engine":"ripgrep","outcome":"done","files":0,"lines":0,"searched":null,"firstMs":null,"allMs":138,"hostFirstMs":null,"hostAllMs":131},"refused":{"problem":"badQuery"
+SEARCH_JSON 3/4 }},"cancel":{"stopAtLines":1,"endedWithLines":33,"stopToSummaryMs":72,"ripgrepLeft":"0"},"open":{"path":"m0/s0/f07.js","line":3,"column":17},"folder":{"files":1007,"scan":{"firstMs":{"medianMs":1924,"runsMs":[3780,1567,1924]},"allMs":{"medianMs":7969,"runsMs":[16311,7969,7867]},"hostFirstMs":{"medianMs":1892,"runsMs":[3732,1562,1892]},"hostAllMs":{"medianMs":7964,"runsMs":[16263,7964,7860]},"last":{"engine":"scan","outcome":"done","files":100,"lines":100,"searched":1007,"firstMs":1924,"allMs":7867,"hostFirstMs":1892,"hostAllMs":7860}},"needle":{"engine":"scan","outcome":"done","files":1,"lines
+SEARCH_JSON 4/4 ":1,"searched":1007,"firstMs":1827,"allMs":8634,"hostFirstMs":1816,"hostAllMs":8624},"wholeWord":{"engine":"scan","outcome":"done","files":2,"lines":2,"searched":1007,"firstMs":1343,"allMs":9116,"hostFirstMs":1340,"hostAllMs":9109}},"copy":{"files":1008,"folders":7,"bytes":4065,"ms":11476,"how":"StorageBroker.list and read from Dart, dart:io writes"}}
+01:47 +1: (tearDownAll)
+01:48 +1: All tests passed!
