@@ -1,8 +1,12 @@
-request 1795183801731.9: die (14:16:01), app pid 29948
+request 1795187552817.9: die (15:18:38), app pid 32348
 --- before: the sessions' processes (pid ppid pgid user oom_score_adj args)
-30277 29948 30277 u0_a240      libcodeforge-spawn.so --status /data/user/0/dev.codeforge.app/files/coding-harness/codeforge/terminal/terminal-1510824169104998981.status --grace 1000 --fsize 4294967296
-30280 30277 30280 u0_a240      bash -c rm -f .cf-beats; n=0; while :; do n=$((n + 1)); date +%s >> .cf-beats; echo "beat $n"; sleep 1; done cf-heartbeat-5201
-30310 30307 30310 u0_a240      sleep 9999.5202
-oom_score_adj 30277: 800
-oom_score_adj 30280: 800
-oom_score_adj 30310: 800
+32709 32348 32709 u0_a240      libcodeforge-spawn.so --status /data/user/0/dev.codeforge.app/files/coding-harness/codeforge/terminal/terminal-7203385968897083295.status --grace 1000 --fsize 4294967296
+32712 32709 32712 u0_a240      bash -c rm -f .cf-beats; n=0; while :; do n=$((n + 1)); date +%s >> .cf-beats; echo "beat $n"; sleep 1; done cf-heartbeat-5201
+32754 32744 32754 u0_a240      sleep 9999.5202
+oom_score_adj 32709: 800
+oom_score_adj 32712: 800
+oom_score_adj 32754: 800
+--- after kill -9 (15:18:45): app pid now ''
+
+killed=1
+left_after_kill=0
