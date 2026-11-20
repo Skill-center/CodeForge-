@@ -1,10 +1,4 @@
-api_floor=fail min_sdk=26 apk=app-debug.apk dex=13 api=android-36/data/api-versions.xml dexdump=37.0.0
-methods=3521 references=24994 framework=9056 unlisted=0 violations=7 guarded=1 dead=0 stale=0
-VIOLATION dev.codeforge.app.terminal.SessionKeeper$$ExternalSyntheticLambda0.run:()V calls dev.codeforge.app.terminal.SessionKeeper.invoke$lambda$0:(Ldev/codeforge/app/terminal/SessionKeeper;)V
-VIOLATION dev.codeforge.app.terminal.SessionKeeper.invoke$lambda$0:(Ldev/codeforge/app/terminal/SessionKeeper;)V calls dev.codeforge.app.terminal.SessionKeeper.update:()V
-VIOLATION dev.codeforge.app.terminal.SessionKeeper.update:()V calls dev.codeforge.app.terminal.SessionService$Companion.keep:(Landroid/content/Context;I)V
-VIOLATION dev.codeforge.app.terminal.SessionService$Companion.keep:(Landroid/content/Context;I)V calls dev.codeforge.app.terminal.SessionService$Companion.notification:(Landroid/content/Context;I)Landroid/app/Notification;
-VIOLATION dev.codeforge.app.terminal.SessionService$Companion.notification:(Landroid/content/Context;I)Landroid/app/Notification; refers to Landroid/app/Notification$Builder;.setForegroundServiceBehavior:(I)Landroid/app/Notification$Builder; (API 31)
-VIOLATION dev.codeforge.app.terminal.SessionService.enterForeground:(I)V calls dev.codeforge.app.terminal.SessionService$Companion.notification:(Landroid/content/Context;I)Landroid/app/Notification;
-VIOLATION dev.codeforge.app.terminal.SessionService.onStartCommand:(Landroid/content/Intent;II)I calls dev.codeforge.app.terminal.SessionService.enterForeground:(I)V
+api_floor=pass min_sdk=26 apk=app-debug.apk dex=13 api=android-36/data/api-versions.xml dexdump=37.0.0
+methods=3521 references=24999 framework=9061 unlisted=0 violations=0 guarded=2 dead=0 stale=0
 guarded dev.codeforge.app.CodeForgeBackupAgent.onFullBackup:(Landroid/app/backup/FullBackupDataOutput;)V -> Landroid/app/backup/FullBackupDataOutput;.getTransportFlags:()I (API 28): read only when Build.VERSION.SDK_INT >= P (28).
+guarded dev.codeforge.app.terminal.SessionService$Companion.notification:(Landroid/content/Context;I)Landroid/app/Notification; -> Landroid/app/Notification$Builder;.setForegroundServiceBehavior:(I)Landroid/app/Notification$Builder; (API 31): called only when Build.VERSION.SDK_INT >= S (31).
