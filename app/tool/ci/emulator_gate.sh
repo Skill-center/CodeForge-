@@ -868,7 +868,10 @@ sessions_service() {
     echo "--- service ($(date +%T))"
     printf '%s\n' "$services" | grep -E 'ServiceRecord|isForeground|startRequested' | sed 's/^ *//'
   } >> "$RESULTS/sessions_service.txt"
-  if ! printf '%s\n' "$services" | grep -q 'terminal.SessionService'; then
+  # The session service's own record: Chromium's renderer services are
+  # the app's too.
+  services=$(printf '%s\n' "$services" | awk '/\* ServiceRecord/ { inside = /terminal\.SessionService/ } inside')
+  if [ -z "$services" ]; then
     echo none
     return
   fi
@@ -905,7 +908,7 @@ sessions_procs() {
   local marker="$1" lines count first oom app app_oom
   lines=$("$ADB" shell ps -A -o PID,PPID,PGID,ARGS < /dev/null 2>/dev/null | tr -d '\r' | grep -F -- "$marker")
   count=$(printf '%s\n' "$lines" | grep -c .)
-  first=$(printf '%s\n' "$lines" | awk 'NF { print $1; exit }')
+  first=$(printf '%s\n' "$lines" | awk 'NF && !seen { print $1; seen = 1 }')
   oom=""
   [ -n "$first" ] && oom=$("$ADB" shell cat "/proc/$first/oom_score_adj" < /dev/null 2>/dev/null | tr -d '\r')
   app=$("$ADB" shell pidof "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
@@ -1978,6 +1981,15 @@ sessions_part_a() {
   echo "sessions_a exit=$rc (the app is killed at its end)" | tee -a "$RESULTS/attempts.txt"
   "$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null | tr -d '\r' \
     | grep -E 'SESSIONS_GATE|sessions gate' > "$RESULTS/sessions_a_log.txt" || true
+  # flutter test may see the app go before the driver has recorded what is
+  # left of the sessions (phase gate 44744464658 judged part A, and killed
+  # the driver, in between): its record is waited for.
+  if grep -q 'SESSIONS_GATE part_a=ok' "$RESULTS/sessions_a_log.txt"; then
+    for _ in $(seq 1 60); do
+      [ -f "$RESULTS/sessions_killed.flag" ] && break
+      sleep 1
+    done
+  fi
   tail -n 30 "$RESULTS/sessions_a.txt"
   if grep -qE "$INFRA_RE" "$RESULTS/sessions_a.txt" && ! grep -q 'SESSIONS_GATE part_a=ok' "$RESULTS/sessions_a_log.txt"; then
     INFRA_SEEN=1
