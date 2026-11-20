@@ -456,23 +456,28 @@ class RuntimeHub(
         // still be ending, and the command side may have been made meanwhile:
         // ended and waited for again, under the lock.
         val sessions = currentCommands()?.sessions
-        try {
+        val result = try {
             sessions?.endAll(EndReason.ENDED)
-            val result = runtime().install { done, total -> progress(done, total) }
-            update {
-                copy(
-                    state = RuntimeState.READY,
-                    done = this.total,
-                    installMs = result.millis,
-                    auditing = true,
-                )
-            }
+            runtime().install { done, total -> progress(done, total) }
         } catch (failure: Exception) {
             fail(failure)
             return
         } finally {
             prefixLock.writeLock().unlock()
             sessions?.reopen()
+        }
+        // READY only once the prefix is free and sessions are taken again
+        // (Phase 5 W5): whoever hears it may start a command or a session at
+        // once, from any thread. Published under the lock, a session asked
+        // for on hearing it could find the lock still held and be refused,
+        // "not_ready: the runtime is ready" (runtime legs, run 44752660910).
+        update {
+            copy(
+                state = RuntimeState.READY,
+                done = this.total,
+                installMs = result.millis,
+                auditing = true,
+            )
         }
         auditNow()
     }

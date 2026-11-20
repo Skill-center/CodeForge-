@@ -1,7 +1,11 @@
 package dev.codeforge.app.runtime
 
 import java.io.File
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -328,6 +332,48 @@ class RuntimeHubTest {
         // This command side was made without terminals: refused, typed, never a crash.
         assertEquals(TerminalFailure.NOT_READY, started.failure)
         assertEquals(1, made)
+    }
+
+    @Test
+    fun whoeverHearsReadyFindsThePrefixFree() {
+        // A listener that runs a command the moment it hears READY, on a
+        // command thread of its own as in the app (Phase 5 W5): the install
+        // has let go of the prefix by then. Under the lock, the runtime legs
+        // saw a session refused as "not_ready: the runtime is ready" (API 27
+        // and 34, run 44752660910).
+        val commandThread = Executors.newSingleThreadExecutor()
+        try {
+            val hub = RuntimeHub(
+                runtimeFactory = { SealedRuntime(TestPayload().source(), TestPayload.configFor(root, libraries)) },
+                worker = direct,
+                deliver = { task -> task.run() },
+                apkBytes = { 42L },
+                commandsFactory = { commandsFor { CommandResult.failed(CommandFailure.LAUNCH_FAILED, "unused") } },
+                commandExecutor = commandThread,
+            )
+            val answered = CountDownLatch(1)
+            val result = AtomicReference<CommandResult?>(null)
+            var asked = false
+            hub.addListener { status ->
+                if (status.state == RuntimeState.READY && !asked) {
+                    asked = true
+                    hub.exec(CommandRequest("sh")) { answer ->
+                        result.set(answer)
+                        answered.countDown()
+                    }
+                    // The worker waits here, as if slow to go on: the answer
+                    // depends only on what it holds now.
+                    assertTrue("no answer to the command", answered.await(30, TimeUnit.SECONDS))
+                }
+            }
+            hub.start { }
+            assertTrue(asked)
+            assertEquals(RuntimeState.READY, hub.snapshot().state)
+            val answer = result.get()!!
+            assertEquals("the command reached the runner: ${answer.detail}", CommandFailure.LAUNCH_FAILED, answer.failure)
+        } finally {
+            commandThread.shutdownNow()
+        }
     }
 
     @Test
