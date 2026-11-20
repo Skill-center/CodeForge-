@@ -26,7 +26,6 @@ import 'dart:convert';
 import 'dart:developer' show Timeline;
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' show FramePhase;
 
 import 'package:codeforge/application/documents/document_controller.dart';
@@ -300,7 +299,8 @@ final class FloodFigures {
        ms = _number(flood['ms']),
        pageFrames = _object(flood['frames']),
        longTasks = _object(flood['longTasks']),
-       whole = _integer(flood['chars']) == expected.chars &&
+       whole =
+           _integer(flood['chars']) == expected.chars &&
            flood['hash'] == expected.hash;
 
   final String renderer;
@@ -503,17 +503,17 @@ Future<FloodFigures> measureFlood({
     tester,
     binding,
     () async {
-    final wall = Stopwatch()..start();
-    final from = Timeline.now;
-    await write('python3 $floodFile\r');
-    final report = await _probeOutcome(
-      view,
-      timeout: const Duration(minutes: 3),
-      what: 'flood probe',
-    );
-    final to = Timeline.now;
-    return ((report, wall.elapsedMilliseconds), from, to);
-  },
+      final wall = Stopwatch()..start();
+      final from = Timeline.now;
+      await write('python3 $floodFile\r');
+      final report = await _probeOutcome(
+        view,
+        timeout: const Duration(minutes: 3),
+        what: 'flood probe',
+      );
+      final to = Timeline.now;
+      return ((report, wall.elapsedMilliseconds), from, to);
+    },
   );
   final figures = FloodFigures(
     renderer: renderer,
@@ -566,7 +566,8 @@ final class TerminalMeasurements {
   MemorySample get shippedMemory => memory[shippedRenderer]!;
 
   /// The terminal's memory: after its flood, against before any terminal.
-  double get deltaMb => _round1((shippedMemory.totalKb - before.totalKb) / 1024);
+  double get deltaMb =>
+      _round1((shippedMemory.totalKb - before.totalKb) / 1024);
 
   bool get memoryUnderBudget => deltaMb <= memoryBudgetMb;
 
@@ -662,7 +663,9 @@ Future<TerminalMeasurements> measureTerminal({
   ];
   for (final asked in [shippedRenderer, ...others]) {
     final used = await useRenderer(view, id, asked);
-    report('renderer asked=$asked drawing=${used.renderer} error=${used.error}');
+    report(
+      'renderer asked=$asked drawing=${used.renderer} error=${used.error}',
+    );
     if (asked == 'webgl') {
       measured
         ..webglRenderer = used.renderer
