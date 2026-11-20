@@ -1,32 +1,32 @@
 Large files (Phase 2 W7, gate G7): open, scroll, typing and memory
 CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (the DevTools socket needs it; Flutter refuses profile mode on emulators)
-WebView: Mozilla/5.0 (Linux; Android 16; Android SDK built for x86_64 Build/BE2A.250530.026.D1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36
+WebView: Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36
 Budgets (ADR-0004): typing p95 <= 32 ms, scroll frames over 32 ms < 5 %, memory <= 250 MB
 Large-file policy: plain text above 524288 characters; files over 10485760 bytes are refused
 
 open: documents.open until the page shows the document (app side, read+decode / bridge+page);
 page: its own work on the doc.open message / until the next frame was painted;
 typing: input to frame, median / p95 (the budget is on p95).
-file            language    MiB  lines   open ms  app/bridge  page ms      long tasks  scroll slow  typing p50/p95   memory MB  save ms
-large_512kb.js  javascript  0.5  17621   213      114/99      69.8/84.9    7, 727 ms   88.9 % ✗     93.9/191.8 ms ✗  548 ✗      420
-large_1mb.js    plaintext*  1    35107   197      115/82      60.3/85      1, 81 ms    88.9 % ✗     43.9/127.1 ms ✗  563.6 ✗    409
-large_1mb.txt   plaintext   1    35107   250      150/100     26.4/35.2    1, 81 ms    90 % ✗       44.8/120.1 ms ✗  560.9 ✗    589
-large_5mb.js    plaintext*  5    174624  884      441/443     157.1/201.5  2, 384 ms   90 % ✗       56.2/159.5 ms ✗  630.4 ✗    675
-large_5mb.txt   plaintext   5    174624  873      399/474     189.7/235.9  2, 472 ms   89.5 % ✗     55.6/121.1 ms ✗  671.9 ✗    790
-large_10mb.js   plaintext*  10   347776  1525     695/830     255.4/284.3  2, 775 ms   90 % ✗       61/152.7 ms ✗    796.2 ✗    950
-large_10mb.txt  plaintext   10   347776  1536     729/807     251.5/270.2  1, 663 ms   88.9 % ✗     66.2/156.8 ms ✗  816.1 ✗    1268
+file            language    MiB  lines   open ms  app/bridge  page ms     long tasks  scroll slow  typing p50/p95  memory MB  save ms
+large_512kb.js  javascript  0.5  17621   101      46/55       39.6/47.7   3, 261 ms   91.4 % ✗     39.4/91 ms ✗    537.7 ✗    75
+large_1mb.js    plaintext*  1    35107   93       47/46       25.8/42.8   0, 0 ms     94.6 % ✗     20.9/63.3 ms ✗  556.1 ✗    65
+large_1mb.txt   plaintext   1    35107   109      73/36       25.6/41.1   0, 0 ms     94.3 % ✗     20.7/58.8 ms ✗  570 ✗      95
+large_5mb.js    plaintext*  5    174624  342      200/142     37.4/74.1   1, 82 ms    86.1 % ✗     23.2/85 ms ✗    632.7 ✗    234
+large_5mb.txt   plaintext   5    174624  317      185/132     69/95.8     1, 105 ms   91.7 % ✗     26/66.6 ms ✗    677 ✗      225
+large_10mb.js   plaintext*  10   347776  709      389/320     92.5/102.4  1, 265 ms   89.5 % ✗     22.7/68.9 ms ✗  692.9 ✗    435
+large_10mb.txt  plaintext   10   347776  742      461/281     76.1/93.8   1, 218 ms   91.4 % ✗     18.9/61.5 ms ✗  806.9 ✗    438
 * plain text by the large-file policy: highlighting, folding and syntax indentation are off
 
-Before the first open: app 419.9 MB + renderers 87.4 MB = 507.3 MB
+Before the first open: app 414.5 MB + renderers 95 MB = 509.5 MB
 
 Session store (ADR-0008), median ms per write, synchronous NORMAL (the app) against FULL:
 size            snapshot NORMAL  snapshot FULL  digest (UI isolate)
-1 MiB           63               49             17
-5 MiB           145              158            79
-10 MiB          291              248            170
-1 change (x20)  0.8              1.1
+1 MiB           27               12             17
+5 MiB           83               76             37
+10 MiB          117              113            78
+1 change (x20)  0.3              0.8
 
-Release build, session restored with large_1mb.js open: app 148.2 MB + renderers 93.5 MB = 241.7 MB ✓
+Release build, session restored with large_1mb.js open: app 136 MB + renderers 101 MB = 237 MB ✓
 
 Notes: the emulator renders in software, which bounds every frame-timed number (ADR-0004);
 compare sizes and languages with each other, not with the budgets. App-side times come from a
