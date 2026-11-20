@@ -1,6 +1,6 @@
 Large files (Phase 2 W7, gate G7): open, scroll, typing and memory
 CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (the DevTools socket needs it; Flutter refuses profile mode on emulators)
-WebView: Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36
+WebView: Mozilla/5.0 (Linux; Android 16; Android SDK built for x86_64 Build/BE2A.250530.026.D1; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36
 Budgets (ADR-0004): typing p95 <= 32 ms, scroll frames over 32 ms < 5 %, memory <= 250 MB
 Large-file policy: plain text above 524288 characters; files over 10485760 bytes are refused
 
@@ -8,25 +8,25 @@ open: documents.open until the page shows the document (app side, read+decode / 
 page: its own work on the doc.open message / until the next frame was painted;
 typing: input to frame, median / p95 (the budget is on p95).
 file            language    MiB  lines   open ms  app/bridge  page ms      long tasks  scroll slow  typing p50/p95   memory MB  save ms
-large_512kb.js  javascript  0.5  17621   157      95/62       54.6/82.3    7, 662 ms   92 % ✗       59.8/150.7 ms ✗  527.7 ✗    109
-large_1mb.js    plaintext*  1    35107   169      101/68      18.8/37.1    1, 57 ms    88.9 % ✗     27.8/99.8 ms ✗   581 ✗      101
-large_1mb.txt   plaintext   1    35107   186      114/72      51.1/69.4    1, 62 ms    92 % ✗       35.9/109 ms ✗    582.4 ✗    232
-large_5mb.js    plaintext*  5    174624  674      317/357     174.9/238.6  1, 319 ms   88 % ✗       35.2/136.2 ms ✗  614.2 ✗    402
-large_5mb.txt   plaintext   5    174624  560      335/225     91.1/101.7   1, 186 ms   88 % ✗       49.2/136.7 ms ✗  659.7 ✗    486
-large_10mb.js   plaintext*  10   347776  1251     672/579     164.1/185.1  1, 491 ms   92.3 % ✗     37.5/96.9 ms ✗   725.7 ✗    682
-large_10mb.txt  plaintext   10   347776  1248     646/602     140.8/151.7  1, 513 ms   87.5 % ✗     30.9/115.9 ms ✗  826.7 ✗    727
+large_512kb.js  javascript  0.5  17621   213      114/99      69.8/84.9    7, 727 ms   88.9 % ✗     93.9/191.8 ms ✗  548 ✗      420
+large_1mb.js    plaintext*  1    35107   197      115/82      60.3/85      1, 81 ms    88.9 % ✗     43.9/127.1 ms ✗  563.6 ✗    409
+large_1mb.txt   plaintext   1    35107   250      150/100     26.4/35.2    1, 81 ms    90 % ✗       44.8/120.1 ms ✗  560.9 ✗    589
+large_5mb.js    plaintext*  5    174624  884      441/443     157.1/201.5  2, 384 ms   90 % ✗       56.2/159.5 ms ✗  630.4 ✗    675
+large_5mb.txt   plaintext   5    174624  873      399/474     189.7/235.9  2, 472 ms   89.5 % ✗     55.6/121.1 ms ✗  671.9 ✗    790
+large_10mb.js   plaintext*  10   347776  1525     695/830     255.4/284.3  2, 775 ms   90 % ✗       61/152.7 ms ✗    796.2 ✗    950
+large_10mb.txt  plaintext   10   347776  1536     729/807     251.5/270.2  1, 663 ms   88.9 % ✗     66.2/156.8 ms ✗  816.1 ✗    1268
 * plain text by the large-file policy: highlighting, folding and syntax indentation are off
 
-Before the first open: app 430.7 MB + renderers 83.4 MB = 514.1 MB
+Before the first open: app 419.9 MB + renderers 87.4 MB = 507.3 MB
 
 Session store (ADR-0008), median ms per write, synchronous NORMAL (the app) against FULL:
 size            snapshot NORMAL  snapshot FULL  digest (UI isolate)
-1 MiB           17               24             13
-5 MiB           117              119            65
-10 MiB          180              222            128
-1 change (x20)  0.5              1.1
+1 MiB           63               49             17
+5 MiB           145              158            79
+10 MiB          291              248            170
+1 change (x20)  0.8              1.1
 
-Release build, session restored with large_1mb.js open: app 146.7 MB + renderers 89.1 MB = 235.8 MB ✓
+Release build, session restored with large_1mb.js open: app 148.2 MB + renderers 93.5 MB = 241.7 MB ✓
 
 Notes: the emulator renders in software, which bounds every frame-timed number (ADR-0004);
 compare sizes and languages with each other, not with the budgets. App-side times come from a
