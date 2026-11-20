@@ -48,6 +48,9 @@ CodeForge-/
 │   │                             #   and tools (W4); …/search/: the search host (W6);
 │   │                             #   …/storage/FolderCopy.kt: a folder's run copy and
 │   │                             #   its export, and Import as project (Phase 5 W4);
+│   │                             #   …/terminal/: TerminalHost, and SessionService, the
+│   │                             #   sessions' foreground service (W5); …/runtime/:
+│   │                             #   SessionLedger (tombstones), SessionLimits (W5);
 │   │                             #   app/src/androidTest/: the instrumented runtime tests
 │   ├── assets/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)

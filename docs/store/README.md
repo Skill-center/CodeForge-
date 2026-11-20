@@ -19,7 +19,7 @@
 4. **The testers:** at least 12, better 15 to 20, because the 14 days count only while at least 12 stay opted in. A Google Group makes the list easy to manage.
 5. **A contact address** for the listing, the privacy policy and SOURCE_OFFER.md.
 
-**The agent:** these drafts; the release workflow (a signed arm64 App Bundle, below); the source archive and the offer in About (SOURCE_OFFER.md); the graphics; and the evidence that the answers are true: CI's *Release manifest* gate (the release build asks for INTERNET alone, from Phase 5 W1, besides androidx.core's own signature permission) and the dependency list (THIRD_PARTY_NOTICES §2: no analytics, crash-reporting or advertising packages).
+**The agent:** these drafts; the release workflow (a signed arm64 App Bundle, below); the source archive and the offer in About (SOURCE_OFFER.md); the graphics; and the evidence that the answers are true: CI's *Release manifest* gate (the release build asks for INTERNET, from Phase 5 W1, and from Phase 5 W5 the terminal sessions' foreground service's FOREGROUND_SERVICE, FOREGROUND_SERVICE_SPECIAL_USE and POST_NOTIFICATIONS, besides androidx.core's own signature permission; nothing else); the text for Play Console's foreground-service declaration ([listing.md](listing.md), *The foreground service declaration*) and the dependency list (THIRD_PARTY_NOTICES §2: no analytics, crash-reporting or advertising packages).
 
 ## The closed test: a proposed start
 

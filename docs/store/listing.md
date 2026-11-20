@@ -59,8 +59,8 @@ A LINUX TOOLCHAIN, INSIDE THE APP
 
 PRIVATE BY DESIGN
 • No account, no ads, no analytics, no tracking
-• One permission, internet access, for the commands you run (npm, pip, git);
-  the app itself sends nothing
+• Internet access for the commands you run (npm, pip, git), and a
+  notification while your terminal sessions run; the app itself sends nothing
 • Android backup is your choice, and off until you turn it on
 
 CodeForge is open source under the Apache License 2.0. The bundled Linux
@@ -93,7 +93,19 @@ The screenshots show the demo project only: no real project names, keys or perso
 | Data safety | **No data collected, no data shared** ([data-safety.md](data-safety.md)) | — |
 | Privacy policy | [privacy-policy.md](privacy-policy.md), at a public URL | Required even when nothing is collected |
 | Government, financial, health, news apps | No | — |
-| Permissions declarations | None apply: the release build's one permission, INTERNET, is a normal permission, which Play's declaration forms do not cover | CI's *Release manifest* gate reads the release build's merged manifest on every push. Its entries: INTERNET (from Phase 5 W1), and androidx.core's own signature permission, which grants nothing outside the app |
+| Permissions declarations | **The foreground service (Phase 5 W5):** App content → Foreground service permissions, for `FOREGROUND_SERVICE_SPECIAL_USE`, with the text below (*The foreground service declaration*). INTERNET, FOREGROUND_SERVICE and POST_NOTIFICATIONS are not declared: Play's other forms do not cover them | CI's *Release manifest* gate reads the release build's merged manifest on every push. Its entries: INTERNET (from Phase 5 W1), FOREGROUND_SERVICE, FOREGROUND_SERVICE_SPECIAL_USE and POST_NOTIFICATIONS (from Phase 5 W5), and androidx.core's own signature permission, which grants nothing outside the app; `SessionService` is the only service |
+
+## The foreground service declaration (Phase 5 W5; the owner submits it)
+
+Play Console → App content → Foreground service permissions, at the first upload of a build with the service (PHASE_5_PLAN §10, item 5). A draft: the owner checks it against the form on the day, since Google changes it.
+
+- **The permission:** `android.permission.FOREGROUND_SERVICE_SPECIAL_USE`, for one service, `dev.codeforge.app.terminal.SessionService`. The manifest's subtype (`PROPERTY_SPECIAL_USE_FGS_SUBTYPE`): *Terminal sessions that the user starts in the Linux environment of the app, which run until the user ends them*.
+- **The use, for the description field:**
+
+  > CodeForge is a code editor with a Linux command line inside the app. When the user starts a terminal session, or runs their program or an npm script from the editor, a foreground service keeps the app's process running, so that the session goes on while the user is in another app: for example, to look at the page their development server serves in the browser, or while a long `npm install`, build or test run finishes. The service runs only while at least one session the user started is running. Its notification says how many run ("2 terminal sessions running") and has an End all button; it stops as soon as the last session ends. It does no work of its own, starts nothing by itself, and is never started from the background. No other type fits: a terminal session is the user's own program and runs for as long as the user lets it, while `dataSync` is for data transfers and is limited to six hours a day.
+
+- **If Android stopped it:** the user's running programs (a development server, a build, a test run, an interactive shell) would end, and their output would be lost.
+- **The video** (the owner records it on a phone): open a project, open the terminal, run a long command (`npm run dev`, or `sleep 600`), press Home, show the notification, come back to the app, and tap *End all* in the notification.
 
 ## Release notes (the first upload)
 

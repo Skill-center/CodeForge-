@@ -72,7 +72,7 @@ RuntimeHost
 
 **As built in Phase 4 W4** (the same folder; PHASE_4_PLAN *As built (W4)*; SECURITY §2.1):
 - **CodeForge's own exec model,** not t1's `HarnessEnvironment`, `HarnessCommandRunner` and `Toolchain` ([native/PROVENANCE.md](../native/PROVENANCE.md) says why).
-  - `RuntimeEnvironment` builds every command's environment from nothing: up to six of Android's system locations from the app's process, and the rest the runtime's own, with the interpreters' homes set explicitly (`PYTHONHOME`, `NODE_PATH`, `GEM_HOME`, `RUBYLIB`, `PERL5LIB`) and CodeForge's `harness-exec` as the only preload.
+  - `RuntimeEnvironment` builds every command's environment from nothing: up to six of Android's system locations from the app's process, and the rest the runtime's own, with the interpreters' homes set explicitly (`PYTHONHOME`, `NODE_PATH`, `GEM_HOME`, `RUBYLIB`, `PERL5LIB`) and CodeForge's `harness-exec` as the only preload. Since Phase 5 W5 npm's update notice is off (`NPM_CONFIG_UPDATE_NOTIFIER=false`): the runtime's npm is updated with the app, at its pin.
   - `CommandRunner` runs a program from the runtime's `bin` through the launcher `libcodeforge-spawn.so` (`native/runtime-core/src/main/jni/codeforge-spawn.c`), in the runtime's home or a folder inside its home or workspace, with a time limit and capped output.
   - `SessionRegistry` owns each command's process, enforces its deadline, and ends its whole tree; before an install it ends them all.
 - **`exec` and `tools` over Pigeon** (`pigeons/runtime_api.dart`), answered on threads of their own, only while the runtime is ready or degraded, never during an install. `exec` answers with the typed result (exit code or signal, stdout and stderr apart with their byte counts, duration, failure kind).

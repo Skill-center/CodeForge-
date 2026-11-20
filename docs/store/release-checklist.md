@@ -11,11 +11,11 @@
 
 ## Every upload
 
-1. **(CI)** The run for the commit is green: the quality gates (with the *Release manifest* gate: INTERNET and androidx.core's signature permission, nothing else), the runtime's supply chain, and the editor page.
+1. **(CI)** The run for the commit is green: the quality gates (with the *Release manifest* gate: INTERNET, the terminal sessions' foreground service's three, FOREGROUND_SERVICE, FOREGROUND_SERVICE_SPECIAL_USE and POST_NOTIFICATIONS, and androidx.core's signature permission, nothing else), the runtime's supply chain, and the editor page.
 2. **(CI)** The last phase gate for the change passed, with every runtime leg (Android 8.0 to 16).
 3. **(CI)** The release workflow built the arm64 App Bundle from the same pins, signed it with the upload key, and checked its base module against Play's 200 MB limit (`runtime/check-bundle-size.py`) and its native libraries' 16 KB alignment.
 4. **(CI)** The release on GitHub carries the source archive and its checksums, next to the bundle's.
-5. **(owner)** Upload to the internal testing track first. Install from Play on a real phone and check: the first start installs the runtime (its time is on Settings → Runtime), Settings → Linux runtime lists every tool at its pinned version, a project opens and saves, search finds text, and Android asks for no permission.
+5. **(owner)** Upload to the internal testing track first. Install from Play on a real phone and check: the first start installs the runtime (its time is on Settings → Runtime), Settings → Linux runtime lists every tool at its pinned version, a project opens and saves, search finds text, and Android asks for no permission until the first terminal session, when Android 13 and later ask to allow notifications; then "1 terminal session running" shows, and *End all* ends it.
 6. **(owner)** Promote to the closed track. Testers must stay opted in for 14 days in a row; the count of opted-in testers is on the track's page.
 7. **(owner)** The release notes say what changed, and claim nothing the build does not do.
 8. **(agent)** If the build adds a permission, a network feature or a dependency, data-safety.md and the privacy policy are reviewed before the upload.
