@@ -358,7 +358,7 @@ void main() {
     );
     // Each tool's line is read where it shows: the page builds only what
     // is near the screen.
-    final lines = <String, String>{};
+    final lines = <String, String?>{};
     for (final tool in FakeRuntimeService.pinnedTools) {
       await _scrollTo(tester, 'runtime_tool_${tool.tool}');
       lines[tool.tool] = _subtitle(tester, 'runtime_tool_${tool.tool}');
