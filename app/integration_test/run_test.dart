@@ -280,15 +280,23 @@ void main() {
         expected: _helloLines,
         timeout: const Duration(minutes: 3),
       );
+      // The script's own output, exactly; npm's banner (`> name@version
+      // script`, which npm 12 leaves out here) and its notices are npm's.
       expect(
         [
           for (final line in npmLines)
-            if (!line.startsWith('npm notice')) line,
+            if (!line.startsWith('> ') &&
+                !line.startsWith('npm notice') &&
+                !line.startsWith('npm warn'))
+              line,
         ],
-        ['> codeforge-demo@0.1.0 start', '> node main.js', ..._helloLines],
+        _helloLines,
       );
       expect(npmRun.exitCode, 0);
-      _report('npm=start exit=${npmRun.exitCode} lines=${npmLines.length}');
+      _report(
+        'npm=start exit=${npmRun.exitCode} lines=${npmLines.length} '
+        'banner=${npmLines.any((line) => line.startsWith('> '))}',
+      );
       await close(npm);
 
       // ── 2. Stop leaves no process ────────────────────────────────────────
@@ -312,7 +320,9 @@ void main() {
         expect(watch.elapsed, lessThan(const Duration(seconds: 30)));
         await tester.pump(const Duration(milliseconds: 200));
       }
-      expect(await processes('sleep 311.7'), 1);
+      // The brackets keep pgrep's own launcher, whose arguments hold the
+      // pattern, from matching it.
+      expect(await processes('[s]leep 311.7'), 1);
       final stopping = Stopwatch()..start();
       await runs.stop(forever);
       final (stopped, _) = await finished(
@@ -324,8 +334,8 @@ void main() {
       final settle = Stopwatch()..start();
       do {
         left =
-            (await processes('sleep 311.7'))! +
-            (await processes('gate-forever.js'))!;
+            (await processes('[s]leep 311.7'))! +
+            (await processes('[g]ate-forever.js'))!;
         if (left > 0) {
           await tester.pump(const Duration(milliseconds: 250));
         }
