@@ -285,16 +285,13 @@ void main() {
       );
       // The script's own output, exactly; npm's banner (`> name@version
       // script`, which npm 12 leaves out here) and its notices are npm's.
-      expect(
-        [
-          for (final line in npmLines)
-            if (!line.startsWith('> ') &&
-                !line.startsWith('npm notice') &&
-                !line.startsWith('npm warn'))
-              line,
-        ],
-        _helloLines,
-      );
+      expect([
+        for (final line in npmLines)
+          if (!line.startsWith('> ') &&
+              !line.startsWith('npm notice') &&
+              !line.startsWith('npm warn'))
+            line,
+      ], _helloLines);
       expect(npmRun.exitCode, 0);
       _report(
         'npm=start exit=${npmRun.exitCode} lines=${npmLines.length} '
@@ -361,9 +358,7 @@ void main() {
       final tail = nativeLines.length > 12
           ? nativeLines.sublist(nativeLines.length - 12)
           : nativeLines;
-      _report(
-        'native_output ${tail.map((line) => line.trim()).join(' | ')}',
-      );
+      _report('native_output ${tail.map((line) => line.trim()).join(' | ')}');
       final kind = container
           .read(terminalControllerProvider)
           .tabs
