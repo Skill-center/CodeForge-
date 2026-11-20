@@ -1729,6 +1729,60 @@ cat "$RESULTS/terminal.txt" >> "$RESULTS/attempts.txt"
 [ "$terminal_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
+echo "::group::Run (Phase 5 W4, G4: files and an npm script with their output and exit code, Stop, the native-addon banner, E2E part 1, a folder through its copy, export)"
+# integration_test/run_test.dart, in the build with the x86_64 payload
+# (still selected from the runtime group): Run in the real app on the
+# sealed runtime. The demo project's main.js, app.py, a shell script and
+# `npm run start` with their exact output and exit codes; Stop, with no
+# process left (pgrep through the runtime); `npm install` of a local
+# package that builds with node-gyp, failing for want of a compiler, and
+# the banner it brings; the E2E scenario part 1 (a new file, a program typed
+# through the editor page, saved, run, edited, run again); then the gate
+# folder, with a 1,000-file many/ as in the search group, picked in
+# Android's picker (folder_driver answers it): three runs through its copy
+# (the first copy, the second with nothing to copy, the third after the
+# host changed hello.txt), each copy timed, and the file the run wrote
+# exported and checked on disk. The times are recorded, never judged here.
+run_group() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  folder_fixture_push run_fixture.txt || return 1
+  "$ADB" shell "mkdir -p $FOLDER_ROOT/$GATE_FOLDER/many && cd $FOLDER_ROOT/$GATE_FOLDER/many && i=1 && while [ \$i -le 1000 ]; do echo \$i > \$(printf '%04d' \$i).txt; i=\$((i + 1)); done" \
+    < /dev/null >> "$RESULTS/run_fixture.txt" 2>&1 || return 1
+  echo "many: $("$ADB" shell ls "$FOLDER_ROOT/$GATE_FOLDER/many" < /dev/null | wc -l) entries" \
+    | tee -a "$RESULTS/run_fixture.txt"
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=30m ITEST_ATTEMPTS=1 run_itest run_itest integration_test/run_test.dart || return 1
+}
+FOLDER_UI="$RESULTS/run_ui.xml" folder_driver > "$RESULTS/run_driver.txt" 2>&1 &
+run_driver_pid=$!
+run_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if run_group; then
+    run_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "run attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$run_driver_pid" 2>/dev/null || true
+wait "$run_driver_pid" 2>/dev/null || true
+"$ADB" logcat -d -s CodeForgeStorage:I CodeForgeTerminal:I < /dev/null > "$RESULTS/run_logcat.txt" 2>&1 || true
+{
+  echo "run_group=$([ "$run_ok" = "1" ] && echo pass || echo fail)"
+  echo "run_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/run_driver.txt")"
+  grep -oE 'RUN_GATE .*' "$RESULTS/run_itest.txt" 2>/dev/null | sed 's/^RUN_GATE /run: /'
+  grep -oE '(copy|import): .*' "$RESULTS/run_logcat.txt" 2>/dev/null | sed 's/^/host: /' | tail -n 10
+} | tee "$RESULTS/run.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/run.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no gate folders, and no app.
+"$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$run_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"
 # Measured on a dedicated release APK built before the integration tests:
 # `flutter test integration_test` overwrites app-debug.apk with the test

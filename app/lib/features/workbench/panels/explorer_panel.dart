@@ -479,7 +479,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
                   case final FolderLocation folder)
                 CfIconButton(
                   key: const ValueKey('explorer_import'),
-                  icon: CfIcons.inventory,
+                  icon: CfIcons.inventory2,
                   tooltip: 'Import as project',
                   size: 16,
                   onPressed: () => unawaited(

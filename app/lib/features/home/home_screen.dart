@@ -341,7 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               ListTile(
                 key: const ValueKey('recent_import'),
-                leading: const Icon(CfIcons.inventory),
+                leading: const Icon(CfIcons.inventory2),
                 title: const Text('Import as project…'),
                 onTap: () =>
                     Navigator.of(context).pop(_RecentAction.importProject),

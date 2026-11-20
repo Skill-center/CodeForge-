@@ -24,7 +24,9 @@ final class PigeonStorageBroker implements StorageBroker {
   int _nextWatchId = 0;
   bool _hearing = false;
 
-  /// Copies' and imports' progress (Phase 5 W4).
+  /// Copies' and imports' progress (Phase 5 W4). It lives as long as the
+  /// client, which lives as long as the app: nothing closes it.
+  // ignore: close_sinks
   final StreamController<CopyProgress> _progress =
       StreamController<CopyProgress>.broadcast();
 
