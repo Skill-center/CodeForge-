@@ -7,6 +7,7 @@ Downloading packages...
   drift_dev 2.35.2 (2.35.3 available)
   flutter_riverpod 3.4.3 (3.5.0 available)
   go_router 18.1.3 (18.1.4 available)
+  jni 1.1.2 (1.2.1 available)
   material_color_utilities 0.13.0 (0.13.1 available)
   material_ui 1.10.0 (1.11.1 available)
   native_toolchain_c 0.19.5 (0.19.6 available)
@@ -18,7 +19,13 @@ Downloading packages...
   sqlite3 3.9.0 (3.9.1 available)
   test_api 0.7.14 (0.7.15 available)
 Got dependencies!
-17 packages have newer versions incompatible with dependency constraints.
+18 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 Analyzing app...                                                
-No issues found! (ran in 2.5s)
+
+  error • Arguments of a constant creation must be constant expressions. Try making the argument a valid constant, or use 'new' to call the constructor • lib/features/home/home_screen.dart:344:37 • const_with_non_constant_argument
+  error • The getter 'inventory' isn't defined for the type 'CfIcons'. Try importing the library that defines 'inventory', correcting the name to the name of an existing getter, or defining a getter or field named 'inventory' • lib/features/home/home_screen.dart:344:45 • undefined_getter
+  error • The getter 'inventory' isn't defined for the type 'CfIcons'. Try importing the library that defines 'inventory', correcting the name to the name of an existing getter, or defining a getter or field named 'inventory' • lib/features/workbench/panels/explorer_panel.dart:482:33 • undefined_getter
+   info • Unclosed instance of 'Sink'. Try invoking 'close' in the function in which the 'Sink' was created • lib/services/files/native/pigeon_storage_broker.dart:28:40 • close_sinks
+
+4 issues found. (ran in 2.4s)
