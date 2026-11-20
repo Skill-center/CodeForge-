@@ -39,7 +39,8 @@ import 'package:codeforge/core/terminal/native_addons.dart';
 import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/platform/app_directories.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
-import 'package:codeforge/services/storage/app_database.dart';
+import 'package:codeforge/services/storage/drift_session_store.dart'
+    show appDatabaseFileName;
 import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

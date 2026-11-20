@@ -45,11 +45,15 @@ Future<void> _openRuntimePage(WidgetTester tester) async {
   expect(find.byType(RuntimeScreen), findsOneWidget);
 }
 
-/// Scrolls the runtime page to [key].
-Future<void> _scrollTo(WidgetTester tester, String key) async {
+/// Scrolls the runtime page to [key], down unless [up].
+Future<void> _scrollTo(
+  WidgetTester tester,
+  String key, {
+  bool up = false,
+}) async {
   await tester.scrollUntilVisible(
     find.byKey(ValueKey(key)),
-    200,
+    up ? -200 : 200,
     scrollable: find.byType(Scrollable).first,
   );
   await tester.pumpAndSettle();
@@ -352,22 +356,17 @@ void main() {
       _subtitle(tester, 'runtime_tools'),
       contains('All 7 tools are their pinned versions'),
     );
+    // Each tool's line is read where it shows: the page builds only what
+    // is near the screen.
+    final lines = <String, String>{};
     for (final tool in FakeRuntimeService.pinnedTools) {
       await _scrollTo(tester, 'runtime_tool_${tool.tool}');
+      lines[tool.tool] = _subtitle(tester, 'runtime_tool_${tool.tool}');
     }
-    expect(
-      _subtitle(tester, 'runtime_tool_node'),
-      'node 26.13.1\nnodejs 26.13.1, as pinned',
-    );
+    expect(lines['node'], 'node 26.13.1\nnodejs 26.13.1, as pinned');
     // perl's package revision is not part of the version perl reports.
-    expect(
-      _subtitle(tester, 'runtime_tool_perl'),
-      'perl 5.44.0\nperl 5.44.0-1, as pinned',
-    );
-    expect(
-      _subtitle(tester, 'runtime_tool_rg'),
-      'rg 15.2.0\nripgrep 15.2.0, as pinned',
-    );
+    expect(lines['perl'], 'perl 5.44.0\nperl 5.44.0-1, as pinned');
+    expect(lines['rg'], 'rg 15.2.0\nripgrep 15.2.0, as pinned');
     await _scrollTo(tester, 'runtime_languages');
     expect(
       _subtitle(tester, 'runtime_languages'),
@@ -427,7 +426,7 @@ void main() {
     );
 
     // Check again: the tools are probed again.
-    await _scrollTo(tester, 'runtime_tools');
+    await _scrollTo(tester, 'runtime_tools', up: true);
     await tester.tap(find.byKey(const ValueKey('runtime_tools_check')));
     await tester.pumpAndSettle();
     expect(runtime.toolProbes, 2);

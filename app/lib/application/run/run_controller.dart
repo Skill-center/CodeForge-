@@ -8,6 +8,8 @@
 /// unless the user turned that off (Settings).
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors/failure.dart';
@@ -450,7 +452,9 @@ final class RunController extends Notifier<RunState> {
           );
       }
     } finally {
-      await progress.cancel();
+      // Not awaited: a cancelled subscription's future comes from the root
+      // zone, and nothing waits on what it says.
+      unawaited(progress.cancel());
       state = state.copyWith(copying: null);
     }
   }
