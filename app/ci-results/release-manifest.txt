@@ -1,5 +1,6 @@
 manifest: build/app/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
-permissions: android.permission.INTERNET, dev.codeforge.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+permissions: android.permission.FOREGROUND_SERVICE, android.permission.FOREGROUND_SERVICE_SPECIAL_USE, android.permission.INTERNET, android.permission.POST_NOTIFICATIONS, dev.codeforge.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+services: dev.codeforge.app.terminal.SessionService
 backup: allowBackup=true, backupAgent=dev.codeforge.app.CodeForgeBackupAgent, dataExtractionRules=@xml/data_extraction_rules, fullBackupContent=@xml/backup_rules, fullBackupOnly=true
 extractNativeLibs: true
 manifest_check=pass findings=0

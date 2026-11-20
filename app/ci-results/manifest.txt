@@ -7,11 +7,17 @@ self-test: no backup agent -> caught: backupAgent is None, ADR-0012 says 'dev.co
 self-test: the old rules only -> caught: dataExtractionRules is None, ADR-0012 says '@xml/data_extraction_rules'
 self-test: an extra backup attribute -> caught: backupInForeground="true" is not in ADR-0012
 self-test: native libraries kept in the APK -> caught: extractNativeLibs="false": the runtime's executables would stay inside the APK, where nothing can execve() them
+self-test: the session service as dataSync -> caught: dev.codeforge.app.terminal.SessionService is a foreground service of type 'dataSync', not specialUse
+self-test: the session service without its subtype -> caught: dev.codeforge.app.terminal.SessionService names no special-use subtype
+self-test: the session service exported -> caught: dev.codeforge.app.terminal.SessionService is exported
+self-test: a service of a library -> caught: a service the app does not declare itself: com.example.Tracker
 self-test: good release manifest -> pass
-self-test: a network-state permission in a release build -> caught: android.permission.ACCESS_NETWORK_STATE in the release build: the listing and the Data safety answers name INTERNET alone (docs/store/)
-self-test: another permission in a release build -> caught: android.permission.POST_NOTIFICATIONS in the release build: the listing and the Data safety answers name INTERNET alone (docs/store/)
+self-test: a network-state permission in a release build -> caught: android.permission.ACCESS_NETWORK_STATE in the release build: the listing and the Data safety answers name INTERNET and the session service's three alone (docs/store/)
+self-test: another permission in a release build -> caught: android.permission.CAMERA in the release build: the listing and the Data safety answers name INTERNET and the session service's three alone (docs/store/)
+self-test: another foreground-service type in a release build -> caught: android.permission.FOREGROUND_SERVICE_DATA_SYNC in the release build: the listing and the Data safety answers name INTERNET and the session service's three alone (docs/store/)
 manifest: build/app/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml
-permissions: android.permission.INTERNET, dev.codeforge.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+permissions: android.permission.FOREGROUND_SERVICE, android.permission.FOREGROUND_SERVICE_SPECIAL_USE, android.permission.INTERNET, android.permission.POST_NOTIFICATIONS, dev.codeforge.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+services: dev.codeforge.app.terminal.SessionService
 backup: allowBackup=true, backupAgent=dev.codeforge.app.CodeForgeBackupAgent, dataExtractionRules=@xml/data_extraction_rules, fullBackupContent=@xml/backup_rules, fullBackupOnly=true
 extractNativeLibs: true
 manifest_check=pass findings=0
