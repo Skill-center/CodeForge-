@@ -58,14 +58,21 @@ OURS = ("dev.codeforge.",)
 # (kind, method prefix, reference prefix or None, why). A method prefix is
 # matched against "pkg.Class.method:(args)ret", so "pkg.Class.method:" names
 # every overload; a reference prefix against "Lpkg/Class;.member:type".
+BACKUP_GUARD = ("guarded", "dev.codeforge.app.CodeForgeBackupAgent.onFullBackup:",
+                "Landroid/app/backup/FullBackupDataOutput;.getTransportFlags:",
+                "read only when Build.VERSION.SDK_INT >= P (28).")
 ALLOWED = [
-    ("guarded", "dev.codeforge.app.CodeForgeBackupAgent.onFullBackup:",
-     "Landroid/app/backup/FullBackupDataOutput;.getTransportFlags:",
-     "read only when Build.VERSION.SDK_INT >= P (28)."),
+    BACKUP_GUARD,
+    # Phase 5 W5: the terminal sessions' notification shows at once on
+    # Android 12 and later, which may otherwise hold a foreground service's
+    # notification back for ten seconds.
+    ("guarded", "dev.codeforge.app.terminal.SessionService$Companion.notification:",
+     "Landroid/app/Notification$Builder;.setForegroundServiceBehavior:",
+     "called only when Build.VERSION.SDK_INT >= S (31)."),
 ]
 
 # The self-test's allowlist: W5's dead chain, as it stood before W7's fix, and
-# the guarded call, so both kinds stay tested.
+# the backup agent's guarded call, so both kinds stay tested.
 SAMPLE_ALLOWED = [
     ("dead", "dev.codeforge.runtime.sealed.RuntimeManifest.read:(Ljava/io/InputStream;)", None,
      "a vendored method reading with InputStream.readAllBytes (API 33)."),
@@ -73,7 +80,8 @@ SAMPLE_ALLOWED = [
      "a vendored method calling it."),
     ("dead", "dev.codeforge.runtime.core.exec.SealedPayloadInstaller.install:", None,
      "a vendored method calling that one."),
-] + ALLOWED
+    BACKUP_GUARD,
+]
 
 HEADER = re.compile(r"\|\[[0-9a-f]+\] (\S+)\s*$")
 INVOKE = re.compile(
