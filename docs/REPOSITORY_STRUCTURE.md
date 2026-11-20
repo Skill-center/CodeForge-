@@ -12,7 +12,9 @@ CodeForge-/
 │   │   ├── core/                 # errors, logging, platform, utils;
 │   │   │                         #   editor/: protocol v1 mirror, change sets, shadows;
 │   │   │                         #   terminal/: the session models, the terminal
-│   │   │                         #   protocol v1 mirror, the extra keys (Ph. 5);
+│   │   │                         #   protocol v1 mirror, the extra keys (Ph. 5), the
+│   │   │                         #   file:line links and native-addon watch (Ph. 5 W4);
+│   │   │                         #   run/: what Run runs, files and projects (Ph. 5 W4);
 │   │   │                         #   protocol/: the validators' shared checks (Ph. 5 W3);
 │   │   │                         #   files/: workspace paths, text codec, file stamps;
 │   │   │                         #   legal/: the source offer About shows (Ph. 5 W1)
@@ -29,7 +31,8 @@ CodeForge-/
 │   │   │                         #   search/: search across files + its Pigeon client (Ph. 4 W6)
 │   │   ├── application/          # controllers + providers; editor/: the editor host;
 │   │   │                         #   terminal/: the terminal page's host + the
-│   │   │                         #   sessions' tabs (Ph. 5 W3);
+│   │   │                         #   sessions' tabs (Ph. 5 W3), links to open (W4);
+│   │   │                         #   run/: Run, its runs and a folder's copy (Ph. 5 W4);
 │   │   │                         #   documents/: open documents and tabs;
 │   │   │                         #   bench/: the engine benchmark runner
 │   │   ├── features/             # home, workbench, explorer, editor, terminal,
@@ -43,6 +46,8 @@ CodeForge-/
 │   │                             #   app/src/main/…/runtime/: RuntimeHost and the sealed
 │   │                             #   runtime's install and audit (Phase 4 W3), commands
 │   │                             #   and tools (W4); …/search/: the search host (W6);
+│   │                             #   …/storage/FolderCopy.kt: a folder's run copy and
+│   │                             #   its export, and Import as project (Phase 5 W4);
 │   │                             #   app/src/androidTest/: the instrumented runtime tests
 │   ├── assets/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
