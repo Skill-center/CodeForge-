@@ -2,7 +2,7 @@ smoke attempt=1 exit=0
 editor attempt=1 exit=0
 editing attempt=1 exit=0
 keys attempt=1 exit=0
-keys_events: 2 ANRs, 0 crashes since boot
+keys_events: 3 ANRs, 0 crashes since boot
 editor_bench_codemirror attempt=1 exit=0
 editor_bench_monaco attempt=1 exit=0
 large_files_itest attempt=1 exit=0
@@ -37,23 +37,23 @@ explorer_disk_checks=19 explorer_listings=3
 watch_itest attempt=1 exit=0
 watch_group=pass
 watch_picker_picked=1 watch_outside_changes=12 watch_backgrounded=2
-watch_reload project 751 ms (device clock)
-watch_resume project 460 ms (from coming back)
-watch_reload folder 762 ms (device clock)
-watch_resume folder 163 ms (from coming back)
+watch_reload project 490 ms (device clock)
+watch_resume project 363 ms (from coming back)
+watch_reload folder 741 ms (device clock)
+watch_resume folder 226 ms (from coming back)
 measure_itest attempt=1 exit=0
 measure_group=pass
 measure_picker_picked=1
-measure: project of 10000 files written in 5374 ms (setup)
-measure: project opened in 498 ms (root listed)
-measure: Go to File's index of 10000 files in 249 ms (median of 3: 363, 249, 202)
-measure: dart:io 1048614 chars: write 24 ms, read 32 ms (medians of 3)
-measure: dart:io 10485681 chars: write 96 ms, read 64 ms (medians of 3)
-measure: digest of 10 MiB on the UI isolate: 371 ms, 0 frames, longest without one 371 ms
-measure: digest of 10 MiB on a background isolate: 1080 ms, 16 frames, longest without one 148 ms
-measure: listing 1000 entries through the broker: 656 ms (median of 3: 1117, 656, 648)
-measure: broker 1048614 chars: write 80 ms, read 51 ms (medians of 3)
-measure: broker 10485681 chars: write 140 ms, read 131 ms (medians of 3)
+measure: project of 10000 files written in 5094 ms (setup)
+measure: project opened in 338 ms (root listed)
+measure: Go to File's index of 10000 files in 311 ms (median of 3: 335, 311, 205)
+measure: dart:io 1048614 chars: write 27 ms, read 29 ms (medians of 3)
+measure: dart:io 10485681 chars: write 97 ms, read 49 ms (medians of 3)
+measure: digest of 10 MiB on the UI isolate: 351 ms, 0 frames, longest without one 351 ms
+measure: digest of 10 MiB on a background isolate: 599 ms, 10 frames, longest without one 142 ms
+measure: listing 1000 entries through the broker: 690 ms (median of 3: 1112, 535, 690)
+measure: broker 1048614 chars: write 38 ms, read 34 ms (medians of 3)
+measure: broker 10485681 chars: write 152 ms, read 106 ms (medians of 3)
 runtime_a attempt=1 exit=0
 runtime_b attempt=1 exit=0
 runtime_group=pass
@@ -63,7 +63,7 @@ runtime_device_abi=x86_64
 runtime_device_payload=3dc2163786c5abef
 runtime_device_apk_bytes=212898398
 runtime_device_exec_manifest_entries=535
-runtime_device_first_install_ms=6267
+runtime_device_first_install_ms=6178
 runtime_device_first_install_files=13894
 runtime_device_first_install_verified=13894
 runtime_device_first_install_bytes=274844694
@@ -74,16 +74,16 @@ runtime_device_audit_outside_scripts=24
 runtime_device_audit_shipped=535
 runtime_device_audit_scanned=7611
 runtime_device_audit_truncated=false
-runtime_device_audit_ms=670
+runtime_device_audit_ms=658
 runtime_device_prefix_bytes=274844694
 runtime_device_prefix_files=13894
 runtime_device_native_library_bytes=139993568
 runtime_device_installed_total_bytes=627736660
-runtime_device_warm_start_ms_samples=27,26,25,26,25
-runtime_device_warm_start_ms_median=26
+runtime_device_warm_start_ms_samples=43,33,31,27,25
+runtime_device_warm_start_ms_median=31
 runtime_device_warm_start_budget_ms=100
 runtime_device_warm_audit_outside_apk=0
-runtime_device_warm_audit_ms=614
+runtime_device_warm_audit_ms=616
 runtime_device_relinked_after_move=1
 runtime_device_flipped_byte_offset=33554432
 runtime_device_flipped_byte_problem=corrupt
@@ -91,32 +91,32 @@ runtime_device_flipped_byte_detail=the payload archive is damaged: invalid entry
 runtime_device_digest_problem=corrupt
 runtime_device_digest_detail=digest differs: bin/am
 runtime_device_kernel_manifest_stream=read 1 sdk=36
-runtime_device_commands_tools_ms=604
-runtime_device_commands_tool_node=26.13.1/ok pinned=26.13.1 ms=212 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
-runtime_device_commands_tool_python=3.14.10/ok pinned=3.14.10 ms=248 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
-runtime_device_commands_tool_git=2.56.1/ok pinned=2.56.1 ms=16 detail=git version 2.56.1
-runtime_device_commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=17 detail=5.3.9(1)-release
-runtime_device_commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=20 detail=5.44.0 3
-runtime_device_commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=67 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
-runtime_device_commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=16 detail=ripgrep 15.2.0
+runtime_device_commands_tools_ms=733
+runtime_device_commands_tool_node=26.13.1/ok pinned=26.13.1 ms=272 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
+runtime_device_commands_tool_python=3.14.10/ok pinned=3.14.10 ms=285 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
+runtime_device_commands_tool_git=2.56.1/ok pinned=2.56.1 ms=18 detail=git version 2.56.1
+runtime_device_commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=21 detail=5.3.9(1)-release
+runtime_device_commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=29 detail=5.44.0 3
+runtime_device_commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=81 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
+runtime_device_commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=22 detail=ripgrep 15.2.0
 runtime_device_commands_environment_names=ANDROID_ART_ROOT,ANDROID_DATA,ANDROID_I18N_ROOT,ANDROID_ROOT,ANDROID_TZDATA_ROOT,GEM_HOME,HOME,LANG,LC_ALL,LD_LIBRARY_PATH,LD_PRELOAD,NODE_PATH,PATH,PERL5LIB,PREFIX,PWD,PYTHONHOME,RUBYLIB,SHELL,SSL_CERT_FILE,TERM,TERMUX_APP__DATA_DIR,TERMUX__PREFIX,TERMUX__ROOTFS,TMPDIR,XDG_CACHE_HOME,XDG_CONFIG_HOME,XDG_DATA_HOME,XDG_STATE_HOME
 runtime_device_commands_pythonhome=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr
 runtime_device_commands_gem_home=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
 runtime_device_commands_node_path=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules
 runtime_device_commands_rubylib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0/x86_64-linux-android
 runtime_device_commands_perl5lib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0
-runtime_device_commands_npm_version=12.2.2 exit=0 failure=null ms=348
+runtime_device_commands_npm_version=12.2.2 exit=0 failure=null ms=353
 runtime_device_commands_cap=kept=1024 bytes=300000 truncated=true
-runtime_device_commands_timeout=failure=timed_out ms=508 ended=1
-runtime_device_commands_tree=sleeps=5 with_marker=6 group=20080 in_group=5 setsid=true
+runtime_device_commands_timeout=failure=timed_out ms=511 ended=1
+runtime_device_commands_tree=sleeps=5 with_marker=6 group=20092 in_group=5 setsid=true
 runtime_device_commands_end=failure=ended ended=5 remaining=0 ms=100 left=0 in_group=0 processes_before=1 processes_after=1
 runtime_device_commands_timeout_tree=ended=3 left=0
 runtime_device_commands_exit_tree=exit=0 ended=1 left=0
 RUNTIME_UI before_open state=unknown
 RUNTIME_UI editor_open state=installing done=0 total=0
-RUNTIME_UI first_install state=ready abi=x86_64 payload=3dc2163786c5abef install_ms=13751 open_to_audited_ms=16029 progress_frames=92 problem=null outside_apk=0 shipped=535 audit_ms=996 detail=null
-RUNTIME_UI warm_start state=ready warm_start_ms=403 relinked=535 install_ms=13751 outside_apk=0 shipped=535 audit_ms=2793 problem=null detail=null
-RUNTIME_UI tools ok=7 of=7 ms=987 node=26.13.1/ok python=3.14.10/ok git=2.56.1/ok bash=5.3.9/ok perl=5.44.0/ok ruby=4.0.9/ok rg=15.2.0/ok
+RUNTIME_UI first_install state=ready abi=x86_64 payload=3dc2163786c5abef install_ms=12702 open_to_audited_ms=15045 progress_frames=88 problem=null outside_apk=0 shipped=535 audit_ms=988 detail=null
+RUNTIME_UI warm_start state=ready warm_start_ms=492 relinked=535 install_ms=12702 outside_apk=0 shipped=535 audit_ms=2545 problem=null detail=null
+RUNTIME_UI tools ok=7 of=7 ms=1275 node=26.13.1/ok python=3.14.10/ok git=2.56.1/ok bash=5.3.9/ok perl=5.44.0/ok ruby=4.0.9/ok rg=15.2.0/ok
 RUNTIME_UI tool node detail=26.13.1 /data/data/dev.codeforge.app/files/coding-harness/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
 RUNTIME_UI tool python detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
 RUNTIME_UI tool git detail=git version 2.56.1
@@ -124,59 +124,59 @@ RUNTIME_UI tool bash detail=5.3.9(1)-release
 RUNTIME_UI tool perl detail=5.44.0 3
 RUNTIME_UI tool ruby detail=4.0.9 /data/data/dev.codeforge.app/files/coding-harness/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
 RUNTIME_UI tool rg detail=ripgrep 15.2.0
-RUNTIME_UI exec failure=null exit=0 stdout=42 ms=206 detail=null
+RUNTIME_UI exec failure=null exit=0 stdout=42 ms=201 detail=null
 runtime_apk_debug_x64_bytes=244964219
 runtime_apk_release_x64_bytes=149968735
 runtime_apk_phone_arm64_bytes=165019979
 search_itest attempt=1 exit=0
 search_group=pass
 search_picker_picked=1
-search: project of 10000 files written in 5198 ms (setup)
-search: needle run 1: ripgrep done 200 lines in 200 files; first 179 ms, all 654 ms (host 142 / 614 ms)
-search: needle run 2: ripgrep done 200 lines in 200 files; first 126 ms, all 245 ms (host 97 / 211 ms)
-search: needle run 3: ripgrep done 200 lines in 200 files; first 61 ms, all 189 ms (host 54 / 186 ms)
-search: whole word: ripgrep done 100 lines in 100 files; first 63 ms, all 197 ms (host 49 / 182 ms)
-search: regular expression: ripgrep done 500 lines in 500 files; first 64 ms, all 257 ms (host 60 / 244 ms)
-search: include m2: ripgrep done 10 lines in 10 files; first 60 ms, all 108 ms (host 55 / 101 ms)
-search: exclude s0: ripgrep done 90 lines in 90 files; first 78 ms, all 220 ms (host 66 / 203 ms)
-search: match case: ripgrep done 0 lines in 0 files; first null ms, all 138 ms (host null / 131 ms)
-search: look-around: ripgrep failed (badQuery) 0 lines in 0 files; first null ms, all 44 ms (host null / 32 ms)
-search: cancelled at the first results: ripgrep cancelled 33 lines in 33 files; first 36 ms, all 71 ms (host 27 / 53 ms)
-search: cancelled: Stop asked at 1 lines, ended with 33 lines, 72 ms from Stop to the summary; ripgrep processes left: 0
-search: the panel query, prepared: ripgrep done 0 lines in 0 files; first null ms, all 63 ms (host null / 57 ms)
+search: project of 10000 files written in 5570 ms (setup)
+search: needle run 1: ripgrep done 200 lines in 200 files; first 110 ms, all 605 ms (host 66 / 573 ms)
+search: needle run 2: ripgrep done 200 lines in 200 files; first 41 ms, all 258 ms (host 37 / 238 ms)
+search: needle run 3: ripgrep done 200 lines in 200 files; first 65 ms, all 242 ms (host 58 / 226 ms)
+search: whole word: ripgrep done 100 lines in 100 files; first 34 ms, all 172 ms (host 30 / 166 ms)
+search: regular expression: ripgrep done 500 lines in 500 files; first 160 ms, all 344 ms (host 141 / 323 ms)
+search: include m2: ripgrep done 10 lines in 10 files; first 49 ms, all 71 ms (host 44 / 60 ms)
+search: exclude s0: ripgrep done 90 lines in 90 files; first 29 ms, all 202 ms (host 25 / 194 ms)
+search: match case: ripgrep done 0 lines in 0 files; first null ms, all 158 ms (host null / 150 ms)
+search: look-around: ripgrep failed (badQuery) 0 lines in 0 files; first null ms, all 44 ms (host null / 40 ms)
+search: cancelled at the first results: ripgrep cancelled 4 lines in 4 files; first 42 ms, all 74 ms (host 34 / 59 ms)
+search: cancelled: Stop asked at 1 lines, ended with 4 lines, 68 ms from Stop to the summary; ripgrep processes left: 0
+search: the panel query, prepared: ripgrep done 0 lines in 0 files; first null ms, all 51 ms (host null / 43 ms)
 search: opened m0/s0/f07.js at line 3, column 17 (offset 60)
-search: folder scan run 1: scan done 100 lines in 100 files of 1007; first 3780 ms, all 16311 ms (host 3732 / 16263 ms)
-search: folder scan run 2: scan done 100 lines in 100 files of 1007; first 1567 ms, all 7969 ms (host 1562 / 7964 ms)
-search: folder scan run 3: scan done 100 lines in 100 files of 1007; first 1924 ms, all 7867 ms (host 1892 / 7860 ms)
-search: folder needle: scan done 1 lines in 1 files of 1007; first 1827 ms, all 8634 ms (host 1816 / 8624 ms)
-search: folder whole word: scan done 2 lines in 2 files of 1007; first 1343 ms, all 9116 ms (host 1340 / 9109 ms)
-search: copy of the gate folder into app storage, through the broker one file at a time: 1008 files and 7 folders, 4065 bytes, in 11476 ms
-host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=142 ms=614
-host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=97 ms=211
-host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=54 ms=186
-host: search ripgrep done files=null matched=100 lines=100 matches=100 firstMs=49 ms=182
-host: search ripgrep done files=null matched=500 lines=500 matches=500 firstMs=60 ms=244
-host: search ripgrep done files=null matched=10 lines=10 matches=10 firstMs=55 ms=101
-host: search ripgrep done files=null matched=90 lines=90 matches=90 firstMs=66 ms=203
-host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=131
-host: search ripgrep failed/bad_query files=null matched=0 lines=0 matches=0 firstMs=null ms=32
-host: search ripgrep cancelled files=null matched=33 lines=33 matches=33 firstMs=27 ms=53
-host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=57
-host: search ripgrep done files=null matched=1 lines=1 matches=1 firstMs=945 ms=1167
-host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=3732 ms=16263
-host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=1562 ms=7964
-host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=1892 ms=7860
-host: search scan done files=1007 matched=1 lines=1 matches=1 firstMs=1816 ms=8624
-host: search scan done files=1007 matched=2 lines=2 matches=2 firstMs=1340 ms=9109
+search: folder scan run 1: scan done 100 lines in 100 files of 1007; first 3631 ms, all 15043 ms (host 3560 / 14968 ms)
+search: folder scan run 2: scan done 100 lines in 100 files of 1007; first 2143 ms, all 7675 ms (host 2138 / 7669 ms)
+search: folder scan run 3: scan done 100 lines in 100 files of 1007; first 3123 ms, all 8654 ms (host 3116 / 8646 ms)
+search: folder needle: scan done 1 lines in 1 files of 1007; first 1725 ms, all 7781 ms (host 1722 / 7778 ms)
+search: folder whole word: scan done 2 lines in 2 files of 1007; first 1964 ms, all 8043 ms (host 1959 / 8038 ms)
+search: copy of the gate folder into app storage, through the broker one file at a time: 1008 files and 7 folders, 4065 bytes, in 10919 ms
+host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=66 ms=573
+host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=37 ms=238
+host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=58 ms=226
+host: search ripgrep done files=null matched=100 lines=100 matches=100 firstMs=30 ms=166
+host: search ripgrep done files=null matched=500 lines=500 matches=500 firstMs=141 ms=323
+host: search ripgrep done files=null matched=10 lines=10 matches=10 firstMs=44 ms=60
+host: search ripgrep done files=null matched=90 lines=90 matches=90 firstMs=25 ms=194
+host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=150
+host: search ripgrep failed/bad_query files=null matched=0 lines=0 matches=0 firstMs=null ms=40
+host: search ripgrep cancelled files=null matched=4 lines=4 matches=4 firstMs=34 ms=59
+host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=43
+host: search ripgrep done files=null matched=1 lines=1 matches=1 firstMs=1040 ms=1061
+host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=3560 ms=14968
+host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=2138 ms=7669
+host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=3116 ms=8646
+host: search scan done files=1007 matched=1 lines=1 matches=1 firstMs=1722 ms=7778
+host: search scan done files=1007 matched=2 lines=2 matches=2 firstMs=1959 ms=8038
 terminal_itest attempt=1 exit=0
 terminal_group=pass
 terminal_compose_failures=0
-terminal: started ms=1254 size=45x23
+terminal: started ms=1033 size=46x22
 terminal: typed_echo=ok
 terminal: fit where=portrait columns=46 rows=23 stty=ok nano=ok top=ok top_lines=9
 terminal: fit where=landscape columns=60 rows=7 stty=ok nano=ok top=ok top_lines=7
 terminal: fit where=portrait again columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9
-terminal: compose_lines=11 compose_ms=11409
+terminal: compose_lines=11 compose_ms=11092
 terminal: closed=ok dropped_messages=0
 compose: ok   latin-predictive: "hello world"
 compose: ok   autocorrect-replace: "the"
@@ -188,15 +188,17 @@ compose: ok   cancel-composition: "ab"
 compose: ok   ime-backspace: "copy"
 compose: ok   backspace-after-commit: "word"
 compose: ok   words-and-spaces: "ls -la src"
-probe 07:40:30.263 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
-probe 07:40:32.585 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+127ms pointerdown xterm-screen  hasFocus=false","+127ms touchstart xterm-screen  hasFocus=false","+128ms touchend xterm-screen  hasFocus=false","+142ms focus window  hasFocus=true","+142ms focus xterm-helper-textarea value=\"\" hasFocus=true","+144ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+150ms mousedown xterm-screen  hasFocus=true","+152ms click xterm-screen  hasFocus=true"]}
-probe 07:40:33.333 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
-probe 07:40:36.556 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+141ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+150ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+161ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+164ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+252ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+253ms beforeinput x
-probe 07:40:53.349 probe arm: {"hasFocus":true,"visibility":"visible","active":"BODY"}
-probe 07:40:55.622 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"BODY"},"events":["+45ms pointerdown xterm-screen  hasFocus=true","+45ms touchstart xterm-screen  hasFocus=true","+45ms touchend xterm-screen  hasFocus=true","+45ms focus xterm-helper-textarea value=\"\" hasFocus=true","+46ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+55ms mousedown xterm-screen  hasFocus=true","+55ms click xterm-screen  hasFocus=true","+927ms blur xterm-helper-textarea value=\"\" hasFocus=true","+934ms focusout xterm-helper-textarea value=\"\" hasFocus=true"]}
+probe 08:35:51.723 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
+probe 08:35:54.052 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+124ms pointerdown xterm-screen  hasFocus=false","+124ms touchstart xterm-screen  hasFocus=false","+125ms touchend xterm-screen  hasFocus=false","+139ms focus window  hasFocus=true","+139ms focus xterm-helper-textarea value=\"\" hasFocus=true","+143ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+157ms mousedown xterm-screen  hasFocus=true","+162ms click xterm-screen  hasFocus=true"]}
+probe 08:35:54.944 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
+probe 08:35:58.415 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+231ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+255ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+268ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+282ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+300ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+300ms beforeinput x
+probe 08:36:15.324 probe arm: {"hasFocus":true,"visibility":"visible","active":"BODY"}
+probe 08:36:17.633 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"BODY"},"events":["+63ms pointerdown xterm-screen  hasFocus=true","+63ms touchstart xterm-screen  hasFocus=true","+67ms touchend xterm-screen  hasFocus=true","+68ms focus xterm-helper-textarea value=\"\" hasFocus=true","+68ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+76ms mousedown xterm-screen  hasFocus=true","+81ms click xterm-screen  hasFocus=true","+1783ms blur xterm-helper-textarea value=\"\" hasFocus=true","+1785ms focusout xterm-helper-textarea value=\"\" hasFocus=true"]}
 run_itest attempt=1 exit=1
 run_group=fail
 run_picker_picked=0
 run: file=main.js program=node exit=0 lines=3
 run: file=app.py program=python exit=0
 run: file=gate-shell.sh program=bash exit=3
+run: npm=start exit=0 lines=5 banner=false
+run: stop status="Signal 1" ms=233 left=0

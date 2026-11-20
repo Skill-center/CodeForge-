@@ -22,46 +22,41 @@ Got dependencies!
 18 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/run_test.dart
-Running Gradle task 'assembleDebug'...                             17.5s
+Running Gradle task 'assembleDebug'...                             16.4s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        2,617ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...        2,533ms
 00:00 +0: run: files and npm, Stop, native addons, E2E part 1, a folder
 RUN_GATE file=main.js program=node exit=0 lines=3
 RUN_GATE file=app.py program=python exit=0
 RUN_GATE file=gate-shell.sh program=bash exit=3
+RUN_GATE npm=start exit=0 lines=5 banner=false
+RUN_GATE stop status="Signal 1" ms=233 left=0
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
-Expected: [
-            '> codeforge-demo@0.1.0 start',
-            '> node main.js',
-            'Hello from JavaScript!',
-            'Hello from Python!',
-            'Hello from Dart!'
-          ]
-  Actual: ['Hello from JavaScript!', 'Hello from Python!', 'Hello from Dart!']
-   Which: at location [0] is 'Hello from JavaScript!' instead of '> codeforge-demo@0.1.0 start'
+Timed out after 240 s waiting for the native-addon banner.
 
 When the exception was thrown, this was the stack:
-#4      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/run_test.dart:283:7)
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      pumpUntil (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/smoke_test.dart:28:7)
 <asynchronous suspension>
-#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+#2      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/run_test.dart:352:7)
 <asynchronous suspension>
-#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
 <asynchronous suspension>
 <asynchronous suspension>
 (elided one frame from package:stack_trace)
 
-This was caught by the test expectation on the following line:
-  file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/run_test.dart line 283
 The test description was:
   run: files and npm, Stop, native addons, E2E part 1, a folder
 ════════════════════════════════════════════════════════════════════════════════════════════════════
-00:27 +0 -1: run: files and npm, Stop, native addons, E2E part 1, a folder [E]
+04:28 +0 -1: run: files and npm, Stop, native addons, E2E part 1, a folder [E]
   Test failed. See exception logs above.
   The test description was: run: files and npm, Stop, native addons, E2E part 1, a folder
   
-00:27 +0 -1: (tearDownAll)
-00:28 +0 -1: Some tests failed.
+04:28 +0 -1: (tearDownAll)
+04:30 +0 -1: Some tests failed.
 
 Failing tests:
   /home/runner/work/CodeForge-/CodeForge-/app/integration_test/run_test.dart: run: files and npm, Stop, native addons, E2E part 1, a folder
