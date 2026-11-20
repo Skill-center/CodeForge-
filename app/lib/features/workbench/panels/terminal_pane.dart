@@ -558,7 +558,8 @@ class _TerminalBody extends ConsumerWidget {
                     maxLines: 5,
                     actionLabel: 'Dismiss',
                     actionKey: const ValueKey('terminal_native_addon_dismiss'),
-                    onAction: () => controller.dismissNativeAddon(tab.sessionId),
+                    onAction: () =>
+                        controller.dismissNativeAddon(tab.sessionId),
                   ),
               ],
             ),

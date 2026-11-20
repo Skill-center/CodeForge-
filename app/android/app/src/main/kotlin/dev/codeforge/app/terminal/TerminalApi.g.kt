@@ -207,6 +207,11 @@ data class TerminalSpecMessage (
    */
   val project: String? = null,
   /**
+   * A folder's run copy by its id in `<filesDir>/copies` (Phase 5 W4),
+   * which Kotlin resolves itself; never set with [project].
+   */
+  val copy: String? = null,
+  /**
    * A name in the runtime's bin; null is bash, interactive, with
    * CodeForge's rc file.
    */
@@ -226,19 +231,21 @@ data class TerminalSpecMessage (
   companion object {
     fun fromList(pigeonVar_list: List<Any?>): TerminalSpecMessage {
       val project = pigeonVar_list[0] as String?
-      val program = pigeonVar_list[1] as String?
-      val arguments = pigeonVar_list[2] as List<String>
-      val environment = pigeonVar_list[3] as Map<String, String>
-      val rows = pigeonVar_list[4] as Long
-      val columns = pigeonVar_list[5] as Long
-      val bufferBytes = pigeonVar_list[6] as Long?
-      val label = pigeonVar_list[7] as String?
-      return TerminalSpecMessage(project, program, arguments, environment, rows, columns, bufferBytes, label)
+      val copy = pigeonVar_list[1] as String?
+      val program = pigeonVar_list[2] as String?
+      val arguments = pigeonVar_list[3] as List<String>
+      val environment = pigeonVar_list[4] as Map<String, String>
+      val rows = pigeonVar_list[5] as Long
+      val columns = pigeonVar_list[6] as Long
+      val bufferBytes = pigeonVar_list[7] as Long?
+      val label = pigeonVar_list[8] as String?
+      return TerminalSpecMessage(project, copy, program, arguments, environment, rows, columns, bufferBytes, label)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       project,
+      copy,
       program,
       arguments,
       environment,
@@ -256,12 +263,13 @@ data class TerminalSpecMessage (
       return true
     }
     val other = other as TerminalSpecMessage
-    return TerminalApiPigeonUtils.deepEquals(this.project, other.project) && TerminalApiPigeonUtils.deepEquals(this.program, other.program) && TerminalApiPigeonUtils.deepEquals(this.arguments, other.arguments) && TerminalApiPigeonUtils.deepEquals(this.environment, other.environment) && TerminalApiPigeonUtils.deepEquals(this.rows, other.rows) && TerminalApiPigeonUtils.deepEquals(this.columns, other.columns) && TerminalApiPigeonUtils.deepEquals(this.bufferBytes, other.bufferBytes) && TerminalApiPigeonUtils.deepEquals(this.label, other.label)
+    return TerminalApiPigeonUtils.deepEquals(this.project, other.project) && TerminalApiPigeonUtils.deepEquals(this.copy, other.copy) && TerminalApiPigeonUtils.deepEquals(this.program, other.program) && TerminalApiPigeonUtils.deepEquals(this.arguments, other.arguments) && TerminalApiPigeonUtils.deepEquals(this.environment, other.environment) && TerminalApiPigeonUtils.deepEquals(this.rows, other.rows) && TerminalApiPigeonUtils.deepEquals(this.columns, other.columns) && TerminalApiPigeonUtils.deepEquals(this.bufferBytes, other.bufferBytes) && TerminalApiPigeonUtils.deepEquals(this.label, other.label)
   }
 
   override fun hashCode(): Int {
     var result = javaClass.hashCode()
     result = 31 * result + TerminalApiPigeonUtils.deepHash(this.project)
+    result = 31 * result + TerminalApiPigeonUtils.deepHash(this.copy)
     result = 31 * result + TerminalApiPigeonUtils.deepHash(this.program)
     result = 31 * result + TerminalApiPigeonUtils.deepHash(this.arguments)
     result = 31 * result + TerminalApiPigeonUtils.deepHash(this.environment)
@@ -272,7 +280,7 @@ data class TerminalSpecMessage (
     return result
   }
   override fun toString(): String {
-    return "TerminalSpecMessage(project=$project, program=$program, arguments=$arguments, environment=$environment, rows=$rows, columns=$columns, bufferBytes=$bufferBytes, label=$label)"
+    return "TerminalSpecMessage(project=$project, copy=$copy, program=$program, arguments=$arguments, environment=$environment, rows=$rows, columns=$columns, bufferBytes=$bufferBytes, label=$label)"
   }
 }
 

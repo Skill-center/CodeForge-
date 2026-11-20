@@ -439,6 +439,368 @@ class GrantMessage {
   }
 }
 
+/// How a folder's run copy, or its import as a project, went (Phase 5 W4,
+/// ADR-0013; FolderCopy.kt), and what it left out.
+class CopySummaryMessage {
+  CopySummaryMessage({
+    required this.files,
+    required this.bytes,
+    required this.copied,
+    required this.bytesCopied,
+    required this.unchanged,
+    required this.removed,
+    required this.leftOutLarge,
+    required this.leftOutFull,
+    required this.leftOutVirtual,
+    required this.leftOutDeep,
+    required this.skipped,
+    required this.unreadable,
+    required this.capped,
+    required this.stopped,
+    required this.elapsedMs,
+  });
+
+  /// Files in the copy from the folder, and their bytes, once it is done.
+  int files;
+
+  int bytes;
+
+  /// Files copied this time, and their bytes.
+  int copied;
+
+  int bytesCopied;
+
+  /// Files the copy already had as the folder has them.
+  int unchanged;
+
+  /// Files gone from the folder, removed from the copy.
+  int removed;
+
+  /// Left out: files over the size cap, files once the copy was full,
+  /// virtual documents, folders too deep.
+  int leftOutLarge;
+
+  int leftOutFull;
+
+  int leftOutVirtual;
+
+  int leftOutDeep;
+
+  /// Entries left out by name (`.git` in a run's copy).
+  int skipped;
+
+  /// Files and folders that could not be read.
+  int unreadable;
+
+  /// The copy filled up and stopped walking: more may be left out.
+  bool capped;
+
+  /// The copy was cancelled; what it copied by then stays.
+  bool stopped;
+
+  int elapsedMs;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      files,
+      bytes,
+      copied,
+      bytesCopied,
+      unchanged,
+      removed,
+      leftOutLarge,
+      leftOutFull,
+      leftOutVirtual,
+      leftOutDeep,
+      skipped,
+      unreadable,
+      capped,
+      stopped,
+      elapsedMs,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static CopySummaryMessage decode(Object result) {
+    result as List<Object?>;
+    return CopySummaryMessage(
+      files: result[0]! as int,
+      bytes: result[1]! as int,
+      copied: result[2]! as int,
+      bytesCopied: result[3]! as int,
+      unchanged: result[4]! as int,
+      removed: result[5]! as int,
+      leftOutLarge: result[6]! as int,
+      leftOutFull: result[7]! as int,
+      leftOutVirtual: result[8]! as int,
+      leftOutDeep: result[9]! as int,
+      skipped: result[10]! as int,
+      unreadable: result[11]! as int,
+      capped: result[12]! as bool,
+      stopped: result[13]! as bool,
+      elapsedMs: result[14]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! CopySummaryMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(files, other.files) &&
+        _deepEquals(bytes, other.bytes) &&
+        _deepEquals(copied, other.copied) &&
+        _deepEquals(bytesCopied, other.bytesCopied) &&
+        _deepEquals(unchanged, other.unchanged) &&
+        _deepEquals(removed, other.removed) &&
+        _deepEquals(leftOutLarge, other.leftOutLarge) &&
+        _deepEquals(leftOutFull, other.leftOutFull) &&
+        _deepEquals(leftOutVirtual, other.leftOutVirtual) &&
+        _deepEquals(leftOutDeep, other.leftOutDeep) &&
+        _deepEquals(skipped, other.skipped) &&
+        _deepEquals(unreadable, other.unreadable) &&
+        _deepEquals(capped, other.capped) &&
+        _deepEquals(stopped, other.stopped) &&
+        _deepEquals(elapsedMs, other.elapsedMs);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'CopySummaryMessage(files: $files, bytes: $bytes, copied: $copied, bytesCopied: $bytesCopied, unchanged: $unchanged, removed: $removed, leftOutLarge: $leftOutLarge, leftOutFull: $leftOutFull, leftOutVirtual: $leftOutVirtual, leftOutDeep: $leftOutDeep, skipped: $skipped, unreadable: $unreadable, capped: $capped, stopped: $stopped, elapsedMs: $elapsedMs)';
+  }
+}
+
+/// A file a run created or changed in its copy.
+class CopyChangeMessage {
+  CopyChangeMessage({
+    required this.path,
+    required this.created,
+    required this.size,
+  });
+
+  String path;
+
+  /// Only the copy has it; otherwise the copy's differs from the folder's.
+  bool created;
+
+  int size;
+
+  List<Object?> _toList() {
+    return <Object?>[path, created, size];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static CopyChangeMessage decode(Object result) {
+    result as List<Object?>;
+    return CopyChangeMessage(
+      path: result[0]! as String,
+      created: result[1]! as bool,
+      size: result[2]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! CopyChangeMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(path, other.path) &&
+        _deepEquals(created, other.created) &&
+        _deepEquals(size, other.size);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'CopyChangeMessage(path: $path, created: $created, size: $size)';
+  }
+}
+
+/// The files runs created or changed in a copy, at most 500 of them.
+class CopyChangesMessage {
+  CopyChangesMessage({
+    required this.changes,
+    required this.more,
+    required this.unexportable,
+    required this.skippedFolders,
+  });
+
+  List<CopyChangeMessage> changes;
+
+  /// Changed files beyond the 500 listed.
+  int more;
+
+  /// Files whose names a documents provider can't take.
+  int unexportable;
+
+  /// Dependency folders (node_modules and the like) not looked into.
+  int skippedFolders;
+
+  List<Object?> _toList() {
+    return <Object?>[changes, more, unexportable, skippedFolders];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static CopyChangesMessage decode(Object result) {
+    result as List<Object?>;
+    return CopyChangesMessage(
+      changes: (result[0]! as List<Object?>).cast<CopyChangeMessage>(),
+      more: result[1]! as int,
+      unexportable: result[2]! as int,
+      skippedFolders: result[3]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! CopyChangesMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(changes, other.changes) &&
+        _deepEquals(more, other.more) &&
+        _deepEquals(unexportable, other.unexportable) &&
+        _deepEquals(skippedFolders, other.skippedFolders);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'CopyChangesMessage(changes: $changes, more: $more, unexportable: $unexportable, skippedFolders: $skippedFolders)';
+  }
+}
+
+/// A file export could not write: its path, the problem's code, a message.
+class ExportFailureMessage {
+  ExportFailureMessage({
+    required this.path,
+    required this.problem,
+    required this.message,
+  });
+
+  String path;
+
+  String problem;
+
+  String message;
+
+  List<Object?> _toList() {
+    return <Object?>[path, problem, message];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static ExportFailureMessage decode(Object result) {
+    result as List<Object?>;
+    return ExportFailureMessage(
+      path: result[0]! as String,
+      problem: result[1]! as String,
+      message: result[2]! as String,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! ExportFailureMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(path, other.path) &&
+        _deepEquals(problem, other.problem) &&
+        _deepEquals(message, other.message);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'ExportFailureMessage(path: $path, problem: $problem, message: $message)';
+  }
+}
+
+class ExportResultMessage {
+  ExportResultMessage({required this.exported, required this.failures});
+
+  int exported;
+
+  List<ExportFailureMessage> failures;
+
+  List<Object?> _toList() {
+    return <Object?>[exported, failures];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static ExportResultMessage decode(Object result) {
+    result as List<Object?>;
+    return ExportResultMessage(
+      exported: result[0]! as int,
+      failures: (result[1]! as List<Object?>).cast<ExportFailureMessage>(),
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! ExportResultMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(exported, other.exported) &&
+        _deepEquals(failures, other.failures);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'ExportResultMessage(exported: $exported, failures: $failures)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -461,6 +823,21 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is GrantMessage) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
+    } else if (value is CopySummaryMessage) {
+      buffer.putUint8(134);
+      writeValue(buffer, value.encode());
+    } else if (value is CopyChangeMessage) {
+      buffer.putUint8(135);
+      writeValue(buffer, value.encode());
+    } else if (value is CopyChangesMessage) {
+      buffer.putUint8(136);
+      writeValue(buffer, value.encode());
+    } else if (value is ExportFailureMessage) {
+      buffer.putUint8(137);
+      writeValue(buffer, value.encode());
+    } else if (value is ExportResultMessage) {
+      buffer.putUint8(138);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -479,6 +856,16 @@ class _PigeonCodec extends StandardMessageCodec {
         return WriteRequest.decode(readValue(buffer)!);
       case 133:
         return GrantMessage.decode(readValue(buffer)!);
+      case 134:
+        return CopySummaryMessage.decode(readValue(buffer)!);
+      case 135:
+        return CopyChangeMessage.decode(readValue(buffer)!);
+      case 136:
+        return CopyChangesMessage.decode(readValue(buffer)!);
+      case 137:
+        return ExportFailureMessage.decode(readValue(buffer)!);
+      case 138:
+        return ExportResultMessage.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -870,6 +1257,147 @@ class StorageApi {
       isNullValid: true,
     );
   }
+
+  /// Brings the run copy [copyId] of the folder up to date (Phase 5 W4,
+  /// ADR-0013): one way, incremental, `.git` left out, in
+  /// `<filesDir>/copies/<copyId>`. [copyId] is the folder workspace's id.
+  /// How far it is goes to [StorageEvents.copyProgress].
+  Future<CopySummaryMessage> syncCopy(String treeUri, String copyId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.syncCopy$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[treeUri, copyId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as CopySummaryMessage;
+  }
+
+  /// Stops the copy (or import) [copyId] between files; its call answers
+  /// with what it did by then. Nothing running is ignored.
+  Future<void> cancelCopy(String copyId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.cancelCopy$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[copyId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  /// The files runs created or changed in copy [copyId].
+  Future<CopyChangesMessage> copyChanges(String copyId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.copyChanges$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[copyId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as CopyChangesMessage;
+  }
+
+  /// Writes the copy's files at [paths] to the folder, replacing what is
+  /// there, and records them as the folder now has them.
+  Future<ExportResultMessage> exportCopy(
+    String treeUri,
+    String copyId,
+    List<String> paths,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.exportCopy$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[treeUri, copyId, paths],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as ExportResultMessage;
+  }
+
+  /// Deletes copy [copyId]: the folder left the recents.
+  Future<void> deleteCopy(String copyId) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.deleteCopy$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[copyId],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  /// Copies the whole folder, git's files included, into a new project's
+  /// folder named [folderName] in `<filesDir>/workspaces` (Phase 5 W4:
+  /// Import as project). Refused when a project of that name, case
+  /// ignored, is there. Progress goes to [StorageEvents.copyProgress] as
+  /// copy `import`; [cancelCopy] with `import` stops it, and then nothing
+  /// is kept.
+  Future<CopySummaryMessage> importTree(
+    String treeUri,
+    String folderName,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.StorageApi.importTree$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[treeUri, folderName],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as CopySummaryMessage;
+  }
 }
 
 /// What the storage broker tells Dart unasked (Phase 3 W5).
@@ -880,6 +1408,10 @@ abstract class StorageEvents {
   /// written, renamed or deleted. Notices for one folder arrive at most
   /// every 100 ms.
   Future<void> folderChanged(int watchId);
+
+  /// Copy [copyId] has [files] files and [bytes] bytes in place (Phase 5
+  /// W4): at most every 250 ms while it copies.
+  Future<void> copyProgress(String copyId, int files, int bytes);
 
   static void setUp(
     StorageEvents? api, {
@@ -903,6 +1435,33 @@ abstract class StorageEvents {
           final int arg_watchId = args[0]! as int;
           try {
             await api.folderChanged(arg_watchId);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.codeforge.StorageEvents.copyProgress$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final String arg_copyId = args[0]! as String;
+          final int arg_files = args[1]! as int;
+          final int arg_bytes = args[2]! as int;
+          try {
+            await api.copyProgress(arg_copyId, arg_files, arg_bytes);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

@@ -204,8 +204,10 @@ final class WorkspaceSwitcher {
   /// [name] (Phase 5 W4, ADR-0013's option (b): for a folder that needs
   /// more than a run's copy gives) and records it in the recents. The
   /// caller opens it. The folder stays as it is and in the recents.
-  Future<Result<({ProjectLocation project, CopySummary summary})>>
-  importFolder(FolderLocation folder, String name) async {
+  Future<Result<({ProjectLocation project, CopySummary summary})>> importFolder(
+    FolderLocation folder,
+    String name,
+  ) async {
     final taken = (await _projects.folders()).valueOrNull ?? const <String>[];
     final invalid = projectNameProblem(name, taken: taken);
     if (invalid != null) {

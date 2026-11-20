@@ -32,8 +32,13 @@ final class TerminalLinkRequests extends Notifier<FileLinkRequest?> {
   @override
   FileLinkRequest? build() => null;
 
-  void open(String path, {required int line, int? column}) => state =
-      FileLinkRequest(serial: ++_serial, path: path, line: line, column: column);
+  void open(String path, {required int line, int? column}) =>
+      state = FileLinkRequest(
+        serial: ++_serial,
+        path: path,
+        line: line,
+        column: column,
+      );
 
   void problem(String message) =>
       state = FileLinkRequest(serial: ++_serial, problem: message);

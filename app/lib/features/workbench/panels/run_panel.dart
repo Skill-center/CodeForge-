@@ -7,6 +7,7 @@
 /// shows the copy as it is made, with Cancel, and each such run offers the
 /// files runs made there, to export to the folder. What Run could not do,
 /// the workbench says (workbench_screen.dart).
+library;
 
 import 'dart:async';
 

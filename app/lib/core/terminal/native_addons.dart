@@ -52,7 +52,10 @@ const List<(NativeAddonKind, String)> _patterns = [
   (NativeAddonKind.npm, r'prebuild-install (?:warn|WARN) install'),
   (NativeAddonKind.pip, r'Failed building wheel for'),
   (NativeAddonKind.pip, r'Failed to build installable wheels'),
-  (NativeAddonKind.pip, r"error: command '[^']*(?:cc|clang|g\+\+|c\+\+)' failed"),
+  (
+    NativeAddonKind.pip,
+    r"error: command '[^']*(?:cc|clang|g\+\+|c\+\+)' failed",
+  ),
   (NativeAddonKind.pip, r"unable to execute '[^']*(?:cc|clang|g\+\+)'"),
   (NativeAddonKind.pip, r'fatal error: Python\.h'),
   (NativeAddonKind.pip, r"can't find Rust compiler"),

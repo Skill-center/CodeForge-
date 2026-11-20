@@ -188,8 +188,7 @@ String copySummaryLine(CopySummary summary) {
 /// What the copy left out, or null when it took everything but `.git`.
 String? copyLeftOutLine(CopySummary summary) {
   final parts = <String>[
-    if (summary.leftOutLarge > 0)
-      '${_files(summary.leftOutLarge)} over 64 MB',
+    if (summary.leftOutLarge > 0) '${_files(summary.leftOutLarge)} over 64 MB',
     if (summary.leftOutFull > 0)
       '${summary.capped ? 'at least ' : ''}'
           '${_files(summary.leftOutFull)} past the copy’s limit '
@@ -423,7 +422,9 @@ final class RunController extends Notifier<RunState> {
       final synced = await broker.syncCopy(folder.treeUri, folder.id);
       switch (synced) {
         case Err(:final failure):
-          _say('The folder could not be copied for the run: ${failure.message}');
+          _say(
+            'The folder could not be copied for the run: ${failure.message}',
+          );
           return null;
         case Ok(:final value):
           appLogger.info(

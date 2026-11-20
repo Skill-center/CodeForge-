@@ -55,13 +55,17 @@ void main() {
 
     page.emit('session.link', {'sessionId': 1, 'text': 'main.js:3:5'});
     await tester.pumpAndSettle();
-    expect(harness.editorSurface.documents.values.single.text, contains('demo'));
+    expect(
+      harness.editorSurface.documents.values.single.text,
+      contains('demo'),
+    );
     expect(harness.editorSurface.gotoLines.last, (line: 3, column: 5));
 
     // An absolute path in the project, as node's realpath prints it.
     page.emit('session.link', {
       'sessionId': 1,
-      'text': '/data/data/dev.codeforge.app/files/workspaces/'
+      'text':
+          '/data/data/dev.codeforge.app/files/workspaces/'
           '$demoProjectFolder/utils.js:2',
     });
     await tester.pumpAndSettle();
@@ -82,10 +86,7 @@ void main() {
     service.emitOutput(1, text: 'make\r\n');
     await tester.pumpAndSettle();
     expect(_key('terminal_native_addon'), findsOneWidget);
-    expect(
-      find.text(nativeAddonMessage(NativeAddonKind.npm)),
-      findsOneWidget,
-    );
+    expect(find.text(nativeAddonMessage(NativeAddonKind.npm)), findsOneWidget);
     // The output still reached the terminal.
     expect(
       harness.terminalSurfaces.single.sessions[1]!.written.toString(),

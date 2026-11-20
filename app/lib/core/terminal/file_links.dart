@@ -24,7 +24,8 @@ final class FileLink {
   int get hashCode => Object.hash(path, line, column);
 
   @override
-  String toString() => 'FileLink($path:$line${column == null ? '' : ':$column'})';
+  String toString() =>
+      'FileLink($path:$line${column == null ? '' : ':$column'})';
 }
 
 final RegExp _linkText = RegExp(r'^(.+?):(\d{1,9})(?::(\d{1,9}))?$');
@@ -64,7 +65,9 @@ String? workspacePathForLink(String path, {Iterable<String> roots = const []}) {
   if (target.startsWith('/')) {
     String? inside;
     for (final root in roots) {
-      final top = root.endsWith('/') ? root.substring(0, root.length - 1) : root;
+      final top = root.endsWith('/')
+          ? root.substring(0, root.length - 1)
+          : root;
       if (top.isNotEmpty && target.startsWith('$top/')) {
         inside = target.substring(top.length + 1);
         break;

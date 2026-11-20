@@ -115,6 +115,7 @@ int _deepHash(Object? value) {
 class TerminalSpecMessage {
   TerminalSpecMessage({
     this.project,
+    this.copy,
     this.program,
     required this.arguments,
     required this.environment,
@@ -127,6 +128,10 @@ class TerminalSpecMessage {
   /// A project's folder name in `<filesDir>/workspaces`, which Kotlin
   /// resolves itself; the runtime's home when null.
   String? project;
+
+  /// A folder's run copy by its id in `<filesDir>/copies` (Phase 5 W4),
+  /// which Kotlin resolves itself; never set with [project].
+  String? copy;
 
   /// A name in the runtime's bin; null is bash, interactive, with
   /// CodeForge's rc file.
@@ -151,6 +156,7 @@ class TerminalSpecMessage {
   List<Object?> _toList() {
     return <Object?>[
       project,
+      copy,
       program,
       arguments,
       environment,
@@ -169,13 +175,14 @@ class TerminalSpecMessage {
     result as List<Object?>;
     return TerminalSpecMessage(
       project: result[0] as String?,
-      program: result[1] as String?,
-      arguments: (result[2]! as List<Object?>).cast<String>(),
-      environment: (result[3]! as Map<Object?, Object?>).cast<String, String>(),
-      rows: result[4]! as int,
-      columns: result[5]! as int,
-      bufferBytes: result[6] as int?,
-      label: result[7] as String?,
+      copy: result[1] as String?,
+      program: result[2] as String?,
+      arguments: (result[3]! as List<Object?>).cast<String>(),
+      environment: (result[4]! as Map<Object?, Object?>).cast<String, String>(),
+      rows: result[5]! as int,
+      columns: result[6]! as int,
+      bufferBytes: result[7] as int?,
+      label: result[8] as String?,
     );
   }
 
@@ -189,6 +196,7 @@ class TerminalSpecMessage {
       return true;
     }
     return _deepEquals(project, other.project) &&
+        _deepEquals(copy, other.copy) &&
         _deepEquals(program, other.program) &&
         _deepEquals(arguments, other.arguments) &&
         _deepEquals(environment, other.environment) &&
@@ -204,7 +212,7 @@ class TerminalSpecMessage {
 
   @override
   String toString() {
-    return 'TerminalSpecMessage(project: $project, program: $program, arguments: $arguments, environment: $environment, rows: $rows, columns: $columns, bufferBytes: $bufferBytes, label: $label)';
+    return 'TerminalSpecMessage(project: $project, copy: $copy, program: $program, arguments: $arguments, environment: $environment, rows: $rows, columns: $columns, bufferBytes: $bufferBytes, label: $label)';
   }
 }
 

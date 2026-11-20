@@ -16,11 +16,15 @@ NativeAddonKind? _spot(List<String> chunks) {
 
 void main() {
   test('npm: node-gyp and prebuild failing', () {
-    expect(_spot(['npm error gyp ERR! stack Error: not found: make\r\n']),
-        NativeAddonKind.npm);
+    expect(
+      _spot(['npm error gyp ERR! stack Error: not found: make\r\n']),
+      NativeAddonKind.npm,
+    );
     // npm colours each word.
     expect(
-      _spot(['\x1b[37;40mgyp\x1b[0m \x1b[0m\x1b[31;40mERR!\x1b[0m find Python']),
+      _spot([
+        '\x1b[37;40mgyp\x1b[0m \x1b[0m\x1b[31;40mERR!\x1b[0m find Python',
+      ]),
       NativeAddonKind.npm,
     );
     expect(
@@ -78,7 +82,10 @@ void main() {
   });
 
   test('each kind says why, and what works', () {
-    expect(nativeAddonMessage(NativeAddonKind.npm), contains('pure-JavaScript'));
+    expect(
+      nativeAddonMessage(NativeAddonKind.npm),
+      contains('pure-JavaScript'),
+    );
     expect(nativeAddonMessage(NativeAddonKind.pip), contains('prebuilt wheel'));
     for (final kind in NativeAddonKind.values) {
       expect(nativeAddonMessage(kind), contains('no C compiler'));

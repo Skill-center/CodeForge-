@@ -121,9 +121,7 @@ void main() {
     await tester.tap(_key('run_current_file'));
     await tester.pumpAndSettle();
     // The run writes a report, and changes main.js.
-    run.broker.copies[_folder.id]!['out/report.txt'] = utf8.encode(
-      'report\n',
-    );
+    run.broker.copies[_folder.id]!['out/report.txt'] = utf8.encode('report\n');
     run.broker.copies[_folder.id]!['main.js'] = utf8.encode('changed\n');
     await tester.tap(_key('run_files:1'));
     await tester.pumpAndSettle();
@@ -182,7 +180,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(_key('run_copying'), findsNothing);
     expect(run.service.specs, isEmpty);
-    expect(find.text('The copy was cancelled, so nothing ran.'), findsOneWidget);
+    expect(
+      find.text('The copy was cancelled, so nothing ran.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('what the copy left out is said', (tester) async {

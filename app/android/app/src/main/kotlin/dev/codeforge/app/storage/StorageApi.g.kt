@@ -489,6 +489,312 @@ data class GrantMessage (
     return "GrantMessage(treeUri=$treeUri, read=$read, write=$write, persistedAtMs=$persistedAtMs)"
   }
 }
+
+/**
+ * How a folder's run copy, or its import as a project, went (Phase 5 W4,
+ * ADR-0013; FolderCopy.kt), and what it left out.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class CopySummaryMessage (
+  /** Files in the copy from the folder, and their bytes, once it is done. */
+  val files: Long,
+  val bytes: Long,
+  /** Files copied this time, and their bytes. */
+  val copied: Long,
+  val bytesCopied: Long,
+  /** Files the copy already had as the folder has them. */
+  val unchanged: Long,
+  /** Files gone from the folder, removed from the copy. */
+  val removed: Long,
+  /**
+   * Left out: files over the size cap, files once the copy was full,
+   * virtual documents, folders too deep.
+   */
+  val leftOutLarge: Long,
+  val leftOutFull: Long,
+  val leftOutVirtual: Long,
+  val leftOutDeep: Long,
+  /** Entries left out by name (`.git` in a run's copy). */
+  val skipped: Long,
+  /** Files and folders that could not be read. */
+  val unreadable: Long,
+  /** The copy filled up and stopped walking: more may be left out. */
+  val capped: Boolean,
+  /** The copy was cancelled; what it copied by then stays. */
+  val stopped: Boolean,
+  val elapsedMs: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): CopySummaryMessage {
+      val files = pigeonVar_list[0] as Long
+      val bytes = pigeonVar_list[1] as Long
+      val copied = pigeonVar_list[2] as Long
+      val bytesCopied = pigeonVar_list[3] as Long
+      val unchanged = pigeonVar_list[4] as Long
+      val removed = pigeonVar_list[5] as Long
+      val leftOutLarge = pigeonVar_list[6] as Long
+      val leftOutFull = pigeonVar_list[7] as Long
+      val leftOutVirtual = pigeonVar_list[8] as Long
+      val leftOutDeep = pigeonVar_list[9] as Long
+      val skipped = pigeonVar_list[10] as Long
+      val unreadable = pigeonVar_list[11] as Long
+      val capped = pigeonVar_list[12] as Boolean
+      val stopped = pigeonVar_list[13] as Boolean
+      val elapsedMs = pigeonVar_list[14] as Long
+      return CopySummaryMessage(files, bytes, copied, bytesCopied, unchanged, removed, leftOutLarge, leftOutFull, leftOutVirtual, leftOutDeep, skipped, unreadable, capped, stopped, elapsedMs)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      files,
+      bytes,
+      copied,
+      bytesCopied,
+      unchanged,
+      removed,
+      leftOutLarge,
+      leftOutFull,
+      leftOutVirtual,
+      leftOutDeep,
+      skipped,
+      unreadable,
+      capped,
+      stopped,
+      elapsedMs,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as CopySummaryMessage
+    return StorageApiPigeonUtils.deepEquals(this.files, other.files) && StorageApiPigeonUtils.deepEquals(this.bytes, other.bytes) && StorageApiPigeonUtils.deepEquals(this.copied, other.copied) && StorageApiPigeonUtils.deepEquals(this.bytesCopied, other.bytesCopied) && StorageApiPigeonUtils.deepEquals(this.unchanged, other.unchanged) && StorageApiPigeonUtils.deepEquals(this.removed, other.removed) && StorageApiPigeonUtils.deepEquals(this.leftOutLarge, other.leftOutLarge) && StorageApiPigeonUtils.deepEquals(this.leftOutFull, other.leftOutFull) && StorageApiPigeonUtils.deepEquals(this.leftOutVirtual, other.leftOutVirtual) && StorageApiPigeonUtils.deepEquals(this.leftOutDeep, other.leftOutDeep) && StorageApiPigeonUtils.deepEquals(this.skipped, other.skipped) && StorageApiPigeonUtils.deepEquals(this.unreadable, other.unreadable) && StorageApiPigeonUtils.deepEquals(this.capped, other.capped) && StorageApiPigeonUtils.deepEquals(this.stopped, other.stopped) && StorageApiPigeonUtils.deepEquals(this.elapsedMs, other.elapsedMs)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.files)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.bytes)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.copied)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.bytesCopied)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.unchanged)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.removed)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.leftOutLarge)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.leftOutFull)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.leftOutVirtual)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.leftOutDeep)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.skipped)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.unreadable)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.capped)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.stopped)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.elapsedMs)
+    return result
+  }
+  override fun toString(): String {
+    return "CopySummaryMessage(files=$files, bytes=$bytes, copied=$copied, bytesCopied=$bytesCopied, unchanged=$unchanged, removed=$removed, leftOutLarge=$leftOutLarge, leftOutFull=$leftOutFull, leftOutVirtual=$leftOutVirtual, leftOutDeep=$leftOutDeep, skipped=$skipped, unreadable=$unreadable, capped=$capped, stopped=$stopped, elapsedMs=$elapsedMs)"
+  }
+}
+
+/**
+ * A file a run created or changed in its copy.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class CopyChangeMessage (
+  val path: String,
+  /** Only the copy has it; otherwise the copy's differs from the folder's. */
+  val created: Boolean,
+  val size: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): CopyChangeMessage {
+      val path = pigeonVar_list[0] as String
+      val created = pigeonVar_list[1] as Boolean
+      val size = pigeonVar_list[2] as Long
+      return CopyChangeMessage(path, created, size)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      path,
+      created,
+      size,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as CopyChangeMessage
+    return StorageApiPigeonUtils.deepEquals(this.path, other.path) && StorageApiPigeonUtils.deepEquals(this.created, other.created) && StorageApiPigeonUtils.deepEquals(this.size, other.size)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.path)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.created)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.size)
+    return result
+  }
+  override fun toString(): String {
+    return "CopyChangeMessage(path=$path, created=$created, size=$size)"
+  }
+}
+
+/**
+ * The files runs created or changed in a copy, at most 500 of them.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class CopyChangesMessage (
+  val changes: List<CopyChangeMessage>,
+  /** Changed files beyond the 500 listed. */
+  val more: Long,
+  /** Files whose names a documents provider can't take. */
+  val unexportable: Long,
+  /** Dependency folders (node_modules and the like) not looked into. */
+  val skippedFolders: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): CopyChangesMessage {
+      val changes = pigeonVar_list[0] as List<CopyChangeMessage>
+      val more = pigeonVar_list[1] as Long
+      val unexportable = pigeonVar_list[2] as Long
+      val skippedFolders = pigeonVar_list[3] as Long
+      return CopyChangesMessage(changes, more, unexportable, skippedFolders)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      changes,
+      more,
+      unexportable,
+      skippedFolders,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as CopyChangesMessage
+    return StorageApiPigeonUtils.deepEquals(this.changes, other.changes) && StorageApiPigeonUtils.deepEquals(this.more, other.more) && StorageApiPigeonUtils.deepEquals(this.unexportable, other.unexportable) && StorageApiPigeonUtils.deepEquals(this.skippedFolders, other.skippedFolders)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.changes)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.more)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.unexportable)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.skippedFolders)
+    return result
+  }
+  override fun toString(): String {
+    return "CopyChangesMessage(changes=$changes, more=$more, unexportable=$unexportable, skippedFolders=$skippedFolders)"
+  }
+}
+
+/**
+ * A file export could not write: its path, the problem's code, a message.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class ExportFailureMessage (
+  val path: String,
+  val problem: String,
+  val message: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ExportFailureMessage {
+      val path = pigeonVar_list[0] as String
+      val problem = pigeonVar_list[1] as String
+      val message = pigeonVar_list[2] as String
+      return ExportFailureMessage(path, problem, message)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      path,
+      problem,
+      message,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as ExportFailureMessage
+    return StorageApiPigeonUtils.deepEquals(this.path, other.path) && StorageApiPigeonUtils.deepEquals(this.problem, other.problem) && StorageApiPigeonUtils.deepEquals(this.message, other.message)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.path)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.problem)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.message)
+    return result
+  }
+  override fun toString(): String {
+    return "ExportFailureMessage(path=$path, problem=$problem, message=$message)"
+  }
+}
+
+/** Generated class from Pigeon that represents data sent in messages. */
+data class ExportResultMessage (
+  val exported: Long,
+  val failures: List<ExportFailureMessage>
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ExportResultMessage {
+      val exported = pigeonVar_list[0] as Long
+      val failures = pigeonVar_list[1] as List<ExportFailureMessage>
+      return ExportResultMessage(exported, failures)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      exported,
+      failures,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as ExportResultMessage
+    return StorageApiPigeonUtils.deepEquals(this.exported, other.exported) && StorageApiPigeonUtils.deepEquals(this.failures, other.failures)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.exported)
+    result = 31 * result + StorageApiPigeonUtils.deepHash(this.failures)
+    return result
+  }
+  override fun toString(): String {
+    return "ExportResultMessage(exported=$exported, failures=$failures)"
+  }
+}
 private open class StorageApiPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -517,6 +823,31 @@ private open class StorageApiPigeonCodec : StandardMessageCodec() {
           GrantMessage.fromList(it)
         }
       }
+      134.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          CopySummaryMessage.fromList(it)
+        }
+      }
+      135.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          CopyChangeMessage.fromList(it)
+        }
+      }
+      136.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          CopyChangesMessage.fromList(it)
+        }
+      }
+      137.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          ExportFailureMessage.fromList(it)
+        }
+      }
+      138.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          ExportResultMessage.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -540,6 +871,26 @@ private open class StorageApiPigeonCodec : StandardMessageCodec() {
       }
       is GrantMessage -> {
         stream.write(133)
+        writeValue(stream, value.toList())
+      }
+      is CopySummaryMessage -> {
+        stream.write(134)
+        writeValue(stream, value.toList())
+      }
+      is CopyChangeMessage -> {
+        stream.write(135)
+        writeValue(stream, value.toList())
+      }
+      is CopyChangesMessage -> {
+        stream.write(136)
+        writeValue(stream, value.toList())
+      }
+      is ExportFailureMessage -> {
+        stream.write(137)
+        writeValue(stream, value.toList())
+      }
+      is ExportResultMessage -> {
+        stream.write(138)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -612,6 +963,36 @@ interface StorageApi {
    * watched is ignored.
    */
   fun unwatch(watchId: Long, callback: (Result<Unit>) -> Unit)
+  /**
+   * Brings the run copy [copyId] of the folder up to date (Phase 5 W4,
+   * ADR-0013): one way, incremental, `.git` left out, in
+   * `<filesDir>/copies/<copyId>`. [copyId] is the folder workspace's id.
+   * How far it is goes to [StorageEvents.copyProgress].
+   */
+  fun syncCopy(treeUri: String, copyId: String, callback: (Result<CopySummaryMessage>) -> Unit)
+  /**
+   * Stops the copy (or import) [copyId] between files; its call answers
+   * with what it did by then. Nothing running is ignored.
+   */
+  fun cancelCopy(copyId: String, callback: (Result<Unit>) -> Unit)
+  /** The files runs created or changed in copy [copyId]. */
+  fun copyChanges(copyId: String, callback: (Result<CopyChangesMessage>) -> Unit)
+  /**
+   * Writes the copy's files at [paths] to the folder, replacing what is
+   * there, and records them as the folder now has them.
+   */
+  fun exportCopy(treeUri: String, copyId: String, paths: List<String>, callback: (Result<ExportResultMessage>) -> Unit)
+  /** Deletes copy [copyId]: the folder left the recents. */
+  fun deleteCopy(copyId: String, callback: (Result<Unit>) -> Unit)
+  /**
+   * Copies the whole folder, git's files included, into a new project's
+   * folder named [folderName] in `<filesDir>/workspaces` (Phase 5 W4:
+   * Import as project). Refused when a project of that name, case
+   * ignored, is there. Progress goes to [StorageEvents.copyProgress] as
+   * copy `import`; [cancelCopy] with `import` stops it, and then nothing
+   * is kept.
+   */
+  fun importTree(treeUri: String, folderName: String, callback: (Result<CopySummaryMessage>) -> Unit)
 
   companion object {
     /** The codec used by StorageApi. */
@@ -957,6 +1338,128 @@ interface StorageApi {
           channel.setMessageHandler(null)
         }
       }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.syncCopy$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val treeUriArg = args[0] as String
+            val copyIdArg = args[1] as String
+            api.syncCopy(treeUriArg, copyIdArg) { result: Result<CopySummaryMessage> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(StorageApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.cancelCopy$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val copyIdArg = args[0] as String
+            api.cancelCopy(copyIdArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(StorageApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.copyChanges$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val copyIdArg = args[0] as String
+            api.copyChanges(copyIdArg) { result: Result<CopyChangesMessage> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(StorageApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.exportCopy$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val treeUriArg = args[0] as String
+            val copyIdArg = args[1] as String
+            val pathsArg = args[2] as List<String>
+            api.exportCopy(treeUriArg, copyIdArg, pathsArg) { result: Result<ExportResultMessage> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(StorageApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.deleteCopy$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val copyIdArg = args[0] as String
+            api.deleteCopy(copyIdArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(StorageApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.StorageApi.importTree$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val treeUriArg = args[0] as String
+            val folderNameArg = args[1] as String
+            api.importTree(treeUriArg, folderNameArg) { result: Result<CopySummaryMessage> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(StorageApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(StorageApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
     }
   }
 }
@@ -983,6 +1486,27 @@ class StorageEvents(private val binaryMessenger: BinaryMessenger, private val me
     val channelName = "dev.flutter.pigeon.codeforge.StorageEvents.folderChanged$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(watchIdArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(StorageApiPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  /**
+   * Copy [copyId] has [files] files and [bytes] bytes in place (Phase 5
+   * W4): at most every 250 ms while it copies.
+   */
+  fun copyProgress(copyIdArg: String, filesArg: Long, bytesArg: Long, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.codeforge.StorageEvents.copyProgress$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(copyIdArg, filesArg, bytesArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
