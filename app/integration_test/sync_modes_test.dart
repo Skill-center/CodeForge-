@@ -12,7 +12,9 @@
 /// printed as numbered CODEFORGE_SYNC_JSON lines, which the job reads back
 /// from the device log (tool/ci/gate_results.py). Since Phase 4 W6 the same
 /// entrypoint also runs search on the phone (phone_search_test.dart), whose
-/// figures come back as CODEFORGE_SEARCH_JSON.
+/// figures come back as CODEFORGE_SEARCH_JSON, and since Phase 5 W6 the
+/// terminal's budgets (G6) and a folder's copy (phone_terminal_test.dart:
+/// RUNTIME_GATE figures, CODEFORGE_TERMINAL_JSON and CODEFORGE_COPY_JSON).
 library;
 
 import 'dart:convert';
@@ -25,6 +27,7 @@ import 'package:integration_test/integration_test.dart';
 
 import 'large_files_test.dart' show storeTimings;
 import 'phone_search_test.dart' show phoneSearchTests;
+import 'phone_terminal_test.dart' show phoneTerminalTests;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -51,4 +54,7 @@ void main() {
 
   // Since Phase 4 W6, search on the same phone (phone_search_test.dart).
   phoneSearchTests();
+  // Since Phase 5 W6, the terminal's budgets (G6) and a folder's copy
+  // (phone_terminal_test.dart).
+  phoneTerminalTests();
 }

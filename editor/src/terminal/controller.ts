@@ -16,6 +16,7 @@
 import { IME_EVENTS, type ImeEvent, ImeInput } from './ime';
 import { applyModifiers, keySequence, sanitizePaste } from './keys';
 import { findFileLinks, linkAt, MAX_LINK_TEXT } from './links';
+import { browserProbeClock, type EchoTarget, type ProbeClock, TerminalProbe } from './probe';
 import {
   type ConfigurePayload,
   DEFAULT_SCROLLBACK,
@@ -24,6 +25,7 @@ import {
   type KeyName,
   MAX_INPUT_CHARS,
   MAX_SNAPSHOT_SCROLLBACK,
+  type RendererKind,
   type SnapshotResult,
   type TerminalErrorCode,
   type TerminalMessageType,
@@ -121,10 +123,22 @@ export interface TerminalSettings {
   theme?: Record<string, string>;
 }
 
+/** The renderer a terminal draws with after a change, and why WebGL could not, if it could not. */
+export interface RendererResult {
+  renderer: RendererKind;
+  error?: string;
+}
+
 export interface CreatedTerminal {
   terminal: TerminalLike;
   /** Sizes the terminal to its element (addon-fit). */
   fit(): void;
+  /**
+   * Draws with [kind] from now on, once the terminal is open (main.ts: the
+   * WebGL addon, or none); [lost] runs if WebGL later gives up and the DOM
+   * takes over. Without it the terminal draws with the DOM.
+   */
+  setRenderer?(kind: RendererKind, lost: (reason: string) => void): RendererResult;
 }
 
 export type TerminalFactory = (settings: TerminalSettings) => CreatedTerminal;
@@ -138,15 +152,19 @@ export interface TerminalControllerOptions {
   createTerminal: TerminalFactory;
   /** Runs [callback] after the current event (a blur's focus moves on first). */
   defer?: (callback: () => void) => void;
+  /** The measurements' clock (probe.ts): the browser's unless a test passes one. */
+  probeClock?: ProbeClock;
 }
 
 interface SessionView {
   readonly sessionId: number;
   readonly terminal: TerminalLike;
   readonly fit: () => void;
+  readonly setRenderer: CreatedTerminal['setRenderer'];
   readonly element: HTMLElement;
   readonly disposables: Disposable[];
   selection: boolean;
+  renderer: RendererKind;
 }
 
 interface SelectionAnchor {
@@ -219,10 +237,16 @@ export class TerminalController {
   private focused = false;
   private anchor: SelectionAnchor | null = null;
   private lastLink: { sessionId: number; text: string; at: number } | null = null;
+  /** The renderer every view draws with (Phase 5 W6): the DOM's unless configured. */
+  private renderer: RendererKind = 'dom';
+  /** Why WebGL last could not draw, for the probe's report. */
+  private webglError: string | undefined;
+  private readonly probe: TerminalProbe;
   readonly gestures: TouchGestures;
 
   constructor(private readonly options: TerminalControllerOptions) {
     this.gestures = new TouchGestures(this.touchTarget());
+    this.probe = new TerminalProbe(options.probeClock ?? browserProbeClock());
   }
 
   /** The session shown, if any. */
@@ -284,6 +308,19 @@ export class TerminalController {
         const { sessionId, scrollback } = payload as HostToTerminal['session.snapshot'];
         return this.snapshot(sessionId, scrollback ?? 0);
       }
+      case 'probe.echo': {
+        const { sessionId, count, gapMs } = payload as HostToTerminal['probe.echo'];
+        this.probe.startEcho(sessionId, this.echoTarget(this.view(sessionId)), count, gapMs);
+        return undefined;
+      }
+      case 'probe.flood': {
+        const { sessionId, begin, end } = payload as HostToTerminal['probe.flood'];
+        this.view(sessionId);
+        this.probe.armFlood(sessionId, begin, end);
+        return undefined;
+      }
+      case 'probe.read':
+        return this.probe.report(this.renderers(), this.webglError);
       default:
         throw new TerminalPageError('internal', `no handler for ${String(type)}`);
     }
@@ -311,12 +348,22 @@ export class TerminalController {
     element.dataset.session = String(sessionId);
     element.style.display = 'none';
     this.options.parent.appendChild(element);
-    const { terminal, fit } = this.options.createTerminal({
+    const created = this.options.createTerminal({
       fontSize: this.fontSize,
       scrollback: this.scrollback,
       theme: this.theme,
     });
-    const view: SessionView = { sessionId, terminal, fit, element, disposables: [], selection: false };
+    const { terminal, fit } = created;
+    const view: SessionView = {
+      sessionId,
+      terminal,
+      fit,
+      setRenderer: created.setRenderer?.bind(created),
+      element,
+      disposables: [],
+      selection: false,
+      renderer: 'dom',
+    };
     this.views.set(sessionId, view);
     view.disposables.push(
       terminal.onData((data) => this.input(view, data)),
@@ -356,6 +403,7 @@ export class TerminalController {
         },
       });
     }
+    if (this.renderer !== 'dom') this.applyRenderer(view);
     if (activate) this.activate(sessionId);
     return { cols: terminal.cols, rows: terminal.rows };
   }
@@ -371,6 +419,7 @@ export class TerminalController {
 
   private close(sessionId: number): undefined {
     const view = this.view(sessionId);
+    this.probe.closed(sessionId);
     for (const disposable of view.disposables) disposable.dispose();
     view.terminal.dispose();
     view.element.remove();
@@ -382,7 +431,10 @@ export class TerminalController {
 
   private write(sessionId: number, seq: number, data: string): typeof NO_RESPONSE {
     const view = this.view(sessionId);
+    // A probe watching this session sees the write first (probe.ts).
+    const parsed = this.probe.write(sessionId, data);
     view.terminal.write(data, () => {
+      parsed?.();
       // A view closed meanwhile acknowledges nothing: its session is gone.
       if (this.views.get(sessionId) === view) this.emit('session.ack', { sessionId, seq });
     });
@@ -423,13 +475,41 @@ export class TerminalController {
     }
     if (payload.fontSize !== undefined) this.fontSize = payload.fontSize;
     if (payload.scrollback !== undefined) this.scrollback = payload.scrollback;
+    if (payload.renderer !== undefined) this.renderer = payload.renderer;
     for (const view of this.views.values()) {
       if (payload.theme) view.terminal.options.theme = this.theme;
       if (payload.fontSize !== undefined) view.terminal.options.fontSize = this.fontSize;
       if (payload.scrollback !== undefined) view.terminal.options.scrollback = this.scrollback;
+      if (payload.renderer !== undefined) this.applyRenderer(view);
     }
     this.layout();
     return undefined;
+  }
+
+  /** Puts [view] on the configured renderer; WebGL that can't draw leaves it on the DOM's. */
+  private applyRenderer(view: SessionView): void {
+    if (!view.setRenderer) {
+      view.renderer = 'dom';
+      if (this.renderer !== 'dom') this.webglError = 'this page has no WebGL renderer';
+      return;
+    }
+    const result = view.setRenderer(this.renderer, (reason) => {
+      view.renderer = 'dom';
+      this.webglError = reason;
+      this.emit('terminal.log', { level: 'warn', message: `WebGL gave up: ${reason}`.slice(0, 4000) });
+    });
+    view.renderer = result.renderer;
+    if (result.error !== undefined) {
+      this.webglError = result.error;
+      this.emit('terminal.log', { level: 'warn', message: `WebGL could not start: ${result.error}`.slice(0, 4000) });
+    }
+  }
+
+  /** Each view's renderer, by session id. */
+  private renderers(): Record<string, RendererKind> {
+    const out: Record<string, RendererKind> = {};
+    for (const view of this.views.values()) out[String(view.sessionId)] = view.renderer;
+    return out;
   }
 
   private focus(focused: boolean): undefined {
@@ -464,6 +544,33 @@ export class TerminalController {
       this.emit('terminal.modifiers', { ctrl: false, alt: false });
     }
     this.emitInput(view, out, false);
+  }
+
+  /**
+   * [view]'s session as the echo probe sees it (probe.ts): text typed as an
+   * input method's commit reaches the page, through ime.ts (the textarea's
+   * text, then an `input` event), and the cell before the cursor.
+   */
+  private echoTarget(view: SessionView): EchoTarget {
+    const terminal = view.terminal;
+    return {
+      beforeCursor: () => {
+        const buffer = terminal.buffer.active;
+        if (buffer.cursorX < 1) return '';
+        return buffer.getLine(buffer.baseY + buffer.cursorY)?.getCell(buffer.cursorX - 1)?.getChars() ?? '';
+      },
+      cursorX: () => terminal.buffer.active.cursorX,
+      type: (text) => {
+        const textarea = terminal.textarea;
+        if (!textarea) {
+          terminal.input(text, true);
+          return;
+        }
+        textarea.value = text;
+        textarea.dispatchEvent(new InputEvent('input', { data: text, inputType: 'insertText', bubbles: true }));
+      },
+      key: (data) => terminal.input(data, true),
+    };
   }
 
   private emitInput(view: SessionView, data: string, binary: boolean): void {

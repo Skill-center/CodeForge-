@@ -61,7 +61,14 @@
 #                                  them; the driver's and DevTools' logs;
 #                                  terminal_probe.txt, what the page saw of
 #                                  each tap and typed text, and
-#                                  terminal_first_tap.png)
+#                                  terminal_first_tap.png). Since W6, G6's
+#                                  figures: terminal_measure.json (echo,
+#                                  the 10 MiB flood with Flutter's and the
+#                                  page's frames, memory; DOM, WebGL, DOM
+#                                  again) and terminal_memory.txt, the
+#                                  dumpsys samples; less and the node REPL
+#                                  at the panel's size, nano and less open
+#                                  across the turns
 #   sessions.txt / sessions_*.txt  Phase 5 W5 G5: sessions that last. The
 #                                  foreground service as Android lists it
 #                                  (sessions_service.txt), memory warnings
@@ -854,7 +861,49 @@ folder_save() {
 #   die           kills the app's process (kill -9, as its user: what
 #                 Android's low-memory killer sends) and records what is left
 #                 of the sessions' processes; no answer
+# The terminal group's memory (Phase 5 W6, G6), answered through the folder
+# driver too:
+#   mem <label>   dumpsys meminfo's TOTAL PSS, in KiB, of the app's process
+#                 and of its WebView renderers (the sandboxed processes its
+#                 own service records name; any sandboxed process when they
+#                 name none): app:<kb>,renderer:<kb>,renderers:<n>,via:<how>.
+#                 Each sample's lines go to $RESULTS/terminal_memory.txt.
 SESSIONS_MARKERS="cf-heartbeat-5201|9999[.]5202|9999[.]5203"
+# total_pss <dumpsys meminfo output>: its TOTAL PSS in KiB, or nothing.
+total_pss() {
+  printf '%s\n' "$1" | awk '
+    !found && /TOTAL PSS:/ { for (i = 1; i < NF; i++) if ($i == "PSS:") { print $(i + 1); found = 1; break } }
+    !found && /^ *TOTAL +[0-9]/ { print $2; found = 1 }'
+}
+folder_mem() {
+  local label="$1" app pids via pid kb renderer=0 count=0 info
+  info=$("$ADB" shell dumpsys meminfo "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
+  app=$(total_pss "$info")
+  pids=$("$ADB" shell dumpsys activity services "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r' \
+    | grep -oE 'app=ProcessRecord\{[0-9a-f]+ [0-9]+:[^/}]*sandboxed_process[^/}]*' \
+    | sed -E 's/^app=ProcessRecord\{[0-9a-f]+ ([0-9]+):.*/\1/' | sort -u)
+  via="services"
+  if [ -z "$pids" ]; then
+    pids=$("$ADB" shell ps -A -o PID,NAME < /dev/null 2>/dev/null | tr -d '\r' \
+      | awk '$2 ~ /sandboxed_process/ { print $1 }')
+    via="ps"
+  fi
+  {
+    echo "--- mem $label ($(date +%T)): app ${app:-?} KiB"
+  } >> "$RESULTS/terminal_memory.txt"
+  for pid in $pids; do
+    kb=$(total_pss "$("$ADB" shell dumpsys meminfo "$pid" < /dev/null 2>/dev/null | tr -d '\r')")
+    [ -n "$kb" ] || continue
+    renderer=$((renderer + kb))
+    count=$((count + 1))
+    echo "renderer $pid: $kb KiB" >> "$RESULTS/terminal_memory.txt"
+  done
+  if [ -z "$app" ]; then
+    echo failed:no-app-pss
+    return
+  fi
+  echo "app:$app,renderer:$renderer,renderers:$count,via:$via"
+}
 sessions_safe_marker() {
   case "$1" in
     "" | *[!A-Za-z0-9.-]*) return 1 ;;
@@ -1027,6 +1076,9 @@ folder_driver() {
         answer="done"
         ;;
       service) answer=$(sessions_service) ;;
+      mem)
+        if sessions_safe_marker "$arg"; then answer=$(folder_mem "$arg"); else answer=bad-label; fi
+        ;;
       trim) answer=$(sessions_trim "$arg") ;;
       procs)
         if sessions_safe_marker "$arg"; then answer=$(sessions_procs "$arg"); else answer=bad-marker; fi
@@ -1766,7 +1818,7 @@ cat "$RESULTS/search.txt" >> "$RESULTS/attempts.txt"
 [ "$search_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
-echo "::group::Terminal (Phase 5 W3, G3: typed text echoes, nano and top fit the panel after a rotation, scripted composition loses nothing)"
+echo "::group::Terminal (Phase 5 W3 G3 and W6 G6: typed text echoes; echo, the 10 MiB flood and memory with each renderer; nano, top, less and node fit the panel across turns; scripted composition loses nothing)"
 # integration_test/terminal_test.dart, in the build with the x86_64 payload
 # (still selected from the runtime group): the terminal page (xterm.js) in
 # the real app, with a session on the sealed runtime. The test asks for
@@ -1780,7 +1832,11 @@ echo "::group::Terminal (Phase 5 W3, G3: typed text echoes, nano and top fit the
 # Each tap and each typed text is recorded (terminal_probe.txt, from
 # terminal_cdp.mjs --probe): the touches, keys, input and composition events
 # and focus changes the page saw, and its focus after them; the first tap is
-# also photographed (terminal_first_tap.png).
+# also photographed (terminal_first_tap.png). Since Phase 5 W6 the test
+# also measures G6 (integration_test/terminal_measure.dart: echo, the flood,
+# Flutter's and the page's frames, with the DOM renderer, WebGL and the DOM
+# again), and asks the folder driver for memory samples (FOLDERGATE mem);
+# the figures are recorded here, judged on Test Lab's phone.
 terminal_probe() {
   node ../editor/tool/terminal_cdp.mjs --adb "$ADB" --package "$APP_ID" --probe "$1" \
     >> "$RESULTS/terminal_probe.txt" 2>&1 < /dev/null || true
@@ -1872,11 +1928,16 @@ terminal_driver() {
 terminal_run() {
   "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
   "$ADB" logcat -c < /dev/null
-  rm -f "$RESULTS/terminal_compose.json" "$RESULTS/terminal_probe.txt" "$RESULTS/terminal_first_tap.png"
-  ITEST_LIMIT=25m ITEST_ATTEMPTS=1 run_itest terminal_itest integration_test/terminal_test.dart || return 1
+  rm -f "$RESULTS/terminal_compose.json" "$RESULTS/terminal_probe.txt" "$RESULTS/terminal_first_tap.png" \
+    "$RESULTS/terminal_memory.txt" "$RESULTS/terminal_measure.json"
+  ITEST_LIMIT=35m ITEST_ATTEMPTS=1 run_itest terminal_itest integration_test/terminal_test.dart || return 1
 }
 terminal_driver > "$RESULTS/terminal_driver.txt" 2>&1 &
 terminal_driver_pid=$!
+# Since Phase 5 W6 the test asks for memory samples (FOLDERGATE mem), which
+# the folder driver answers.
+FOLDER_UI="$RESULTS/terminal_ui.xml" folder_driver > "$RESULTS/terminal_gate_driver.txt" 2>&1 &
+terminal_gate_pid=$!
 terminal_ok=0
 for attempt in 1 2; do
   INFRA_SEEN=0
@@ -1888,8 +1949,11 @@ for attempt in 1 2; do
   echo "terminal attempt $attempt hit infrastructure failures — running it again" \
     | tee -a "$RESULTS/attempts.txt"
 done
-kill "$terminal_driver_pid" 2>/dev/null || true
+kill "$terminal_driver_pid" "$terminal_gate_pid" 2>/dev/null || true
 wait "$terminal_driver_pid" 2>/dev/null || true
+wait "$terminal_gate_pid" 2>/dev/null || true
+python3 tool/ci/join_report.py TERMINAL_JSON "$RESULTS/terminal_itest.txt" \
+  "$RESULTS/terminal_measure.json" || echo "terminal measure report failed (record-only)"
 # Portrait again, as the image started.
 "$ADB" shell settings put system user_rotation 0 < /dev/null || true
 compose_failures=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("failures", "missing"))' \
@@ -1900,6 +1964,7 @@ compose_failures=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1
   echo "terminal_compose_failures=$compose_failures"
   grep -oE 'TERMINAL_GATE .*' "$RESULTS/terminal_itest.txt" 2>/dev/null | sed 's/^TERMINAL_GATE /terminal: /'
   grep -E '\] (ok  |FAIL) ' "$RESULTS/terminal_cdp.txt" 2>/dev/null | sed 's/^\[terminal-cdp [0-9:]*\] /compose: /'
+  sed 's/^/memory: /' "$RESULTS/terminal_memory.txt" 2>/dev/null
   sed 's/^/probe /' "$RESULTS/terminal_probe.txt" 2>/dev/null | cut -c1-600
 } | tee "$RESULTS/terminal.txt"
 # The annotations have no slot left: attempts.txt carries the verdict.

@@ -17,6 +17,14 @@
 /// (`files/foldergate/<run>.<n>`), where the test reads it. As in the keys
 /// group, requests are printed in the root zone: a print inside a test
 /// goes to the test runner, not to the device log.
+///
+/// Since Phase 5 W6 the gate also reports the app's and its WebView
+/// renderers' memory (`mem <label>`: `dumpsys meminfo`'s TOTAL PSS, in KiB,
+/// as `app:<kb>,renderer:<kb>,renderers:<n>`), and each request is also
+/// left beside its answer (`files/foldergate/<run>.<n>.request`): on Test
+/// Lab, where no computer reads the log, the instrumentation answers from
+/// there (androidTest's syncmodes/GateAnswers.java: `mem`, `fixture`,
+/// `pick` through the accessibility tree, and `put`).
 library;
 
 import 'dart:async';
@@ -55,6 +63,8 @@ final class FolderGate {
     _step += 1;
     final id = '$_run.$_step';
     final line = 'FOLDERGATE $id $request';
+    _answers.createSync(recursive: true);
+    File('${_answers.path}/$id.request').writeAsStringSync(request);
     Zone.root.print(line);
     debugPrint(line);
     final file = File('${_answers.path}/$id');

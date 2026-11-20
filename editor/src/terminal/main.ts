@@ -8,11 +8,18 @@
  */
 import { FitAddon } from '@xterm/addon-fit';
 import { Unicode11Addon } from '@xterm/addon-unicode11';
+import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal } from '@xterm/xterm';
 
 import { TerminalBridge } from './bridge';
-import { DEFAULT_FONT_SIZE, type TerminalFactory, type TerminalLike, TerminalController } from './controller';
-import { TERMINAL_PROTOCOL_VERSION } from './protocol';
+import {
+  DEFAULT_FONT_SIZE,
+  type RendererResult,
+  type TerminalFactory,
+  type TerminalLike,
+  TerminalController,
+} from './controller';
+import { type RendererKind, TERMINAL_PROTOCOL_VERSION } from './protocol';
 import type { TouchPoint } from './touch';
 
 declare const __XTERM_VERSION__: string;
@@ -39,7 +46,37 @@ const createXterm: TerminalFactory = ({ fontSize, scrollback, theme }) => {
   terminal.loadAddon(fit);
   terminal.loadAddon(new Unicode11Addon());
   terminal.unicode.activeVersion = '11';
-  return { terminal: terminal as unknown as TerminalLike, fit: () => fit.fit() };
+  // The renderer (Phase 5 W6): xterm.js draws with the DOM unless WebGL is
+  // asked for. WebGL2 that can't start, or a context the GPU takes back
+  // later, leaves the terminal on the DOM renderer.
+  let webgl: WebglAddon | null = null;
+  const setRenderer = (kind: RendererKind, lost: (reason: string) => void): RendererResult => {
+    if (kind === 'dom') {
+      webgl?.dispose();
+      webgl = null;
+      return { renderer: 'dom' };
+    }
+    if (webgl) return { renderer: 'webgl' };
+    const addon = new WebglAddon();
+    try {
+      terminal.loadAddon(addon);
+    } catch (error) {
+      try {
+        addon.dispose();
+      } catch {
+        // Half-made: nothing more to undo.
+      }
+      return { renderer: 'dom', error: error instanceof Error ? error.message : String(error) };
+    }
+    addon.onContextLoss(() => {
+      if (webgl === addon) webgl = null;
+      addon.dispose();
+      lost('the WebGL context was lost');
+    });
+    webgl = addon;
+    return { renderer: 'webgl' };
+  };
+  return { terminal: terminal as unknown as TerminalLike, fit: () => fit.fit(), setRenderer };
 };
 
 const channel = page.CodeForgeBridge;

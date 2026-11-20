@@ -6,7 +6,12 @@
  * 3. the manifest matches the file and the size budget holds;
  * 4. the page boots in a DOM with a fake host channel, with the real
  *    xterm.js, and answers a protocol round trip: ready → open → write
- *    acknowledged → snapshot → an extra key → a sanitized paste → refusals.
+ *    acknowledged → snapshot → an extra key → a sanitized paste → refusals;
+ *    since Phase 5 W6, the measurements (probe.ts) with the real xterm.js:
+ *    WebGL asked for where there is none leaves the DOM renderer, an echo
+ *    probe types through the input method's path and times the echo the
+ *    test writes back, and a flood probe counts and hashes what lies
+ *    between its marks.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -96,6 +101,68 @@ send('h7', 'session.write', { sessionId: 99, seq: 1, data: 'x' });
 check('a write to an unknown session is refused', responseTo('h7')?.error?.code === 'unknown_session');
 send('h8', 'session.open', { sessionId: 'x' });
 check('an invalid request is answered with bad_payload', responseTo('h8')?.error?.code === 'bad_payload');
+// The measurements (Phase 5 W6): the renderer, an echo, a flood.
+const settleUntil = async (condition, ms = 5000) => {
+  for (let waited = 0; waited < ms && !condition(); waited += 25) await settle(25);
+  return condition();
+};
+/** The probe's report once it is no longer running (a fresh request id each time). */
+let reads = 0;
+const probeOutcome = async () => {
+  let last;
+  await settleUntil(() => {
+    reads += 1;
+    send(`pr${reads}`, 'probe.read', {});
+    last = responseTo(`pr${reads}`)?.result;
+    return last?.state !== 'running';
+  });
+  return last;
+};
+send('p1', 'probe.read', {});
+check('probe.read answers idle, on the DOM renderer', responseTo('p1')?.result?.state === 'idle' && responseTo('p1')?.result?.renderers?.['7'] === 'dom', JSON.stringify(responseTo('p1')?.result));
+send('p2', 'terminal.configure', { renderer: 'webgl' });
+send('p3', 'probe.read', {});
+const noWebgl = responseTo('p3')?.result;
+check(
+  'WebGL where there is none leaves the DOM renderer, and says why',
+  responseTo('p2')?.ok === true && noWebgl?.renderers?.['7'] === 'dom' && /WebGL/.test(noWebgl?.webglError ?? ''),
+  JSON.stringify(noWebgl),
+);
+send('p4', 'terminal.configure', { renderer: 'dom' });
+send('p5', 'session.write', { sessionId: 7, seq: 3, data: '\x1b[2J\x1b[H$ ' });
+await settle(200);
+const inputsBefore = inputs().length;
+send('p6', 'probe.echo', { sessionId: 7, count: 2, gapMs: 20 });
+check('probe.echo answered at once', responseTo('p6')?.ok === true);
+let echoSeq = 4;
+for (let answered = 0; answered < 4; answered += 1) {
+  const typed = await settleUntil(() => inputs().length > inputsBefore + answered);
+  if (!typed) break;
+  const data = inputs()[inputsBefore + answered];
+  send(`pw${answered}`, 'session.write', { sessionId: 7, seq: echoSeq++, data: data === '\x7f' ? '\b \b' : data });
+}
+const echo = await probeOutcome();
+check(
+  'an echo probe types as the input method does, and times each echo',
+  echo?.state === 'done' && echo.echo?.count === 2 && echo.echo?.lost === 0 &&
+    JSON.stringify(inputs().slice(inputsBefore)) === JSON.stringify(['a', '\x7f', 'b', '\x7f']),
+  JSON.stringify({ state: echo?.state, echo: echo?.echo, inputs: inputs().slice(inputsBefore) }),
+);
+const fnv = (text) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
+  return h.toString(16).padStart(8, '0');
+};
+const body = '\x1b[32m0000001\x1b[0m flood line\r\n'.repeat(200);
+send('p8', 'probe.flood', { sessionId: 7, begin: '\x1b]777;b\x07', end: '\x1b]777;e\x07' });
+send('p9', 'session.write', { sessionId: 7, seq: echoSeq++, data: `$ flood\r\n\x1b]777;b\x07${body.slice(0, 3000)}` });
+send('p10', 'session.write', { sessionId: 7, seq: echoSeq++, data: `${body.slice(3000)}\x1b]777;e\x07$ ` });
+const flood = await probeOutcome();
+check(
+  'a flood probe counts and hashes exactly what lies between its marks',
+  flood?.state === 'done' && flood.flood?.chars === body.length && flood.flood?.hash === fnv(body) && flood.flood?.writes === 2,
+  JSON.stringify({ state: flood?.state, chars: flood?.flood?.chars, hash: flood?.flood?.hash, expected: fnv(body) }),
+);
 send('h9', 'session.close', { sessionId: 7 });
 check('session.close answered ok', responseTo('h9')?.ok === true);
 const pageErrors = received.filter((m) => m.type === 'terminal.log' && m.payload.level === 'error');

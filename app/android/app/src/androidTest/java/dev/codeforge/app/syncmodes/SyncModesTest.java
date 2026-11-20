@@ -1,5 +1,6 @@
 package dev.codeforge.app.syncmodes;
 
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
 
 import org.junit.Rule;
@@ -22,10 +23,21 @@ import dev.flutter.plugins.integration_test.FlutterTestRunner;
  * The package sorts after {@code dev.codeforge.app.runtime}: AndroidJUnitRunner
  * runs classes in name order, so the runtime's tests have run and reported
  * before this one starts the app.</p>
+ *
+ * <p>Since Phase 5 W6 the entrypoint also measures the terminal and a
+ * folder's copy on the phone ({@code integration_test/phone_terminal_test.dart}),
+ * whose requests to the gate ({@code folder_gate.dart}: memory, the gate
+ * folder, the folder picker) {@link GateAnswers} answers, from the moment the
+ * rule launches the activity.</p>
  */
 @RunWith(FlutterTestRunner.class)
 public class SyncModesTest {
     @Rule
     public ActivityTestRule<MainActivity> rule =
-        new ActivityTestRule<>(MainActivity.class, true, false);
+        new ActivityTestRule<MainActivity>(MainActivity.class, true, false) {
+            @Override
+            protected void beforeActivityLaunched() {
+                GateAnswers.start(InstrumentationRegistry.getInstrumentation());
+            }
+        };
 }

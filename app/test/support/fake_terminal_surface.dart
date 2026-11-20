@@ -114,6 +114,17 @@ final class FakeTerminalSurface implements EditorSurface {
   /// Writes waiting for [acknowledge] when [autoAck] is off.
   final List<({int sessionId, int seq})> unacknowledged = [];
 
+  /// `probe.echo` and `probe.flood` payloads, in order (Phase 5 W6).
+  final List<Map<String, Object?>> probes = [];
+
+  /// What `probe.read` answers.
+  Map<String, Object?> probeReport = const {
+    'state': 'idle',
+    'kind': null,
+    'sessionId': null,
+    'renderers': <String, Object?>{},
+  };
+
   int loads = 0;
   int reloads = 0;
   bool disposed = false;
@@ -276,6 +287,14 @@ final class FakeTerminalSurface implements EditorSurface {
           return;
         }
         _ok(message.id, {'text': session!.selection});
+      case 'probe.echo' || 'probe.flood':
+        if (missing()) {
+          return;
+        }
+        probes.add({'type': message.type, ...payload});
+        _ok(message.id);
+      case 'probe.read':
+        _ok(message.id, probeReport);
       case 'session.snapshot':
         if (missing()) {
           return;

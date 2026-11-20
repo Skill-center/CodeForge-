@@ -44,6 +44,17 @@ export const MAX_SNAPSHOT_SCROLLBACK = 1000;
 export const DEFAULT_SCROLLBACK = 2000;
 export const MAX_SCROLLBACK = 50000;
 
+/** xterm.js's renderers (Phase 5 W6): its DOM renderer, or WebGL (addon-webgl), which falls back to the DOM when it can't draw. */
+export const RENDERERS = ['dom', 'webgl'] as const;
+export type RendererKind = (typeof RENDERERS)[number];
+
+/** The most characters an echo probe types (Phase 5 W6). */
+export const MAX_PROBE_SAMPLES = 1000;
+/** The longest pause between two of an echo probe's characters, in ms. */
+export const MAX_PROBE_GAP_MS = 5000;
+/** The longest mark a flood probe looks for. */
+export const MAX_PROBE_MARK_CHARS = 64;
+
 /** Keys the extra-keys row sends by name; the page turns them into the sequence the terminal's modes expect. */
 export const KEY_NAMES = [
   'escape',
@@ -136,6 +147,8 @@ export interface ConfigurePayload {
   /** CSS pixels, the user's text scale included. */
   fontSize?: number;
   scrollback?: number;
+  /** The renderer every terminal draws with (Phase 5 W6); the DOM's unless set. */
+  renderer?: RendererKind;
 }
 
 export interface KeyPayload {
@@ -181,6 +194,20 @@ export interface HostToTerminal {
   'session.copy': { sessionId: number };
   /** Answered with a SnapshotResult. */
   'session.snapshot': { sessionId: number; scrollback?: number };
+  /**
+   * Measurement (Phase 5 W6, probe.ts): types [count] characters into the
+   * session as an input method's commit reaches the page, [gapMs] apart,
+   * each timed from its input to the end of the frame that draws its echo,
+   * and erased again. Answered at once; `probe.read` has the figures.
+   */
+  'probe.echo': { sessionId: number; count: number; gapMs: number };
+  /**
+   * Measurement: counts and hashes what the session writes between [begin]
+   * and [end], timing it and the page's frames meanwhile. Answered at once.
+   */
+  'probe.flood': { sessionId: number; begin: string; end: string };
+  /** Answered with a ProbeReport (probe.ts). */
+  'probe.read': Record<string, never>;
 }
 
 // ---------------------------------------------------------------- page → host

@@ -11,7 +11,9 @@ import {
   TerminalPageError,
   type TerminalSettings,
 } from '../src/terminal/controller';
+import { fnv1a, hex32 } from '../src/terminal/probe';
 import type { TerminalMessageType, TerminalTheme, TerminalToHost } from '../src/terminal/protocol';
+import { FakeProbeClock, flushMicrotasks } from './helpers';
 
 class Emitter<T> {
   private readonly listeners = new Set<(value: T) => void>();
@@ -543,5 +545,147 @@ describe('appearance, focus and the program’s notices', () => {
     fitSize = { cols: 90, rows: 12 };
     controller.layout();
     expect(of('session.resized').at(-1)).toEqual({ sessionId: 1, cols: 90, rows: 12 });
+  });
+});
+
+describe('measurement (Phase 5 W6)', () => {
+  /** A controller whose probe runs on the test's clock, with renderers the test controls. */
+  function measured(options: { webgl?: 'ok' | 'fails' } = {}) {
+    const clock = new FakeProbeClock();
+    const views: Array<{ terminal: FakeTerminal; renderers: string[]; lose: (reason: string) => void }> = [];
+    const probed = new TerminalController({
+      parent,
+      emit: (type, payload) => sent.push({ type, payload }),
+      createTerminal: (settings) => {
+        const terminal = new FakeTerminal(settings);
+        terminals.push(terminal);
+        const record = { terminal, renderers: [] as string[], lose: (_reason: string) => undefined as void };
+        views.push(record);
+        return {
+          terminal,
+          fit: () => terminal.resizeTo(fitSize.cols, fitSize.rows),
+          setRenderer: (kind, lost) => {
+            record.renderers.push(kind);
+            record.lose = lost;
+            if (kind === 'webgl' && options.webgl === 'fails') return { renderer: 'dom', error: 'WebGL2 not supported' };
+            return { renderer: kind };
+          },
+        };
+      },
+      defer: (callback) => deferred.push(callback),
+      probeClock: clock,
+    });
+    return { probed, clock, views };
+  }
+
+  it('puts every view on the configured renderer, new ones too, and reports them', () => {
+    const { probed, views } = measured();
+    probed.handle('session.open', { sessionId: 1 });
+    expect(views[0]!.renderers).toEqual([]);
+    probed.handle('terminal.configure', { renderer: 'webgl' });
+    probed.handle('session.open', { sessionId: 2, activate: false });
+    expect(views.map((v) => v.renderers)).toEqual([['webgl'], ['webgl']]);
+    expect(probed.handle('probe.read', {})).toMatchObject({ state: 'idle', renderers: { '1': 'webgl', '2': 'webgl' } });
+    // WebGL giving up leaves the view on the DOM's, and says why.
+    views[0]!.lose('the WebGL context was lost');
+    expect(probed.handle('probe.read', {})).toMatchObject({
+      renderers: { '1': 'dom', '2': 'webgl' },
+      webglError: 'the WebGL context was lost',
+    });
+    expect(of('terminal.log').at(-1)?.message).toContain('WebGL gave up');
+    probed.handle('terminal.configure', { renderer: 'dom' });
+    expect(views.map((v) => v.renderers.at(-1))).toEqual(['dom', 'dom']);
+  });
+
+  it('stays on the DOM renderer when WebGL cannot start, and says why', () => {
+    const { probed } = measured({ webgl: 'fails' });
+    probed.handle('session.open', { sessionId: 1 });
+    probed.handle('terminal.configure', { renderer: 'webgl' });
+    expect(probed.handle('probe.read', {})).toMatchObject({
+      renderers: { '1': 'dom' },
+      webglError: 'WebGL2 not supported',
+    });
+    expect(of('terminal.log').at(-1)?.message).toContain('WebGL could not start');
+  });
+
+  it('types through the input method path and times each echo from the buffer', async () => {
+    const { probed, clock } = measured();
+    probed.handle('session.open', { sessionId: 1 });
+    const terminal = terminals[0]!;
+    terminal.lines = [new FakeLine('demo $ ')];
+    terminal.cursorX = 7;
+    // The shell: 6 ms after each input its echo is written, then parsed.
+    let seq = 0;
+    let answered = 0;
+    const shell = async () => {
+      const inputs = of('session.input');
+      while (answered < inputs.length) {
+        const { data } = inputs[answered]!;
+        answered += 1;
+        await clock.sleep(6);
+        const line = terminal.lines[0]!.text;
+        const next = data === '\x7f' ? line.slice(0, -1) : line + data;
+        probed.handle('session.write', { sessionId: 1, seq, data: data === '\x7f' ? '\b \b' : data });
+        seq += 1;
+        terminal.lines = [new FakeLine(next)];
+        terminal.cursorX = next.length;
+        terminal.parse();
+      }
+    };
+    expect(probed.handle('probe.echo', { sessionId: 1, count: 2, gapMs: 10 })).toBeUndefined();
+    for (let ms = 0; ms < 100; ms += 1) {
+      void shell();
+      await clock.advance(1);
+    }
+    expect(of('session.input').map((input) => input.data)).toEqual(['a', '\x7f', 'b', '\x7f']);
+    // The textarea was emptied again, as for an input method's commit.
+    expect(terminal.textarea?.value).toBe('');
+    const report = probed.handle('probe.read', {}) as { state: string; echo: { samplesMs: number[]; lost: number } };
+    expect(report.state).toBe('done');
+    expect(report.echo.lost).toBe(0);
+    // 6 ms to the echo, 4 more to the end of the frame that draws it.
+    expect(report.echo.samplesMs).toEqual([10, 10]);
+    expect(of('session.ack')).toHaveLength(4);
+  });
+
+  it('counts a flood in one session, still acknowledging every write', async () => {
+    const { probed, clock } = measured();
+    probed.handle('session.open', { sessionId: 1 });
+    probed.handle('session.open', { sessionId: 2, activate: false });
+    probed.handle('probe.flood', { sessionId: 1, begin: '<b>', end: '<e>' });
+    probed.handle('session.write', { sessionId: 2, seq: 0, data: '<b>elsewhere<e>' });
+    clock.time = 5;
+    probed.handle('session.write', { sessionId: 1, seq: 0, data: '$ flood\r\n<b>abc' });
+    clock.time = 9;
+    probed.handle('session.write', { sessionId: 1, seq: 1, data: 'def<e>$ ' });
+    for (const terminal of terminals) terminal.parse();
+    await flushMicrotasks();
+    const report = probed.handle('probe.read', {}) as {
+      state: string;
+      kind: string;
+      flood: { chars: number; hash: string; ms: number; writes: number };
+    };
+    expect(report).toMatchObject({ state: 'done', kind: 'flood' });
+    expect(report.flood).toMatchObject({ chars: 6, hash: hex32(fnv1a('abcdef')), ms: 8, writes: 2 });
+    expect(of('session.ack')).toHaveLength(3);
+  });
+
+  it('refuses a probe for a session it has no view of, and fails one whose view closes', async () => {
+    const { probed, clock } = measured();
+    const code = (fn: () => unknown) => {
+      try {
+        fn();
+        return null;
+      } catch (error) {
+        return (error as TerminalPageError).code;
+      }
+    };
+    expect(code(() => probed.handle('probe.echo', { sessionId: 4, count: 3, gapMs: 0 }))).toBe('unknown_session');
+    expect(code(() => probed.handle('probe.flood', { sessionId: 4, begin: 'b', end: 'e' }))).toBe('unknown_session');
+    probed.handle('session.open', { sessionId: 4 });
+    probed.handle('probe.echo', { sessionId: 4, count: 3, gapMs: 50 });
+    await clock.advance(5);
+    probed.handle('session.close', { sessionId: 4 });
+    expect(probed.handle('probe.read', {})).toMatchObject({ state: 'failed', message: 'session 4 closed' });
   });
 });

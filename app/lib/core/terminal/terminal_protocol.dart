@@ -47,6 +47,19 @@ const int maxSnapshotScrollback = 1000;
 /// The most scrollback a terminal may be configured to keep.
 const int maxTerminalScrollback = 50000;
 
+/// xterm.js's renderers (Phase 5 W6): its DOM renderer, or WebGL, which falls
+/// back to the DOM when it can't draw.
+const List<String> terminalRenderers = ['dom', 'webgl'];
+
+/// The most characters an echo probe types (Phase 5 W6, `probe.echo`).
+const int maxProbeSamples = 1000;
+
+/// The longest pause between two of an echo probe's characters, in ms.
+const int maxProbeGapMs = 5000;
+
+/// The longest mark a flood probe looks for (`probe.flood`).
+const int maxProbeMarkChars = 64;
+
 /// Keys the extra-keys row sends by name (`session.key`); a key may also be
 /// one printable ASCII character.
 const List<String> terminalKeyNames = [
@@ -159,6 +172,7 @@ final Map<String, Check> _hostToTerminal = {
     'theme': _theme,
     'fontSize': numberCheck(min: 8, max: 40),
     'scrollback': intCheck(min: 0, max: maxTerminalScrollback),
+    'renderer': oneOfCheck(terminalRenderers),
   }),
   'terminal.focus': objectCheck({'focused': boolCheck}),
   'terminal.modifiers': objectCheck({'ctrl': boolCheck, 'alt': boolCheck}),
@@ -191,6 +205,17 @@ final Map<String, Check> _hostToTerminal = {
     {'sessionId': _sessionId},
     {'scrollback': intCheck(min: 0, max: maxSnapshotScrollback)},
   ),
+  'probe.echo': objectCheck({
+    'sessionId': _sessionId,
+    'count': intCheck(min: 1, max: maxProbeSamples),
+    'gapMs': intCheck(min: 0, max: maxProbeGapMs),
+  }),
+  'probe.flood': objectCheck({
+    'sessionId': _sessionId,
+    'begin': stringCheck(min: 1, max: maxProbeMarkChars),
+    'end': stringCheck(min: 1, max: maxProbeMarkChars),
+  }),
+  'probe.read': objectCheck({}),
 };
 
 final Check _responseOk = objectCheck(

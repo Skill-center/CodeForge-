@@ -489,6 +489,61 @@ final class TerminalView {
   }) async =>
       _done(await _request('terminal.modifiers', {'ctrl': ctrl, 'alt': alt}));
 
+  // ----------------------------------------------------------- measurement
+
+  /// The renderer the page's terminals draw with (Phase 5 W6): `dom`, or
+  /// `webgl`, which the page leaves for the DOM's when WebGL can't draw.
+  /// Kept with the appearance for restarts.
+  Future<Result<void>> setRenderer(String renderer) async {
+    _configuration = {...?_configuration, 'renderer': renderer};
+    if (!isReady) {
+      return const Ok(null);
+    }
+    return _done(await _request('terminal.configure', {'renderer': renderer}));
+  }
+
+  /// Measurement (Phase 5 W6, the page's probe.ts): the page types [count]
+  /// characters into [sessionId] as an input method's commit reaches it,
+  /// [gapMs] apart, each timed from its input to the end of the frame that
+  /// draws its echo, and erased again. Answers once the probe has started;
+  /// [readProbe] has its figures.
+  Future<Result<void>> startEchoProbe(
+    int sessionId, {
+    int count = 100,
+    int gapMs = 50,
+  }) async => _done(
+    await _request('probe.echo', {
+      'sessionId': sessionId,
+      'count': count,
+      'gapMs': gapMs,
+    }),
+  );
+
+  /// Measurement: the page counts, hashes and times what [sessionId] writes
+  /// between the marks [begin] and [end], and its frames meanwhile.
+  Future<Result<void>> startFloodProbe(
+    int sessionId, {
+    required String begin,
+    required String end,
+  }) async => _done(
+    await _request('probe.flood', {
+      'sessionId': sessionId,
+      'begin': begin,
+      'end': end,
+    }),
+  );
+
+  /// The probe's report, as the page sent it (probe.ts's ProbeReport:
+  /// `state`, `kind`, `renderers`, and `echo` or `flood` once it has them).
+  Future<Result<Map<String, Object?>>> readProbe() async {
+    final result = await _request('probe.read', const <String, Object?>{});
+    return switch (result) {
+      Ok(:final value) when value is Map<String, Object?> => Ok(value),
+      Ok() => const Err(BridgeFailure('The terminal answered a probe oddly.')),
+      Err(:final failure) => Err(failure),
+    };
+  }
+
   Future<Result<Object?>> _request(String type, Map<String, Object?> payload) {
     if (_disposed) {
       return Future.value(const Err(BridgeFailure('The terminal is closed.')));

@@ -23,10 +23,14 @@ import {
   MAX_DIMENSION,
   MAX_INPUT_CHARS,
   MAX_PASTE_CHARS,
+  MAX_PROBE_GAP_MS,
+  MAX_PROBE_MARK_CHARS,
+  MAX_PROBE_SAMPLES,
   MAX_SCROLLBACK,
   MAX_SNAPSHOT_SCROLLBACK,
   MAX_TERMINAL_MESSAGE_CHARS,
   MAX_WRITE_CHARS,
+  RENDERERS,
   TERMINAL_ERROR_CODES,
   TERMINAL_PROTOCOL_VERSION,
   type TerminalDirection,
@@ -55,7 +59,12 @@ const theme = obj({
 const HOST_TO_TERMINAL: Record<string, Check> = {
   'terminal.configure': obj(
     {},
-    { theme, fontSize: num({ min: 8, max: 40 }), scrollback: int({ min: 0, max: MAX_SCROLLBACK }) },
+    {
+      theme,
+      fontSize: num({ min: 8, max: 40 }),
+      scrollback: int({ min: 0, max: MAX_SCROLLBACK }),
+      renderer: oneOf(RENDERERS),
+    },
   ),
   'terminal.focus': obj({ focused: bool }),
   'terminal.modifiers': obj({ ctrl: bool, alt: bool }),
@@ -69,6 +78,17 @@ const HOST_TO_TERMINAL: Record<string, Check> = {
   'session.select': obj({ sessionId, action: oneOf(['all', 'none']) }),
   'session.copy': obj({ sessionId }),
   'session.snapshot': obj({ sessionId }, { scrollback: int({ min: 0, max: MAX_SNAPSHOT_SCROLLBACK }) }),
+  'probe.echo': obj({
+    sessionId,
+    count: int({ min: 1, max: MAX_PROBE_SAMPLES }),
+    gapMs: int({ min: 0, max: MAX_PROBE_GAP_MS }),
+  }),
+  'probe.flood': obj({
+    sessionId,
+    begin: str({ min: 1, max: MAX_PROBE_MARK_CHARS }),
+    end: str({ min: 1, max: MAX_PROBE_MARK_CHARS }),
+  }),
+  'probe.read': obj({}),
 };
 
 const responsePayload: Check = (v, path) => {

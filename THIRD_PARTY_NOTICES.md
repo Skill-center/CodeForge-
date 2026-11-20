@@ -99,7 +99,7 @@ Two pages are built from `editor/`: the editor (CodeMirror 6 and its language pa
 <!-- editor:begin -->
 <!-- Written by editor/tool/notices.mjs from editor/package-lock.json. Do not edit by hand: CI checks it. -->
 
-**30 packages** can end up in the editor's or the terminal's page: MIT 30. Their licence texts ship in the app beside each page (`assets/editor/NOTICES.txt`, `assets/terminal/NOTICES.txt`) and appear in its licence page.
+**31 packages** can end up in the editor's or the terminal's page: MIT 31. Their licence texts ship in the app beside each page (`assets/editor/NOTICES.txt`, `assets/terminal/NOTICES.txt`) and appear in its licence page.
 
 | Package | Version | Licence |
 |---|---|---|
@@ -129,6 +129,7 @@ Two pages are built from `editor/`: the editor (CodeMirror 6 and its language pa
 | @marijn/find-cluster-break | 1.0.4 | MIT |
 | @xterm/addon-fit | 0.11.0 | MIT |
 | @xterm/addon-unicode11 | 0.9.0 | MIT |
+| @xterm/addon-webgl | 0.19.0 | MIT |
 | @xterm/xterm | 6.0.0 | MIT |
 | crelt | 1.0.7 | MIT |
 | style-mod | 4.1.4 | MIT |

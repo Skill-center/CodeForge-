@@ -23,6 +23,14 @@ export function afterPaint(timeoutMs = 1000): Promise<number> {
     };
     const timer = setTimeout(() => finish(true), timeoutMs);
     requestAnimationFrame(() => {
+      // A DOM without MessageChannel (happy-dom): the next task instead.
+      if (typeof MessageChannel === 'undefined') {
+        setTimeout(() => {
+          clearTimeout(timer);
+          finish(false);
+        }, 0);
+        return;
+      }
       const channel = new MessageChannel();
       channel.port1.onmessage = () => {
         clearTimeout(timer);

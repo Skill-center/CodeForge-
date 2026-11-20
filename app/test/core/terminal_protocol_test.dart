@@ -146,6 +146,7 @@ void main() {
       expect(terminalErrorCodes, _tsList(protocol, 'TERMINAL_ERROR_CODES'));
       expect(terminalLogLevels, _tsList(protocol, 'LOG_LEVELS'));
       expect(terminalThemeColors, _tsList(protocol, 'THEME_COLORS'));
+      expect(terminalRenderers, _tsList(protocol, 'RENDERERS'));
     });
 
     test('the limits equal protocol.ts', () {
@@ -176,6 +177,9 @@ void main() {
       expect(maxTerminalDimension, limit('MAX_DIMENSION'));
       expect(maxSnapshotScrollback, limit('MAX_SNAPSHOT_SCROLLBACK'));
       expect(maxTerminalScrollback, limit('MAX_SCROLLBACK'));
+      expect(maxProbeSamples, limit('MAX_PROBE_SAMPLES'));
+      expect(maxProbeGapMs, limit('MAX_PROBE_GAP_MS'));
+      expect(maxProbeMarkChars, limit('MAX_PROBE_MARK_CHARS'));
     });
   });
 

@@ -202,6 +202,48 @@ void main() {
     await view.dispose();
   });
 
+  testWidgets('the renderer and the probes reach the page (Phase 5 W6)', (
+    tester,
+  ) async {
+    await createView(tester);
+    await view.configure({'fontSize': 15});
+    expect((await view.setRenderer('webgl')).isOk, isTrue);
+    expect(page.configuration?['renderer'], 'webgl');
+    expect(page.configuration?['fontSize'], 15);
+    await view.open(3);
+    expect((await view.startEchoProbe(3, count: 20, gapMs: 30)).isOk, isTrue);
+    expect(
+      (await view.startFloodProbe(3, begin: '\x1b]777;b\x07', end: 'END')).isOk,
+      isTrue,
+    );
+    expect(page.probes, [
+      {'type': 'probe.echo', 'sessionId': 3, 'count': 20, 'gapMs': 30},
+      {
+        'type': 'probe.flood',
+        'sessionId': 3,
+        'begin': '\x1b]777;b\x07',
+        'end': 'END',
+      },
+    ]);
+    // A probe on a session with no view is refused, as any request is.
+    expect((await view.startEchoProbe(9)).isOk, isFalse);
+    page.probeReport = const {
+      'state': 'done',
+      'kind': 'echo',
+      'sessionId': 3,
+      'renderers': {'3': 'webgl'},
+      'echo': {'count': 20, 'p95Ms': 12.5, 'lost': 0},
+    };
+    final report = (await view.readProbe()).orThrow;
+    expect(report['state'], 'done');
+    expect((report['echo']! as Map<String, Object?>)['p95Ms'], 12.5);
+    // A restart keeps the renderer with the appearance.
+    page.restartPage();
+    await settle(tester);
+    expect(page.configuration?['renderer'], 'webgl');
+    await view.dispose();
+  });
+
   testWidgets('invalid page messages are dropped, and floods are limited', (
     tester,
   ) async {
