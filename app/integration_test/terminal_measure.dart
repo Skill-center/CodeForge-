@@ -725,7 +725,9 @@ Future<TerminalMeasurements> measureTerminal({
   ];
   for (final asked in [shippedRenderer, ...others]) {
     final used = await useRenderer(view, id, asked);
-    report('renderer asked=$asked drawing=${used.renderer} error=${used.error}');
+    report(
+      'renderer asked=$asked drawing=${used.renderer} error=${used.error}',
+    );
     if (asked == 'webgl') {
       measured
         ..webglRenderer = used.renderer

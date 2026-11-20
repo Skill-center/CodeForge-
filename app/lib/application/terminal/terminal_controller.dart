@@ -294,11 +294,8 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   /// The output handed to the page so far (Phase 5 W6's measurements): the
   /// batches, their characters, and the time this isolate spent decoding
   /// them, watching them for native builds and sending them on.
-  ({int batches, int chars, int micros}) get outputStats => (
-    batches: _outputBatches,
-    chars: _outputChars,
-    micros: _outputMicros,
-  );
+  ({int batches, int chars, int micros}) get outputStats =>
+      (batches: _outputBatches, chars: _outputChars, micros: _outputMicros);
 
   @override
   TerminalPanelState build() {
