@@ -263,12 +263,15 @@ void main() {
       before: before,
       opened: opened,
       report: (line) => report('measure $line'),
+      outputStats: () => terminals.outputStats,
     );
     report(
       'measure verdict echo_p95_ms=${measured.shippedEcho.p95Ms} '
       'flood_whole=${measured.flood.values.every((f) => f.whole) ? 1 : 0} '
       'ui_slow_pct=${measured.shippedFlood.ui.slowPct} '
-      'memory_delta_mb=${measured.deltaMb} webgl=${measured.webglRenderer}',
+      'memory_delta_mb=${measured.deltaMb} '
+      'memory_peak_delta_mb=${measured.peakDeltaMb} '
+      'webgl=${measured.webglRenderer} other_failure=${measured.otherFailure}',
     );
     expect(measured.shippedEcho.lost, 0);
     for (final flood in measured.flood.values) {

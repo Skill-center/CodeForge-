@@ -185,6 +185,8 @@ void phoneTerminalTests() {
         before: before,
         opened: opened,
         report: (line) => debugPrint('phone terminal: $line'),
+        outputStats: () =>
+            container.read(terminalControllerProvider.notifier).outputStats,
       );
       await container.read(terminalControllerProvider.notifier).close(id);
       await tester.pumpAndSettle();
@@ -217,8 +219,10 @@ void phoneTerminalTests() {
       _figure('page_flood_page_slow_pct', flood.pageSlowPct);
       _figure('page_memory_before_mb', before.megabytes(before.totalKb));
       _figure('page_memory_delta_mb', measured.deltaMb);
+      _figure('page_memory_peak_delta_mb', measured.peakDeltaMb);
       _figure('page_memory_under_budget', measured.memoryUnderBudget ? 1 : 0);
       _figure('page_webgl', measured.webglRenderer);
+      _figure('page_flood_dart_ms', flood.dartMs);
       final webgl = measured.flood['webgl'];
       if (webgl != null) {
         _figure('page_webgl_echo_p95_ms', measured.echo['webgl']!.p95Ms);

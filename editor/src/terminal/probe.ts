@@ -97,6 +97,8 @@ export interface ProbeReport {
 
 /** How long a character's echo may take before it counts as lost (ms). */
 export const ECHO_TIMEOUT_MS = 2000;
+/** How long an erase may take before the probe gives up: the line is no longer known (ms). */
+export const ERASE_TIMEOUT_MS = 10000;
 /** The characters typed, in turn: lower-case letters, which no prompt redraw is made of. */
 const ECHO_CHARACTERS = 'abcdefghijklmnopqrstuvwxyz';
 /** The erase: what Backspace sends. */
@@ -113,6 +115,27 @@ export function fnv1a(text: string, from = 0, to = text.length, hash = FNV_OFFSE
 }
 
 export const hex32 = (value: number): string => (value >>> 0).toString(16).padStart(8, '0');
+
+/**
+ * Where [mark] starts in [carry] followed by [data] from [from], or -1. The
+ * carry is shorter than the mark, so a mark that starts in it ends within
+ * the write's first characters.
+ */
+function locate(mark: string, carry: string, data: string, from: number): number {
+  if (carry.length > 0) {
+    const index = (carry + data.slice(from, from + mark.length - 1)).indexOf(mark);
+    if (index >= 0 && index < carry.length) return index;
+  }
+  const index = data.indexOf(mark, from);
+  return index < 0 ? -1 : carry.length + index - from;
+}
+
+/** The last [keep] characters of [carry] followed by [data] from [from]. */
+function tail(carry: string, data: string, from: number, keep: number): string {
+  if (keep <= 0) return '';
+  if (data.length - from >= keep) return data.slice(data.length - keep);
+  return (carry + data.slice(from)).slice(-keep);
+}
 
 /** A flood's count, hash and times, fed the session's writes in order. */
 export class FloodCounter {
@@ -137,35 +160,41 @@ export class FloodCounter {
     return this.phase === 'done';
   }
 
-  /** Takes one write that arrived at [at]; true when it carries the end mark. */
+  /**
+   * Takes one write that arrived at [at]; true when it carries the end mark.
+   * Only short strings are ever joined (the held-back text and a mark's
+   * length of the write), so the probe adds no copy of the flood to the
+   * page's heap.
+   */
   feed(data: string, at: number): boolean {
     if (this.phase === 'ending' || this.phase === 'done') return false;
-    let text = data;
+    let from = 0;
     if (this.phase === 'waiting') {
-      const seen = this.carry + text;
-      const index = seen.indexOf(this.begin);
-      if (index < 0) {
-        this.carry = seen.slice(Math.max(0, seen.length - (this.begin.length - 1)));
+      const begin = locate(this.begin, this.carry, data, 0);
+      if (begin < 0) {
+        this.carry = tail(this.carry, data, 0, this.begin.length - 1);
         return false;
       }
       this.phase = 'counting';
       this.beginAt = at;
+      // The held-back text is shorter than the mark, so the mark ends in this write.
+      from = begin + this.begin.length - this.carry.length;
       this.carry = '';
-      text = seen.slice(index + this.begin.length);
     }
     this.writes += 1;
     this.maxWriteChars = Math.max(this.maxWriteChars, data.length);
-    const seen = this.carry + text;
-    const index = seen.indexOf(this.end);
-    if (index >= 0) {
-      this.count(seen, index);
+    const end = locate(this.end, this.carry, data, from);
+    if (end >= 0) {
+      this.countFirst(data, from, end);
       this.carry = '';
       this.phase = 'ending';
       return true;
     }
-    const keep = Math.min(seen.length, this.end.length - 1);
-    this.count(seen, seen.length - keep);
-    this.carry = seen.slice(seen.length - keep);
+    const total = this.carry.length + (data.length - from);
+    const keep = Math.min(total, this.end.length - 1);
+    const next = tail(this.carry, data, from, keep);
+    this.countFirst(data, from, total - keep);
+    this.carry = next;
     return false;
   }
 
@@ -206,10 +235,16 @@ export class FloodCounter {
     };
   }
 
-  private count(text: string, to: number): void {
-    if (to <= 0) return;
-    this.hash = fnv1a(text, 0, to, this.hash);
-    this.chars += to;
+  /** Counts the first [count] characters of the held-back text, then [data] from [from]. */
+  private countFirst(data: string, from: number, count: number): void {
+    const held = Math.min(count, this.carry.length);
+    if (held > 0) this.count(this.carry, 0, held);
+    if (count > held) this.count(data, from, from + count - held);
+  }
+
+  private count(text: string, from: number, to: number): void {
+    this.hash = fnv1a(text, from, to, this.hash);
+    this.chars += to - from;
   }
 }
 
@@ -343,9 +378,11 @@ export class TerminalProbe {
       }
       if (generation !== this.generation) return;
       if (target.cursorX() !== home) {
-        const erased = this.until(() => target.cursorX() === home);
+        const erased = this.until(() => target.cursorX() === home, ERASE_TIMEOUT_MS);
         target.key(ERASE);
-        if (!(await erased)) throw new Error(`character ${i + 1} (${ch}) was not erased`);
+        if (!(await erased)) {
+          throw new Error(`character ${i + 1} (${ch}) was not erased within ${ERASE_TIMEOUT_MS} ms`);
+        }
       }
     }
     if (generation !== this.generation) return;
@@ -354,8 +391,8 @@ export class TerminalProbe {
     this.state = 'done';
   }
 
-  /** Resolves true once [condition] holds after a parsed write, false after [ECHO_TIMEOUT_MS]. */
-  private until(condition: () => boolean): Promise<boolean> {
+  /** Resolves true once [condition] holds after a parsed write, false after [timeoutMs]. */
+  private until(condition: () => boolean, timeoutMs = ECHO_TIMEOUT_MS): Promise<boolean> {
     return new Promise((resolve) => {
       let settled = false;
       const settle = (value: boolean) => {
@@ -367,7 +404,7 @@ export class TerminalProbe {
       this.onParsed = () => {
         if (condition()) settle(true);
       };
-      void this.clock.sleep(ECHO_TIMEOUT_MS).then(() => settle(false));
+      void this.clock.sleep(timeoutMs).then(() => settle(false));
     });
   }
 }

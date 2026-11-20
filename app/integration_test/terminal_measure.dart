@@ -292,6 +292,8 @@ final class FloodFigures {
     required this.ui,
     required this.wallMs,
     required ({int chars, String hash}) expected,
+    this.dartBatches = 0,
+    this.dartMs = 0,
   }) : chars = _integer(flood['chars']),
        hash = flood['hash'] is String ? flood['hash']! as String : '',
        writes = _integer(flood['writes']),
@@ -319,6 +321,11 @@ final class FloodFigures {
   final UiFrames ui;
   final bool whole;
 
+  /// The batches the app's controller handed to the page meanwhile, and
+  /// the UI isolate's time on them (decoding, sending on).
+  final int dartBatches;
+  final double dartMs;
+
   double get pageSlowPct => _number(pageFrames['slowFramePct']);
 
   /// Mebibytes a second, from the first mark to the last frame.
@@ -337,6 +344,7 @@ final class FloodFigures {
     'wallMs': wallMs,
     'page': {'frames': pageFrames, 'longTasks': longTasks},
     'ui': ui.toJson(),
+    'dart': {'batches': dartBatches, 'ms': dartMs},
   };
 
   String line() =>
@@ -344,7 +352,9 @@ final class FloodFigures {
       'ms=$ms mib_s=$mibPerSecond writes=$writes max_write=$maxWriteChars '
       'ui_frames=${ui.frames} ui_slow=${ui.slow} ui_slow_pct=${ui.slowPct} '
       'ui_frozen=${ui.frozen} ui_p95_ms=${ui.p95TotalMs} '
+      'ui_build_p95_ms=${ui.p95BuildMs} ui_raster_p95_ms=${ui.p95RasterMs} '
       'ui_max_ms=${ui.maxTotalMs} ui_gap_ms=${ui.longestGapMs} '
+      'dart_batches=$dartBatches dart_ms=$dartMs wall_ms=$wallMs '
       'page_frames=${pageFrames['frames']} '
       'page_slow_pct=$pageSlowPct page_max_ms=${pageFrames['maxFrameMs']} '
       'long_tasks=${longTasks['count']} long_ms=${longTasks['totalMs']}';
@@ -493,12 +503,14 @@ Future<FloodFigures> measureFlood({
   required int id,
   required Future<void> Function(String text) write,
   required ({int chars, String hash}) expected,
+  OutputStats Function()? outputStats,
 }) async {
   final renderer = await rendererOf(view, id);
   expect(
     (await view.startFloodProbe(id, begin: floodBegin, end: floodEnd)).isOk,
     isTrue,
   );
+  final startStats = outputStats?.call();
   final (report, ui) = await _withFramesDrawn<(Map<String, Object?>, int)>(
     tester,
     binding,
@@ -515,12 +527,19 @@ Future<FloodFigures> measureFlood({
       return ((report, wall.elapsedMilliseconds), from, to);
     },
   );
+  final endStats = outputStats?.call();
   final figures = FloodFigures(
     renderer: renderer,
     flood: _object(report.$1['flood']),
     ui: ui,
     wallMs: report.$2,
     expected: expected,
+    dartBatches: startStats == null || endStats == null
+        ? 0
+        : endStats.batches - startStats.batches,
+    dartMs: startStats == null || endStats == null
+        ? 0
+        : _round1((endStats.micros - startStats.micros) / 1000),
   );
   debugPrint('terminal measure: flood ${figures.line()}');
   return figures;
@@ -546,6 +565,13 @@ Future<void> printReport(String marker, Map<String, Object?> report) async {
 /// The renderer the app ships (Phase 5 W6): the budgets are judged on it.
 const String shippedRenderer = 'dom';
 
+/// How long the terminal idles after a flood before its memory counts as
+/// settled: the page's and the app's garbage collectors run when idle.
+const Duration settleTime = Duration(seconds: 15);
+
+/// The output the app's terminal controller handed to the page.
+typedef OutputStats = ({int batches, int chars, int micros});
+
 /// Everything [measureTerminal] took, for the report and the budgets.
 final class TerminalMeasurements {
   TerminalMeasurements({required this.before, required this.opened});
@@ -554,20 +580,32 @@ final class TerminalMeasurements {
   final MemorySample opened;
   final Map<String, EchoFigures> echo = {};
   final Map<String, FloodFigures> flood = {};
-  final Map<String, MemorySample> memory = {};
+
+  /// Two seconds after each flood, and once it settled ([settleTime]).
+  final Map<String, MemorySample> afterFlood = {};
+  final Map<String, MemorySample> settled = {};
 
   /// What WebGL drew with when asked for, and why not when it could not.
   String webglRenderer = 'unknown';
   String? webglError;
 
+  /// Why the other renderer's runs stopped, if they did (recorded, never
+  /// judged: the budgets are the shipped renderer's).
+  String? otherFailure;
+
   /// The shipped renderer's first runs: what the budgets judge.
   EchoFigures get shippedEcho => echo[shippedRenderer]!;
   FloodFigures get shippedFlood => flood[shippedRenderer]!;
-  MemorySample get shippedMemory => memory[shippedRenderer]!;
 
-  /// The terminal's memory: after its flood, against before any terminal.
-  double get deltaMb =>
-      _round1((shippedMemory.totalKb - before.totalKb) / 1024);
+  double _delta(MemorySample after) =>
+      _round1((after.totalKb - before.totalKb) / 1024);
+
+  /// The terminal's memory: once settled after its flood, against before
+  /// any terminal.
+  double get deltaMb => _delta(settled[shippedRenderer]!);
+
+  /// The same two seconds after the flood, its garbage still there.
+  double get peakDeltaMb => _delta(afterFlood[shippedRenderer]!);
 
   bool get memoryUnderBudget => deltaMb <= memoryBudgetMb;
 
@@ -579,16 +617,20 @@ final class TerminalMeasurements {
       'slowFramePct': slowFrameBudgetPct,
       'frozenFrameMs': frozenFrameMs,
       'memoryDeltaMb': memoryBudgetMb,
+      'settleSeconds': settleTime.inSeconds,
     },
     'echo': {for (final e in echo.entries) e.key: e.value.toJson()},
     'flood': {for (final e in flood.entries) e.key: e.value.toJson()},
     'memory': {
       'before': before.toJson(),
       'opened': opened.toJson(),
-      for (final e in memory.entries) 'after_${e.key}': e.value.toJson(),
+      for (final e in afterFlood.entries) 'after_${e.key}': e.value.toJson(),
+      for (final e in settled.entries) 'settled_${e.key}': e.value.toJson(),
       'deltaMb': deltaMb,
+      'peakDeltaMb': peakDeltaMb,
     },
     'webgl': {'renderer': webglRenderer, 'error': webglError},
+    'otherFailure': otherFailure,
     'verdict': {
       'echo': shippedEcho.underBudget,
       'floodWhole': flood.values.every((f) => f.whole),
@@ -607,7 +649,9 @@ Future<MemorySample> Function(String label) memoryFrom(
 
 /// Echo and the flood with each renderer, the shipped one first and again
 /// last, and the memory after each flood. Session [id] is at its prompt in
-/// [folder]; [promptShown] waits until it is again.
+/// [folder]; [promptShown] waits until it is again. The other renderer's
+/// runs are recorded whatever happens to them; a failure in the shipped
+/// renderer's fails the test.
 Future<TerminalMeasurements> measureTerminal({
   required WidgetTester tester,
   required IntegrationTestWidgetsFlutterBinding binding,
@@ -620,15 +664,29 @@ Future<TerminalMeasurements> measureTerminal({
   required MemorySample before,
   required MemorySample opened,
   required void Function(String line) report,
+  OutputStats Function()? outputStats,
   int echoCount = 100,
 }) async {
   File('$folder/$floodFile').writeAsStringSync(floodScript);
   final expected = floodExpected();
   final measured = TerminalMeasurements(before: before, opened: opened);
 
-  Future<void> run(String key, {bool sample = true}) async {
+  void reportMemory(String label, MemorySample sample) => report(
+    'memory $label app_mb=${sample.megabytes(sample.appKb)} '
+    'renderer_mb=${sample.megabytes(sample.rendererKb)} '
+    'total_mb=${sample.megabytes(sample.totalKb)}',
+  );
+
+  // A fresh screen, then a pause: a renderer just switched to draws its
+  // first frames (WebGL builds its glyph atlas) before anything is timed.
+  Future<void> fresh(String key) async {
     await write('clear\r');
-    await promptShown('the prompt before the echo ($key)');
+    await promptShown('a fresh prompt ($key)');
+    await Future<void>.delayed(const Duration(seconds: 3));
+  }
+
+  Future<void> run(String key, {required bool sample}) async {
+    await fresh(key);
     final echo = await measureEcho(view, id, count: echoCount);
     measured.echo[key] = echo;
     report('echo $key ${echo.line()}');
@@ -640,20 +698,24 @@ Future<TerminalMeasurements> measureTerminal({
       id: id,
       write: write,
       expected: expected,
+      outputStats: outputStats,
     );
     measured.flood[key] = flood;
     report('flood $key ${flood.line()}');
     await promptShown('the prompt after the flood ($key)');
     if (sample) {
-      // Let the flood's garbage go before the sample.
+      final settling = Stopwatch()..start();
       await Future<void>.delayed(const Duration(seconds: 2));
       final after = await memory('after-$key');
-      measured.memory[key] = after;
-      report(
-        'memory after_$key app_mb=${after.megabytes(after.appKb)} '
-        'renderer_mb=${after.megabytes(after.rendererKb)} '
-        'total_mb=${after.megabytes(after.totalKb)}',
-      );
+      measured.afterFlood[key] = after;
+      reportMemory('after_$key', after);
+      final rest = settleTime - settling.elapsed;
+      if (rest > Duration.zero) {
+        await Future<void>.delayed(rest);
+      }
+      final settled = await memory('settled-$key');
+      measured.settled[key] = settled;
+      reportMemory('settled_$key', settled);
     }
   }
 
@@ -663,9 +725,7 @@ Future<TerminalMeasurements> measureTerminal({
   ];
   for (final asked in [shippedRenderer, ...others]) {
     final used = await useRenderer(view, id, asked);
-    report(
-      'renderer asked=$asked drawing=${used.renderer} error=${used.error}',
-    );
+    report('renderer asked=$asked drawing=${used.renderer} error=${used.error}');
     if (asked == 'webgl') {
       measured
         ..webglRenderer = used.renderer
@@ -673,9 +733,17 @@ Future<TerminalMeasurements> measureTerminal({
     }
     if (asked == shippedRenderer) {
       expect(used.renderer, shippedRenderer, reason: used.error);
-    }
-    if (used.renderer == asked) {
-      await run(asked);
+      await run(asked, sample: true);
+    } else if (used.renderer == asked) {
+      try {
+        await run(asked, sample: true);
+      } on Object catch (error) {
+        measured.otherFailure = '$error'.split('\n').first;
+        report('renderer $asked stopped: ${measured.otherFailure}');
+        // The line is not known any more: Ctrl-C gives a fresh prompt.
+        await write('\x03');
+        await promptShown('the prompt after $asked stopped');
+      }
     }
   }
   final again = await useRenderer(view, id, shippedRenderer);

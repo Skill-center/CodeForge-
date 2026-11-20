@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ECHO_TIMEOUT_MS, type EchoTarget, FloodCounter, fnv1a, hex32, TerminalProbe } from '../src/terminal/probe';
-import { FakeProbeClock as FakeClock, flushMicrotasks as flush } from './helpers';
+import { FakeProbeClock as FakeClock, flushMicrotasks as flush, prng } from './helpers';
 
 /**
  * A shell at a prompt, as the echo probe sees its session: what is typed
@@ -74,6 +74,26 @@ describe('the flood counter', () => {
       expect(figures.chars, `pieces of ${size}`).toBe(body.length);
       expect(figures.hash, `pieces of ${size}`).toBe(hex32(fnv1a(body)));
       expect(counter.beginAt).not.toBeNull();
+    }
+  });
+
+  it('finds marks split at any point, with writes of any size, empty ones too', () => {
+    const body = 'ab\x1b[31mcd\x1b]777;x\x07ef\r\n'.repeat(40);
+    const stream = `noise${BEGIN.slice(0, 3)}${BEGIN}${body}${END.slice(0, 4)}more${END}after`;
+    // The stray mark pieces before the real marks are text like any other.
+    const expected = `${body}${END.slice(0, 4)}more`;
+    for (let seed = 1; seed <= 300; seed += 1) {
+      const random = prng(seed);
+      const counter = new FloodCounter(BEGIN, END);
+      let ended = 0;
+      for (let i = 0; i < stream.length; ) {
+        const size = random() < 0.1 ? 0 : 1 + Math.floor(random() * (random() < 0.8 ? 12 : 400));
+        if (counter.feed(stream.slice(i, i + size), i)) ended += 1;
+        i += size;
+      }
+      expect(ended, `seed ${seed}`).toBe(1);
+      expect(counter.figures().chars, `seed ${seed}`).toBe(expected.length);
+      expect(counter.figures().hash, `seed ${seed}`).toBe(hex32(fnv1a(expected)));
     }
   });
 

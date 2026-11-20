@@ -287,6 +287,19 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   /// sessions start at it.
   ({int columns, int rows}) _size = (columns: 80, rows: 24);
 
+  int _outputBatches = 0;
+  int _outputChars = 0;
+  int _outputMicros = 0;
+
+  /// The output handed to the page so far (Phase 5 W6's measurements): the
+  /// batches, their characters, and the time this isolate spent decoding
+  /// them, watching them for native builds and sending them on.
+  ({int batches, int chars, int micros}) get outputStats => (
+    batches: _outputBatches,
+    chars: _outputChars,
+    micros: _outputMicros,
+  );
+
   @override
   TerminalPanelState build() {
     ref.keepAlive();
@@ -792,9 +805,12 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   }
 
   void _send(int id, _Pipe pipe, Uint8List bytes, int end) {
+    final watch = Stopwatch()..start();
     final seq = pipe.nextSeq++;
     pipe.acks[seq] = end;
     final text = pipe.decode(bytes);
+    _outputBatches += 1;
+    _outputChars += text.length;
     final addon = (_addons[id] ??= NativeAddonDetector()).feed(text);
     if (addon != null) {
       appLogger.info(_tag, 'native_addon', fields: {'kind': addon.name});
@@ -804,6 +820,7 @@ final class TerminalController extends Notifier<TerminalPanelState> {
       // The page went away: its restart refills the view from the buffer.
       pipe.acks.remove(seq);
     }
+    _outputMicros += watch.elapsedMicroseconds;
   }
 
   void _onViewEvent(TerminalViewEvent event) {
