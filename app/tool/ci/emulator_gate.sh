@@ -2012,6 +2012,11 @@ sessions_group() {
   } | tee "$RESULTS/sessions_after_b.txt"
   [ -z "$left" ]
 }
+# The run group's requests are still in the log, and the driver acts on the
+# newest it finds: phase gate 44735804283's driver answered one of them (a
+# folder pick, which held it for a minute) while part A waited for its
+# first answer. The log starts empty.
+"$ADB" logcat -c < /dev/null
 FOLDER_UI="$RESULTS/sessions_ui.xml" folder_driver > "$RESULTS/sessions_driver.txt" 2>&1 &
 sessions_driver_pid=$!
 sessions_ok=0
