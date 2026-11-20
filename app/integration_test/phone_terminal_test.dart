@@ -43,6 +43,8 @@ import 'package:codeforge/services/runtime/runtime_service.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Riverpod 3 exports Override from misc.dart, not the main library.
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
