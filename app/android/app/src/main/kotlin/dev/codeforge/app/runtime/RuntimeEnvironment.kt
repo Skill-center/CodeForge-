@@ -136,6 +136,11 @@ class RuntimeEnvironment(
         }
         val nodeModules = File(lib, "node_modules")
         if (nodeModules.isDirectory) variables["NODE_PATH"] = nodeModules.absolutePath
+        // npm comes with the APK at its pin (runtime/pins.json) and is updated
+        // with the app. Its update notice would tell the user to replace it by
+        // hand, after asking the registry once a week: phase gate 44763350329
+        // found the notice in a run's output once npm 12.2.3 was out.
+        if (File(nodeModules, "npm").isDirectory) variables["NPM_CONFIG_UPDATE_NOTIFIER"] = "false"
 
         val ruby = File(lib, "ruby")
         val rubyVersion = newestVersion(ruby)

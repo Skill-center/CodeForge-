@@ -951,8 +951,21 @@ sessions_die() {
   touch "$RESULTS/sessions_killed.flag"
 }
 folder_driver() {
-  local last="" line id kind arg word answer
-  echo "driver: polling the log for requests ($(date +%T))"
+  local last="" line id kind arg word answer seen floor run
+  # A request already in the log when the driver starts is an earlier
+  # group's, and none is answered twice: phase gate 44763350329's explorer
+  # driver answered the folders group's first pick, read from a log that was
+  # being cleared, and tapped through a picker left on screen; the explorer's
+  # own picker then never showed. Nor does a picker stay from an earlier
+  # group: DocumentsUI is stopped first.
+  "$ADB" shell am force-stop com.google.android.documentsui < /dev/null > /dev/null 2>&1
+  "$ADB" shell am force-stop com.android.documentsui < /dev/null > /dev/null 2>&1
+  seen=" $("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null | tr -d '\r' \
+    | grep -o 'FOLDERGATE [0-9.]* [a-z]' | awk '{ print $2 }' | tr '\n' ' ')"
+  # shellcheck disable=SC2086 # the ids, one word each.
+  floor=$(printf '%s\n' $seen | cut -d. -f1 | grep -E '^[0-9]+$' | sort -n | tail -n 1)
+  # shellcheck disable=SC2086
+  echo "driver: polling the log for requests ($(date +%T)); earlier ones ignored: $(printf '%s\n' $seen | grep -c .)"
   while :; do
     line=$("$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null \
       | grep 'FOLDERGATE [0-9.]* [a-z]' | tail -n 1 | tr -d '\r')
@@ -964,6 +977,18 @@ folder_driver() {
     word="${4:-}"
     if [ -z "$id" ] || [ "$id" = "$last" ]; then
       sleep 0.25
+      continue
+    fi
+    case "$seen" in
+      *" $id "*)
+        sleep 0.25
+        continue
+        ;;
+    esac
+    seen="$seen$id "
+    run="${id%%.*}"
+    if [ -n "$floor" ] && [ "$run" -le "$floor" ] 2>/dev/null; then
+      echo "request $id: $kind, an earlier run's, ignored ($(date +%T))"
       continue
     fi
     last="$id"

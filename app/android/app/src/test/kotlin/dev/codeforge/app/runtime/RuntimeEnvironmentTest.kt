@@ -112,6 +112,7 @@ class RuntimeEnvironmentTest {
         val variables = environment.variables(environment.home)
         assertEquals(environment.prefix.absolutePath, variables["PYTHONHOME"])
         assertEquals(File(lib, "node_modules").absolutePath, variables["NODE_PATH"])
+        assertEquals("npm's pin comes with the app", "false", variables["NPM_CONFIG_UPDATE_NOTIFIER"])
         assertEquals(File(lib, "ruby/gems/4.0.0").absolutePath, variables["GEM_HOME"])
         assertEquals(
             listOf("ruby/site_ruby/4.0.0", "ruby/4.0.0", "ruby/4.0.0/x86_64-linux-android")
@@ -130,7 +131,7 @@ class RuntimeEnvironmentTest {
     fun aPayloadWithoutInterpretersSetsNoneOfTheirVariables() {
         val environment = environment()
         val variables = environment.variables(environment.home)
-        for (name in listOf("PYTHONHOME", "NODE_PATH", "GEM_HOME", "RUBYLIB", "PERL5LIB", "SSL_CERT_FILE")) {
+        for (name in listOf("PYTHONHOME", "NODE_PATH", "NPM_CONFIG_UPDATE_NOTIFIER", "GEM_HOME", "RUBYLIB", "PERL5LIB", "SSL_CERT_FILE")) {
             assertNull(name, variables[name])
         }
     }
