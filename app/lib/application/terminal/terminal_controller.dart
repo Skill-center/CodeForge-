@@ -348,7 +348,8 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     }
     appLogger.info(_tag, 'restored', fields: {'sessions': restored.length});
     final running = restored.where((tab) => tab.running).toList();
-    final shown = state.activeId ??
+    final shown =
+        state.activeId ??
         (running.isEmpty ? restored.last : running.last).sessionId;
     state = state.copyWith(tabs: [...state.tabs, ...restored], activeId: shown);
     for (final tab in restored) {

@@ -108,32 +108,35 @@ void main() {
     expect(surfaces.single.loads, 0, reason: 'the page waits for a session');
   });
 
-  test('memory pressure lets hidden views go; showing one draws it again', () async {
-    final container = containerFor(service);
-    final controller = container.read(terminalControllerProvider.notifier);
-    await controller.newSession();
-    await pumpEventQueue();
-    await controller.newSession();
-    await pumpEventQueue();
-    final page = surfaces.single;
-    service.emitOutput(10, text: 'first\n');
-    await pumpEventQueue();
-    expect(container.read(terminalControllerProvider).activeId, 11);
+  test(
+    'memory pressure lets hidden views go; showing one draws it again',
+    () async {
+      final container = containerFor(service);
+      final controller = container.read(terminalControllerProvider.notifier);
+      await controller.newSession();
+      await pumpEventQueue();
+      await controller.newSession();
+      await pumpEventQueue();
+      final page = surfaces.single;
+      service.emitOutput(10, text: 'first\n');
+      await pumpEventQueue();
+      expect(container.read(terminalControllerProvider).activeId, 11);
 
-    controller.releaseHiddenViews();
-    await pumpEventQueue();
-    expect(service.detached, [10]);
-    expect(page.sessions.keys, [11], reason: 'only the shown view stays');
+      controller.releaseHiddenViews();
+      await pumpEventQueue();
+      expect(service.detached, [10]);
+      expect(page.sessions.keys, [11], reason: 'only the shown view stays');
 
-    // Output while let go stays in the host.
-    service.buffers[10] = Uint8List.fromList(utf8.encode('first\nsecond\n'));
-    service.emitOutput(10, text: 'second\n');
-    await pumpEventQueue();
-    controller.activate(10);
-    await pumpEventQueue();
-    expect(page.sessions[10]!.written.toString(), 'first\nsecond\n');
-    expect(page.activeId, 10);
-  });
+      // Output while let go stays in the host.
+      service.buffers[10] = Uint8List.fromList(utf8.encode('first\nsecond\n'));
+      service.emitOutput(10, text: 'second\n');
+      await pumpEventQueue();
+      controller.activate(10);
+      await pumpEventQueue();
+      expect(page.sessions[10]!.written.toString(), 'first\nsecond\n');
+      expect(page.activeId, 10);
+    },
+  );
 
   test('the background lets every view go; the return draws the shown one '
       'again', () async {

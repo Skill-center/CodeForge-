@@ -93,8 +93,7 @@ List<int> beatsIn(File file) {
     return const [];
   }
   return [
-    for (final line in file.readAsLinesSync())
-      if (int.tryParse(line.trim()) case final seconds?) seconds,
+    for (final line in file.readAsLinesSync()) ?int.tryParse(line.trim()),
   ];
 }
 
@@ -389,7 +388,11 @@ void main() {
       );
       terminals.activate(shell);
       await screenOf(shell, promptAtCursor, what: 'the shell after the return');
-      await type(shell, r'echo cf-alive-$((6 * 7))' '\r');
+      await type(
+        shell,
+        r'echo cf-alive-$((6 * 7))'
+        '\r',
+      );
       await screenOf(
         shell,
         (screen) => screen.screen.any((line) => line.trim() == 'cf-alive-42'),

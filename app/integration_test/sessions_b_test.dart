@@ -138,7 +138,9 @@ void main() {
         }
         await tester.pump(const Duration(milliseconds: 200));
       }
-      fail('Timed out waiting for $what. The screen:\n${last?.screen.join('\n')}');
+      fail(
+        'Timed out waiting for $what. The screen:\n${last?.screen.join('\n')}',
+      );
     }
 
     Future<void> type(int id, String text) async {
@@ -168,7 +170,11 @@ void main() {
     final fresh = await newShell('a new session');
     expect(fresh, greaterThan(highest), reason: 'ids go above the tombstones');
     await screenOf(fresh, promptAtCursor, what: 'the new prompt');
-    await type(fresh, r'echo cf-after-$((6 * 7))' '\r');
+    await type(
+      fresh,
+      r'echo cf-after-$((6 * 7))'
+      '\r',
+    );
     await screenOf(
       fresh,
       (screen) => screen.screen.any((line) => line.trim() == 'cf-after-42'),
