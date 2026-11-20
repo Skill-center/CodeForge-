@@ -322,7 +322,8 @@ void main() {
       int? left;
       final settle = Stopwatch()..start();
       do {
-        left = (await processes('sleep 311.7'))! +
+        left =
+            (await processes('sleep 311.7'))! +
             (await processes('gate-forever.js'))!;
         if (left > 0) {
           await tester.pump(const Duration(milliseconds: 250));
@@ -357,7 +358,10 @@ void main() {
           .firstWhere((tab) => tab.sessionId == native)
           .nativeAddon;
       expect(kind, NativeAddonKind.npm);
-      expect(find.byKey(const ValueKey('terminal_native_addon')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('terminal_native_addon')),
+        findsOneWidget,
+      );
       expect(nativeRun.exitCode, isNot(0));
       final gyp = nativeLines.where((line) => line.contains('gyp ERR!'));
       _report(
@@ -369,9 +373,7 @@ void main() {
       // ── 4. The E2E scenario, part 1 ──────────────────────────────────────
       final host = container.read(editorHostProvider);
       expect(
-        (await container
-                .read(fileOperationsProvider)
-                .createFile('e2e.js'))
+        (await container.read(fileOperationsProvider).createFile('e2e.js'))
             .isOk,
         isTrue,
       );
@@ -419,8 +421,7 @@ void main() {
         what: 'the edit to reach the app',
       );
       expect(
-        container.read(documentControllerProvider).documents['e2e.js']!
-            .dirty,
+        container.read(documentControllerProvider).documents['e2e.js']!.dirty,
         isTrue,
       );
       // Run saves it first (the setting is on by default).
