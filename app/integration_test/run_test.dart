@@ -69,14 +69,15 @@ console.log('forever started');
 setInterval(() => {}, 1000);
 ''';
 
-/// A local package that builds a native addon with node-gyp, and the
-/// script that installs it. node-gyp finds the runtime's node headers
-/// through npm_config_nodedir, so the build reaches the missing compiler
-/// without the network.
+/// A local package that builds a native addon, and the script that builds
+/// it with npm's own node-gyp: npm 12 no longer runs a dependency's install
+/// script unasked (phase gate 44697552696: `npm install` of it printed no
+/// gyp line at all). node-gyp finds the runtime's node headers through
+/// npm_config_nodedir, so the build reaches the missing compiler without
+/// the network. The script says where node-gyp is, for the evidence.
 const Map<String, String> _addon = {
   'addon/package.json':
-      '{"name": "cf-gate-addon", "version": "1.0.0", "gypfile": true, '
-      '"scripts": {"install": "node-gyp rebuild"}}\n',
+      '{"name": "cf-gate-addon", "version": "1.0.0", "gypfile": true}\n',
   'addon/binding.gyp':
       '{"targets": [{"target_name": "addon", "sources": ["addon.c"]}]}\n',
   'addon/addon.c': 'int answer(void) { return 42; }\n',
@@ -84,8 +85,10 @@ const Map<String, String> _addon = {
       'if [ -d "\$PREFIX/include/node" ]; then\n'
       '  export npm_config_nodedir="\$PREFIX"\n'
       'fi\n'
-      'npm install --offline --no-audit --no-fund --no-update-notifier '
-      './addon\n',
+      'gyp="\$PREFIX/lib/node_modules/npm/node_modules/node-gyp/bin/'
+      'node-gyp.js"\n'
+      'echo "node-gyp: \$gyp"\n'
+      'cd addon && node "\$gyp" rebuild\n',
 };
 
 /// What the folder's run does: reads the folder, writes a file, says so.
@@ -349,20 +352,18 @@ void main() {
         writeDemo(key, value);
       }
       final native = await started(() => runs.runFile('gate-native.sh'));
-      await pumpUntil(
-        tester,
-        () => container
-            .read(terminalControllerProvider)
-            .tabs
-            .any((tab) => tab.sessionId == native && tab.nativeAddon != null),
-        what: 'the native-addon banner',
-        timeout: const Duration(minutes: 4),
-      );
       final (nativeRun, nativeLines) = await finished(
         native,
         timeout: const Duration(minutes: 4),
       );
       await tester.pumpAndSettle();
+      // What the build said, whatever comes next: the evidence.
+      final tail = nativeLines.length > 12
+          ? nativeLines.sublist(nativeLines.length - 12)
+          : nativeLines;
+      _report(
+        'native_output ${tail.map((line) => line.trim()).join(' | ')}',
+      );
       final kind = container
           .read(terminalControllerProvider)
           .tabs
