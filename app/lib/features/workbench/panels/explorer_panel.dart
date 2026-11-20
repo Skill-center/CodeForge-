@@ -21,9 +21,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../application/documents/document_controller.dart';
 import '../../../application/explorer_view_controller.dart';
+import '../../../application/providers.dart';
 import '../../../application/settings_controller.dart';
 import '../../../application/workspace_controller.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/files/workspace_location.dart';
 import '../../../core/files/workspace_path.dart';
 import '../../../design_system/components/buttons.dart';
 import '../../../design_system/components/file_tree.dart';
@@ -31,6 +33,7 @@ import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
 import '../../../design_system/tokens/icons.dart';
 import '../../../services/contracts.dart';
+import '../../home/import_folder.dart';
 import '../explorer_actions.dart';
 import '../file_actions.dart';
 
@@ -470,6 +473,25 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
                 size: 16,
                 onPressed: canCreate ? _newFile : null,
               ),
+              // A folder from shared storage becomes a project of its own
+              // (Phase 5 W4): all of it, for git, installs and long runs.
+              if (ref.watch(currentWorkspaceProvider)
+                  case final FolderLocation folder)
+                CfIconButton(
+                  key: const ValueKey('explorer_import'),
+                  icon: CfIcons.inventory,
+                  tooltip: 'Import as project',
+                  size: 16,
+                  onPressed: () => unawaited(
+                    importFolderAsProject(
+                      context,
+                      ref,
+                      folder,
+                      tell: (message) => showFileMessage(context, message),
+                      opened: () {},
+                    ),
+                  ),
+                ),
               CfIconButton(
                 key: const ValueKey('explorer_toggle_hidden'),
                 icon: settings.showHiddenFiles

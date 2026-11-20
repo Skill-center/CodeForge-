@@ -192,8 +192,52 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('home_confirm_ok')));
     await tester.pumpAndSettle();
     expect(broker.released, [_here]);
+    // Its run copy goes with it (Phase 5 W4).
+    expect(broker.deletedCopies, [_hereFolder.id]);
     expect(_entry(_hereFolder), findsNothing);
     expect(broker.trees[_here]!.text('h.txt'), 'h\n');
+  });
+
+  testWidgets('a folder is imported as a project from its menu, and opens', (
+    tester,
+  ) async {
+    setSurface(tester, 412, 1400);
+    final broker = FakeStorageBroker()
+      ..addTree(
+        _here,
+        'here',
+        files: {'main.js': 'console.log(1)\n', '.git/HEAD': 'ref\n'},
+      );
+    final harness = TestHarness(
+      broker: broker,
+      sessionStore: await _recorded([_hereFolder]),
+    );
+    await tester.pumpWidget(harness.app());
+    await tester.pumpAndSettle();
+
+    await _openMenu(tester, _hereFolder);
+    await tester.tap(find.byKey(const ValueKey('recent_import')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('project_name_note')), findsOneWidget);
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('project_name_field')),
+    );
+    expect(field.controller!.text, 'here');
+    await tester.tap(find.byKey(const ValueKey('project_name_confirm')));
+    await tester.pumpAndSettle();
+
+    expect(broker.calls, contains('importFolder'));
+    final workspace = harness.shellStore.load().workspace;
+    expect(workspace, isA<ProjectLocation>());
+    expect((workspace! as ProjectLocation).folder, 'here');
+    expect(
+      harness.projects.projects['here']!.textOf('main.js'),
+      'console.log(1)\n',
+    );
+    expect(harness.projects.projects['here']!.textOf('.git/HEAD'), 'ref\n');
+    // The folder stays, in the recents too.
+    expect(broker.trees[_here]!.text('main.js'), 'console.log(1)\n');
+    expect(broker.released, isEmpty);
   });
 
   testWidgets('Reconnect opens the picker at the old place; another folder '

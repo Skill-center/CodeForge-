@@ -20,6 +20,7 @@ import '../../application/file_watch_controller.dart';
 import '../../application/run/run_controller.dart';
 import '../../application/runtime_controller.dart';
 import '../../application/shell_controller.dart';
+import '../../application/terminal/terminal_links.dart';
 import '../../application/workbench_intents.dart';
 import '../../application/workspace_controller.dart';
 import '../../core/editor/capabilities.dart';
@@ -225,6 +226,21 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     }
   }
 
+  /// Opens [path] at [line] (and [column]): a terminal's link.
+  Future<void> _openAt(String path, int line, int? column) async {
+    final opened = await ref
+        .read(documentControllerProvider.notifier)
+        .open(path);
+    if (!mounted) {
+      return;
+    }
+    if (opened case Err<void>(:final failure)) {
+      showFileMessage(context, failure.message);
+      return;
+    }
+    await ref.read(editorHostProvider).gotoLine(line, column: column);
+  }
+
   /// Run Project: asks which of the project's scripts, or its entry file.
   Future<void> _runProject() async {
     final run = ref.read(runControllerProvider.notifier);
@@ -329,6 +345,19 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         showFileMessage(context, message);
         ref.read(runControllerProvider.notifier).dismissMessage();
       }
+    });
+    // A `file:line` tapped in a terminal opens at its line (Phase 5 W4).
+    ref.listen(terminalLinkRequestsProvider, (_, request) {
+      if (request == null) {
+        return;
+      }
+      final problem = request.problem;
+      final path = request.path;
+      if (problem != null || path == null) {
+        showFileMessage(context, problem ?? 'That link leads nowhere.');
+        return;
+      }
+      unawaited(_openAt(path, request.line, request.column));
     });
 
     // Top-level routes are reached with go(), so there is nothing beneath

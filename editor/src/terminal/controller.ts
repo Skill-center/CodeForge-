@@ -15,6 +15,7 @@
  */
 import { IME_EVENTS, type ImeEvent, ImeInput } from './ime';
 import { applyModifiers, keySequence, sanitizePaste } from './keys';
+import { findFileLinks, linkAt, MAX_LINK_TEXT } from './links';
 import {
   type ConfigurePayload,
   DEFAULT_SCROLLBACK,
@@ -57,6 +58,18 @@ export interface LineLike {
   translateToString(trimRight?: boolean): string;
   getCell(x: number): CellLike | undefined;
 }
+/** One of xterm.js's links (its ILink): cells 1-based, the end included. */
+export interface LinkLike {
+  range: { start: { x: number; y: number }; end: { x: number; y: number } };
+  text: string;
+  activate(event: MouseEvent, text: string): void;
+}
+
+/** What xterm.js asks for a buffer line's links (its ILinkProvider). */
+export interface LinkProviderLike {
+  provideLinks(bufferLineNumber: number, callback: (links: LinkLike[] | undefined) => void): void;
+}
+
 export interface BufferLike {
   readonly type: 'normal' | 'alternate';
   readonly cursorX: number;
@@ -91,6 +104,8 @@ export interface TerminalLike {
   select(column: number, row: number, length: number): void;
   scrollLines(amount: number): void;
   scrollToBottom(): void;
+  /** xterm.js's link API: `file:line` links (Phase 5 W4). */
+  registerLinkProvider(provider: LinkProviderLike): Disposable;
   dispose(): void;
   onData: TerminalEvent<string>;
   onBinary: TerminalEvent<string>;
@@ -146,6 +161,8 @@ const WORD_SEPARATORS = ' ()[]{}\',"`';
 
 /** The most arrow keys one drag step sends. */
 const MAX_DRAG_KEYS = 100;
+/** The same link again within this long is the same tap (ms). */
+const LINK_REPEAT_MS = 600;
 
 export const DEFAULT_FONT_SIZE = 14;
 
@@ -201,6 +218,7 @@ export class TerminalController {
   private pasting = false;
   private focused = false;
   private anchor: SelectionAnchor | null = null;
+  private lastLink: { sessionId: number; text: string; at: number } | null = null;
   readonly gestures: TouchGestures;
 
   constructor(private readonly options: TerminalControllerOptions) {
@@ -307,6 +325,10 @@ export class TerminalController {
       terminal.onTitleChange((title) => this.emit('session.title', { sessionId, title: title.slice(0, 256) })),
       terminal.onBell(() => this.emit('session.bell', { sessionId })),
       terminal.onSelectionChange(() => this.selectionChanged(view)),
+      // A click (a mouse, a stylus) on a `file:line` opens the file (Phase 5 W4).
+      terminal.registerLinkProvider({
+        provideLinks: (y, callback) => callback(this.linksOn(view, y - 1)),
+      }),
     );
     terminal.open(element);
     const textarea = terminal.textarea;
@@ -595,13 +617,85 @@ export class TerminalController {
       },
       selectWordAt: (point) => this.selectWordAt(point),
       extendSelectionTo: (point) => this.extendSelectionTo(point),
-      tap: () => {
+      tap: (point) => {
         const view = this.activeView();
         if (!view) return;
+        // A tap on a `file:line` opens the file, and leaves the keyboard down.
+        if (this.tapLink(view, point)) return;
         view.terminal.clearSelection();
         view.terminal.focus();
       },
     };
+  }
+
+  // ------------------------------------------------------------ links
+
+  /**
+   * The logical line holding buffer row [row]: the rows xterm.js wrapped
+   * into it, joined, with each character's cell (a wide character's second
+   * cell has none).
+   */
+  private logicalLine(view: SessionView, row: number): { text: string; cells: Array<{ x: number; y: number }> } {
+    const buffer = view.terminal.buffer.active;
+    let first = row;
+    while (first > 0 && buffer.getLine(first)?.isWrapped) first -= 1;
+    let text = '';
+    const cells: Array<{ x: number; y: number }> = [];
+    for (let y = first; y < buffer.length && text.length < MAX_LINK_TEXT; y += 1) {
+      const line = buffer.getLine(y);
+      if (!line || (y > first && !line.isWrapped)) break;
+      for (let x = 0; x < view.terminal.cols; x += 1) {
+        const cell = line.getCell(x);
+        if (!cell) break;
+        if (cell.getWidth() === 0) continue;
+        const chars = cell.getChars() || ' ';
+        for (let i = 0; i < chars.length; i += 1) cells.push({ x, y });
+        text += chars;
+      }
+    }
+    return { text, cells };
+  }
+
+  /** xterm.js's links on buffer row [row]: those of its logical line that touch it. */
+  private linksOn(view: SessionView, row: number): LinkLike[] | undefined {
+    const { text, cells } = this.logicalLine(view, row);
+    const links: LinkLike[] = [];
+    for (const link of findFileLinks(text)) {
+      const start = cells[link.start];
+      const end = cells[link.end - 1];
+      if (!start || !end || end.y < row || start.y > row) continue;
+      links.push({
+        range: { start: { x: start.x + 1, y: start.y + 1 }, end: { x: end.x + 1, y: end.y + 1 } },
+        text: link.text,
+        activate: () => this.emitLink(view, link.text),
+      });
+    }
+    return links.length > 0 ? links : undefined;
+  }
+
+  /** Sends the link under a tap, if there is one. */
+  private tapLink(view: SessionView, point: TouchPoint): boolean {
+    const cell = this.cellAt(view, point);
+    if (!cell) return false;
+    const { text, cells } = this.logicalLine(view, cell.row);
+    const offset = cells.findIndex((c) => c.x === cell.col && c.y === cell.row);
+    if (offset < 0) return false;
+    const link = linkAt(text, offset);
+    if (!link) return false;
+    this.emitLink(view, link.text);
+    return true;
+  }
+
+  /**
+   * `session.link`, once: a tap may reach xterm.js's link API too, as the
+   * mouse events the WebView makes from it.
+   */
+  private emitLink(view: SessionView, text: string): void {
+    const now = Date.now();
+    const last = this.lastLink;
+    if (last && last.sessionId === view.sessionId && last.text === text && now - last.at < LINK_REPEAT_MS) return;
+    this.lastLink = { sessionId: view.sessionId, text, at: now };
+    this.emit('session.link', { sessionId: view.sessionId, text: text.slice(0, 4096) });
   }
 
   // ------------------------------------------------------------ helpers

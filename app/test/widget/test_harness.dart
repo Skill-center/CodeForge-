@@ -11,6 +11,8 @@
 /// is scripted too (test/support/fake_terminal_surface.dart).
 library;
 
+import 'dart:async';
+
 import 'package:codeforge/app.dart';
 import 'package:codeforge/application/bench/editor_bench_providers.dart';
 import 'package:codeforge/application/editor/editor_host.dart';
@@ -67,7 +69,12 @@ final class TestHarness {
        projects = projects ?? MemoryProjectStorage(),
        runtime = runtime ?? FakeRuntimeService(),
        search = search ?? FakeSearchService(),
-       terminal = terminal ?? FakeTerminalService();
+       terminal = terminal ?? FakeTerminalService() {
+    // A folder imported as a project lands in the project storage, as
+    // Kotlin's import lands in the projects' folder (Phase 5 W4).
+    broker?.onImport ??= (name, files) =>
+        unawaited(this.projects.create(name, seed: files));
+  }
 
   final InMemorySettingsStore settingsStore;
   final InMemoryShellStateStore shellStore;
@@ -111,6 +118,9 @@ final class TestHarness {
   /// Every scripted terminal page created through this harness, newest last.
   final List<FakeTerminalSurface> terminalSurfaces = [];
 
+  /// The app's files folder, as a device names it.
+  static const String filesPath = '/data/user/0/dev.codeforge.app/files';
+
   /// Replaces the stand-in editor page (null: a page that always loads).
   final EditorPageLoader? editorPageLoader;
 
@@ -141,6 +151,9 @@ final class TestHarness {
     runtimeServiceProvider.overrideWithValue(runtime),
     searchServiceProvider.overrideWithValue(search),
     terminalServiceProvider.overrideWithValue(terminal),
+    // Where a device keeps the app's files: terminal links name files by
+    // their absolute paths (Phase 5 W4).
+    appFilesPathProvider.overrideWithValue(() async => filesPath),
     ...fakeTerminalOverrides(terminalSurfaces.add),
     // The fake clock never sees a background isolate finish (Phase 3 W6).
     textDigesterProvider.overrideWithValue(digestTextInline),

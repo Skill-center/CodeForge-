@@ -88,6 +88,15 @@ class DocumentOps(
         return listing.rows.filter { it.name !in listing.repeated }
     }
 
+    /**
+     * [file] opened for reading, by row (Phase 5 W4, a folder's run copy):
+     * the caller streams it, caps it and closes it.
+     */
+    fun openRead(file: DocumentRow): java.io.InputStream {
+        cancel.check()
+        return backend.openRead(file.id)
+    }
+
     /** [file]'s bytes, by row; [StorageProblem.TOO_LARGE] above [cap], whatever size it claims. */
     fun bytes(file: DocumentRow, cap: Int): ByteArray {
         cancel.check()

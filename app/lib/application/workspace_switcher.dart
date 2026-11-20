@@ -200,6 +200,49 @@ final class WorkspaceSwitcher {
     return Ok(project);
   }
 
+  /// Copies [folder] whole, git's files included, into a new project named
+  /// [name] (Phase 5 W4, ADR-0013's option (b): for a folder that needs
+  /// more than a run's copy gives) and records it in the recents. The
+  /// caller opens it. The folder stays as it is and in the recents.
+  Future<Result<({ProjectLocation project, CopySummary summary})>>
+  importFolder(FolderLocation folder, String name) async {
+    final taken = (await _projects.folders()).valueOrNull ?? const <String>[];
+    final invalid = projectNameProblem(name, taken: taken);
+    if (invalid != null) {
+      return Err(FileFailure(invalid, problem: FileProblem.invalidPath));
+    }
+    final imported = await _broker.importFolder(folder.treeUri, name);
+    switch (imported) {
+      case Err<CopySummary>(:final failure):
+        appLogger.warn(
+          'workspace',
+          'folder_import_failed',
+          fields: {'error': failure.message},
+        );
+        return Err(failure);
+      case Ok<CopySummary>(:final value):
+        final project = ProjectLocation(
+          id: newProjectId(),
+          name: name,
+          folder: name,
+        );
+        await _store.touchWorkspace(
+          project,
+          displayPath: displayPathOf(project),
+        );
+        appLogger.info(
+          'workspace',
+          'folder_imported',
+          fields: {
+            'files': value.files,
+            'leftOut': value.leftOut,
+            'ms': value.elapsed.inMilliseconds,
+          },
+        );
+        return Ok((project: project, summary: value));
+    }
+  }
+
   /// Renames [project], its folder and then its record, in that order; a
   /// record that can't be written puts the folder back. It keeps its id,
   /// so its tabs, unsaved text and view follow. The demo project keeps its
@@ -309,6 +352,14 @@ final class WorkspaceSwitcher {
           .setWorkspace(const DemoProjectLocation());
     }
     await _release(folder.treeUri);
+    // Its run copy goes too (Phase 5 W4): nothing can run in it any more.
+    if (await _broker.deleteCopy(folder.id) case Err<void>(:final failure)) {
+      appLogger.warn(
+        'workspace',
+        'copy_delete_failed',
+        fields: {'error': failure.message},
+      );
+    }
     appLogger.info('workspace', 'folder_removed');
     return _store.forgetWorkspace(folder.id);
   }

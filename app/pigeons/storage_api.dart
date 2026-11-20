@@ -127,6 +127,118 @@ class GrantMessage {
   int persistedAtMs;
 }
 
+/// How a folder's run copy, or its import as a project, went (Phase 5 W4,
+/// ADR-0013; FolderCopy.kt), and what it left out.
+class CopySummaryMessage {
+  CopySummaryMessage({
+    required this.files,
+    required this.bytes,
+    required this.copied,
+    required this.bytesCopied,
+    required this.unchanged,
+    required this.removed,
+    required this.leftOutLarge,
+    required this.leftOutFull,
+    required this.leftOutVirtual,
+    required this.leftOutDeep,
+    required this.skipped,
+    required this.unreadable,
+    required this.capped,
+    required this.stopped,
+    required this.elapsedMs,
+  });
+
+  /// Files in the copy from the folder, and their bytes, once it is done.
+  int files;
+  int bytes;
+
+  /// Files copied this time, and their bytes.
+  int copied;
+  int bytesCopied;
+
+  /// Files the copy already had as the folder has them.
+  int unchanged;
+
+  /// Files gone from the folder, removed from the copy.
+  int removed;
+
+  /// Left out: files over the size cap, files once the copy was full,
+  /// virtual documents, folders too deep.
+  int leftOutLarge;
+  int leftOutFull;
+  int leftOutVirtual;
+  int leftOutDeep;
+
+  /// Entries left out by name (`.git` in a run's copy).
+  int skipped;
+
+  /// Files and folders that could not be read.
+  int unreadable;
+
+  /// The copy filled up and stopped walking: more may be left out.
+  bool capped;
+
+  /// The copy was cancelled; what it copied by then stays.
+  bool stopped;
+  int elapsedMs;
+}
+
+/// A file a run created or changed in its copy.
+class CopyChangeMessage {
+  CopyChangeMessage({
+    required this.path,
+    required this.created,
+    required this.size,
+  });
+
+  String path;
+
+  /// Only the copy has it; otherwise the copy's differs from the folder's.
+  bool created;
+  int size;
+}
+
+/// The files runs created or changed in a copy, at most 500 of them.
+class CopyChangesMessage {
+  CopyChangesMessage({
+    required this.changes,
+    required this.more,
+    required this.unexportable,
+    required this.skippedFolders,
+  });
+
+  List<CopyChangeMessage> changes;
+
+  /// Changed files beyond the 500 listed.
+  int more;
+
+  /// Files whose names a documents provider can't take.
+  int unexportable;
+
+  /// Dependency folders (node_modules and the like) not looked into.
+  int skippedFolders;
+}
+
+/// A file export could not write: its path, the problem's code, a message.
+class ExportFailureMessage {
+  ExportFailureMessage({
+    required this.path,
+    required this.problem,
+    required this.message,
+  });
+
+  String path;
+  String problem;
+  String message;
+}
+
+class ExportResultMessage {
+  ExportResultMessage({required this.exported, required this.failures});
+
+  int exported;
+  List<ExportFailureMessage> failures;
+}
+
 /// The storage broker (StorageBroker.kt). Paths are relative to the
 /// granted folder ('' is the folder itself) and checked again on the
 /// Kotlin side, segment by segment.
@@ -222,6 +334,44 @@ abstract class StorageApi {
   /// watched is ignored.
   @asyncCallback
   void unwatch(int watchId);
+
+  /// Brings the run copy [copyId] of the folder up to date (Phase 5 W4,
+  /// ADR-0013): one way, incremental, `.git` left out, in
+  /// `<filesDir>/copies/<copyId>`. [copyId] is the folder workspace's id.
+  /// How far it is goes to [StorageEvents.copyProgress].
+  @asyncCallback
+  CopySummaryMessage syncCopy(String treeUri, String copyId);
+
+  /// Stops the copy (or import) [copyId] between files; its call answers
+  /// with what it did by then. Nothing running is ignored.
+  @asyncCallback
+  void cancelCopy(String copyId);
+
+  /// The files runs created or changed in copy [copyId].
+  @asyncCallback
+  CopyChangesMessage copyChanges(String copyId);
+
+  /// Writes the copy's files at [paths] to the folder, replacing what is
+  /// there, and records them as the folder now has them.
+  @asyncCallback
+  ExportResultMessage exportCopy(
+    String treeUri,
+    String copyId,
+    List<String> paths,
+  );
+
+  /// Deletes copy [copyId]: the folder left the recents.
+  @asyncCallback
+  void deleteCopy(String copyId);
+
+  /// Copies the whole folder, git's files included, into a new project's
+  /// folder named [folderName] in `<filesDir>/workspaces` (Phase 5 W4:
+  /// Import as project). Refused when a project of that name, case
+  /// ignored, is there. Progress goes to [StorageEvents.copyProgress] as
+  /// copy `import`; [cancelCopy] with `import` stops it, and then nothing
+  /// is kept.
+  @asyncCallback
+  CopySummaryMessage importTree(String treeUri, String folderName);
 }
 
 /// What the storage broker tells Dart unasked (Phase 3 W5).
@@ -232,4 +382,9 @@ abstract class StorageEvents {
   /// every 100 ms.
   @asyncCallback
   void folderChanged(int watchId);
+
+  /// Copy [copyId] has [files] files and [bytes] bytes in place (Phase 5
+  /// W4): at most every 250 ms while it copies.
+  @asyncCallback
+  void copyProgress(String copyId, int files, int bytes);
 }

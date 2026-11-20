@@ -204,6 +204,33 @@ String? projectNameProblem(String name, {Iterable<String> taken = const []}) {
   return null;
 }
 
+/// Characters no project name holds: controls, slashes and backslashes.
+final RegExp _unsafeInNames = RegExp(r'[\x00-\x1f\x7f/\\]');
+
+/// A free project name for a folder imported as a project (Phase 5 W4):
+/// the folder's name made valid, then `-2`, `-3` and so on while it is
+/// taken.
+String importNameFor(String folderName, {Iterable<String> taken = const []}) {
+  var base = folderName.trim().replaceAll(_unsafeInNames, '_');
+  while (base.startsWith('.')) {
+    base = base.substring(1);
+  }
+  base = base.trim();
+  if (base.isEmpty || nameProblem(base) != null) {
+    base = 'imported';
+  }
+  if (projectNameProblem(base, taken: taken) == null) {
+    return base;
+  }
+  for (var n = 2; n < 1000; n++) {
+    final candidate = '$base-$n';
+    if (projectNameProblem(candidate, taken: taken) == null) {
+      return candidate;
+    }
+  }
+  return base;
+}
+
 /// A workspace from its stored parts (the recents, the shell envelope);
 /// null when they don't make one.
 WorkspaceLocation? workspaceFromParts({

@@ -57,6 +57,14 @@ final currentWorkspaceProvider = Provider<WorkspaceLocation>((ref) {
 /// in-memory service (or override [projectFileServiceProvider],
 /// [projectStorageProvider] and [storageBrokerProvider] to switch between
 /// workspaces).
+/// The app's files folder on the device (`Context.getFilesDir()`), asked
+/// when needed: terminal links name files by their absolute paths (Phase 5
+/// W4). Throws under `flutter test`, where no platform answers; tests
+/// override it.
+final appFilesPathProvider = Provider<Future<String> Function()>(
+  (ref) => applicationFilesPath,
+);
+
 final fileServiceProvider = Provider<FileService>((ref) {
   ref.keepAlive();
   return switch (ref.watch(currentWorkspaceProvider)) {

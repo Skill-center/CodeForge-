@@ -40,6 +40,7 @@ class TerminalSessionTest {
 
     private lateinit var root: File
     private lateinit var projects: File
+    private lateinit var copies: File
     private lateinit var environment: RuntimeEnvironment
     private lateinit var sessions: SessionRegistry
     private lateinit var delivery: RecordingExecutor
@@ -57,6 +58,7 @@ class TerminalSessionTest {
         assumeTrue("no bash here", locate("bash") != null)
         root = temp.newFolder("harness")
         projects = temp.newFolder("workspaces")
+        copies = temp.newFolder("copies")
         val libraries = temp.newFolder("lib")
         environment = RuntimeEnvironment(
             TestPayload.configFor(root, libraries),
@@ -408,6 +410,29 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun aRunInAFolderStartsInItsCopyTheHostNames() {
+        val terminals = terminals()
+        val copy = File(copies, "folder-0123abcd").apply { mkdirs() }
+        val outside = temp.newFolder("outside-copy")
+        Files.createSymbolicLink(File(copies, "folder-escape").toPath(), outside.toPath())
+        File(projects, "demo").mkdirs()
+        assertEquals(copy.canonicalFile, terminals.copyDirectoryFor("folder-0123abcd"))
+        for (id in listOf("", ".", "..", "../outside", "Folder-1", "a/b", ".manifests", "folder-escape", "folder-absent")) {
+            assertTrue(id, runCatching { terminals.copyDirectoryFor(id) }.isFailure)
+            assertEquals(id, TerminalFailure.BAD_REQUEST, terminals.start(TerminalSpec(copy = id)).failure)
+        }
+        assertEquals(
+            "a project and a copy at once",
+            TerminalFailure.BAD_REQUEST,
+            terminals.start(TerminalSpec(project = "demo", copy = "folder-0123abcd")).failure,
+        )
+        val screen = Screen()
+        val session = start(terminals, TerminalSpec(copy = "folder-0123abcd"), screen)
+        session.write("pwd\r".toByteArray())
+        screen.waitFor(copy.canonicalPath)
+    }
+
+    @Test
     fun overridesCannotReplaceTheRuntimesOwnVariables() {
         val terminals = terminals()
         val home = environment.home
@@ -494,6 +519,7 @@ class TerminalSessionTest {
         stateDirectory = File(root, "codeforge/terminal"),
         projects = projects,
         delivery = delivery,
+        copies = copies,
         window = window,
     )
 

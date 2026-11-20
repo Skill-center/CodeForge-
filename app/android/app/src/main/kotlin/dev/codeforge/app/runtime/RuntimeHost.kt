@@ -174,6 +174,13 @@ object RuntimeHubs {
     /** Where projects live, in the app's files: the folders a terminal may start in (SearchHost's too). */
     const val PROJECTS = "workspaces"
 
+    /**
+     * Where folders' run copies live, in the app's files (Phase 5 W4,
+     * ADR-0013; the storage broker writes them): a terminal may start in one.
+     * Android's backup never takes them (xml/backup_rules.xml lists what it may).
+     */
+    const val COPIES = "copies"
+
     @Volatile
     private var hub: RuntimeHub? = null
 
@@ -218,6 +225,8 @@ object RuntimeHubs {
                     killGroup = { group -> Os.kill(-group, OsConstants.SIGKILL) },
                     // A terminal may start in a project's folder, named by Dart, resolved here (E3).
                     projects = File(app.filesDir, PROJECTS),
+                    // ...or in a folder's run copy, likewise (Phase 5 W4).
+                    copies = File(app.filesDir, COPIES),
                 )
             },
             commandExecutor = commandThreads,

@@ -107,6 +107,130 @@ final class BrokerExpectation {
   final String? sha256;
 }
 
+/// How a folder's run copy, or its import as a project, went (Phase 5 W4,
+/// ADR-0013), and what it left out.
+final class CopySummary {
+  const CopySummary({
+    required this.files,
+    required this.bytes,
+    this.copied = 0,
+    this.bytesCopied = 0,
+    this.unchanged = 0,
+    this.removed = 0,
+    this.leftOutLarge = 0,
+    this.leftOutFull = 0,
+    this.leftOutVirtual = 0,
+    this.leftOutDeep = 0,
+    this.skipped = 0,
+    this.unreadable = 0,
+    this.capped = false,
+    this.stopped = false,
+    this.elapsed = Duration.zero,
+  });
+
+  /// Files in the copy from the folder, and their bytes, once it is done.
+  final int files;
+  final int bytes;
+
+  /// Files copied this time (new, changed in the folder, or changed in
+  /// the copy by a run), and their bytes.
+  final int copied;
+  final int bytesCopied;
+
+  /// Files the copy already had as the folder has them.
+  final int unchanged;
+
+  /// Files gone from the folder, removed from the copy.
+  final int removed;
+
+  /// Files over the size cap (64 MB).
+  final int leftOutLarge;
+
+  /// Files left out once the copy was full (10,000 files or 512 MB).
+  final int leftOutFull;
+
+  /// Virtual documents (Google Docs and the like): they have no bytes.
+  final int leftOutVirtual;
+
+  /// Folders nested too deep.
+  final int leftOutDeep;
+
+  /// Entries left out by name: `.git` in a run's copy.
+  final int skipped;
+
+  /// Files and folders that could not be read.
+  final int unreadable;
+
+  /// The copy filled up and stopped walking: more may be left out.
+  final bool capped;
+
+  /// The copy was cancelled; what it copied by then stays.
+  final bool stopped;
+  final Duration elapsed;
+
+  /// Everything left out but `.git`, which is left out on purpose.
+  int get leftOut => leftOutLarge + leftOutFull + leftOutVirtual + leftOutDeep;
+}
+
+/// A file a run created (only the copy has it) or changed in its copy.
+final class CopyChange {
+  const CopyChange({
+    required this.path,
+    required this.created,
+    required this.size,
+  });
+
+  final String path;
+  final bool created;
+  final int size;
+}
+
+/// The files runs created or changed in a folder's copy, at most 500.
+final class CopyChanges {
+  const CopyChanges({
+    this.changes = const [],
+    this.more = 0,
+    this.unexportable = 0,
+    this.skippedFolders = 0,
+  });
+
+  final List<CopyChange> changes;
+
+  /// Changed files beyond those listed.
+  final int more;
+
+  /// Files whose names a documents provider can't take.
+  final int unexportable;
+
+  /// Dependency folders (node_modules and the like) not looked into.
+  final int skippedFolders;
+}
+
+/// What an export wrote, and each file it could not.
+final class ExportResult {
+  const ExportResult({required this.exported, this.failures = const []});
+
+  final int exported;
+  final List<({String path, FileFailure failure})> failures;
+}
+
+/// How far a copy or an import is: files and bytes in place.
+final class CopyProgress {
+  const CopyProgress({
+    required this.copyId,
+    required this.files,
+    required this.bytes,
+  });
+
+  /// The copy's id, or [importCopyId] for an import.
+  final String copyId;
+  final int files;
+  final int bytes;
+}
+
+/// The copy id an import's progress and cancel use.
+const String importCopyId = 'import';
+
 abstract interface class StorageBroker {
   /// Shows Android's folder picker, starting at [initialUri] when given,
   /// and keeps the grant. Ok(null) when the user backs out.
@@ -195,6 +319,36 @@ abstract interface class StorageBroker {
     required Uint8List bytes,
     String? initialUri,
   });
+
+  /// Brings the run copy [copyId] (the folder workspace's id) of the
+  /// folder up to date (Phase 5 W4, ADR-0013): one way, incremental,
+  /// `.git` left out. How far it is goes to [copyProgress].
+  Future<Result<CopySummary>> syncCopy(String treeUri, String copyId);
+
+  /// Stops copy [copyId] (or an import, [importCopyId]) between files.
+  Future<void> cancelCopy(String copyId);
+
+  /// The files runs created or changed in copy [copyId].
+  Future<Result<CopyChanges>> copyChanges(String copyId);
+
+  /// Writes copy [copyId]'s files at [paths] to the folder, replacing what
+  /// is there.
+  Future<Result<ExportResult>> exportCopy(
+    String treeUri,
+    String copyId,
+    List<String> paths,
+  );
+
+  /// Deletes copy [copyId]: its folder left the recents.
+  Future<Result<void>> deleteCopy(String copyId);
+
+  /// Copies the whole folder, git's files included, into a new project's
+  /// folder named [folderName] (Import as project). [FileProblem.exists]
+  /// when a project of that name, case ignored, is there.
+  Future<Result<CopySummary>> importFolder(String treeUri, String folderName);
+
+  /// How far copies and imports are, while they run.
+  Stream<CopyProgress> get copyProgress;
 }
 
 /// The general wording of each broker failure, before the file service

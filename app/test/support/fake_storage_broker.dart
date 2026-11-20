@@ -497,6 +497,213 @@ final class FakeStorageBroker implements StorageBroker {
     return Ok(tree.entry(to));
   }
 
+  // ------------------------------------------------- run copies (Phase 5 W4)
+
+  /// Each folder's run copy, by copy id: what a run sees, path → bytes.
+  /// A test writes a run's output here.
+  final Map<String, Map<String, Uint8List>> copies = {};
+
+  /// What each copy took from its folder, as it took it: path → bytes.
+  final Map<String, Map<String, Uint8List>> _copied = {};
+
+  /// Every sync's copy id, in order.
+  final List<String> synced = [];
+
+  /// The copy ids deleted, in order.
+  final List<String> deletedCopies = [];
+
+  /// When set, a sync waits for it (to show its progress, or cancel it).
+  Completer<void>? syncGate;
+
+  /// What the next sync answers, when a test says, after copying.
+  CopySummary? nextSummary;
+
+  /// Imports, by project name: what the folder held. The harness hands
+  /// them to its project storage.
+  void Function(String folderName, Map<String, String> files)? onImport;
+
+  final StreamController<CopyProgress> _progress =
+      StreamController<CopyProgress>.broadcast();
+
+  /// Reports progress, as Kotlin does while a copy runs.
+  void emitProgress(String copyId, {required int files, int bytes = 0}) =>
+      _progress.add(CopyProgress(copyId: copyId, files: files, bytes: bytes));
+
+  @override
+  Stream<CopyProgress> get copyProgress => _progress.stream;
+
+  @override
+  Future<Result<CopySummary>> syncCopy(String treeUri, String copyId) async {
+    calls.add('syncCopy');
+    final folder = _folder(treeUri);
+    if (folder case Err(:final failure)) {
+      return Err(failure);
+    }
+    final tree = (folder as Ok<FakeFolder>).value;
+    synced.add(copyId);
+    final gate = syncGate;
+    if (gate != null) {
+      await gate.future;
+    }
+    final copy = copies.putIfAbsent(copyId, () => {});
+    final copied = _copied.putIfAbsent(copyId, () => {});
+    var count = 0;
+    var bytes = 0;
+    var unchanged = 0;
+    var skipped = 0;
+    for (final MapEntry(key: path, value: data) in tree.files.entries) {
+      if (path.split('/').contains('.git')) {
+        skipped += 1;
+        continue;
+      }
+      final before = copied[path];
+      final now = copy[path];
+      if (before != null &&
+          now != null &&
+          _same(before, data) &&
+          identical(now, before)) {
+        unchanged += 1;
+        continue;
+      }
+      final taken = Uint8List.fromList(data);
+      copy[path] = taken;
+      copied[path] = taken;
+      count += 1;
+      bytes += data.length;
+    }
+    var removed = 0;
+    for (final path in [...copied.keys]) {
+      if (!tree.files.containsKey(path)) {
+        copied.remove(path);
+        copy.remove(path);
+        removed += 1;
+      }
+    }
+    return Ok(
+      nextSummary ??
+          CopySummary(
+            files: copied.length,
+            bytes: copied.values.fold(0, (sum, b) => sum + b.length),
+            copied: count,
+            bytesCopied: bytes,
+            unchanged: unchanged,
+            removed: removed,
+            skipped: skipped,
+          ),
+    );
+  }
+
+  @override
+  Future<void> cancelCopy(String copyId) async {
+    calls.add('cancelCopy');
+  }
+
+  @override
+  Future<Result<CopyChanges>> copyChanges(String copyId) async {
+    calls.add('copyChanges');
+    final copy = copies[copyId] ?? const {};
+    final copied = _copied[copyId] ?? const {};
+    final paths = copy.keys.toList()..sort();
+    return Ok(
+      CopyChanges(
+        changes: [
+          for (final path in paths)
+            if (!identical(copy[path], copied[path]))
+              CopyChange(
+                path: path,
+                created: !copied.containsKey(path),
+                size: copy[path]!.length,
+              ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Future<Result<ExportResult>> exportCopy(
+    String treeUri,
+    String copyId,
+    List<String> paths,
+  ) async {
+    calls.add('exportCopy');
+    final folder = _folder(treeUri);
+    if (folder case Err(:final failure)) {
+      return Err(failure);
+    }
+    final tree = (folder as Ok<FakeFolder>).value;
+    final copy = copies[copyId] ?? {};
+    final copied = _copied.putIfAbsent(copyId, () => {});
+    var exported = 0;
+    final failures = <({String path, FileFailure failure})>[];
+    for (final path in paths) {
+      final data = copy[path];
+      if (data == null) {
+        failures.add((
+          path: path,
+          failure: FileFailure(
+            brokerMessage(FileProblem.notFound),
+            problem: FileProblem.notFound,
+          ),
+        ));
+        continue;
+      }
+      tree.putBytes(path, data);
+      copied[path] = data;
+      exported += 1;
+    }
+    return Ok(ExportResult(exported: exported, failures: failures));
+  }
+
+  @override
+  Future<Result<void>> deleteCopy(String copyId) async {
+    calls.add('deleteCopy');
+    deletedCopies.add(copyId);
+    copies.remove(copyId);
+    _copied.remove(copyId);
+    return const Ok(null);
+  }
+
+  @override
+  Future<Result<CopySummary>> importFolder(
+    String treeUri,
+    String folderName,
+  ) async {
+    calls.add('importFolder');
+    final folder = _folder(treeUri);
+    if (folder case Err(:final failure)) {
+      return Err(failure);
+    }
+    final tree = (folder as Ok<FakeFolder>).value;
+    final gate = syncGate;
+    if (gate != null) {
+      await gate.future;
+    }
+    final files = {
+      for (final MapEntry(:key, :value) in tree.files.entries)
+        key: utf8.decode(value, allowMalformed: true),
+    };
+    onImport?.call(folderName, files);
+    return Ok(
+      CopySummary(
+        files: files.length,
+        bytes: tree.files.values.fold(0, (sum, b) => sum + b.length),
+        copied: files.length,
+      ),
+    );
+  }
+
+  static bool _same(Uint8List a, Uint8List b) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   FolderInfo _info(String uri) {
     final tree = trees[uri];
     if (!granted.contains(uri)) {

@@ -12,6 +12,7 @@ import '../errors/failure.dart';
 final class TerminalSpec {
   const TerminalSpec({
     this.project,
+    this.copy,
     this.program,
     this.arguments = const [],
     this.environment = const {},
@@ -24,6 +25,11 @@ final class TerminalSpec {
   /// A project's folder name, which the host resolves in its projects'
   /// folder itself: never a path. The runtime's home when null.
   final String? project;
+
+  /// A folder's run copy by its id (the folder workspace's), which the
+  /// host resolves in its copies' folder itself (Phase 5 W4, ADR-0013);
+  /// never set with [project].
+  final String? copy;
 
   /// A program in the runtime's bin, by name. Null is the shell: bash,
   /// interactive, with CodeForge's rc file.

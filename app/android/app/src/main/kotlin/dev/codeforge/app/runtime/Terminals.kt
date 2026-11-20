@@ -16,6 +16,12 @@ data class TerminalSpec(
      * E3). The runtime's home when null.
      */
     val project: String? = null,
+    /**
+     * A folder's run copy by its id, in the copies' folder (`<filesDir>/copies`,
+     * Phase 5 W4, ADR-0013), which the host resolves itself like a project;
+     * never set with [project].
+     */
+    val copy: String? = null,
     /** A name in the runtime's bin; null is bash, interactive, with CodeForge's rc file. */
     val program: String? = null,
     val arguments: List<String> = emptyList(),
@@ -44,8 +50,9 @@ data class TerminalStart(val session: TerminalSession?, val failure: TerminalFai
  *
  * Kotlin checks every request again and never trusts Dart (docs/SECURITY.md
  * §2.1, E8): the program is a name in the runtime's bin (E1); the folder is
- * the runtime's home or a project's folder that this class resolves from a
- * name, inside the projects' folder once links are resolved (E3); overrides
+ * the runtime's home, a project's folder or a folder's run copy (Phase 5
+ * W4) that this class resolves from a name, inside the projects' or the
+ * copies' folder once links are resolved (E3); overrides
  * cannot touch the runtime's own variables or any LD_* (E2's invariants);
  * the sizes are brought into range. At most [SessionRegistry.maxTerminals]
  * sessions run at once: the place is reserved before anything starts.
@@ -67,6 +74,8 @@ class Terminals(
     private val projects: File?,
     /** The one thread that delivers every session's output and changes. */
     private val delivery: ScheduledExecutorService,
+    /** Where folders' run copies live (`<filesDir>/copies`); null when there are none. */
+    private val copies: File? = null,
     private val clock: () -> Long = System::nanoTime,
     private val window: Int = TerminalSession.DEFAULT_WINDOW,
     private val maxExited: Int = DEFAULT_MAX_EXITED,
@@ -96,7 +105,12 @@ class Terminals(
             return TerminalStart.failed(TerminalFailure.BAD_REQUEST, "too many arguments, or one holds a NUL byte")
         }
         val directory = try {
-            directoryFor(spec.project)
+            if (spec.copy != null) {
+                if (spec.project != null) throw IllegalArgumentException("a session starts in a project or in a copy, not both")
+                copyDirectoryFor(spec.copy)
+            } else {
+                directoryFor(spec.project)
+            }
         } catch (refused: IllegalArgumentException) {
             return TerminalStart.failed(TerminalFailure.BAD_REQUEST, refused.message)
         }
@@ -195,24 +209,35 @@ class Terminals(
     /** The folder a session starts in: the runtime's home, or a project's folder named by [project]. */
     fun directoryFor(project: String?): File {
         if (project == null) return environment.home
-        if (project.isEmpty() || project == "." || project == ".." || project.contains('/') || project.contains('\u0000')) {
-            throw IllegalArgumentException("a project is named by its folder's name, not \"$project\"")
+        return childFolder(projects, project, "project")
+    }
+
+    /** A folder's run copy named by its id [copy] (Phase 5 W4), inside the copies' folder once links are resolved. */
+    fun copyDirectoryFor(copy: String): File {
+        if (!COPY_ID.matches(copy)) throw IllegalArgumentException("a copy is named by its id, not \"$copy\"")
+        return childFolder(copies, copy, "copy")
+    }
+
+    /** [name]'s folder directly in [root], links resolved (E3). */
+    private fun childFolder(root: File?, name: String, what: String): File {
+        if (name.isEmpty() || name == "." || name == ".." || name.contains('/') || name.contains('\u0000')) {
+            throw IllegalArgumentException("a $what is named by its folder's name, not \"$name\"")
         }
-        val root = projects ?: throw IllegalArgumentException("there are no projects here")
+        val top = root ?: throw IllegalArgumentException("there is no $what here")
         val canonicalRoot = try {
-            root.canonicalFile
+            top.canonicalFile
         } catch (unreadable: IOException) {
-            throw IllegalArgumentException("the projects' folder cannot be read")
+            throw IllegalArgumentException("the ${what}s' folder cannot be read")
         }
         val folder = try {
-            File(canonicalRoot, project).canonicalFile
+            File(canonicalRoot, name).canonicalFile
         } catch (unreadable: IOException) {
-            throw IllegalArgumentException("not a project's folder: $project")
+            throw IllegalArgumentException("not a $what's folder: $name")
         }
         if (folder.parentFile != canonicalRoot) {
-            throw IllegalArgumentException("a project's folder lies in the projects' folder, links resolved: $project")
+            throw IllegalArgumentException("a $what's folder lies in the ${what}s' folder, links resolved: $name")
         }
-        if (!folder.isDirectory) throw IllegalArgumentException("no such project: $project")
+        if (!folder.isDirectory) throw IllegalArgumentException("no such $what: $name")
         return folder
     }
 
@@ -276,6 +301,9 @@ class Terminals(
         const val MAX_LABEL = 64
 
         private val VARIABLE_NAME = Regex("[A-Za-z_][A-Za-z0-9_]*")
+
+        /** A run copy's id: a folder workspace's (`folder-<hex>`), the storage broker's rule (FolderCopy.isCopyId). */
+        private val COPY_ID = Regex("[a-z0-9][a-z0-9-]{0,63}")
 
         /** Prefixes no override may have: the linker's and Termux's. */
         private val PROTECTED = listOf("LD_", "TERMUX_")

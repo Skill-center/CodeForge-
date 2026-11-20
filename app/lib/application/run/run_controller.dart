@@ -1,9 +1,11 @@
 /// Run (Phase 5 W4; docs/TERMINAL_ARCHITECTURE.md §3): Run Current File,
 /// Run Project and Stop. Each run is a terminal session
-/// ([TerminalController.run]) in the project's folder, shown in the panel;
-/// this keeps the runs, newest first, with how each is going as its session
-/// reports it. Unsaved changes are saved first, unless the user turned that
-/// off (Settings).
+/// ([TerminalController.run]), shown in the panel: in the project's folder,
+/// or for a folder from shared storage in its copy (ADR-0013), which is
+/// brought up to date first. This keeps the runs, newest first, with how
+/// each is going as its session reports it, and for a folder's run the
+/// files it made, which the user exports. Unsaved changes are saved first,
+/// unless the user turned that off (Settings).
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,7 @@ import '../../core/files/workspace_location.dart';
 import '../../core/logging/logger.dart';
 import '../../core/run/run_commands.dart';
 import '../../core/terminal/terminal_models.dart';
+import '../../services/files/storage_broker.dart';
 import '../../services/shell/shell_state.dart';
 import '../documents/document_controller.dart';
 import '../providers.dart';
@@ -31,6 +34,21 @@ const int maxRunRecords = 30;
 const String notRunnableMessage =
     'Run runs JavaScript, Python, shell, Ruby and Perl files.';
 
+/// The copy a folder's run ran in: the folder, and how the copy went.
+final class RunCopy {
+  const RunCopy({
+    required this.copyId,
+    required this.treeUri,
+    required this.summary,
+  });
+
+  final String copyId;
+
+  /// The folder's grant, for export.
+  final String treeUri;
+  final CopySummary summary;
+}
+
 /// One run: what ran, in which session, and how it went.
 final class RunRecord {
   const RunRecord({
@@ -38,6 +56,7 @@ final class RunRecord {
     required this.command,
     required this.workspaceId,
     required this.started,
+    this.copy,
     this.state = TerminalSessionState.starting,
     this.exitCode,
     this.signal,
@@ -50,6 +69,9 @@ final class RunRecord {
   /// The workspace it ran in.
   final String workspaceId;
   final DateTime started;
+
+  /// The folder's copy it ran in; null in a project.
+  final RunCopy? copy;
   final TerminalSessionState state;
   final int? exitCode;
   final int? signal;
@@ -84,6 +106,7 @@ final class RunRecord {
       command: command,
       workspaceId: workspaceId,
       started: started,
+      copy: copy,
       state: state ?? this.state,
       exitCode: exitCode ?? this.exitCode,
       signal: signal ?? this.signal,
@@ -94,16 +117,24 @@ final class RunRecord {
 
 /// What the Run panel and the status strip show.
 final class RunState {
-  const RunState({this.runs = const [], this.message, this.starting = false});
+  const RunState({
+    this.runs = const [],
+    this.message,
+    this.starting = false,
+    this.copying,
+  });
 
   /// Newest first.
   final List<RunRecord> runs;
 
-  /// The last thing that went wrong, for the panel to say.
+  /// The last thing that went wrong, or worth saying, for the workbench.
   final String? message;
 
-  /// A run is being saved for and started.
+  /// A run is being saved for, copied for and started.
   final bool starting;
+
+  /// A folder is being copied for a run: how far it is.
+  final CopyProgress? copying;
 
   RunRecord? get latest => runs.isEmpty ? null : runs.first;
 
@@ -113,13 +144,68 @@ final class RunState {
     List<RunRecord>? runs,
     Object? message = _keep,
     bool? starting,
+    Object? copying = _keep,
   }) {
     return RunState(
       runs: runs ?? this.runs,
       message: identical(message, _keep) ? this.message : message as String?,
       starting: starting ?? this.starting,
+      copying: identical(copying, _keep)
+          ? this.copying
+          : copying as CopyProgress?,
     );
   }
+}
+
+/// "1.2 MB": a size for people.
+String sizeLabel(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes B';
+  }
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(bytes < 10 * 1024 ? 1 : 0)} KB';
+  }
+  final mb = bytes / (1024 * 1024);
+  return '${mb.toStringAsFixed(mb < 10 ? 1 : 0)} MB';
+}
+
+String _files(int count) => count == 1 ? '1 file' : '$count files';
+
+/// How a folder's copy went, in a line: what it copied, kept and removed.
+String copySummaryLine(CopySummary summary) {
+  final parts = <String>[
+    summary.copied == 0
+        ? 'nothing new to copy'
+        : '${_files(summary.copied)} copied (${sizeLabel(summary.bytesCopied)})',
+    if (summary.unchanged > 0) '${summary.unchanged} unchanged',
+    if (summary.removed > 0) '${summary.removed} removed',
+  ];
+  final seconds = summary.elapsed.inMilliseconds / 1000;
+  return 'In the folder’s copy: ${parts.join(', ')}, '
+      'in ${seconds.toStringAsFixed(1)} s';
+}
+
+/// What the copy left out, or null when it took everything but `.git`.
+String? copyLeftOutLine(CopySummary summary) {
+  final parts = <String>[
+    if (summary.leftOutLarge > 0)
+      '${_files(summary.leftOutLarge)} over 64 MB',
+    if (summary.leftOutFull > 0)
+      '${summary.capped ? 'at least ' : ''}'
+          '${_files(summary.leftOutFull)} past the copy’s limit '
+          '(10,000 files, 512 MB)',
+    if (summary.leftOutVirtual > 0)
+      '${_files(summary.leftOutVirtual)} with no bytes (online documents)',
+    if (summary.leftOutDeep > 0)
+      '${summary.leftOutDeep == 1 ? '1 folder' : '${summary.leftOutDeep} '
+                'folders'} nested too deep',
+    if (summary.unreadable > 0) '${summary.unreadable} that could not be read',
+  ];
+  if (parts.isEmpty) {
+    return null;
+  }
+  return 'The copy left out ${parts.join(', ')}. Import the folder as a '
+      'project to run it whole.';
 }
 
 final class RunController extends Notifier<RunState> {
@@ -147,19 +233,13 @@ final class RunController extends Notifier<RunState> {
     await runCommand(command);
   }
 
-  /// Runs [command] in the open project's folder, in a terminal of its own.
+  /// Runs [command] in the open workspace, in a terminal of its own: in a
+  /// project's folder, or in a folder's copy once it is up to date.
   Future<void> runCommand(RunCommand command) async {
     if (state.starting) {
       return;
     }
     final workspace = ref.read(currentWorkspaceProvider);
-    if (workspace is! ProjectLocation) {
-      _say(
-        'Run works in projects for now: a folder from shared storage runs '
-        'through its copy, which comes next.',
-      );
-      return;
-    }
     if (!ref.read(runtimeControllerProvider).usable) {
       _say('The Linux runtime is not ready yet.');
       return;
@@ -173,6 +253,17 @@ final class RunController extends Notifier<RunState> {
           return;
         }
       }
+      String? project;
+      RunCopy? copy;
+      switch (workspace) {
+        case ProjectLocation(:final folder):
+          project = folder;
+        case final FolderLocation folder:
+          copy = await _syncCopy(folder);
+          if (copy == null) {
+            return;
+          }
+      }
       final shell = ref.read(shellControllerProvider);
       if (shell.terminalStop == TerminalStop.closed) {
         ref
@@ -183,7 +274,8 @@ final class RunController extends Notifier<RunState> {
           .read(terminalControllerProvider.notifier)
           .run(
             TerminalSpec(
-              project: workspace.folder,
+              project: project,
+              copy: copy?.copyId,
               program: command.program,
               arguments: command.arguments,
               label: command.title,
@@ -196,13 +288,18 @@ final class RunController extends Notifier<RunState> {
           appLogger.info(
             _tag,
             'started',
-            fields: {'session': value, 'program': command.program},
+            fields: {
+              'session': value,
+              'program': command.program,
+              'copy': copy != null,
+            },
           );
           final record = RunRecord(
             sessionId: value,
             command: command,
             workspaceId: workspace.id,
             started: DateTime.now(),
+            copy: copy,
           );
           state = state.copyWith(
             runs: [record, ...state.runs].take(maxRunRecords).toList(),
@@ -212,9 +309,13 @@ final class RunController extends Notifier<RunState> {
             (_, panel) => _sync(panel),
           );
           _sync(ref.read(terminalControllerProvider));
+          final leftOut = copy == null ? null : copyLeftOutLine(copy.summary);
+          if (leftOut != null) {
+            _say(leftOut);
+          }
       }
     } finally {
-      state = state.copyWith(starting: false);
+      state = state.copyWith(starting: false, copying: null);
     }
   }
 
@@ -243,7 +344,15 @@ final class RunController extends Notifier<RunState> {
     }
   }
 
-  /// What Run Project offers in the open project: its `package.json`'s
+  /// Stops the folder copy under way between files; nothing runs.
+  Future<void> cancelCopy() async {
+    final copying = state.copying;
+    if (copying != null) {
+      await ref.read(storageBrokerProvider).cancelCopy(copying.copyId);
+    }
+  }
+
+  /// What Run Project offers in the open workspace: its `package.json`'s
   /// scripts, then its entry file.
   Future<List<RunCommand>> projectRuns() async {
     final files = ref.read(fileServiceProvider);
@@ -265,7 +374,85 @@ final class RunController extends Notifier<RunState> {
     return projectRunsFrom(packageJson: manifest, rootFiles: names);
   }
 
+  /// The files [run] and the runs before it created or changed in the
+  /// folder's copy.
+  Future<Result<CopyChanges>> changes(RunRecord run) {
+    final copy = run.copy;
+    if (copy == null) {
+      return Future.value(const Ok(CopyChanges()));
+    }
+    return ref.read(storageBrokerProvider).copyChanges(copy.copyId);
+  }
+
+  /// Writes the copy's files at [paths] back to [run]'s folder.
+  Future<Result<ExportResult>> export(RunRecord run, List<String> paths) async {
+    final copy = run.copy;
+    if (copy == null || paths.isEmpty) {
+      return const Ok(ExportResult(exported: 0));
+    }
+    final result = await ref
+        .read(storageBrokerProvider)
+        .exportCopy(copy.treeUri, copy.copyId, paths);
+    if (result case Ok(:final value)) {
+      appLogger.info(
+        _tag,
+        'exported',
+        fields: {'files': value.exported, 'failed': value.failures.length},
+      );
+    }
+    return result;
+  }
+
   void dismissMessage() => state = state.copyWith(message: null);
+
+  /// Brings [folder]'s copy up to date, with its progress in [RunState];
+  /// null when it failed or was cancelled (and said so).
+  Future<RunCopy?> _syncCopy(FolderLocation folder) async {
+    final broker = ref.read(storageBrokerProvider);
+    state = state.copyWith(
+      copying: CopyProgress(copyId: folder.id, files: 0, bytes: 0),
+    );
+    final progress = broker.copyProgress
+        .where((p) => p.copyId == folder.id)
+        .listen((p) {
+          if (state.copying != null) {
+            state = state.copyWith(copying: p);
+          }
+        });
+    try {
+      final synced = await broker.syncCopy(folder.treeUri, folder.id);
+      switch (synced) {
+        case Err(:final failure):
+          _say('The folder could not be copied for the run: ${failure.message}');
+          return null;
+        case Ok(:final value):
+          appLogger.info(
+            _tag,
+            'copied',
+            fields: {
+              'files': value.files,
+              'copied': value.copied,
+              'unchanged': value.unchanged,
+              'removed': value.removed,
+              'leftOut': value.leftOut,
+              'ms': value.elapsed.inMilliseconds,
+            },
+          );
+          if (value.stopped) {
+            _say('The copy was cancelled, so nothing ran.');
+            return null;
+          }
+          return RunCopy(
+            copyId: folder.id,
+            treeUri: folder.treeUri,
+            summary: value,
+          );
+      }
+    } finally {
+      await progress.cancel();
+      state = state.copyWith(copying: null);
+    }
+  }
 
   /// Saves every open document with unsaved changes; answers what went
   /// wrong, or null.
@@ -303,6 +490,7 @@ final class RunController extends Notifier<RunState> {
               command: run.command,
               workspaceId: run.workspaceId,
               started: run.started,
+              copy: run.copy,
               state: tab.state,
               exitCode: tab.exitCode,
               signal: tab.signal,

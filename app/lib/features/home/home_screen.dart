@@ -26,6 +26,7 @@ import '../../design_system/tokens/icons.dart';
 import '../../services/contracts.dart';
 import '../../services/files/storage_broker.dart';
 import 'home_dialogs.dart';
+import 'import_folder.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -35,7 +36,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 /// What can be done with an entry of the recents.
-enum _RecentAction { open, rename, delete, reconnect, remove }
+enum _RecentAction { open, rename, delete, reconnect, importProject, remove }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// A workspace is opening (the picker may be up): the buttons wait.
@@ -339,6 +340,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap: () => Navigator.of(context).pop(_RecentAction.reconnect),
               ),
               ListTile(
+                key: const ValueKey('recent_import'),
+                leading: const Icon(CfIcons.inventory),
+                title: const Text('Import as project…'),
+                onTap: () =>
+                    Navigator.of(context).pop(_RecentAction.importProject),
+              ),
+              ListTile(
                 key: const ValueKey('recent_remove'),
                 leading: const Icon(CfIcons.playlistRemove),
                 title: const Text('Remove from recents…'),
@@ -361,6 +369,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         await _delete(project);
       case (_RecentAction.reconnect, final FolderLocation folder):
         await _reconnect(folder);
+      case (_RecentAction.importProject, final FolderLocation folder):
+        await _whileBusy(
+          () => importFolderAsProject(
+            context,
+            ref,
+            folder,
+            tell: _tell,
+            opened: () => context.go('/workspace'),
+          ),
+        );
       case (_RecentAction.remove, final FolderLocation folder):
         await _remove(folder);
       default:

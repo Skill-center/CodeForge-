@@ -20,9 +20,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/workspace_location.dart';
 import '../../core/logging/logger.dart';
+import '../../core/terminal/file_links.dart';
+import '../../core/terminal/native_addons.dart';
 import '../../core/terminal/terminal_models.dart';
 import '../../services/contracts.dart';
 import '../providers.dart';
+import 'terminal_links.dart';
 import 'terminal_providers.dart';
 import 'terminal_view.dart';
 
@@ -49,6 +52,7 @@ final class TerminalTab {
     this.signal,
     this.problem,
     this.bell = false,
+    this.nativeAddon,
   });
 
   final int sessionId;
@@ -69,6 +73,10 @@ final class TerminalTab {
 
   /// A bell rang in it while another tab was shown.
   final bool bell;
+
+  /// A native addon's build failed in it for want of a compiler (Phase 5
+  /// W4): its banner says why, until dismissed.
+  final NativeAddonKind? nativeAddon;
 
   /// What the tab says.
   String get label => customName ?? name;
@@ -99,6 +107,7 @@ final class TerminalTab {
     int? signal,
     TerminalProblem? problem,
     bool? bell,
+    Object? nativeAddon = _keep,
   }) {
     return TerminalTab(
       sessionId: sessionId,
@@ -112,6 +121,9 @@ final class TerminalTab {
       signal: signal ?? this.signal,
       problem: problem ?? this.problem,
       bell: bell ?? this.bell,
+      nativeAddon: identical(nativeAddon, _keep)
+          ? this.nativeAddon
+          : nativeAddon as NativeAddonKind?,
     );
   }
 }
@@ -252,6 +264,13 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   /// Changes to sessions that have no tab yet: a run that ended before its
   /// start answered still ends in its tab (Phase 5 W4).
   final Map<int, TerminalInfo> _early = {};
+
+  /// Each session's watch for a native build failing (Phase 5 W4).
+  final Map<int, NativeAddonDetector> _addons = {};
+
+  /// Where each session started: a project's folder or a folder's copy,
+  /// for the `file:line` links its output shows (Phase 5 W4).
+  final Map<int, ({String? project, String? copy})> _origins = {};
   final List<StreamSubscription<Object?>> _subscriptions = [];
 
   /// The panel's size in cells, as the page last fitted a view to it: new
@@ -265,6 +284,8 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     _view = ref.watch(terminalViewProvider);
     _pipes.clear();
     _early.clear();
+    _addons.clear();
+    _origins.clear();
     _subscriptions
       ..add(_service.output.listen(_onOutput))
       ..add(_service.changes.listen(_onChanged))
@@ -337,6 +358,7 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     final started = await _service.start(
       TerminalSpec(
         project: spec.project,
+        copy: spec.copy,
         program: spec.program,
         arguments: spec.arguments,
         environment: spec.environment,
@@ -357,6 +379,7 @@ final class TerminalController extends Notifier<TerminalPanelState> {
         return Err(failure);
       case Ok(:final value):
         _pipes.putIfAbsent(value.id, _Pipe.new);
+        _origins[value.id] = (project: spec.project, copy: spec.copy);
         final tab = _tabFrom(_early.remove(value.id) ?? value, name: name);
         state = state.copyWith(
           starting: false,
@@ -425,6 +448,8 @@ final class TerminalController extends Notifier<TerminalPanelState> {
       activate(next);
     }
     final pipe = _pipes.remove(id);
+    _addons.remove(id);
+    _origins.remove(id);
     if (pipe != null && pipe.open) {
       unawaited(_view.close(id));
     }
@@ -436,6 +461,11 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     }
     await _forget(id);
   }
+
+  /// Hides session [id]'s native-addon banner (Phase 5 W4); it does not
+  /// come back for that session.
+  void dismissNativeAddon(int id) =>
+      _updateTab(id, (tab) => tab.copyWith(nativeAddon: null));
 
   /// Names tab [id]; an empty name gives it back its own.
   void rename(int id, String name) {
@@ -652,7 +682,13 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   void _send(int id, _Pipe pipe, Uint8List bytes, int end) {
     final seq = pipe.nextSeq++;
     pipe.acks[seq] = end;
-    if (!_view.write(id, seq, pipe.decode(bytes))) {
+    final text = pipe.decode(bytes);
+    final addon = (_addons[id] ??= NativeAddonDetector()).feed(text);
+    if (addon != null) {
+      appLogger.info(_tag, 'native_addon', fields: {'kind': addon.name});
+      _updateTab(id, (tab) => tab.copyWith(nativeAddon: addon));
+    }
+    if (!_view.write(id, seq, text)) {
       // The page went away: its restart refills the view from the buffer.
       pipe.acks.remove(seq);
     }
@@ -685,8 +721,8 @@ final class TerminalController extends Notifier<TerminalPanelState> {
         if (sessionId != state.activeId) {
           _updateTab(sessionId, (tab) => tab.copyWith(bell: true));
         }
-      case TerminalLinkTapped(:final sessionId):
-        appLogger.debug(_tag, 'link', fields: {'session': sessionId});
+      case TerminalLinkTapped(:final sessionId, :final text):
+        unawaited(_openLink(sessionId, text));
       case TerminalSelectionChanged(:final sessionId, :final active):
         if (sessionId == state.activeId) {
           state = state.copyWith(selection: active);
@@ -771,8 +807,61 @@ final class TerminalController extends Notifier<TerminalPanelState> {
         signal: info.signal,
         problem: info.problem,
         bell: tab.bell,
+        nativeAddon: tab.nativeAddon,
       ),
     );
+  }
+
+  /// A `file:line` tapped in session [sessionId]'s output (Phase 5 W4): the
+  /// file in the open workspace, for the workbench to open at its line. A
+  /// relative path is the workspace's, an absolute one must lie in its
+  /// folder (a project's) or its copy (a folder's).
+  Future<void> _openLink(int sessionId, String text) async {
+    final link = parseFileLink(text);
+    if (link == null) {
+      return;
+    }
+    appLogger.debug(_tag, 'link', fields: {'session': sessionId});
+    final requests = ref.read(terminalLinkRequestsProvider.notifier);
+    final workspace = ref.read(currentWorkspaceProvider);
+    final origin = _origins[sessionId];
+    final elsewhere = switch (workspace) {
+      ProjectLocation(:final folder) =>
+        origin != null &&
+            (origin.copy != null ||
+                (origin.project != null && origin.project != folder)),
+      FolderLocation(:final id) =>
+        origin != null &&
+            (origin.project != null ||
+                (origin.copy != null && origin.copy != id)),
+    };
+    if (elsewhere) {
+      requests.problem('That terminal runs in another workspace.');
+      return;
+    }
+    String? files;
+    try {
+      files = await ref.read(appFilesPathProvider)();
+    } on Object {
+      files = null;
+    }
+    final roots = files == null
+        ? const <String>[]
+        : withDataAliases([
+            switch (workspace) {
+              ProjectLocation(:final folder) => '$files/workspaces/$folder',
+              FolderLocation(:final id) => '$files/copies/$id',
+            },
+          ]);
+    final path = workspacePathForLink(link.path, roots: roots);
+    if (path == null) {
+      final shown = link.path.length > 80
+          ? '…${link.path.substring(link.path.length - 79)}'
+          : link.path;
+      requests.problem('$shown is not in this workspace.');
+      return;
+    }
+    requests.open(path, line: link.line, column: link.column);
   }
 
   // --------------------------------------------------------------- helpers

@@ -226,6 +226,7 @@ final class _Notices implements TerminalEvents {
 TerminalSpecMessage terminalSpecMessageFrom(TerminalSpec spec) =>
     TerminalSpecMessage(
       project: spec.project,
+      copy: spec.copy,
       program: spec.program,
       arguments: spec.arguments,
       environment: spec.environment,

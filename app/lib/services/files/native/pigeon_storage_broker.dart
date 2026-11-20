@@ -24,6 +24,10 @@ final class PigeonStorageBroker implements StorageBroker {
   int _nextWatchId = 0;
   bool _hearing = false;
 
+  /// Copies' and imports' progress (Phase 5 W4).
+  final StreamController<CopyProgress> _progress =
+      StreamController<CopyProgress>.broadcast();
+
   // Kotlin's time limits (StorageBroker.kt) plus 5 s: Kotlin answers
   // `timeout` itself; these catch a host that never answers at all.
   static const Duration _quick = Duration(seconds: 15);
@@ -31,6 +35,8 @@ final class PigeonStorageBroker implements StorageBroker {
   static const Duration _transfer = Duration(seconds: 35);
   static const Duration _change = Duration(seconds: 25);
   static const Duration _copy = Duration(seconds: 125);
+  static const Duration _sync = Duration(minutes: 15, seconds: 5);
+  static const Duration _import = Duration(minutes: 60, seconds: 5);
 
   @override
   Future<Result<FolderInfo?>> pickFolder({String? initialUri}) {
@@ -215,14 +221,102 @@ final class PigeonStorageBroker implements StorageBroker {
     return controller.stream;
   }
 
+  @override
+  Stream<CopyProgress> get copyProgress {
+    _hear();
+    return _progress.stream;
+  }
+
+  @override
+  Future<Result<CopySummary>> syncCopy(String treeUri, String copyId) {
+    _hear();
+    return _call(
+      'syncCopy',
+      _sync,
+      () async => _summary(await _api.syncCopy(treeUri, copyId)),
+    );
+  }
+
+  @override
+  Future<void> cancelCopy(String copyId) async {
+    await _call('cancelCopy', _quick, () => _api.cancelCopy(copyId));
+  }
+
+  @override
+  Future<Result<CopyChanges>> copyChanges(String copyId) =>
+      _call('copyChanges', _list, () async {
+        final changes = await _api.copyChanges(copyId);
+        return CopyChanges(
+          changes: [
+            for (final change in changes.changes)
+              CopyChange(
+                path: change.path,
+                created: change.created,
+                size: change.size,
+              ),
+          ],
+          more: changes.more,
+          unexportable: changes.unexportable,
+          skippedFolders: changes.skippedFolders,
+        );
+      });
+
+  @override
+  Future<Result<ExportResult>> exportCopy(
+    String treeUri,
+    String copyId,
+    List<String> paths,
+  ) => _call('exportCopy', _copy, () async {
+    final result = await _api.exportCopy(treeUri, copyId, paths);
+    return ExportResult(
+      exported: result.exported,
+      failures: [
+        for (final failure in result.failures)
+          (path: failure.path, failure: storageFailureFor(failure.problem)),
+      ],
+    );
+  });
+
+  @override
+  Future<Result<void>> deleteCopy(String copyId) =>
+      _call('deleteCopy', _copy, () => _api.deleteCopy(copyId));
+
+  @override
+  Future<Result<CopySummary>> importFolder(String treeUri, String folderName) {
+    _hear();
+    return _call(
+      'importTree',
+      _import,
+      () async => _summary(await _api.importTree(treeUri, folderName)),
+    );
+  }
+
   /// Takes the broker's notices from now on, once per client.
   void _hear() {
     if (_hearing) {
       return;
     }
     _hearing = true;
-    StorageEvents.setUp(_Notices(_watches));
+    StorageEvents.setUp(_Notices(_watches, _progress));
   }
+
+  static CopySummary _summary(CopySummaryMessage summary) => CopySummary(
+    files: summary.files,
+    bytes: summary.bytes,
+    copied: summary.copied,
+    bytesCopied: summary.bytesCopied,
+    unchanged: summary.unchanged,
+    removed: summary.removed,
+    leftOutLarge: summary.leftOutLarge,
+    leftOutFull: summary.leftOutFull,
+    leftOutVirtual: summary.leftOutVirtual,
+    leftOutDeep: summary.leftOutDeep,
+    skipped: summary.skipped,
+    unreadable: summary.unreadable,
+    capped: summary.capped,
+    stopped: summary.stopped,
+    elapsed: Duration(milliseconds: summary.elapsedMs),
+  );
 
   static FolderInfo _folder(TreeMessage tree) => FolderInfo(
     treeUri: tree.treeUri,
@@ -281,9 +375,17 @@ final class PigeonStorageBroker implements StorageBroker {
 /// Kotlin's change notices, handed to the watch they belong to. A notice
 /// for a watch that has stopped meanwhile goes nowhere.
 final class _Notices implements StorageEvents {
-  _Notices(this._watches);
+  _Notices(this._watches, this._progress);
 
   final Map<int, StreamController<void>> _watches;
+  final StreamController<CopyProgress> _progress;
+
+  @override
+  Future<void> copyProgress(String copyId, int files, int bytes) async {
+    if (!_progress.isClosed) {
+      _progress.add(CopyProgress(copyId: copyId, files: files, bytes: bytes));
+    }
+  }
 
   @override
   Future<void> folderChanged(int watchId) async {

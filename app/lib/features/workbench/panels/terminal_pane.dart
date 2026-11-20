@@ -15,6 +15,7 @@ import '../../../application/shell_controller.dart';
 import '../../../application/terminal/terminal_controller.dart';
 import '../../../application/terminal/terminal_view.dart';
 import '../../../core/terminal/extra_keys.dart';
+import '../../../core/terminal/native_addons.dart';
 import '../../../design_system/components/workbench_chrome.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
@@ -529,16 +530,37 @@ class _TerminalBody extends ConsumerWidget {
               ),
             ),
           ),
-        if (message != null)
+        if (message != null || active?.nativeAddon != null)
           Align(
             alignment: Alignment.topCenter,
-            child: _Banner(
-              key: const ValueKey('terminal_message'),
-              text: message,
-              color: colors.danger,
-              actionLabel: 'Dismiss',
-              actionKey: const ValueKey('terminal_message_dismiss'),
-              onAction: controller.dismissMessage,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (message != null)
+                  _Banner(
+                    key: const ValueKey('terminal_message'),
+                    text: message,
+                    color: colors.danger,
+                    actionLabel: 'Dismiss',
+                    actionKey: const ValueKey('terminal_message_dismiss'),
+                    onAction: controller.dismissMessage,
+                  ),
+                // A native build failed for want of a compiler (Phase 5 W4).
+                if ((active, active?.nativeAddon) case (
+                  final tab?,
+                  final kind?,
+                ))
+                  _Banner(
+                    key: const ValueKey('terminal_native_addon'),
+                    text: nativeAddonMessage(kind),
+                    color: colors.warning,
+                    maxLines: 5,
+                    actionLabel: 'Dismiss',
+                    actionKey: const ValueKey('terminal_native_addon_dismiss'),
+                    onAction: () => controller.dismissNativeAddon(tab.sessionId),
+                  ),
+              ],
             ),
           ),
         if (active != null && ending != null)
@@ -567,6 +589,7 @@ class _Banner extends StatelessWidget {
     required this.actionLabel,
     required this.actionKey,
     required this.onAction,
+    this.maxLines = 2,
   });
 
   final String text;
@@ -574,6 +597,7 @@ class _Banner extends StatelessWidget {
   final String actionLabel;
   final Key actionKey;
   final VoidCallback onAction;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -590,7 +614,7 @@ class _Banner extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              maxLines: 2,
+              maxLines: maxLines,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(
                 context,

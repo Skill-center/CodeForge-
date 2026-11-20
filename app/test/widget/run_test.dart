@@ -290,9 +290,13 @@ void main() {
   });
 
   testWidgets('Run waits for the runtime', (tester) async {
+    // Opening the workspace installs the runtime; this install fails.
     final run = await _pump(
       tester,
-      runtime: FakeRuntimeService(state: RuntimeState.notInstalled),
+      runtime: FakeRuntimeService(
+        state: RuntimeState.notInstalled,
+        installFails: RuntimeProblem.corrupt,
+      ),
       open: 'main.js',
     );
     expect(_key('run_runtime_not_ready'), findsOneWidget);

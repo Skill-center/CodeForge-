@@ -4,6 +4,7 @@ import {
   chunks,
   type CellLike,
   type LineLike,
+  type LinkProviderLike,
   NO_RESPONSE,
   TerminalController,
   type TerminalLike,
@@ -78,6 +79,7 @@ class FakeTerminal implements TerminalLike {
   onTitleChange = this.title.event;
   onBell = this.bell.event;
   onSelectionChange = this.selectionChange.event;
+  readonly linkProviders: LinkProviderLike[] = [];
 
   constructor(readonly settings: TerminalSettings) {
     this.options = { ...settings };
@@ -110,6 +112,10 @@ class FakeTerminal implements TerminalLike {
   }
   write(data: string, callback?: () => void): void {
     this.writes.push({ data, callback });
+  }
+  registerLinkProvider(provider: LinkProviderLike) {
+    this.linkProviders.push(provider);
+    return { dispose: () => this.linkProviders.splice(this.linkProviders.indexOf(provider), 1) };
   }
   /** xterm.js parses what was written. */
   parse(): void {
@@ -455,6 +461,39 @@ describe('selection, copy and snapshot', () => {
     controller.gestures.up();
     expect(terminals[0].selection).toBe('');
     expect(terminals[0].focusCalls).toBe(1);
+  });
+
+  it('a tap on a file:line sends it, once, and leaves the keyboard down', () => {
+    terminals[0].cols = 30;
+    terminals[0].viewportY = 0;
+    // Thirty columns: xterm.js wraps the frame after "main.".
+    terminals[0].lines = [
+      new FakeLine('    at main (/w/demo/src/main.'),
+      new FakeLine('js:12:5)', true),
+      new FakeLine('Done'),
+    ];
+    // The wrapped half of the path, on the screen's second row.
+    controller.gestures.down([{ clientX: 3 * CELL_WIDTH + 1, clientY: 1 * CELL_HEIGHT + 5 }]);
+    controller.gestures.up();
+    expect(of('session.link')).toEqual([{ sessionId: 1, text: '/w/demo/src/main.js:12:5' }]);
+    expect(terminals[0].focusCalls).toBe(0);
+    // xterm.js's own link, from the mouse events the tap makes, is the same tap.
+    let links: Parameters<Parameters<LinkProviderLike['provideLinks']>[1]>[0];
+    terminals[0].linkProviders[0].provideLinks(2, (found) => {
+      links = found;
+    });
+    expect(links!).toHaveLength(1);
+    expect(links![0].range).toEqual({ start: { x: 14, y: 1 }, end: { x: 7, y: 2 } });
+    links![0].activate(new MouseEvent('click'), links![0].text);
+    expect(of('session.link')).toHaveLength(1);
+    // A tap beside it focuses as before.
+    controller.gestures.down([{ clientX: 1, clientY: 2 * CELL_HEIGHT + 5 }]);
+    controller.gestures.up();
+    expect(terminals[0].focusCalls).toBe(1);
+    terminals[0].linkProviders[0].provideLinks(3, (found) => {
+      links = found;
+    });
+    expect(links!).toBeUndefined();
   });
 
   it('clears the scrollback on request', () => {

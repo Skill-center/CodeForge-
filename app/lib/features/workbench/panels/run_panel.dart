@@ -2,9 +2,11 @@
 /// Current File and Run Project, then the runs, newest first. Each run is a
 /// terminal session (application/run/run_controller.dart) and has its
 /// status chip (running, the exit code, or the signal that ended it), Stop
-/// while it runs, Run again, and a way to its terminal. What Run could not
-/// do, the workbench says (workbench_screen.dart).
-library;
+/// while it runs, Run again, and a way to its terminal. In a folder from
+/// shared storage a run happens in the folder's copy (ADR-0013): the panel
+/// shows the copy as it is made, with Cancel, and each such run offers the
+/// files runs made there, to export to the folder. What Run could not do,
+/// the workbench says (workbench_screen.dart).
 
 import 'dart:async';
 
@@ -16,6 +18,7 @@ import '../../../application/run/run_controller.dart';
 import '../../../application/runtime_controller.dart';
 import '../../../application/shell_controller.dart';
 import '../../../application/terminal/terminal_controller.dart';
+import '../../../core/errors/failure.dart';
 import '../../../core/files/text_codec.dart';
 import '../../../core/run/run_commands.dart';
 import '../../../design_system/components/buttons.dart';
@@ -24,7 +27,9 @@ import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
 import '../../../design_system/tokens/icons.dart';
+import '../../../services/files/storage_broker.dart';
 import '../../../services/shell/shell_state.dart';
+import '../file_actions.dart';
 
 class RunPanel extends ConsumerWidget {
   const RunPanel({super.key, this.onRunStarted});
@@ -103,6 +108,8 @@ class RunPanel extends ConsumerWidget {
               message: 'Run starts once the Linux runtime is ready.',
             ),
           ),
+        if (run.copying case final copying?)
+          _CopyingRow(progress: copying, onCancel: controller.cancelCopy),
         const SizedBox(height: CfSpacing.sm),
         Expanded(
           child: run.runs.isEmpty
@@ -248,9 +255,26 @@ class _RunRow extends ConsumerWidget {
                     color: colors.textSecondary,
                   ),
                 ),
+                if (run.copy case final copy?)
+                  Text(
+                    copySummaryLine(copy.summary),
+                    key: ValueKey('run_copy:${run.sessionId}'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
               ],
             ),
           ),
+          if (run.copy != null)
+            CfIconButton(
+              key: ValueKey('run_files:${run.sessionId}'),
+              icon: CfIcons.cloudUpload,
+              tooltip: 'Files it made: export to the folder',
+              onPressed: () => unawaited(showRunFiles(context, ref, run)),
+            ),
           if (run.running)
             CfIconButton(
               key: ValueKey('run_stop:${run.sessionId}'),
@@ -288,6 +312,199 @@ class _RunRow extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// The folder being copied for a run: how far it is, and Cancel.
+class _CopyingRow extends StatelessWidget {
+  const _CopyingRow({required this.progress, required this.onCancel});
+
+  final CopyProgress progress;
+  final Future<void> Function() onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      key: const ValueKey('run_copying'),
+      padding: const EdgeInsets.fromLTRB(
+        CfSpacing.lg,
+        CfSpacing.sm,
+        CfSpacing.xs,
+        0,
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: CfSpacing.sm),
+          Expanded(
+            child: Text(
+              progress.files == 0
+                  ? 'Copying the folder for the run…'
+                  : 'Copying the folder for the run: ${progress.files} '
+                        'files, ${sizeLabel(progress.bytes)}',
+              key: const ValueKey('run_copying_text'),
+              style: textTheme.bodySmall,
+            ),
+          ),
+          CfButton(
+            key: const ValueKey('run_copy_cancel'),
+            label: 'Cancel',
+            variant: CfButtonVariant.ghost,
+            onPressed: () => unawaited(onCancel()),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The files runs made in [run]'s folder copy: the user picks which to
+/// export to the folder (ADR-0013: a run's writes never reach the folder
+/// by themselves).
+Future<void> showRunFiles(
+  BuildContext context,
+  WidgetRef ref,
+  RunRecord run,
+) async {
+  final controller = ref.read(runControllerProvider.notifier);
+  final changes = await controller.changes(run);
+  if (!context.mounted) {
+    return;
+  }
+  switch (changes) {
+    case Err(:final failure):
+      showFileMessage(context, failure.message);
+    case Ok(:final value):
+      final picked = await showDialog<List<String>>(
+        context: context,
+        builder: (_) => _RunFilesDialog(changes: value),
+      );
+      if (picked == null || picked.isEmpty || !context.mounted) {
+        return;
+      }
+      final exported = await controller.export(run, picked);
+      if (!context.mounted) {
+        return;
+      }
+      showFileMessage(context, switch (exported) {
+        Err(:final failure) => failure.message,
+        Ok(:final value) when value.failures.isEmpty =>
+          value.exported == 1
+              ? 'Exported 1 file to the folder.'
+              : 'Exported ${value.exported} files to the folder.',
+        Ok(:final value) =>
+          'Exported ${value.exported} of ${picked.length}; '
+              '${value.failures.first.path}: '
+              '${value.failures.first.failure.message}',
+      });
+  }
+}
+
+class _RunFilesDialog extends StatefulWidget {
+  const _RunFilesDialog({required this.changes});
+
+  final CopyChanges changes;
+
+  @override
+  State<_RunFilesDialog> createState() => _RunFilesDialogState();
+}
+
+class _RunFilesDialogState extends State<_RunFilesDialog> {
+  late final Set<String> _picked = {
+    for (final change in widget.changes.changes) change.path,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final changes = widget.changes;
+    final colors = CfColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
+    final notes = [
+      if (changes.more > 0) '${changes.more} more not listed',
+      if (changes.skippedFolders > 0)
+        'dependency folders such as node_modules stay in the copy',
+      if (changes.unexportable > 0)
+        '${changes.unexportable} with names the folder can’t take',
+    ];
+    return CfAlertDialog(
+      key: const ValueKey('run_files_dialog'),
+      title: const Text('Files the runs made'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            changes.changes.isEmpty
+                ? 'The runs made no files in the folder’s copy, and changed '
+                      'none of its files.'
+                : 'These are in the folder’s copy only. Export writes the '
+                      'ones you pick to the folder, replacing what is there.',
+            style: textTheme.bodySmall,
+          ),
+          for (final change in changes.changes)
+            CheckboxListTile(
+              key: ValueKey('run_file:${change.path}'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              value: _picked.contains(change.path),
+              onChanged: (value) => setState(() {
+                if (value ?? false) {
+                  _picked.add(change.path);
+                } else {
+                  _picked.remove(change.path);
+                }
+              }),
+              title: Text(
+                change.path,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${change.created ? 'New' : 'Changed'} · '
+                '${sizeLabel(change.size)}',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+            ),
+          if (notes.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: CfSpacing.sm),
+              child: Text(
+                '${notes.join('; ')}.',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        CfButton(
+          key: const ValueKey('run_files_cancel'),
+          label: changes.changes.isEmpty ? 'Close' : 'Cancel',
+          variant: CfButtonVariant.ghost,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        if (changes.changes.isNotEmpty)
+          CfButton(
+            key: const ValueKey('run_export'),
+            label: 'Export to folder',
+            icon: CfIcons.cloudUpload,
+            onPressed: _picked.isEmpty
+                ? null
+                : () => Navigator.of(context).pop([
+                    for (final change in changes.changes)
+                      if (_picked.contains(change.path)) change.path,
+                  ]),
+          ),
+      ],
     );
   }
 }

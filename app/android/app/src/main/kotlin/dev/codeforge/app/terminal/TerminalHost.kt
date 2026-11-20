@@ -71,6 +71,7 @@ class TerminalHost(context: Context, messenger: BinaryMessenger) : TerminalApi {
     override fun start(spec: TerminalSpecMessage, callback: (Result<TerminalStartMessage>) -> Unit) {
         val request = TerminalSpec(
             project = spec.project,
+            copy = spec.copy,
             program = spec.program,
             arguments = spec.arguments,
             environment = spec.environment,

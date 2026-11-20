@@ -28,6 +28,8 @@ class RuntimeCommands(
             launcher: File? = config.nativeLibraryDirectory?.let { File(it, LAUNCHER) },
             /** Where projects live (`<filesDir>/workspaces`): the folders a terminal may start in. */
             projects: File? = null,
+            /** Where folders' run copies live (`<filesDir>/copies`, Phase 5 W4): a terminal may start in one too. */
+            copies: File? = null,
         ): RuntimeCommands {
             val environment = RuntimeEnvironment(config, host)
             val sessions = SessionRegistry(killGroup)
@@ -50,6 +52,7 @@ class RuntimeCommands(
                 stateDirectory = File(environment.root, "codeforge/terminal"),
                 projects = projects,
                 delivery = delivery,
+                copies = copies,
             )
             return RuntimeCommands(environment, sessions, runner, toolchain, terminals)
         }

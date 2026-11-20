@@ -38,6 +38,7 @@ class TerminalSpecMessage {
     required this.rows,
     required this.columns,
     this.project,
+    this.copy,
     this.program,
     this.bufferBytes,
     this.label,
@@ -46,6 +47,10 @@ class TerminalSpecMessage {
   /// A project's folder name in `<filesDir>/workspaces`, which Kotlin
   /// resolves itself; the runtime's home when null.
   String? project;
+
+  /// A folder's run copy by its id in `<filesDir>/copies` (Phase 5 W4),
+  /// which Kotlin resolves itself; never set with [project].
+  String? copy;
 
   /// A name in the runtime's bin; null is bash, interactive, with
   /// CodeForge's rc file.
