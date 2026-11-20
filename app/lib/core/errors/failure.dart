@@ -158,6 +158,10 @@ enum TerminalProblem {
   /// The session still runs, so it cannot be forgotten.
   stillRunning('still_running'),
 
+  /// Android ended the app while the session ran, and its processes ended
+  /// with it (Phase 5 W5): a tombstone after the next start.
+  system('system'),
+
   /// No terminal host here: tests, or a build without one.
   unavailable('unavailable'),
 

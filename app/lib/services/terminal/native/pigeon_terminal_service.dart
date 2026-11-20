@@ -295,4 +295,5 @@ const Map<TerminalProblem, String> _messages = {
   TerminalProblem.notRunning: 'That terminal has ended.',
   TerminalProblem.inputFull: 'The terminal is not taking input fast enough.',
   TerminalProblem.stillRunning: 'That terminal still runs.',
+  TerminalProblem.system: 'Android ended the app while the terminal ran.',
 };

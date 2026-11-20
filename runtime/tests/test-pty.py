@@ -23,6 +23,8 @@ the Android build (TerminalSessionTest.kt). It checks that:
     program writing it and the launcher's memory stays bounded; input larger
     than every buffer arrives whole to a program that reads it late;
   * a program that cannot start is reported, and so is a bad size;
+  * the limits asked for (Phase 5 W5: a file size, an OOM score) hold in
+    the session's shell;
   * after every test, no process the test started is left.
 
 It also measures what the relay adds to a keystroke's echo (ADR-0014): the
@@ -117,7 +119,7 @@ def percentile(values, fraction):
 class Session:
     """One launcher in terminal mode, with its stdin and stdout as pipes."""
 
-    def __init__(self, test, program, size="24x80", grace=300):
+    def __init__(self, test, program, size="24x80", grace=300, limits=()):
         self.status_file = os.path.join(test.directory, "status")
         # Readline's bracketed paste puts escape sequences around every
         # command's output, which the patterns below would have to skip.
@@ -133,7 +135,8 @@ class Session:
             "INPUTRC": inputrc,
         }
         self.process = subprocess.Popen(
-            [SPAWN, "--status", self.status_file, "--grace", str(grace), "--terminal", size, "--"] + program,
+            [SPAWN, "--status", self.status_file, "--grace", str(grace)] + list(limits)
+            + ["--terminal", size, "--"] + program,
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             env=environment, cwd=test.directory)
         self.output = b""
@@ -528,6 +531,17 @@ class TerminalModeTest(unittest.TestCase):
         status = session.status()
         self.assertEqual(status["reason"], "exec_failed")
         self.assertEqual(status["exec_errno"], "2")
+        self.assertEqual(status["mode"], "terminal")
+
+    def test_the_limits_hold_in_the_sessions_shell(self):
+        session = self.shell(limits=["--fsize", "1048576", "--oom-score-adj", "900"])
+        mark = len(session.output)
+        session.type("echo F=$(ulimit -f) O=$(cat /proc/self/oom_score_adj)\r")
+        session.expect(rb"\r\nF=1024 O=900\r\n", start=mark)
+        session.prompt()
+        status = session.status()
+        self.assertEqual(status["fsize_limit"], "1048576")
+        self.assertEqual(status["oom_score_adj"], "900")
         self.assertEqual(status["mode"], "terminal")
 
     def test_a_bad_size_is_refused(self):

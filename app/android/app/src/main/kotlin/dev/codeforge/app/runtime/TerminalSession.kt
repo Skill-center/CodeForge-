@@ -58,6 +58,12 @@ enum class TerminalFailure(val code: String) {
     /** The relay between the app and the terminal stopped: a frame out of step, a broken pipe. */
     LOST("lost"),
 
+    /**
+     * Android ended the app while the session ran, and its processes ended
+     * with it (Phase 5 W5): what the next start's tombstone says.
+     */
+    SYSTEM("system"),
+
     /** No session has that id. */
     NO_SUCH_SESSION("no_such_session"),
 
@@ -196,6 +202,8 @@ class TerminalSession internal constructor(
      * the replay's start: the reader waits until the view has drawn it.
      */
     fun attach(listener: TerminalOutputListener): TerminalReplay = lock.withLock {
+        // A buffer trimmed while hidden holds all it can again (W5).
+        ring.resize(bufferBytes)
         var start = ring.start
         var bytes = ring.copy(start, ring.end)
         if (start > 0) {
@@ -212,6 +220,20 @@ class TerminalSession internal constructor(
         credit.signalAll()
         TerminalReplay(start, bytes)
     }
+
+    /**
+     * Under memory pressure (Phase 5 W5): a session no view shows keeps only
+     * the last [bytes] of its output until one attaches again. False when a
+     * view is attached, which keeps its buffer whole.
+     */
+    fun trimBuffer(bytes: Int): Boolean = lock.withLock {
+        if (output != null) return false
+        ring.resize(bytes.coerceIn(1, bufferBytes))
+        true
+    }
+
+    /** What the buffer holds at most now: [bufferBytes], or less while trimmed. */
+    val bufferCapacity: Int get() = lock.withLock { ring.capacity }
 
     /** The view is gone: the reader reads freely into the buffer from now on. */
     fun detach() {
@@ -549,17 +571,25 @@ internal fun InputStream.readNBytesCompat(limit: Int): ByteArray {
 
 /**
  * The last [capacity] bytes of a stream, by their offset in it. Not
- * thread-safe: its owner holds a lock.
+ * thread-safe: its owner holds a lock. Since Phase 5 W5 it can be resized
+ * ([resize]): a hidden session's buffer shrinks under memory pressure, and
+ * grows back when a view attaches.
  */
-internal class OutputRing(val capacity: Int) {
-    private val data = ByteArray(capacity)
+internal class OutputRing(capacity: Int) {
+    var capacity: Int = capacity
+        private set
+
+    private var data = ByteArray(capacity)
 
     /** The offset after the last byte written: every byte the stream has had. */
     var end = 0L
         private set
 
+    /** How many of the bytes before [end] are kept. */
+    private var held = 0L
+
     /** The oldest offset still kept. */
-    val start: Long get() = maxOf(0L, end - capacity)
+    val start: Long get() = end - held
 
     fun write(bytes: ByteArray, offset: Int, length: Int) {
         var from = offset
@@ -570,6 +600,7 @@ internal class OutputRing(val capacity: Int) {
             end += (left - capacity).toLong()
             left = capacity
         }
+        held = minOf(capacity.toLong(), held + left)
         while (left > 0) {
             val at = (end % capacity).toInt()
             val chunk = minOf(left, capacity - at)
@@ -577,6 +608,29 @@ internal class OutputRing(val capacity: Int) {
             from += chunk
             left -= chunk
             end += chunk.toLong()
+        }
+    }
+
+    /**
+     * Holds at most [newCapacity] bytes from now on, keeping the last ones
+     * it has (all of them when it grows). Offsets do not change.
+     */
+    fun resize(newCapacity: Int) {
+        require(newCapacity > 0) { "a ring holds at least a byte" }
+        if (newCapacity == capacity) return
+        val keep = minOf(newCapacity.toLong(), held)
+        val kept = copy(end - keep, end)
+        data = ByteArray(newCapacity)
+        capacity = newCapacity
+        held = keep
+        var position = end - keep
+        var written = 0
+        while (written < kept.size) {
+            val at = (position % newCapacity).toInt()
+            val chunk = minOf(kept.size - written, newCapacity - at)
+            System.arraycopy(kept, written, data, at, chunk)
+            position += chunk.toLong()
+            written += chunk
         }
     }
 

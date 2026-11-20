@@ -14,9 +14,16 @@ library's, and the build type's, as AGP merged them for the APK):
     (dataExtractionRules);
   * for the release variant (Phase 4 W7), declares any permission but
     INTERNET (Phase 5 W1: the userland's tools reach the network when the
-    user runs them) and androidx.core's own signature permission: the store
-    listing and the Data safety answers (docs/store/) name exactly these,
-    and this keeps that true;
+    user runs them), the terminal sessions' foreground service's three
+    (Phase 5 W5: FOREGROUND_SERVICE, FOREGROUND_SERVICE_SPECIAL_USE,
+    POST_NOTIFICATIONS) and androidx.core's own signature permission: the
+    store listing and the Data safety answers (docs/store/) name exactly
+    these, and this keeps that true;
+  * declares a service that is not the terminal sessions' one
+    (dev.codeforge.app.terminal.SessionService, Phase 5 W5), or declares it
+    other than as a foreground service of the special-use type with its
+    subtype, not exported (Play Console's declaration describes exactly
+    that one);
   * keeps the native libraries inside the APK (extractNativeLibs="false").
     The sealed runtime's executables ship as JNI libraries that Android must
     extract into the native library directory, the one place an app
@@ -80,8 +87,17 @@ EXPECTED_BACKUP = {
 # outside the app.
 RELEASE_PERMISSIONS = {
     'android.permission.INTERNET',
+    # The terminal sessions' foreground service (Phase 5 W5): its type's
+    # permission, the service permission it needs, and its notification.
+    'android.permission.FOREGROUND_SERVICE',
+    'android.permission.FOREGROUND_SERVICE_SPECIAL_USE',
+    'android.permission.POST_NOTIFICATIONS',
     f'{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
 }
+
+# The one service the app declares (Phase 5 W5), and how.
+SESSION_SERVICE = f'{APP_ID}.terminal.SessionService'
+SPECIAL_USE_SUBTYPE = 'android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE'
 BACKUP_ATTRIBUTES = set(EXPECTED_BACKUP) | {
     'backupInForeground',
     'restoreAnyVersion',
@@ -111,11 +127,31 @@ def check(xml_text, release=False):
             findings.append(f'storage permission declared: {name}')
         elif release and name not in RELEASE_PERMISSIONS:
             findings.append(f'{name} in the release build: the listing and the Data safety '
-                            'answers name INTERNET alone (docs/store/)')
+                            'answers name INTERNET and the session service\'s three alone '
+                            '(docs/store/)')
     application = root.find('application')
     if application is None:
         findings.append('no <application> element')
         return findings, checked
+    services = application.findall('service')
+    checked.append('services: ' + (', '.join(sorted(
+        (sv.get(ANDROID + 'name') or '?') for sv in services)) or 'none'))
+    for service in services:
+        name = service.get(ANDROID + 'name') or ''
+        if name.startswith('.'):
+            name = APP_ID + name
+        if name != SESSION_SERVICE:
+            findings.append(f'a service the app does not declare itself: {name}')
+            continue
+        kind = service.get(ANDROID + 'foregroundServiceType')
+        if kind != 'specialUse':
+            findings.append(f'{name} is a foreground service of type {kind!r}, not specialUse')
+        if service.get(ANDROID + 'exported') != 'false':
+            findings.append(f'{name} is exported')
+        subtypes = [prop.get(ANDROID + 'value') for prop in service.findall('property')
+                    if prop.get(ANDROID + 'name') == SPECIAL_USE_SUBTYPE]
+        if not subtypes or not (subtypes[0] or '').strip():
+            findings.append(f'{name} names no special-use subtype')
     legacy = application.get(ANDROID + 'requestLegacyExternalStorage')
     if legacy not in (None, 'false'):
         findings.append(f'requestLegacyExternalStorage="{legacy}"')
@@ -161,7 +197,12 @@ GOOD = f'''<manifest xmlns:android="http://schemas.android.com/apk/res/android" 
   <uses-permission android:name="android.permission.INTERNET"/>
   <application android:allowBackup="true" android:backupAgent="{APP_ID}.CodeForgeBackupAgent"
       android:fullBackupOnly="true" android:fullBackupContent="@xml/backup_rules"
-      android:dataExtractionRules="@xml/data_extraction_rules"/>
+      android:dataExtractionRules="@xml/data_extraction_rules">
+    <service android:name="{APP_ID}.terminal.SessionService" android:exported="false"
+        android:foregroundServiceType="specialUse">
+      <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Terminal sessions"/>
+    </service>
+  </application>
 </manifest>'''
 
 BAD = {
@@ -179,17 +220,31 @@ BAD = {
     'the old rules only': GOOD.replace('android:dataExtractionRules="@xml/data_extraction_rules"', ''),
     'an extra backup attribute': GOOD.replace('<application ', '<application android:backupInForeground="true" '),
     'native libraries kept in the APK': GOOD.replace('<application ', '<application android:extractNativeLibs="false" '),
+    'the session service as dataSync': GOOD.replace('foregroundServiceType="specialUse"', 'foregroundServiceType="dataSync"'),
+    'the session service without its subtype': GOOD.replace(
+        '<property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Terminal sessions"/>', ''),
+    'the session service exported': GOOD.replace('android:exported="false"', 'android:exported="true"'),
+    'a service of a library': GOOD.replace(
+        '</application>', '<service android:name="com.example.Tracker" android:exported="false"/></application>'),
 }
 
-# A release build: INTERNET and androidx.core's signature permission.
+# A release build: INTERNET, the session service's three and androidx.core's
+# signature permission.
 GOOD_RELEASE = GOOD.replace(
     'android.permission.INTERNET"/>',
-    f'android.permission.INTERNET"/>\n  <uses-permission android:name="{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>')
+    'android.permission.INTERNET"/>\n'
+    '  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n'
+    '  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>\n'
+    '  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n'
+    f'  <uses-permission android:name="{APP_ID}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>')
 BAD_RELEASE = {
     'a network-state permission in a release build': GOOD_RELEASE.replace(
         '<application ', '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n  <application '),
     'another permission in a release build': GOOD_RELEASE.replace(
-        '<application ', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n  <application '),
+        '<application ', '<uses-permission android:name="android.permission.CAMERA"/>\n  <application '),
+    'another foreground-service type in a release build': GOOD_RELEASE.replace(
+        '<application ',
+        '<uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>\n  <application '),
 }
 
 

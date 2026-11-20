@@ -154,8 +154,13 @@ final class ScriptedTerminalService implements TerminalService {
     return Ok(TerminalReplay(end - buffer.length, buffer));
   }
 
+  /// The sessions detached, in order (Phase 5 W5: views let go).
+  final List<int> detached = [];
+
   @override
-  Future<void> detach(int id) async {}
+  Future<void> detach(int id) async {
+    detached.add(id);
+  }
 
   @override
   Future<Result<void>> end(int id) async {

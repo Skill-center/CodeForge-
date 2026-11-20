@@ -45,14 +45,17 @@ class RuntimeCommands(
             val delivery = ScheduledThreadPoolExecutor(1) { task ->
                 Thread(task, "codeforge-terminal-delivery").apply { isDaemon = true }
             }.apply { removeOnCancelPolicy = true }
+            val terminalState = File(environment.root, "codeforge/terminal")
             val terminals = Terminals(
                 environment = environment,
                 launcher = executable,
                 sessions = sessions,
-                stateDirectory = File(environment.root, "codeforge/terminal"),
+                stateDirectory = terminalState,
                 projects = projects,
                 delivery = delivery,
                 copies = copies,
+                // The sessions on disk, for the next process's tombstones (Phase 5 W5).
+                ledger = SessionLedger(File(terminalState, Terminals.LEDGER_FILE)),
             )
             return RuntimeCommands(environment, sessions, runner, toolchain, terminals)
         }

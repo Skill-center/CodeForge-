@@ -17,7 +17,8 @@
  *   3. gives the command a clean signal state: every signal at its default
  *      and none blocked, so that the app's ignored SIGPIPE is not inherited;
  *   4. sets RLIMIT_CORE to 0: a crash writes no core file into the app's
- *      storage;
+ *      storage; and, when asked (Phase 5 W5, docs/SECURITY.md §2.2), the
+ *      limits below;
  *   5. starts the command and waits for it;
  *   6. ends what is left once the command exits, or everything when it is
  *      asked to stop (SIGTERM, SIGINT or SIGHUP, as Process.destroy() sends):
@@ -26,7 +27,26 @@
  *   7. writes what happened to the status file, as key=value lines.
  *
  * Usage:
- *   libcodeforge-spawn.so [--status FILE] [--grace MS] -- PROGRAM [ARGUMENT...]
+ *   libcodeforge-spawn.so [--status FILE] [--grace MS] [LIMITS] -- PROGRAM [ARGUMENT...]
+ *
+ * LIMITS (Phase 5 W5), each for this program and everything it starts, set
+ * before the command starts:
+ *
+ *   --fsize BYTES          RLIMIT_FSIZE, soft and hard: a write past BYTES in
+ *                          a file fails, and its writer gets SIGXFSZ;
+ *   --nproc COUNT          RLIMIT_NPROC, soft and hard: a fork fails (EAGAIN)
+ *                          while the user has COUNT processes and threads,
+ *                          the app's own included, since Linux counts them
+ *                          all for the user;
+ *   --oom-score-adj SCORE  /proc/self/oom_score_adj raised to SCORE (0 to
+ *                          1000) when it is lower: the kernel's OOM killer
+ *                          then takes the command's processes before the
+ *                          app's.
+ *
+ * A limit is only ever lowered and a score only raised: never above a limit
+ * the system set, never below a score it set. What is in effect goes to the
+ * status file (fsize_limit, nproc_limit: a number or unlimited;
+ * oom_score_adj: the score, or -1 when it could not be read).
  *
  * PROGRAM is a path; the environment and the working directory are the
  * caller's. Exit status: the command's own, 128 + the signal that ended it,
@@ -34,7 +54,8 @@
  * (127 for a program that is not there). The status file says which.
  *
  * Status file keys: pid (this program's), group (its process group after
- * setsid, which is the pid), subreaper (1 or 0), then at the end: reason
+ * setsid, which is the pid), subreaper (1 or 0), the limits in effect, then
+ * at the end: reason
  * (exited, signaled, stopped,
  * exec_failed or spawn_failed), exit or signal (the command's), exec_errno,
  * stop_signal (what asked this program to stop), ended (processes it had to
@@ -44,7 +65,7 @@
  *
  * Terminal mode (Phase 5 W2; docs/TERMINAL_ARCHITECTURE.md, ADR-0014):
  *
- *   libcodeforge-spawn.so [--status FILE] [--grace MS] --terminal ROWSxCOLS -- PROGRAM [ARGUMENT...]
+ *   libcodeforge-spawn.so [--status FILE] [--grace MS] [LIMITS] --terminal ROWSxCOLS -- PROGRAM [ARGUMENT...]
  *
  * The command runs on a pseudo-terminal this program opens (posix_openpt,
  * grantpt, unlockpt and ptsname, from POSIX; TIOCSCTTY and TIOCSWINSZ, from
@@ -133,6 +154,8 @@ static const char *status_path;
 static pid_t child_pid;
 static int terminal_mode;
 static char tty_name[64];
+/* The limits in effect, as status file lines (Phase 5 W5). */
+static char limits_text[160];
 
 enum {
     CAUSE_NONE,
@@ -195,8 +218,8 @@ static void report(const char *body) {
     char child[32] = "";
     if (child_pid > 0) snprintf(child, sizeof(child), "child=%d\n", (int) child_pid);
     char text[1024];
-    snprintf(text, sizeof(text), "pid=%d\ngroup=%d\nsubreaper=%d\n%s%s%s",
-        (int) self, (int) group, subreaper, terminal, child, body);
+    snprintf(text, sizeof(text), "pid=%d\ngroup=%d\nsubreaper=%d\n%s%s%s%s",
+        (int) self, (int) group, subreaper, limits_text, terminal, child, body);
     write_status(text);
 }
 
@@ -670,8 +693,70 @@ static void drain(int master, long limit_ms) {
     }
 }
 
+/*
+ * Lowers `resource` to `wanted`, soft and hard, for this program and what it
+ * starts: never above the limit already there (0 for `wanted` leaves it).
+ */
+static void lower_limit(int resource, unsigned long long wanted) {
+    if (wanted == 0) return;
+    struct rlimit current;
+    if (getrlimit(resource, &current) != 0) return;
+    rlim_t value = (rlim_t) wanted;
+    if (current.rlim_max != RLIM_INFINITY && value > current.rlim_max) value = current.rlim_max;
+    if (current.rlim_cur != RLIM_INFINITY && value > current.rlim_cur) value = current.rlim_cur;
+    struct rlimit lowered = {value, value};
+    setrlimit(resource, &lowered);
+}
+
+/* /proc/self/oom_score_adj, or -1001 when it cannot be read. */
+static long read_oom_score(void) {
+    int file = open("/proc/self/oom_score_adj", O_RDONLY | O_CLOEXEC);
+    if (file < 0) return -1001;
+    char buffer[16];
+    ssize_t length = read(file, buffer, sizeof(buffer) - 1);
+    close(file);
+    if (length <= 0) return -1001;
+    buffer[length] = '\0';
+    char *end;
+    long score = strtol(buffer, &end, 10);
+    return end == buffer ? -1001 : score;
+}
+
+/* Raises /proc/self/oom_score_adj to `wanted` when it is lower; never lowers it. */
+static void raise_oom_score(long wanted) {
+    if (wanted < 0) return;
+    long current = read_oom_score();
+    if (current == -1001 || current >= wanted) return;
+    int file = open("/proc/self/oom_score_adj", O_WRONLY | O_CLOEXEC);
+    if (file < 0) return;
+    char text[16];
+    int length = snprintf(text, sizeof(text), "%ld", wanted);
+    ssize_t ignored = write(file, text, (size_t) length);
+    (void) ignored;
+    close(file);
+}
+
+/* `name=value` for one limit in effect: a number, or unlimited. */
+static int describe_limit(char *out, size_t size, const char *name, int resource) {
+    struct rlimit current;
+    if (getrlimit(resource, &current) != 0) return snprintf(out, size, "%s=unknown\n", name);
+    if (current.rlim_cur == RLIM_INFINITY) return snprintf(out, size, "%s=unlimited\n", name);
+    return snprintf(out, size, "%s=%llu\n", name, (unsigned long long) current.rlim_cur);
+}
+
+/* A whole decimal number from 1 to `max`, or 0 when `text` is not one. */
+static unsigned long long parse_count(const char *text, unsigned long long max) {
+    if (text[0] < '0' || text[0] > '9') return 0;
+    char *end;
+    errno = 0;
+    unsigned long long value = strtoull(text, &end, 10);
+    if (errno != 0 || *end != '\0' || value > max) return 0;
+    return value;
+}
+
 static int usage(void) {
-    fputs("usage: libcodeforge-spawn.so [--status FILE] [--grace MS] [--terminal ROWSxCOLS] -- PROGRAM [ARGUMENT...]\n",
+    fputs("usage: libcodeforge-spawn.so [--status FILE] [--grace MS] [--fsize BYTES] [--nproc COUNT]"
+          " [--oom-score-adj SCORE] [--terminal ROWSxCOLS] -- PROGRAM [ARGUMENT...]\n",
         stderr);
     return 125;
 }
@@ -680,6 +765,9 @@ int main(int argc, char **argv) {
     long grace_ms = 1000;
     unsigned long rows = 24;
     unsigned long columns = 80;
+    unsigned long long fsize = 0;
+    unsigned long long nproc = 0;
+    long oom_score = -1;
     int index = 1;
     for (; index < argc; index++) {
         if (strcmp(argv[index], "--status") == 0 && index + 1 < argc) {
@@ -691,6 +779,22 @@ int main(int argc, char **argv) {
         } else if (strcmp(argv[index], "--terminal") == 0 && index + 1 < argc) {
             if (parse_size(argv[++index], &rows, &columns) != 0) return usage();
             terminal_mode = 1;
+        } else if (strcmp(argv[index], "--fsize") == 0 && index + 1 < argc) {
+            fsize = parse_count(argv[++index], 1ULL << 62);
+            if (fsize == 0) return usage();
+        } else if (strcmp(argv[index], "--nproc") == 0 && index + 1 < argc) {
+            nproc = parse_count(argv[++index], 1ULL << 31);
+            if (nproc == 0) return usage();
+        } else if (strcmp(argv[index], "--oom-score-adj") == 0 && index + 1 < argc) {
+            const char *score = argv[++index];
+            /* 0 is a score too: parse_count's 0 means "not a number" only when the text is not "0". */
+            if (strcmp(score, "0") == 0) {
+                oom_score = 0;
+            } else {
+                unsigned long long parsed = parse_count(score, 1000);
+                if (parsed == 0) return usage();
+                oom_score = (long) parsed;
+            }
         } else if (strcmp(argv[index], "--") == 0) {
             index++;
             break;
@@ -709,6 +813,21 @@ int main(int argc, char **argv) {
     subreaper = prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) == 0;
     struct rlimit no_core = {0, 0};
     setrlimit(RLIMIT_CORE, &no_core);
+    /* The limits, before the command starts: it and what it starts inherit them. */
+    lower_limit(RLIMIT_FSIZE, fsize);
+    lower_limit(RLIMIT_NPROC, nproc);
+    raise_oom_score(oom_score);
+    {
+        size_t used = 0;
+        used += (size_t) describe_limit(limits_text + used, sizeof(limits_text) - used, "fsize_limit", RLIMIT_FSIZE);
+        if (used < sizeof(limits_text)) {
+            used += (size_t) describe_limit(limits_text + used, sizeof(limits_text) - used, "nproc_limit", RLIMIT_NPROC);
+        }
+        long score = read_oom_score();
+        if (used < sizeof(limits_text)) {
+            snprintf(limits_text + used, sizeof(limits_text) - used, "oom_score_adj=%ld\n", score == -1001 ? -1L : score);
+        }
+    }
 
     char text[512];
     int master = -1;

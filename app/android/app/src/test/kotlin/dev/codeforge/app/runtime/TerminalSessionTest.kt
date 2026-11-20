@@ -344,6 +344,112 @@ class TerminalSessionTest {
         assertTrue(runCatching { ring.copy(14, 23) }.isFailure)
     }
 
+    @Test
+    fun aTrimmedRingKeepsItsLastBytesAndGrowsBackWithoutInventingAny() {
+        val ring = OutputRing(8)
+        ring.write("abcdefghij".toByteArray(), 0, 10)
+        ring.resize(3)
+        assertEquals(3, ring.capacity)
+        assertEquals(7L, ring.start)
+        assertEquals("hij", String(ring.copy(7, 10)))
+        ring.write("kl".toByteArray(), 0, 2)
+        assertEquals("jkl", String(ring.copy(9, 12)))
+        // Grown back, it holds what it kept, never bytes it lost.
+        ring.resize(8)
+        assertEquals(9L, ring.start)
+        assertEquals("jkl", String(ring.copy(9, 12)))
+        ring.write("mnopqrst".toByteArray(), 0, 8)
+        assertEquals(12L, ring.start)
+        assertEquals("mnopqrst", String(ring.copy(12, 20)))
+    }
+
+    // ── Tombstones and memory pressure (Phase 5 W5) ──────────────────
+
+    @Test
+    fun theLedgerRecordsSessionsAndANewProcessFindsTombstones() {
+        val ledgerFile = File(root, "codeforge/terminal/${Terminals.LEDGER_FILE}")
+        val first = terminals(ledger = SessionLedger(ledgerFile))
+        val exiting = start(first, TerminalSpec(program = "sh", arguments = listOf("-c", "exit 3"), label = "three"))
+        awaitExit(exiting)
+        val running = start(first, TerminalSpec(program = "sleep", arguments = listOf(marker), label = "a sleep"))
+        awaitRecorded(ledgerFile) { entries -> entries.any { it.id == running.id && it.running } && entries.any { it.id == exiting.id && !it.running } }
+
+        // The app's process ends here; the next one reads the ledger.
+        val second = terminals(ledger = SessionLedger(ledgerFile), sessions = SessionRegistry(killGroup = { group -> CommandRunnerTest.killGroup(group) }))
+        val graves = second.tombstones()
+        assertEquals(listOf(exiting.id, running.id), graves.map { it.id })
+        assertEquals(TerminalTombstone(exiting.id, "three", exitCode = 3, signal = null, failure = null), graves[0])
+        assertEquals(TerminalTombstone(running.id, "a sleep", exitCode = null, signal = null, failure = TerminalFailure.SYSTEM), graves[1])
+        assertEquals(0, second.running())
+        // A new session never takes a tombstone's id.
+        val next = start(second, TerminalSpec(program = "sh", arguments = listOf("-c", "exit 0")))
+        assertTrue(next.id > running.id)
+        awaitExit(next)
+        // Removing a tombstone forgets it, on disk too.
+        assertTrue(second.remove(exiting.id))
+        assertNull(second.tombstone(exiting.id))
+        val third = terminals(ledger = SessionLedger(ledgerFile), sessions = SessionRegistry(killGroup = { group -> CommandRunnerTest.killGroup(group) }))
+        assertEquals(listOf(running.id, next.id), third.tombstones().map { it.id })
+        assertEquals(0, third.tombstones().single { it.id == next.id }.exitCode)
+        running.end()
+    }
+
+    @Test
+    fun aLedgerThatCannotBeReadLeavesNoTombstones() {
+        val ledgerFile = File(root, "codeforge/terminal/${Terminals.LEDGER_FILE}")
+        ledgerFile.parentFile!!.mkdirs()
+        ledgerFile.writeText("not a ledger\n1\t1\t-\t-\t-\tx\n")
+        assertTrue(terminals(ledger = SessionLedger(ledgerFile)).tombstones().isEmpty())
+        ledgerFile.writeText("${SessionLedger.HEADER}\nzero\t1\t-\t-\t-\tx\n")
+        assertTrue(SessionLedger(ledgerFile).read().isEmpty())
+        // A label with a tab or a line break is written as one line.
+        SessionLedger(ledgerFile).write(listOf(LedgerEntry(7, "a\tb\nc", running = true)))
+        assertEquals(listOf(LedgerEntry(7, "a b c", running = true)), SessionLedger(ledgerFile).read())
+    }
+
+    @Test
+    fun memoryPressureTrimsOnlyWhatNoViewShowsAndAViewGetsItAllBack() {
+        val terminals = terminals()
+        val shown = Screen()
+        val visible = start(terminals, TerminalSpec(), shown)
+        val hidden = start(terminals, TerminalSpec(program = "sh", arguments = listOf("-c", "seq 1 20000; sleep $marker")))
+        // Every number and its line ending (the terminal's \r\n), all read.
+        awaitBytes(hidden, (1..20000).sumOf { it.toString().length + 2 }.toLong())
+        assertEquals(1, terminals.trimHidden(1024))
+        assertEquals(1024, hidden.bufferCapacity)
+        assertEquals(TerminalSession.DEFAULT_BUFFER_BYTES, visible.bufferCapacity)
+        // A view that attaches gets the last of it, and the buffer grows back.
+        val replay = hidden.attach(Screen())
+        assertTrue(replay.bytes.size <= 1024)
+        assertTrue(String(replay.bytes).endsWith("20000\r\n"))
+        assertEquals(TerminalSession.DEFAULT_BUFFER_BYTES, hidden.bufferCapacity)
+        assertEquals(TerminalState.RUNNING, hidden.state)
+        hidden.end()
+        visible.end()
+    }
+
+    // ── Limits (Phase 5 W5) ──────────────────────────────────────────
+
+    @Test
+    fun aSessionRunsUnderItsLimitsAndTheLauncherIsAskedForThem() {
+        assertEquals(
+            listOf("--fsize", "4294967296", "--nproc", "2048", "--oom-score-adj", "800"),
+            SessionLimits.SESSION.arguments(),
+        )
+        assertEquals(emptyList<String>(), SessionLimits.NONE.arguments())
+        val screen = Screen()
+        val session = start(terminals(), TerminalSpec(), screen)
+        session.write("echo \"<\$(ulimit -f)|\$(ulimit -Hf)|\$(ulimit -u)|\$(cat /proc/self/oom_score_adj)>\"\r".toByteArray())
+        // bash counts the file size in blocks of 1,024 bytes; a limit is
+        // only lowered and a score only raised, so the host's own may win.
+        val own = File("/proc/self/limits").readLines().first { it.startsWith("Max processes") }
+            .split(Regex("\\s{2,}"))[1].trim()
+        val processes = own.toLongOrNull()?.let { minOf(it, 2048L) } ?: 2048L
+        val score = maxOf(800, File("/proc/self/oom_score_adj").readText().trim().toInt())
+        screen.waitFor("<4194304|4194304|$processes|$score>")
+        session.end()
+    }
+
     // ── The cap and End all ──────────────────────────────────────────
 
     @Test
@@ -512,7 +618,11 @@ class TerminalSessionTest {
 
     // ── Helpers ──────────────────────────────────────────────────────
 
-    private fun terminals(window: Int = TerminalSession.DEFAULT_WINDOW) = Terminals(
+    private fun terminals(
+        window: Int = TerminalSession.DEFAULT_WINDOW,
+        ledger: SessionLedger? = null,
+        sessions: SessionRegistry = this.sessions,
+    ) = Terminals(
         environment = environment,
         launcher = launcher!!,
         sessions = sessions,
@@ -521,7 +631,28 @@ class TerminalSessionTest {
         delivery = delivery,
         copies = copies,
         window = window,
+        ledger = ledger,
     )
+
+    /** Waits until the ledger at [file] satisfies [ok]. */
+    private fun awaitRecorded(file: File, ok: (List<LedgerEntry>) -> Boolean) {
+        val deadline = System.nanoTime() + 10_000_000_000L
+        while (System.nanoTime() < deadline) {
+            if (ok(SessionLedger(file).read())) return
+            Thread.sleep(20)
+        }
+        throw AssertionError("the ledger never recorded it: ${SessionLedger(file).read()}")
+    }
+
+    /** Waits until [session] has received [count] bytes. */
+    private fun awaitBytes(session: TerminalSession, count: Long) {
+        val deadline = System.nanoTime() + 20_000_000_000L
+        while (System.nanoTime() < deadline) {
+            if (session.received >= count) return
+            Thread.sleep(20)
+        }
+        throw AssertionError("session ${session.id} received ${session.received} of $count bytes")
+    }
 
     private fun start(terminals: Terminals, spec: TerminalSpec, view: Screen? = null): TerminalSession {
         val result = terminals.start(spec, view)
@@ -658,7 +789,7 @@ class TerminalSessionTest {
     }
 
     companion object {
-        private val PROGRAMS = listOf("bash", "sh", "sleep", "stty", "cat", "head", "tr", "pwd")
+        private val PROGRAMS = listOf("bash", "sh", "sleep", "stty", "cat", "head", "tr", "pwd", "seq")
         private val serial = AtomicInteger()
         private val Z = 'Z'.code.toByte()
         private val ESCAPES = Regex("\u001b\\[[0-9;?]*[A-Za-z]")

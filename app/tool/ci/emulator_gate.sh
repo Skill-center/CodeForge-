@@ -62,6 +62,15 @@
 #                                  terminal_probe.txt, what the page saw of
 #                                  each tap and typed text, and
 #                                  terminal_first_tap.png)
+#   sessions.txt / sessions_*.txt  Phase 5 W5 G5: sessions that last. The
+#                                  foreground service as Android lists it
+#                                  (sessions_service.txt), memory warnings
+#                                  and what the host trimmed (sessions_trim),
+#                                  processes by marker (sessions_procs), five
+#                                  minutes in the background, the kill -9 and
+#                                  what was left of the sessions' processes
+#                                  (sessions_kill.txt), the tombstones after
+#                                  it, and the force-stop (sessions_after_b)
 #   runtime.txt / runtime_*.txt    Phase 4 W3 G3: the sealed runtime. The
 #                                  instrumented tests' output and their
 #                                  report (first install, warm start, a
@@ -290,16 +299,44 @@ INFRA_SEEN=0
 # ITEST_ATTEMPTS for its own call (large files: longer, fewer attempts).
 ITEST_LIMIT=10m
 ITEST_ATTEMPTS=3
+# Android 13 and later ask for the notification permission at the first
+# terminal session (Phase 5 W5: the sessions' foreground service shows its
+# notification only with it), and the dialog would stand over every later
+# tap of a group that starts one. Each attempt grants it, as a user who
+# allowed it, as soon as `flutter test` has installed the app: long before
+# the first session, which waits for the runtime's install.
+notification_granter() {
+  local _
+  for _ in $(seq 1 1200); do
+    if "$ADB" shell pm grant "$APP_ID" android.permission.POST_NOTIFICATIONS \
+      < /dev/null > /dev/null 2>&1; then
+      echo "notifications granted ($(date +%T))"
+      return 0
+    fi
+    sleep 0.5
+  done
+}
+DEVICE_API=""
 run_itest() {
   local name="$1" file="$2"
   shift 2
-  local attempt rc=1 stuck
+  local attempt rc=1 stuck granter
   for attempt in $(seq 1 "$ITEST_ATTEMPTS"); do
     wait_for_framework "$name#$attempt" 600 || true
+    [ -n "$DEVICE_API" ] || DEVICE_API=$("$ADB" shell getprop ro.build.version.sdk < /dev/null 2>/dev/null | tr -d '\r')
+    granter=""
+    if [ "${DEVICE_API:-0}" -ge 33 ] 2>/dev/null; then
+      notification_granter >> "$RESULTS/notification_grants.txt" 2>&1 &
+      granter=$!
+    fi
     timeout --kill-after=30s "$ITEST_LIMIT" \
       flutter test "$file" -d emulator-5554 --reporter expanded \
       --timeout=300s "$@" 2>&1 | tee "$RESULTS/$name.txt"
     rc=${PIPESTATUS[0]}
+    if [ -n "$granter" ]; then
+      kill "$granter" 2>/dev/null || true
+      wait "$granter" 2>/dev/null || true
+    fi
     stuck=""
     if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
       stuck=1
@@ -802,6 +839,114 @@ folder_save() {
   "$ADB" shell input tap $xy < /dev/null
   echo saved
 }
+# The sessions group's requests (Phase 5 W5), answered through the folder
+# driver. Answers keep to folder_answer's characters: a title's spaces
+# become dashes.
+#   service       the terminal sessions' foreground service as Android
+#                 lists it: none, or fg:<1|0>,type:<its type>,title:<the
+#                 notification's title>
+#   trim <level>  Android's memory warning to the app (am send-trim-memory),
+#                 and how many hidden terminal buffers the host trimmed:
+#                 sent,trimmed:<n> or refused
+#   procs <mark>  the processes whose command line holds <mark>:
+#                 count:<n>,oom:<the first one's oom_score_adj>,app:<the
+#                 app's>
+#   die           kills the app's process (kill -9, as its user: what
+#                 Android's low-memory killer sends) and records what is left
+#                 of the sessions' processes; no answer
+SESSIONS_MARKERS="cf-heartbeat-5201|9999[.]5202|9999[.]5203"
+sessions_safe_marker() {
+  case "$1" in
+    "" | *[!A-Za-z0-9.-]*) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+sessions_service() {
+  local services fg kind title
+  services=$("$ADB" shell dumpsys activity services "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
+  {
+    echo "--- service ($(date +%T))"
+    printf '%s\n' "$services" | grep -E 'ServiceRecord|isForeground|startRequested' | sed 's/^ *//'
+  } >> "$RESULTS/sessions_service.txt"
+  if ! printf '%s\n' "$services" | grep -q 'terminal.SessionService'; then
+    echo none
+    return
+  fi
+  fg=0
+  printf '%s\n' "$services" | grep -q 'isForeground=true' && fg=1
+  kind=$(printf '%s\n' "$services" | grep -oE 'types=0x[0-9A-Fa-f]+' | head -n 1 | cut -d= -f2)
+  title=$("$ADB" shell dumpsys notification --noredact < /dev/null 2>/dev/null | tr -d '\r' \
+    | grep -A 80 "pkg=$APP_ID " | grep -m 1 -oE 'android\.title=[A-Za-z]+ \([^)]*\)' \
+    | sed -E 's/^[^(]*\((.*)\)$/\1/')
+  echo "title: ${title:-none}" >> "$RESULTS/sessions_service.txt"
+  echo "fg:$fg,type:${kind:-none},title:$(printf '%s' "${title:-none}" | tr ' ' '-')"
+}
+sessions_trim() {
+  local level="$1" number out trimmed
+  case "$level" in
+    RUNNING_MODERATE) number=5 ;;
+    RUNNING_LOW) number=10 ;;
+    RUNNING_CRITICAL) number=15 ;;
+    *) echo bad-level; return ;;
+  esac
+  out=$("$ADB" shell am send-trim-memory "$APP_ID" "$level" < /dev/null 2>&1 | tr -d '\r')
+  echo "trim $level ($(date +%T)): ${out:-sent}" >> "$RESULTS/sessions_trim.txt"
+  case "$out" in
+    *rror* | *xception* | *nable*) echo refused; return ;;
+  esac
+  sleep 2
+  trimmed=$("$ADB" logcat -d -s CodeForgeRuntime:I < /dev/null 2>/dev/null | tr -d '\r' \
+    | grep -oE "memory pressure \(level $number\): [0-9]+ hidden" | tail -n 1 \
+    | grep -oE '[0-9]+ hidden' | cut -d' ' -f1)
+  echo "trim $level: trimmed ${trimmed:-0}" >> "$RESULTS/sessions_trim.txt"
+  echo "sent,trimmed:${trimmed:-0}"
+}
+sessions_procs() {
+  local marker="$1" lines count first oom app app_oom
+  lines=$("$ADB" shell ps -A -o PID,PPID,PGID,ARGS < /dev/null 2>/dev/null | tr -d '\r' | grep -F -- "$marker")
+  count=$(printf '%s\n' "$lines" | grep -c .)
+  first=$(printf '%s\n' "$lines" | awk 'NF { print $1; exit }')
+  oom=""
+  [ -n "$first" ] && oom=$("$ADB" shell cat "/proc/$first/oom_score_adj" < /dev/null 2>/dev/null | tr -d '\r')
+  app=$("$ADB" shell pidof "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
+  app_oom=""
+  [ -n "$app" ] && app_oom=$("$ADB" shell cat "/proc/$app/oom_score_adj" < /dev/null 2>/dev/null | tr -d '\r')
+  {
+    echo "--- procs $marker ($(date +%T)): app pid ${app:-none} oom_score_adj ${app_oom:-?}"
+    printf '%s\n' "$lines" | cut -c1-200
+    [ -n "$first" ] && echo "first: oom_score_adj ${oom:-?}"
+  } >> "$RESULTS/sessions_procs.txt"
+  echo "count:$count,oom:${oom:-none},app:${app_oom:-none}"
+}
+sessions_die() {
+  local id="$1" out="$RESULTS/sessions_kill.txt" pid left
+  pid=$("$ADB" shell pidof "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
+  {
+    echo "request $id: die ($(date +%T)), app pid ${pid:-none}"
+    echo "--- before: the sessions' processes (pid ppid pgid user oom_score_adj args)"
+    "$ADB" shell "ps -A -o PID,PPID,PGID,USER,ARGS | grep -E '$SESSIONS_MARKERS' | grep -v grep" \
+      < /dev/null 2>/dev/null | tr -d '\r' | cut -c1-200
+    for p in $("$ADB" shell "ps -A -o PID,ARGS | grep -E '$SESSIONS_MARKERS' | grep -v grep" \
+      < /dev/null 2>/dev/null | tr -d '\r' | awk '{ print $1 }'); do
+      echo "oom_score_adj $p: $("$ADB" shell cat "/proc/$p/oom_score_adj" < /dev/null 2>/dev/null | tr -d '\r')"
+    done
+  } >> "$out"
+  # The test's last lines reach the log first.
+  sleep 2
+  if [ -n "$pid" ]; then
+    "$ADB" shell run-as "$APP_ID" kill -9 "$pid" < /dev/null >> "$out" 2>&1
+  fi
+  sleep 5
+  left=$("$ADB" shell "ps -A -o PID,ARGS | grep -E '$SESSIONS_MARKERS' | grep -v grep" \
+    < /dev/null 2>/dev/null | tr -d '\r')
+  {
+    echo "--- after kill -9 ($(date +%T)): app pid now '$("$ADB" shell pidof "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')'"
+    printf '%s\n' "$left" | cut -c1-200
+    echo "killed=$([ -n "$pid" ] && echo 1 || echo 0)"
+    echo "left_after_kill=$(printf '%s\n' "$left" | grep -c .)"
+  } >> "$out"
+  touch "$RESULTS/sessions_killed.flag"
+}
 folder_driver() {
   local last="" line id kind arg word answer
   echo "driver: polling the log for requests ($(date +%T))"
@@ -853,6 +998,12 @@ folder_driver() {
         "$ADB" shell am start -n "$APP_ID/.MainActivity" < /dev/null > /dev/null 2>&1
         answer="done"
         ;;
+      service) answer=$(sessions_service) ;;
+      trim) answer=$(sessions_trim "$arg") ;;
+      procs)
+        if sessions_safe_marker "$arg"; then answer=$(sessions_procs "$arg"); else answer=bad-marker; fi
+        ;;
+      die) sessions_die "$id"; echo "request $id: die ($(date +%T))"; continue ;;
       done) echo "request $id: done ($(date +%T))"; continue ;;
       *) answer=unknown-request ;;
     esac
@@ -1781,6 +1932,115 @@ cat "$RESULTS/run.txt" >> "$RESULTS/attempts.txt"
 "$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
 "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
 [ "$run_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
+echo "::group::Sessions (Phase 5 W5, G5: the service with the first session and not after the last, memory pressure, 5 minutes in the background, process death, tombstones)"
+# integration_test/sessions_a_test.dart and sessions_b_test.dart, in the
+# build with the x86_64 payload (still selected from the runtime group).
+# Part A starts three sessions (one exits with code 7, a heartbeat writes
+# the time every second, a shell holds a job), then asks the folder driver
+# for the foreground service as Android lists it (`service`), for Android's
+# memory warnings (`trim`), for five minutes in the background (`home`,
+# `front`) and for processes by a marker (`procs`); at its end it asks the
+# driver to kill the app's process (`die`: kill -9 as the app's user, what
+# Android's low-memory killer sends), which records what is left of the
+# sessions' processes (sessions_kill.txt). `flutter test` then loses the
+# app: part A is judged by its SESSIONS_GATE part_a=ok line in the device
+# log and by the kill, not by its exit code. Part B (installed over part A's
+# data, as an update) finds the tombstones, starts and ends a session, and
+# leaves one running for `flutter test`'s force-stop, after which this
+# script looks for its processes.
+sessions_part_a() {
+  local tester rc=0
+  rm -f "$RESULTS/sessions_killed.flag"
+  wait_for_framework "sessions_a" 600 || true
+  notification_granter >> "$RESULTS/notification_grants.txt" 2>&1 &
+  local granter=$!
+  timeout --kill-after=30s 30m flutter test integration_test/sessions_a_test.dart \
+    -d emulator-5554 --reporter expanded --timeout=1800s --no-uninstall \
+    > "$RESULTS/sessions_a.txt" 2>&1 &
+  tester=$!
+  # Once the driver has killed the app, flutter test has a minute to see it.
+  while kill -0 "$tester" 2>/dev/null; do
+    if [ -f "$RESULTS/sessions_killed.flag" ]; then
+      for _ in $(seq 1 60); do
+        kill -0 "$tester" 2>/dev/null || break
+        sleep 1
+      done
+      kill "$tester" 2>/dev/null || true
+      break
+    fi
+    sleep 2
+  done
+  wait "$tester" 2>/dev/null || rc=$?
+  kill "$granter" 2>/dev/null || true
+  wait "$granter" 2>/dev/null || true
+  echo "sessions_a exit=$rc (the app is killed at its end)" | tee -a "$RESULTS/attempts.txt"
+  "$ADB" logcat -d -v raw -s flutter:I < /dev/null 2>/dev/null | tr -d '\r' \
+    | grep -E 'SESSIONS_GATE|sessions gate' > "$RESULTS/sessions_a_log.txt" || true
+  tail -n 30 "$RESULTS/sessions_a.txt"
+  if grep -qE "$INFRA_RE" "$RESULTS/sessions_a.txt" && ! grep -q 'SESSIONS_GATE part_a=ok' "$RESULTS/sessions_a_log.txt"; then
+    INFRA_SEEN=1
+  fi
+  grep -q 'SESSIONS_GATE part_a=ok' "$RESULTS/sessions_a_log.txt" \
+    && grep -q '^killed=1' "$RESULTS/sessions_kill.txt" 2>/dev/null
+}
+sessions_group() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  rm -f "$RESULTS/sessions_kill.txt" "$RESULTS/sessions_service.txt" "$RESULTS/sessions_trim.txt" \
+    "$RESULTS/sessions_procs.txt" "$RESULTS/sessions_after_b.txt"
+  "$ADB" logcat -c < /dev/null
+  sessions_part_a || return 1
+  # The app's process is gone; so must the sessions' be.
+  if [ "$(sed -n 's/^left_after_kill=//p' "$RESULTS/sessions_kill.txt" | tail -n 1)" != "0" ]; then
+    echo "sessions' processes outlived the app's" | tee -a "$RESULTS/sessions_kill.txt"
+    return 1
+  fi
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=20m ITEST_ATTEMPTS=1 run_itest sessions_b integration_test/sessions_b_test.dart \
+    --no-uninstall || return 1
+  # flutter test force-stopped the app at part B's end: nothing of the
+  # session it left running may remain.
+  sleep 3
+  local left
+  left=$("$ADB" shell "ps -A -o PID,ARGS | grep -E '$SESSIONS_MARKERS' | grep -v grep" \
+    < /dev/null 2>/dev/null | tr -d '\r')
+  {
+    echo "after part B's force-stop ($(date +%T)): app pid '$("$ADB" shell pidof "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')'"
+    printf '%s\n' "$left" | cut -c1-200
+    echo "left_after_force_stop=$(printf '%s\n' "$left" | grep -c .)"
+  } | tee "$RESULTS/sessions_after_b.txt"
+  [ -z "$left" ]
+}
+FOLDER_UI="$RESULTS/sessions_ui.xml" folder_driver > "$RESULTS/sessions_driver.txt" 2>&1 &
+sessions_driver_pid=$!
+sessions_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if sessions_group; then
+    sessions_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "sessions attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$sessions_driver_pid" 2>/dev/null || true
+wait "$sessions_driver_pid" 2>/dev/null || true
+"$ADB" logcat -d -s CodeForgeTerminal:I CodeForgeRuntime:I < /dev/null > "$RESULTS/sessions_logcat.txt" 2>&1 || true
+{
+  echo "sessions_group=$([ "$sessions_ok" = "1" ] && echo pass || echo fail)"
+  grep -ohE 'SESSIONS_GATE .*' "$RESULTS/sessions_a_log.txt" "$RESULTS/sessions_a.txt" \
+    "$RESULTS/sessions_b.txt" 2>/dev/null \
+    | sed 's/^SESSIONS_GATE /sessions: /' | sort -u
+  sed -n 's/^\(killed\|left_after_kill\)=/sessions_&/p' "$RESULTS/sessions_kill.txt" 2>/dev/null
+  grep -h '^oom_score_adj' "$RESULTS/sessions_kill.txt" 2>/dev/null | sed 's/^/sessions_kill_/' | head -n 6
+  sed -n 's/^left_after_force_stop=/sessions_&/p' "$RESULTS/sessions_after_b.txt" 2>/dev/null
+} | tee "$RESULTS/sessions.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/sessions.txt" >> "$RESULTS/attempts.txt"
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$sessions_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
 echo "::group::Cold start (G6 — recorded against the 1.5 s budget, never fails the gate)"

@@ -276,6 +276,7 @@ void main() {
         'not_running': TerminalProblem.notRunning,
         'input_full': TerminalProblem.inputFull,
         'still_running': TerminalProblem.stillRunning,
+        'system': TerminalProblem.system,
       };
       for (final MapEntry(:key, :value) in codes.entries) {
         expect(TerminalProblem.fromCode(key), value, reason: key);

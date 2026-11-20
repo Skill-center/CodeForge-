@@ -79,17 +79,52 @@ class Terminals(
     private val clock: () -> Long = System::nanoTime,
     private val window: Int = TerminalSession.DEFAULT_WINDOW,
     private val maxExited: Int = DEFAULT_MAX_EXITED,
+    /**
+     * Where the sessions are recorded after every change (Phase 5 W5), so the
+     * next process can leave tombstones for those that ended with this one;
+     * none in tests that don't ask.
+     */
+    private val ledger: SessionLedger? = null,
+    /** What every session runs under (Phase 5 W5). */
+    private val limits: SessionLimits = SessionLimits.SESSION,
 ) {
     private val all = ConcurrentHashMap<Long, TerminalSession>()
+
+    /** The sessions the app's last process had (Phase 5 W5), until removed. */
+    private val graves = ConcurrentHashMap<Long, TerminalTombstone>()
+    private val ledgerLock = Any()
 
     /** Told of every session's start and exit, on the delivery thread. */
     @Volatile
     var changed: (TerminalSession) -> Unit = {}
 
+    init {
+        val previous = ledger?.read().orEmpty()
+        for (tombstone in SessionLedger.tombstonesOf(previous)) graves[tombstone.id] = tombstone
+        previous.maxOfOrNull { it.id }?.let(sessions::reserveIdsThrough)
+        // What still ran is written down as ended: a second start finds tombstones, not sessions.
+        if (previous.isNotEmpty()) record()
+    }
+
     /** The sessions, running and exited, oldest first. */
     fun list(): List<TerminalSession> = all.values.sortedBy { it.id }
 
     fun get(id: Long): TerminalSession? = all[id]
+
+    /** The tombstones of the sessions the app's last process had, oldest first (Phase 5 W5). */
+    fun tombstones(): List<TerminalTombstone> = graves.values.sortedBy { it.id }
+
+    fun tombstone(id: Long): TerminalTombstone? = graves[id]
+
+    /** How many sessions run now: what the foreground service's notification says (Phase 5 W5). */
+    fun running(): Int = all.values.count { it.state != TerminalState.EXITED }
+
+    /**
+     * Under memory pressure (Phase 5 W5): every session no view shows keeps
+     * only the last [bytes] of its output until a view attaches again.
+     * Answers how many were trimmed. Nothing is ended to free memory.
+     */
+    fun trimHidden(bytes: Int = TRIM_BYTES): Int = all.values.count { it.trimBuffer(bytes) }
 
     /**
      * Starts a session for [spec], with [view] attached from its first byte
@@ -156,6 +191,7 @@ class Terminals(
                 launcher.absolutePath,
                 "--status", status.absolutePath,
                 "--grace", sessions.graceMs.toString(),
+            ) + limits.arguments() + listOf(
                 "--terminal", "${rows}x$columns",
                 "--", executable.absolutePath,
             ) + arguments
@@ -183,7 +219,7 @@ class Terminals(
             window = window,
             delivery = delivery,
             clock = clock,
-            changed = { changed(it) },
+            changed = { onChanged(it) },
         )
         all[session.id] = session
         if (view != null) session.attach(view)
@@ -192,11 +228,56 @@ class Terminals(
         return TerminalStart(session, null, null)
     }
 
-    /** Forgets an exited session and its buffer. False while it runs, or when there is none. */
+    /** Every start and exit: recorded, then told. On the delivery thread. */
+    private fun onChanged(session: TerminalSession) {
+        record()
+        changed(session)
+    }
+
+    /**
+     * Forgets an exited session and its buffer, or a tombstone. False while
+     * it runs, or when there is none.
+     */
     fun remove(id: Long): Boolean {
+        if (graves.remove(id) != null) {
+            record()
+            return true
+        }
         val session = all[id] ?: return false
         if (session.state != TerminalState.EXITED) return false
-        return all.remove(id, session)
+        val removed = all.remove(id, session)
+        if (removed) record()
+        return removed
+    }
+
+    /** Writes the ledger: the sessions as they are now, and the tombstones not yet removed. */
+    private fun record() {
+        val book = ledger ?: return
+        synchronized(ledgerLock) {
+            val entries = ArrayList<LedgerEntry>()
+            for (grave in tombstones()) {
+                entries.add(LedgerEntry(grave.id, grave.label, running = false, grave.exitCode, grave.signal, grave.failure?.code))
+            }
+            for (session in list()) {
+                val exit = session.exit
+                entries.add(
+                    LedgerEntry(
+                        id = session.id,
+                        label = session.label,
+                        running = exit == null,
+                        exitCode = exit?.exitCode,
+                        signal = exit?.signal,
+                        failure = exit?.failure?.code,
+                    ),
+                )
+            }
+            try {
+                book.write(entries)
+            } catch (failure: IOException) {
+                // A tombstone is a courtesy: a ledger that can't be written
+                // never stops a session.
+            }
+        }
     }
 
     /**
@@ -281,6 +362,7 @@ class Terminals(
     private fun forgetOldExited() {
         val exited = list().filter { it.state == TerminalState.EXITED }
         for (session in exited.take(maxOf(0, exited.size - maxExited))) all.remove(session.id, session)
+        record()
     }
 
     private fun isProgramName(name: String): Boolean =
@@ -294,6 +376,12 @@ class Terminals(
 
         /** Exited sessions kept, for their screens, until removed. */
         const val DEFAULT_MAX_EXITED = 8
+
+        /** What a hidden session's buffer keeps under memory pressure (Phase 5 W5): a screenful and some. */
+        const val TRIM_BYTES = 64 * 1024
+
+        /** The ledger's file, in the terminal's own folder. */
+        const val LEDGER_FILE = "sessions.ledger"
 
         const val MAX_ARGUMENTS = 256
         const val MAX_OVERRIDES = 64

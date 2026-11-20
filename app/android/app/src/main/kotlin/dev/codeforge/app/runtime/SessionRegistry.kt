@@ -184,6 +184,14 @@ class SessionRegistry(
     val isRefusing: Boolean get() = refusing
 
     /**
+     * Ids from now on are above [id] (Phase 5 W5): a session's tombstone from
+     * the app's last process keeps its id, and no new session takes it.
+     */
+    fun reserveIdsThrough(id: Long) {
+        ids.updateAndGet { current -> maxOf(current, id) }
+    }
+
+    /**
      * A place for one more terminal session, or null when [maxTerminals] are
      * held or the registry refuses new sessions. The caller registers its
      * launcher with it, or releases it when the launcher could not start.

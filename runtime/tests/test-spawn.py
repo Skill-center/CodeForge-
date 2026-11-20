@@ -18,12 +18,17 @@ checks it here, on every CI run; the emulator gate runs the Android build
   * a process that left the group (setsid, a double fork) is ended too;
   * a program that cannot run is reported (126, 127), and so is a command
     that a signal ended;
+  * the limits it is asked for (Phase 5 W5) are the command's: a file size
+    (a write past it fails), a count of processes (a fork past it fails),
+    and an OOM score; a limit is only ever lowered and a score only raised,
+    and the status file says what is in effect;
   * after every test, no process the test started is left.
 
 Run: python3 runtime/tests/test-spawn.py
 """
 
 import os
+import resource
 import shutil
 import signal
 import subprocess
@@ -38,6 +43,7 @@ SOURCE = os.path.join(REPOSITORY, "native", "runtime-core", "src", "main", "jni"
 
 BUILD = tempfile.mkdtemp(prefix="codeforge-spawn-")
 SPAWN = os.path.join(BUILD, "codeforge-spawn")
+BASH = shutil.which("bash") or "/bin/bash"
 
 
 def setUpModule():
@@ -108,11 +114,11 @@ class SpawnTest(unittest.TestCase):
         self.assertEqual(left, [], "processes left behind: %s" % left)
 
     def run_spawn(self, *program, grace=300, stop_after=None, status=True, signal_to_send=signal.SIGTERM,
-                  preexec=None, restore_signals=True):
+                  preexec=None, restore_signals=True, limits=()):
         arguments = [SPAWN]
         if status:
             arguments += ["--status", self.status_file]
-        arguments += ["--grace", str(grace), "--"] + list(program)
+        arguments += ["--grace", str(grace)] + list(limits) + ["--"] + list(program)
         started = time.monotonic()
         process = subprocess.Popen(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, preexec_fn=preexec,
@@ -253,6 +259,101 @@ class SpawnTest(unittest.TestCase):
         code, _, _ = self.run_spawn(plain)
         self.assertEqual(code, 126)
         self.assertEqual(self.status()["exec_errno"], "13")
+
+    # ── Limits (Phase 5 W5) ─────────────────────────────────────────────
+
+    def test_the_limits_asked_for_are_the_commands_and_reported(self):
+        code, out, err = self.run_spawn(
+            BASH, "-c", "ulimit -f; ulimit -Hf; ulimit -u; ulimit -Hu; cat /proc/self/oom_score_adj",
+            limits=["--fsize", "1048576", "--nproc", "4096", "--oom-score-adj", "900"])
+        self.assertEqual(code, 0, err)
+        lines = out.split()
+        # bash counts the file size in blocks of 1,024 bytes.
+        self.assertEqual(lines[:2], ["1024", "1024"])
+        own = resource.getrlimit(resource.RLIMIT_NPROC)[0]
+        expected = 4096 if own == resource.RLIM_INFINITY or own > 4096 else own
+        self.assertEqual(lines[2:4], [str(expected), str(expected)])
+        self.assertEqual(lines[4], "900")
+        status = self.status()
+        self.assertEqual(status["fsize_limit"], "1048576")
+        self.assertEqual(status["nproc_limit"], str(expected))
+        self.assertEqual(status["oom_score_adj"], "900")
+
+    def test_without_limits_the_status_file_says_what_there_is(self):
+        code, _, _ = self.run_spawn("/bin/true")
+        self.assertEqual(code, 0)
+        status = self.status()
+        own = resource.getrlimit(resource.RLIMIT_FSIZE)[0]
+        self.assertEqual(status["fsize_limit"], "unlimited" if own == resource.RLIM_INFINITY else str(own))
+        with open("/proc/self/oom_score_adj") as handle:
+            self.assertEqual(status["oom_score_adj"], handle.read().strip())
+
+    def test_a_write_past_the_file_size_limit_fails(self):
+        target = os.path.join(self.directory, "big")
+        code, out, _ = self.run_spawn(
+            BASH, "-c", "head -c 100000 /dev/zero > %s; echo rc=$?" % target, limits=["--fsize", "65536"])
+        self.assertEqual(code, 0)
+        # head is ended by SIGXFSZ (25): 128 + 25.
+        self.assertEqual(out.strip(), "rc=%d" % (128 + signal.SIGXFSZ))
+        self.assertEqual(os.path.getsize(target), 65536)
+
+    def test_a_limit_is_never_raised_and_a_score_never_lowered(self):
+        def lower_first():
+            resource.setrlimit(resource.RLIMIT_FSIZE, (2 * 1024 * 1024, 2 * 1024 * 1024))
+            with open("/proc/self/oom_score_adj", "w") as handle:
+                handle.write("950")
+        code, out, err = self.run_spawn(
+            BASH, "-c", "ulimit -f; cat /proc/self/oom_score_adj",
+            limits=["--fsize", str(1 << 40), "--oom-score-adj", "100"], preexec=lower_first)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(out.split(), ["2048", "950"])
+
+    def test_a_fork_past_the_process_limit_fails(self):
+        if os.geteuid() == 0:
+            self.skipTest("root is not held to RLIMIT_NPROC")
+        # Linux counts every process and thread of the user: the limit sits
+        # a little above what the user runs now.
+        uid = os.getuid()
+        tasks = 0
+        for name in os.listdir("/proc"):
+            if not name.isdigit():
+                continue
+            try:
+                with open("/proc/%s/status" % name) as handle:
+                    fields = dict(line.split(":", 1) for line in handle if ":" in line)
+            except OSError:
+                continue
+            if int(fields["Uid"].split()[0]) == uid:
+                tasks += int(fields["Threads"])
+        limit = tasks + 12
+        script = (
+            "import os, sys, time\n"
+            "started = 0\n"
+            "refused = 0\n"
+            "for _ in range(60):\n"
+            "    try:\n"
+            "        pid = os.fork()\n"
+            "    except BlockingIOError:\n"
+            "        refused += 1\n"
+            "        continue\n"
+            "    if pid == 0:\n"
+            "        time.sleep(%s)\n"
+            "        os._exit(0)\n"
+            "    started += 1\n"
+            "print(started, refused)\n" % self.marker)
+        code, out, err = self.run_spawn(sys.executable, "-c", script, limits=["--nproc", str(limit)])
+        self.assertEqual(code, 0, err)
+        started, refused = (int(word) for word in out.split())
+        self.assertGreater(refused, 0, "no fork was refused at %d (the user had %d)" % (limit, tasks))
+        self.assertLess(started, 60)
+        self.assertEqual(self.status()["nproc_limit"], str(limit))
+
+    def test_a_bad_limit_is_refused(self):
+        for option, value in (("--fsize", "0"), ("--fsize", "-1"), ("--nproc", "x"), ("--oom-score-adj", "1001"),
+                              ("--oom-score-adj", "-5")):
+            process = subprocess.run([SPAWN, option, value, "--", "/bin/true"], capture_output=True, text=True)
+            self.assertEqual(process.returncode, 125, (option, value))
+            self.assertIn("usage", process.stderr)
 
     def test_it_runs_without_a_status_file(self):
         code, out, _ = self.run_spawn("/bin/echo", "plain", status=False)

@@ -17,6 +17,10 @@
 #                        audit; W5: the kernel's manifest stream needs API 33;
 #   SealedShellTest      t1's, ported: bash, sed and the core tools from the
 #                        APK's payload, the app's own startup path twice, dpkg;
+#   SessionServiceTest   Phase 5 W5 (G5): the foreground service with the
+#                        first session and not after the last, End all from
+#                        its notification leaving no process, the limits a
+#                        session runs under measured, the ledger's tombstones;
 #   TerminalSessionTest  Phase 5 W2 (G2): bash in a terminal, stty after a
 #                        resize, node's REPL, a keystroke's echo, a 10 MiB
 #                        flood whole within the credit window, the ninth
@@ -43,7 +47,7 @@ RESULTS="ci-results/runtime-gates/api-$API"
 EMU_LOG="${RUNNER_TEMP:-/tmp}/runtime-gate-emulator-$API.log"
 CLASSES="dev.codeforge.app.runtime.ExecModelTest,dev.codeforge.app.runtime.RuntimeCommandsTest"
 CLASSES="$CLASSES,dev.codeforge.app.runtime.RuntimeInstallTest,dev.codeforge.app.runtime.SealedShellTest"
-CLASSES="$CLASSES,dev.codeforge.app.runtime.TerminalSessionTest"
+CLASSES="$CLASSES,dev.codeforge.app.runtime.SessionServiceTest,dev.codeforge.app.runtime.TerminalSessionTest"
 # The checkout carries the last run's committed evidence for every leg; this
 # leg's artifact must hold its own folder alone (the first run's evidence job
 # merged five artifacts that each held all five, stale ones included).
@@ -197,7 +201,7 @@ timeout --kill-after=30s 30m "$ADB" shell am instrument -w -r -e class "$CLASSES
   "$APP_ID.test/androidx.test.runner.AndroidJUnitRunner" < /dev/null \
   > "$RESULTS/instrumented.txt" 2>&1
 echo "am_instrument_exit=$?" >> "$RESULTS/readiness.txt"
-for report in report commands-report exec-model-report sealed-shell-report terminal-report; do
+for report in report commands-report exec-model-report sealed-shell-report session-service-report terminal-report; do
   "$ADB" shell run-as "$APP_ID" cat "files/runtime-gate/$report.txt" < /dev/null \
     > "$RESULTS/$report.txt" 2>&1 || true
 done
@@ -211,12 +215,13 @@ python3 tool/ci/gate_results.py \
   --am "$RESULTS/instrumented.txt" \
   --figures "$RESULTS/report.txt" --figures "$RESULTS/commands-report.txt" \
   --figures "$RESULTS/exec-model-report.txt" --figures "$RESULTS/sealed-shell-report.txt" \
-  --figures "$RESULTS/terminal-report.txt" \
+  --figures "$RESULTS/terminal-report.txt" --figures "$RESULTS/session-service-report.txt" \
   --expect dev.codeforge.app.runtime.ExecModelTest:1 \
   --expect dev.codeforge.app.runtime.SealedShellTest:2 \
   --expect dev.codeforge.app.runtime.RuntimeInstallTest:7 \
   --expect dev.codeforge.app.runtime.RuntimeCommandsTest:6 \
   --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
+  --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
   --require exec_model_audit_outside_apk=0 \
   --require audit_outside_apk=0 \
   --require warm_audit_outside_apk=0 \
@@ -230,6 +235,18 @@ python3 tool/ci/gate_results.py \
   --require terminal_flood_whole=1 \
   --require terminal_flood_within_window=1 \
   --require terminal_echo_p95_under_budget=1 \
+  --require service_started_with_first=1 \
+  --require service_stopped_after_last=1 \
+  --require service_end_all_left=0 \
+  --require service_end_all_processes_left=0 \
+  --require service_end_all_stopped=1 \
+  --require service_session_fsize_bytes=4294967296 \
+  --require service_session_cpu=unlimited \
+  --require service_fsize_enforced=1 \
+  --require service_nproc_enforced=1 \
+  --require service_nproc_safe=1 \
+  --require service_ledger_running_tombstone=system \
+  --require service_ledger_exited_tombstone=exit:7 \
   --meta "leg=api-$API" --meta "api=$API" --meta "system_image=$SYSTEM_IMAGE" \
   --meta "accel=$ACCEL" --meta "webview=${webview:-unknown}" \
   --meta "apk_bytes=$(stat -c %s "$APP_APK")" \

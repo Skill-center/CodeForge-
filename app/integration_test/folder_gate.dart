@@ -8,8 +8,12 @@
 /// or changes it behind the app's back (`rmtree`, `mkdir`; since Phase 3
 /// W5 `put` and `rm` there, and `pput` and `prm` in the app's own projects
 /// through `run-as`), and sends the app to the background and back (`home`,
-/// `front`). It writes its answer into the app's files folder through
-/// `run-as`
+/// `front`). Since Phase 5 W5 it also reports the terminal sessions'
+/// foreground service (`service`), sends Android's memory warnings
+/// (`trim <level>`), counts processes by a marker in their command line
+/// (`procs <marker>`), and kills the app's process (`die`, which has no
+/// answer: [tell]). It writes its answer into the app's files folder
+/// through `run-as`
 /// (`files/foldergate/<run>.<n>`), where the test reads it. As in the keys
 /// group, requests are printed in the root zone: a print inside a test
 /// goes to the test runner, not to the device log.
@@ -119,6 +123,15 @@ final class FolderGate {
     return seconds == null
         ? null
         : DateTime.fromMicrosecondsSinceEpoch((seconds * 1e6).round());
+  }
+
+  /// Tells the host [request] without waiting for an answer: one it acts
+  /// on by ending the app (`die`), so that none could arrive.
+  void tell(String request) {
+    _step += 1;
+    final line = 'FOLDERGATE $_run.$_step $request';
+    Zone.root.print(line);
+    debugPrint(line);
   }
 
   /// The host may stop looking for requests.

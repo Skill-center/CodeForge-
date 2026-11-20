@@ -94,7 +94,12 @@ final class TerminalTab {
     if (signal != null) {
       return 'ended by signal $signal';
     }
-    return problem == TerminalProblem.lost ? 'connection lost' : 'ended';
+    return switch (problem) {
+      TerminalProblem.lost => 'connection lost',
+      // A tombstone: the app's last process ended while it ran (W5).
+      TerminalProblem.system => 'ended by the system',
+      _ => 'ended',
+    };
   }
 
   static const Object _keep = Object();
@@ -271,6 +276,11 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   /// Where each session started: a project's folder or a folder's copy,
   /// for the `file:line` links its output shows (Phase 5 W4).
   final Map<int, ({String? project, String? copy})> _origins = {};
+
+  /// Sessions with no view in the page (Phase 5 W5): let go under memory
+  /// pressure or in the background, or restored and not shown yet. The host
+  /// keeps their output, and showing one draws it again.
+  final Set<int> _released = {};
   final List<StreamSubscription<Object?>> _subscriptions = [];
 
   /// The panel's size in cells, as the page last fitted a view to it: new
@@ -286,6 +296,7 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     _early.clear();
     _addons.clear();
     _origins.clear();
+    _released.clear();
     _subscriptions
       ..add(_service.output.listen(_onOutput))
       ..add(_service.changes.listen(_onChanged))
@@ -297,12 +308,103 @@ final class TerminalController extends Notifier<TerminalPanelState> {
       }
       _subscriptions.clear();
     });
+    if (_service.availability == TerminalAvailability.available) {
+      // Sessions outlive the app's engine, and tombstones its process (W5).
+      unawaited(_restore());
+    }
     return TerminalPanelState(
       availability: _service.availability,
       unavailableReason: _service.unavailableReason,
       viewPhase: _view.status.phase,
       viewMessage: _view.status.message,
     );
+  }
+
+  /// The host's sessions as tabs (Phase 5 W5): those that kept running
+  /// while the app's engine was gone, and the tombstones the app's last
+  /// process left. The shown one's view opens with its buffer drawn again;
+  /// the others' open when their tab is shown, as views let go do. Run once,
+  /// when the panel's controller is made.
+  Future<void> _restore() async {
+    final listed = await _service.sessions();
+    if (!ref.mounted) {
+      return;
+    }
+    final infos = switch (listed) {
+      Ok(:final value) => value,
+      Err() => const <TerminalInfo>[],
+    };
+    final known = {for (final tab in state.tabs) tab.sessionId};
+    final restored = [
+      for (final info in infos)
+        if (!known.contains(info.id) && !_pipes.containsKey(info.id))
+          _tabFrom(info, name: info.label),
+    ];
+    if (restored.isEmpty) {
+      return;
+    }
+    for (final tab in restored) {
+      _pipes[tab.sessionId] = _Pipe();
+    }
+    appLogger.info(_tag, 'restored', fields: {'sessions': restored.length});
+    final running = restored.where((tab) => tab.running).toList();
+    final shown = state.activeId ??
+        (running.isEmpty ? restored.last : running.last).sessionId;
+    state = state.copyWith(tabs: [...state.tabs, ...restored], activeId: shown);
+    for (final tab in restored) {
+      if (tab.sessionId == shown) {
+        unawaited(_view.start());
+        unawaited(_openView(shown, activate: true, replay: true));
+      } else {
+        _released.add(tab.sessionId);
+      }
+    }
+  }
+
+  /// Memory pressure (Phase 5 W5): the page lets go of every session's view
+  /// but the shown one. Their output waits in the host's buffers, which keep
+  /// running sessions running; showing one draws its buffer again. Nothing
+  /// is ended to free memory.
+  void releaseHiddenViews() => _releaseViews(keepShown: true);
+
+  /// The app went to the background (Phase 5 W5): every view lets go, the
+  /// shown one's too. A page Android has stopped acknowledges nothing, and
+  /// the host stops reading a session whose view has a credit window's worth
+  /// unacknowledged, which would stop its program at its next write; with no
+  /// view, the host reads on into the session's buffer. [showAgain] draws
+  /// the shown one again on return.
+  void releaseAllViews() => _releaseViews(keepShown: false);
+
+  /// The app is back (Phase 5 W5): the shown session's view opens again,
+  /// drawn from the host's buffer.
+  void showAgain() {
+    final id = state.activeId;
+    if (id != null && _released.remove(id)) {
+      unawaited(_openView(id, activate: true, replay: true));
+    }
+  }
+
+  void _releaseViews({required bool keepShown}) {
+    var released = 0;
+    for (final tab in state.tabs) {
+      final id = tab.sessionId;
+      final pipe = _pipes[id];
+      if ((keepShown && id == state.activeId) || pipe == null || !pipe.open) {
+        continue;
+      }
+      pipe.reset();
+      _released.add(id);
+      released += 1;
+      unawaited(_view.close(id));
+      unawaited(_service.detach(id));
+    }
+    if (released > 0) {
+      appLogger.info(
+        _tag,
+        'views_released',
+        fields: {'views': released, 'shown': !keepShown},
+      );
+    }
   }
 
   // -------------------------------------------------------------- sessions
@@ -383,7 +485,12 @@ final class TerminalController extends Notifier<TerminalPanelState> {
         final tab = _tabFrom(_early.remove(value.id) ?? value, name: name);
         state = state.copyWith(
           starting: false,
-          tabs: [...state.tabs, tab],
+          // A listing that answered first may have restored it already (W5).
+          tabs: [
+            for (final other in state.tabs)
+              if (other.sessionId != value.id) other,
+            tab,
+          ],
           activeId: value.id,
           selection: false,
         );
@@ -405,7 +512,10 @@ final class TerminalController extends Notifier<TerminalPanelState> {
           tab.sessionId == id && tab.bell ? tab.copyWith(bell: false) : tab,
       ],
     );
-    if (_pipes[id]?.open ?? false) {
+    if (_released.remove(id)) {
+      // No view yet, or let go: drawn again from the host's buffer.
+      unawaited(_openView(id, activate: true, replay: true));
+    } else if (_pipes[id]?.open ?? false) {
       unawaited(_view.activate(id));
     }
   }
@@ -450,6 +560,7 @@ final class TerminalController extends Notifier<TerminalPanelState> {
     final pipe = _pipes.remove(id);
     _addons.remove(id);
     _origins.remove(id);
+    _released.remove(id);
     if (pipe != null && pipe.open) {
       unawaited(_view.close(id));
     }
@@ -744,6 +855,8 @@ final class TerminalController extends Notifier<TerminalPanelState> {
   /// The page restarted: every view is opened again and refilled from its
   /// session's buffer.
   void _reopenAll() {
+    // Views let go or not opened yet come back with the rest (W5).
+    _released.clear();
     for (final tab in state.tabs) {
       final pipe = _pipes[tab.sessionId];
       if (pipe == null) {

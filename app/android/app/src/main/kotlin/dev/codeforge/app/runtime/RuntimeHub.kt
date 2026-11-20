@@ -279,6 +279,27 @@ class RuntimeHub(
     fun terminals(): Terminals? = currentCommands()?.terminals
 
     /**
+     * The terminal sessions, making the command side first if need be, on a
+     * command thread (Phase 5 W5): a new process shows the tombstones its
+     * last one left before any session starts. Answers null without a
+     * runtime.
+     */
+    fun withTerminals(answer: (Terminals?) -> Unit) {
+        if (commandsFactory == null) {
+            deliver(Runnable { answer(null) })
+            return
+        }
+        commandExecutor.execute {
+            val terminals = try {
+                commands()?.terminals
+            } catch (failure: Exception) {
+                null
+            }
+            deliver(Runnable { answer(terminals) })
+        }
+    }
+
+    /**
      * Tells [listener] of every terminal session's start and exit, on the
      * sessions' delivery thread, from the first session on.
      */

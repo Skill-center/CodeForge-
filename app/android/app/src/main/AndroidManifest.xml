@@ -11,6 +11,15 @@
          fullBackupOnly keeps file-based Auto Backup, and the rules files list
          what it may take (logs never: they live in no_backup/). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- The terminal sessions' foreground service (Phase 5 W5): it keeps the
+         app's process, and with it the sessions the user started, running
+         while the user is elsewhere. Its type is specialUse: a terminal runs
+         for as long as the user lets it, and dataSync's six hours in a day
+         would end it. POST_NOTIFICATIONS is asked at the first session on
+         Android 13 and later; declined, sessions still run. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:label="CodeForge"
@@ -43,6 +52,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <service
+            android:name=".terminal.SessionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Terminal sessions that the user starts in the Linux environment of the app, which run until the user ends them" />
+        </service>
         <!-- Renderer: Flutter's default, Impeller, since Phase 3 W6. Phases 1
              and 2 opted out (EnableImpeller=false) because Impeller's
              OpenGLES backend did not size its surface on the software-GL CI

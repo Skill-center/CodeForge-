@@ -1,6 +1,10 @@
 package dev.codeforge.app.terminal
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -10,6 +14,7 @@ import dev.codeforge.app.runtime.TerminalOutputListener
 import dev.codeforge.app.runtime.TerminalSession
 import dev.codeforge.app.runtime.TerminalSpec
 import dev.codeforge.app.runtime.TerminalState
+import dev.codeforge.app.runtime.TerminalTombstone
 import io.flutter.plugin.common.BinaryMessenger
 
 /**
@@ -26,12 +31,19 @@ import io.flutter.plugin.common.BinaryMessenger
  * engine goes ([close]), every session is detached and reads into its
  * buffer; the sessions outlive the engine.
  *
- * Every call but a start and End all is answered on the main thread at once:
- * input and sizes are queued for each session's writer thread, an end sends
- * a signal. Logs name sessions by id, never a command or a path.
+ * Every call but a start, the listing and End all is answered on the main
+ * thread at once: input and sizes are queued for each session's writer
+ * thread, an end sends a signal. Logs name sessions by id, never a command or
+ * a path.
+ *
+ * Since Phase 5 W5 the listing holds the tombstones the app's last process
+ * left (Terminals' ledger) beside the sessions, and the first session asks
+ * Android 13 and later for the notification the foreground service shows
+ * (SessionService); declined, sessions still run.
  */
 class TerminalHost(context: Context, messenger: BinaryMessenger) : TerminalApi {
     private val hub = RuntimeHubs.get(context)
+    private val activity = context as? Activity
     private val events = TerminalEvents(messenger)
     private val main = Handler(Looper.getMainLooper())
 
@@ -69,6 +81,7 @@ class TerminalHost(context: Context, messenger: BinaryMessenger) : TerminalApi {
     }
 
     override fun start(spec: TerminalSpecMessage, callback: (Result<TerminalStartMessage>) -> Unit) {
+        askForNotifications()
         val request = TerminalSpec(
             project = spec.project,
             copy = spec.copy,
@@ -100,7 +113,16 @@ class TerminalHost(context: Context, messenger: BinaryMessenger) : TerminalApi {
     }
 
     override fun sessions(callback: (Result<List<TerminalInfoMessage>>) -> Unit) {
-        callback(Result.success(hub.terminals()?.list()?.map { it.toMessage() } ?: emptyList()))
+        // The command side may not be made yet in a new process, and making it
+        // reads the disk: on a command thread, answered on the main thread.
+        hub.withTerminals { terminals ->
+            val listed = if (terminals == null) {
+                emptyList()
+            } else {
+                terminals.tombstones().map { it.toMessage() } + terminals.list().map { it.toMessage() }
+            }
+            callback(Result.success(listed.sortedBy { it.id }))
+        }
     }
 
     override fun write(sessionId: Long, bytes: ByteArray, callback: (Result<String?>) -> Unit) {
@@ -122,6 +144,11 @@ class TerminalHost(context: Context, messenger: BinaryMessenger) : TerminalApi {
 
     override fun attach(sessionId: Long, callback: (Result<TerminalReplayMessage>) -> Unit) {
         val session = session(sessionId)
+        if (session == null && hub.terminals()?.tombstone(sessionId) != null) {
+            // A tombstone has nothing to replay: its output ended with the last process.
+            callback(Result.success(TerminalReplayMessage(offset = 0L, bytes = ByteArray(0), failure = null)))
+            return
+        }
         if (session == null) {
             callback(Result.success(TerminalReplayMessage(offset = 0L, bytes = ByteArray(0), failure = TerminalFailure.NO_SUCH_SESSION.code)))
             return
@@ -156,7 +183,8 @@ class TerminalHost(context: Context, messenger: BinaryMessenger) : TerminalApi {
     override fun remove(sessionId: Long, callback: (Result<String?>) -> Unit) {
         val terminals = hub.terminals()
         val failure = when {
-            terminals == null || terminals.get(sessionId) == null -> TerminalFailure.NO_SUCH_SESSION
+            terminals == null || (terminals.get(sessionId) == null && terminals.tombstone(sessionId) == null) ->
+                TerminalFailure.NO_SUCH_SESSION
             terminals.remove(sessionId) -> null
             else -> TerminalFailure.STILL_RUNNING
         }
@@ -165,12 +193,48 @@ class TerminalHost(context: Context, messenger: BinaryMessenger) : TerminalApi {
 
     private fun session(id: Long): TerminalSession? = hub.terminals()?.get(id)
 
+    /**
+     * Android 13 and later show the foreground service's notification only
+     * with the user's leave: asked once, at the first session. Declined,
+     * sessions still run, and Android lists the service in its task manager.
+     */
+    private fun askForNotifications() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val activity = activity ?: return
+        if (activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(ASKED, false)) return
+        prefs.edit().putBoolean(ASKED, true).apply()
+        activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATIONS)
+    }
+
     private fun dimension(value: Long): Int = value.coerceIn(1L, TerminalSession.MAX_DIMENSION.toLong()).toInt()
 
     private companion object {
         const val TAG = "CodeForgeTerminal"
+
+        /** The terminal host's own settings: never in a backup (BackupPolicy lists what may be). */
+        const val PREFS = "codeforge_terminal"
+        const val ASKED = "notifications_asked"
+        const val REQUEST_NOTIFICATIONS = 0x5E55
     }
 }
+
+/** A tombstone as Pigeon's message: an exited session with nothing left to show. */
+internal fun TerminalTombstone.toMessage() = TerminalInfoMessage(
+    id = id,
+    label = label,
+    state = TerminalState.EXITED.code,
+    rows = 24L,
+    columns = 80L,
+    received = 0L,
+    leftovers = 0L,
+    remaining = 0L,
+    exitCode = exitCode?.toLong(),
+    signal = signal?.toLong(),
+    failure = failure?.code,
+    detail = null,
+)
 
 /** A session as Pigeon's message. */
 internal fun TerminalSession.toMessage(): TerminalInfoMessage {

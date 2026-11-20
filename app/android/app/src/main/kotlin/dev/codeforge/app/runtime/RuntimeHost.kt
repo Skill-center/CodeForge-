@@ -1,11 +1,14 @@
 package dev.codeforge.app.runtime
 
+import android.content.ComponentCallbacks2
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Handler
 import android.os.Looper
 import android.system.Os
 import android.system.OsConstants
 import android.util.Log
+import dev.codeforge.app.terminal.SessionKeeper
 import dev.codeforge.runtime.core.HarnessConfig
 import io.flutter.plugin.common.BinaryMessenger
 import java.io.File
@@ -232,6 +235,26 @@ object RuntimeHubs {
             commandExecutor = commandThreads,
         )
         created.addListener { status -> log(status) }
+        // The foreground service runs while any terminal session runs (Phase 5 W5).
+        created.addTerminalListener(SessionKeeper(app, created))
+        // Under memory pressure, hidden sessions keep less of their output;
+        // nothing is ended to free memory (Phase 5 W5).
+        app.registerComponentCallbacks(
+            object : ComponentCallbacks2 {
+                override fun onTrimMemory(level: Int) {
+                    if (level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN || level < ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) return
+                    val trimmed = created.terminals()?.trimHidden() ?: 0
+                    if (trimmed > 0) Log.i(TAG, "memory pressure (level $level): $trimmed hidden terminal buffers trimmed")
+                }
+
+                override fun onConfigurationChanged(newConfig: Configuration) {}
+
+                @Deprecated("Deprecated in Android", ReplaceWith("onTrimMemory"))
+                override fun onLowMemory() {
+                    created.terminals()?.trimHidden()
+                }
+            },
+        )
         return created
     }
 
