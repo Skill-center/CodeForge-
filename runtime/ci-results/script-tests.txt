@@ -1,7 +1,7 @@
 === PASS runtime/tests/test-check-bundle-size.py
 test_a_base_over_the_limit_fails (__main__.LimitTest.test_a_base_over_the_limit_fails) ... the base module a device would download is over Play's 1 MB limit by 1.0 MB — move weight into a dynamic feature module (see pack_buildtools/)
 ok
-test_a_bundle_without_a_base_module_is_an_error (__main__.LimitTest.test_a_bundle_without_a_base_module_is_an_error) ... no base module in /tmp/tmpmdbad9hk/app.aab
+test_a_bundle_without_a_base_module_is_an_error (__main__.LimitTest.test_a_bundle_without_a_base_module_is_an_error) ... no base module in /tmp/tmpoaj5r5y8/app.aab
 ok
 test_a_small_base_passes (__main__.LimitTest.test_a_small_base_passes) ... ok
 test_the_limit_is_per_device_not_the_sum_of_every_abi (__main__.LimitTest.test_the_limit_is_per_device_not_the_sum_of_every_abi) ... the base module a device would download is over Play's 0 MB limit by 0.1 MB — move weight into a dynamic feature module (see pack_buildtools/)
@@ -13,84 +13,84 @@ test_entries_are_grouped_by_module (__main__.MeasureTest.test_entries_are_groupe
 test_the_bundle_config_counts_against_the_base (__main__.MeasureTest.test_the_bundle_config_counts_against_the_base) ... ok
 
 ----------------------------------------------------------------------
-Ran 9 tests in 0.011s
+Ran 9 tests in 0.010s
 
 OK
-bundle: /tmp/tmpyramgda1/app.aab
+bundle: /tmp/tmps2hm33zs/app.aab
   base     base                      2.0 MB (2 entries)
   base module against Play's 1 MB limit: 2.0 MB per device (200.0% of it); 2.0 MB for every ABI at once
-bundle: /tmp/tmp_36lk8tf/app.aab
+bundle: /tmp/tmp0519gbn2/app.aab
   base     base                      0.0 MB (3 entries)
   base module against Play's 200 MB limit: 0.0 MB per device (0.0% of it); 0.0 MB for every ABI at once
-bundle: /tmp/tmp_foywm29/app.aab
+bundle: /tmp/tmppylfw6mu/app.aab
   base     base                      0.1 MB (3 entries)
   base module on arm64-v8a       0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module on x86_64          0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module against Play's 1 MB limit: 0.1 MB per device (6.1% of it); 0.1 MB for every ABI at once
-bundle: /tmp/tmp_foywm29/app.aab
+bundle: /tmp/tmppylfw6mu/app.aab
   base     base                      0.1 MB (3 entries)
   base module on arm64-v8a       0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module on x86_64          0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module against Play's 0 MB limit: 0.1 MB per device; 0.1 MB for every ABI at once
-bundle: /tmp/tmp02_h1qox/app.aab
+bundle: /tmp/tmpp56gs35u/app.aab
   base     base                      0.0 MB (2 entries)
   feature  pack_buildtools           0.0 MB (2 entries)
   universal APK              0.0 MB
   base module against Play's 200 MB limit: 0.0 MB per device (0.0% of it); 0.0 MB for every ABI at once
-bundle: /tmp/tmpkwktl0ff/app.aab
+bundle: /tmp/tmpf9pn53sm/app.aab
   base     base                      1.5 MB (1 entries)
   base module against Play's 2 MB limit: 1.5 MB per device (75.0% of it); 1.5 MB for every ABI at once
 warning: base module is within 0.5 MB of Play's limit
 === PASS runtime/tests/test-notices.py
 ...........................
 ----------------------------------------------------------------------
-Ran 27 tests in 5.578s
+Ran 27 tests in 5.213s
 
 OK
 === PASS runtime/tests/test-pins.py
 .....................
 ----------------------------------------------------------------------
-Ran 21 tests in 3.442s
+Ran 21 tests in 3.030s
 
 OK
 === PASS runtime/tests/test-provenance.py
-.../home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:120: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-dkbyif7y/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
+.../home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:120: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-qds3fp54/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
   text = open(os.path.join(self.root, "native", "PROVENANCE.md")).read()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:123: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/codeforge-provenance-dkbyif7y/codeforge/native/kernel/src/main/java/dev/codeforge/runtime/sealed/Kernel.java'>
+/home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:123: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/codeforge-provenance-qds3fp54/codeforge/native/kernel/src/main/java/dev/codeforge/runtime/sealed/Kernel.java'>
   actual = provenance.sha256(open(self.java, "rb").read())
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-........./home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:184: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-1hyi4ely/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
+........./home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:184: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-rbal2ely/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
   text = open(path).read()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 ...
 ----------------------------------------------------------------------
-Ran 15 tests in 0.143s
+Ran 15 tests in 0.161s
 
 OK
 === PASS runtime/tests/test-pty.py
 ....................
 ----------------------------------------------------------------------
-Ran 20 tests in 7.755s
+Ran 20 tests in 8.053s
 
 OK
 
-FLOOD bytes=10588896 seq_blocked_at=990989 launcher_peak_rss_kib=1972
+FLOOD bytes=10588896 seq_blocked_at=990989 launcher_peak_rss_kib=1964
 
-RELAY_ECHO samples=300 direct_p50_us=34 direct_p95_us=48 relay_p50_us=60 relay_p95_us=77 added_p50_us=26 added_p95_us=28
+RELAY_ECHO samples=300 direct_p50_us=27 direct_p95_us=28 relay_p50_us=47 relay_p95_us=52 added_p50_us=20 added_p95_us=23
 === PASS runtime/tests/test-sealed-payload.py
 test-sealed-payload: OK
   executables=10 libraries=6 data=10 links=2 scripts=1
 === PASS runtime/tests/test-sources.py
 ...........................
 ----------------------------------------------------------------------
-Ran 27 tests in 1.895s
+Ran 27 tests in 2.473s
 
 OK
 === PASS runtime/tests/test-spawn.py
 ......................
 ----------------------------------------------------------------------
-Ran 22 tests in 3.899s
+Ran 22 tests in 3.872s
 
 OK
 script_test_files=8 cases=142 failed_files=0
