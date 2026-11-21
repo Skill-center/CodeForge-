@@ -88,13 +88,13 @@ TerminalPane ── TerminalController ──TerminalService (Pigeon, §1.7)─�
                   TerminalView ──surface── WebView: terminal.html (xterm.js, one terminal per session)
 ```
 
-**The page** is built in `editor/` beside the editor's, with the same kit (`tool/page_kit.mjs`): one self-contained document (`tool/build_terminal.mjs` → `app/assets/terminal/terminal.html`, `manifest.json`, `NOTICES.txt`), inline script and style, the bundled JetBrains Mono, a CSP that pins the script's SHA-256 and denies everything else, no request at all. The app verifies it against its manifest before loading it (`services/terminal/terminal_page.dart`), under its own origin (`https://appassets.androidplatform.net/terminal/`). xterm.js 6.0.0 with addon-fit 0.11.0 (the panel's size) and addon-unicode11 0.9.0 (wide characters and emoji); the DOM renderer, no blinking cursor (nothing animates forever). At W3: 545.4 KiB, 174.2 KiB gzipped, against a budget of 256 KiB.
+**The page** is built in `editor/` beside the editor's, with the same kit (`tool/page_kit.mjs`): one self-contained document (`tool/build_terminal.mjs` → `app/assets/terminal/terminal.html`, `manifest.json`, `NOTICES.txt`), inline script and style, the bundled JetBrains Mono, a CSP that pins the script's SHA-256 and denies everything else, no request at all. The app verifies it against its manifest before loading it (`services/terminal/terminal_page.dart`), under its own origin (`https://appassets.androidplatform.net/terminal/`). xterm.js 6.0.0 with addon-fit 0.11.0 (the panel's size) and addon-unicode11 0.9.0 (wide characters and emoji), and since W6 addon-webgl 0.19.0: the page draws with WebGL where the device's GPU is real, and with xterm.js's DOM renderer elsewhere (§2.2); no blinking cursor (nothing animates forever). At W3: 545.4 KiB, 174.2 KiB gzipped, against a budget of 256 KiB; at W6, with WebGL and the probe: 681.9 KiB, 210.7 KiB gzipped.
 
-**The terminal protocol v1** (`editor/src/terminal/protocol.ts` and `validate.ts`, mirrored by `app/lib/core/terminal/terminal_protocol.dart`; 36 valid and 31 invalid fixtures in `editor/test/fixtures/terminal/`, run by vitest and by Dart). The editor protocol's envelope and rules: `{v: 1, id, type, payload}`, unknown versions, types and fields rejected, every request answered once, except an accepted `session.write`, which `session.ack` answers.
+**The terminal protocol v1** (`editor/src/terminal/protocol.ts` and `validate.ts`, mirrored by `app/lib/core/terminal/terminal_protocol.dart`; 40 valid and 36 invalid fixtures in `editor/test/fixtures/terminal/` since W6, run by vitest and by Dart). The editor protocol's envelope and rules: `{v: 1, id, type, payload}`, unknown versions, types and fields rejected, every request answered once, except an accepted `session.write`, which `session.ack` answers.
 
 | From the host | | From the page | |
 |---|---|---|---|
-| `terminal.configure` | theme (21 colours from the tokens), font size, scrollback | `terminal.ready` | protocol, engine, version |
+| `terminal.configure` | theme (21 colours from the tokens), font size, scrollback; since W6 the renderer (`webgl`, the default, or `dom`) | `terminal.ready` | protocol, engine, version |
 | `terminal.focus` | give the shown terminal the keyboard, or take it | `terminal.focus` | the terminal took or lost the keyboard |
 | `terminal.modifiers` | Ctrl and Alt latched for the next key | `terminal.modifiers` | the latched keys were used |
 | `session.open` / `activate` / `close` | a session's view; open answers its fitted size | `session.input` | keys, the input method's text, mouse reports (`binary`) |
@@ -103,7 +103,7 @@ TerminalPane ── TerminalController ──TerminalService (Pigeon, §1.7)─�
 | `session.paste` | text to paste | `session.title`, `session.bell` | the program's title, a bell |
 | `session.select`, `session.copy` | select all or nothing; the selection's text | `session.selection` | a selection began or ended |
 | `session.clear`, `session.snapshot` | clear the scrollback; the screen as text | `session.link` | a tapped link (W4's `file:line`) |
-| | | `terminal.log`, `response` | |
+| `probe.echo`, `probe.flood`, `probe.read` (W6) | the measurements (§2.2): type characters as an input method does and time their echo; count and time what a session writes between two marks; the figures and each view's renderer | `terminal.log`, `response` | |
 
 **Output and flow control.** `TerminalController` decodes each session's bytes as UTF-8, holding back a sequence split between two batches, and writes each batch to its view with a sequence number. When xterm.js has parsed a write, the page sends `session.ack`, and only then does the controller acknowledge the batch's end to the host (§1.3). So the host's window, 256 KiB, is what the page has not yet parsed: a flood waits in the kernel, never in the app or the WebView. Output that arrives before a view is open (it can beat the start's answer) waits in the controller.
 
@@ -117,7 +117,32 @@ TerminalPane ── TerminalController ──TerminalService (Pigeon, §1.7)─�
 
 **A page restart.** The page lives as long as the app (`terminalViewProvider`) and loads with the first terminal. If it restarts, every session's view is opened again and refilled from the session's buffer (`TerminalService.attach`), skipping what the buffer already held.
 
-**The surface.** The terminal page runs in a WebView of its own, hardened as the editor's (`WebViewEditorSurface` with the terminal's origin; SECURITY §3). Android's WebViews share one renderer process, so the terminal adds its page's memory rather than a process; ADR-0006's budget, a delta of 80 MB or less, is measured in W6.
+**The surface.** The terminal page runs in a WebView of its own, hardened as the editor's (`WebViewEditorSurface` with the terminal's origin; SECURITY §3). Android's WebViews share one renderer process, so the terminal adds its page's memory rather than a process; ADR-0006's budget, a delta of 80 MB or less, was measured in W6 and is not met (§2.2).
+
+### 2.2 The budgets, measured (Phase 5 W6)
+
+**How.** The page measures itself (`editor/src/terminal/probe.ts`), on the host's request:
+- **Echo** (`probe.echo`): the page types a character the way an input method's commit reaches it, the textarea's text and an `input` event, so through `ime.ts`, xterm.js's `onData`, the host and the session's shell, and back; it is timed from that input to the end of the frame that draws its echo (the character before the cursor once a write is parsed), with the editor benchmark's instruments (a task posted from the next animation frame runs once that frame is rendered; nearest-rank percentiles), then erased (DEL). 100 characters, 50 ms apart; one whose echo takes over 2 s is lost.
+- **The flood** (`probe.flood`): 10 MiB from python3, 81,920 coloured lines of 128 bytes between two marks xterm.js ignores (`ESC ] 777 ; … BEL`). The page counts what lies between them and hashes it (FNV-1a over UTF-16 code units) without copying it, and the test compares both with its own (10,567,680 characters, CR LF included; `59da1fa1`). It times the flood from the write with the first mark to the end of the frame after the second was parsed, and records its own frames (the intervals between animation frames, slow over 32 ms) and long tasks. Meanwhile the test lays a progress bar over the app, so that Flutter draws every frame as an animated UI would, and reads Flutter's frame timings: slow over 32 ms (vsync to the end of raster), frozen over 700 ms.
+- **Memory:** `dumpsys meminfo`'s PSS of the app's process and its WebView renderer, with the App Summary's rows, before any terminal (with the editor open on `main.js`), with the terminal open and no output at the panel's full and half stops, 2 s after each flood and once settled (15 s). On the emulator the page's JavaScript heap is read through DevTools before and after a collection DevTools forces.
+- **Both renderers:** the one the page draws with when asked for WebGL is measured first and judged, then the other, then the first again (`app/integration_test/terminal_measure.dart`).
+
+**Where.** Test Lab's phone judges (`phone_terminal_test.dart`, `RUNTIME_GATE page_*` figures, which `gate_results.py` holds to the budgets); the emulator gate's terminal group records the same figures (`terminal_test.dart`, `app/ci-results/gate/terminal_measure.json`). The phone's app is a profile build: its Dart compiled ahead of time, as the app ships.
+
+**Measured** (Test Lab's Pixel 8a with Android 14, CI 44868218258; the emulator in phase gate 44870622961):
+
+| | Pixel 8a, WebGL | Pixel 8a, DOM | Emulator (DOM: a software GPU) | Budget |
+|---|---|---|---|---|
+| Echo, 95th percentile (median) | **48.4 ms** (28.6) | 62.3 ms (30.6) | 81.0 ms (50.1) | ≤ 50 ms |
+| The 10 MiB flood | whole, 3.0 s | whole, 4.1 s | whole, 31.5 s | whole |
+| Flutter's frames over 32 ms during it | **0.5 %**, none frozen | 4.9 % | all (raster 109 ms at p95) | < 5 % |
+| The page's frames over 32 ms | 13.2 % | 44.4 % | 94.0 % | recorded |
+| Memory: the terminal open, full stop (half) | 85.2 MB (73.5) | | 24.4 MB (22.2) | ≤ 80 MB |
+| Memory: settled after the flood | 153.7 MB | about 35 MB less in the renderer, 17 MB less graphics | 68.1 MB | ≤ 80 MB |
+
+**The renderer is WebGL** (the decision, ADR-0006 *As built*): only it kept the echo within budget, and it drew the flood faster and far more smoothly. The page asks for WebGL by default and keeps the DOM renderer where WebGL can't draw: no WebGL2, a software GPU (SwiftShader, llvmpipe: on the emulator WebGL could not keep up with an erase), or a context Android takes back, which the page tries again when it shows again. The reason is logged once.
+
+**Where the memory goes** (the phone): opening the terminal added 46.4 MB of the app's graphics, which is a second WebView's surfaces and is the same at either stop, 11.5 MB of native heap and 21.1 MB in the renderer. The flood added 58 MB in the renderer and 23 MB of graphics; WebGL holds 35 MB and 17 MB of those, and the rest is garbage: on the emulator, DevTools' collection took the renderer back to 5.3 MB above its size with the terminal open, the page's JavaScript heap from 15.5 MB to 6.4 MB, and V8 had not collected it 15 s after the flood. Most of it is the script each batch of output travels in (`runJavaScript`). The memory budget waits for the owner (PHASE_5_PLAN §10, item 7).
 
 ## 3. Flutter-side terminal UX, as built (Phase 5 W3)
 
@@ -150,7 +175,7 @@ TerminalPane ── TerminalController ──TerminalService (Pigeon, §1.7)─�
   - **2,048** processes and threads of the app's user (`RLIMIT_NPROC`), which Linux counts for the whole user, the app's own threads included;
   - an OOM score of **800**: when the kernel itself must kill for memory, it takes a session's processes before the app's;
   - **no CPU-time limit:** a long build is legitimate. Run's one-shot commands keep their time limits.
-- **Resize:** panel/sheet size changes → the `fit` addon (at most every 50 ms) → `session.resized` → the session's `TIOCSWINSZ` (§2.1). The emulator gate turns the phone with `nano` and `top` (G3); `vim` and `htop` are not in the runtime.
+- **Resize:** panel/sheet size changes → the `fit` addon (at most every 50 ms) → `session.resized` → the session's `TIOCSWINSZ` (§2.1). The emulator gate turns the phone with `nano` and `top` (G3), and since W6 with `less` and the node REPL too, `nano` open across the turn to landscape and `less` across the turn back, each redrawing at the new size; `vim` and `htop` are not in the runtime.
 
 ### 4.1 Proof
 

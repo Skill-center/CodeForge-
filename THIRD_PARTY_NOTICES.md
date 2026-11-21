@@ -94,7 +94,7 @@ The Dart and Flutter packages in the app's dependency closure: `pubspec.yaml`'s 
 
 ## 3. The web pages' packages
 
-Two pages are built from `editor/`: the editor (CodeMirror 6 and its language packages) and, since Phase 5 W3, the terminal (xterm.js 6 with its fit and Unicode 11 addons, all MIT). Each page's build writes its packages' licence texts to a `NOTICES.txt` that ships beside the page in the APK and appears in the app's licence page. `editor/tool/check_licenses.mjs` checks their licences, and `editor/tool/notices.mjs` writes and checks this list, on every CI run.
+Two pages are built from `editor/`: the editor (CodeMirror 6 and its language packages) and, since Phase 5 W3, the terminal (xterm.js 6 with its fit and Unicode 11 addons, and since W6 its WebGL addon, all MIT). Each page's build writes its packages' licence texts to a `NOTICES.txt` that ships beside the page in the APK and appears in the app's licence page. `editor/tool/check_licenses.mjs` checks their licences, and `editor/tool/notices.mjs` writes and checks this list, on every CI run.
 
 <!-- editor:begin -->
 <!-- Written by editor/tool/notices.mjs from editor/package-lock.json. Do not edit by hand: CI checks it. -->
