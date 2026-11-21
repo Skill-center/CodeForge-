@@ -1,12 +1,15 @@
 {
   "askedRenderer": "webgl",
   "shippedRenderer": "dom",
+  "composition": "tlhc",
+  "hostPort": true,
   "budgets": {
     "echoP95Ms": 50.0,
     "slowFrameMs": 32.0,
     "slowFramePct": 5.0,
     "frozenFrameMs": 700.0,
     "memoryDeltaMb": 80.0,
+    "openMemoryDeltaMb": 90.0,
     "settleSeconds": 15
   },
   "echo": {
@@ -15,20 +18,20 @@
       "typed": 100,
       "count": 100,
       "lost": 0,
-      "p50Ms": 50.1,
-      "p95Ms": 81.0,
-      "maxMs": 109.6,
-      "meanMs": 48.9
+      "p50Ms": 118.5,
+      "p95Ms": 180.4,
+      "maxMs": 212.2,
+      "meanMs": 115.9
     },
     "dom_again": {
       "renderer": "dom",
       "typed": 100,
       "count": 100,
       "lost": 0,
-      "p50Ms": 48.5,
-      "p95Ms": 92.7,
-      "maxMs": 161.4,
-      "meanMs": 51.0
+      "p50Ms": 108.6,
+      "p95Ms": 178.0,
+      "maxMs": 191.5,
+      "meanMs": 105.2
     }
   },
   "flood": {
@@ -37,41 +40,41 @@
       "whole": true,
       "chars": 10567680,
       "hash": "59da1fa1",
-      "writes": 210,
-      "maxWriteChars": 160729,
-      "ms": 31453.7,
+      "writes": 191,
+      "maxWriteChars": 184419,
+      "ms": 39797.5,
       "mibPerSecond": 0.3,
-      "wallMs": 33136,
+      "wallMs": 41695,
       "page": {
         "frames": {
-          "frames": 200,
-          "slowFrames": 188,
-          "slowFramePct": 94,
-          "p95FrameMs": 300.1,
-          "maxFrameMs": 383.4,
+          "frames": 204,
+          "slowFrames": 185,
+          "slowFramePct": 90.7,
+          "p95FrameMs": 383.3,
+          "maxFrameMs": 483.4,
           "thresholdMs": 32
         },
         "longTasks": {
-          "count": 53,
-          "totalMs": 4176,
-          "maxMs": 211
+          "count": 87,
+          "totalMs": 7465,
+          "maxMs": 492
         }
       },
       "ui": {
-        "frames": 315,
-        "slowFrames": 315,
+        "frames": 283,
+        "slowFrames": 283,
         "slowFramePct": 100.0,
         "frozenFrames": 0,
-        "p95TotalMs": 291.0,
-        "maxTotalMs": 354.8,
-        "p95BuildMs": 24.9,
-        "p95RasterMs": 109.3,
-        "longestGapMs": 283.3,
+        "p95TotalMs": 400.0,
+        "maxTotalMs": 459.6,
+        "p95BuildMs": 20.9,
+        "p95RasterMs": 141.7,
+        "longestGapMs": 366.7,
         "windowed": true
       },
       "dart": {
-        "batches": 211,
-        "ms": 4837.8
+        "batches": 193,
+        "ms": 4114.2
       }
     },
     "dom_again": {
@@ -79,165 +82,166 @@
       "whole": true,
       "chars": 10567680,
       "hash": "59da1fa1",
-      "writes": 201,
-      "maxWriteChars": 170377,
-      "ms": 31429.7,
+      "writes": 184,
+      "maxWriteChars": 212847,
+      "ms": 36319.5,
       "mibPerSecond": 0.3,
-      "wallMs": 32525,
+      "wallMs": 38044,
       "page": {
         "frames": {
-          "frames": 193,
-          "slowFrames": 179,
-          "slowFramePct": 92.7,
-          "p95FrameMs": 300.1,
-          "maxFrameMs": 366.6,
+          "frames": 205,
+          "slowFrames": 181,
+          "slowFramePct": 88.3,
+          "p95FrameMs": 366.7,
+          "maxFrameMs": 450,
           "thresholdMs": 32
         },
         "longTasks": {
-          "count": 53,
-          "totalMs": 4345,
-          "maxMs": 174
+          "count": 71,
+          "totalMs": 5790,
+          "maxMs": 153
         }
       },
       "ui": {
-        "frames": 309,
-        "slowFrames": 309,
+        "frames": 262,
+        "slowFrames": 262,
         "slowFramePct": 100.0,
         "frozenFrames": 0,
-        "p95TotalMs": 294.3,
-        "maxTotalMs": 355.3,
-        "p95BuildMs": 31.1,
-        "p95RasterMs": 111.5,
-        "longestGapMs": 283.3,
+        "p95TotalMs": 383.9,
+        "maxTotalMs": 445.6,
+        "p95BuildMs": 22.0,
+        "p95RasterMs": 131.7,
+        "longestGapMs": 350.0,
         "windowed": true
       },
       "dart": {
-        "batches": 202,
-        "ms": 4178.9
+        "batches": 186,
+        "ms": 4226.4
       }
     }
   },
   "memory": {
     "before": {
-      "appMb": 409.8,
-      "rendererMb": 79.1,
+      "appMb": 425.3,
+      "rendererMb": 86.2,
       "renderers": 1,
-      "totalMb": 489.0,
+      "totalMb": 511.5,
       "appRowsMb": {
-        "javaheap": 13.9,
-        "nativeheap": 57.1,
-        "code": 24.8,
-        "stack": 1.9,
+        "javaheap": 10.7,
+        "nativeheap": 57.8,
+        "code": 35.8,
+        "stack": 1.8,
         "graphics": 0.0,
-        "privateother": 275.2,
-        "system": 37.0,
-        "unknown": 290.6
+        "privateother": 279.1,
+        "system": 40.1,
+        "unknown": 294.4
       },
       "rendererGraphicsMb": 0.0
     },
     "opened": {
-      "appMb": 421.9,
-      "rendererMb": 91.5,
+      "appMb": 436.0,
+      "rendererMb": 91.7,
       "renderers": 1,
-      "totalMb": 513.4,
+      "totalMb": 527.6,
       "appRowsMb": {
-        "javaheap": 13.0,
-        "nativeheap": 61.9,
-        "code": 25.3,
-        "stack": 2.0,
+        "javaheap": 12.9,
+        "nativeheap": 58.3,
+        "code": 36.1,
+        "stack": 1.9,
         "graphics": 0.0,
-        "privateother": 280.2,
-        "system": 39.5,
-        "unknown": 295.9
+        "privateother": 286.2,
+        "system": 40.7,
+        "unknown": 301.6
       },
       "rendererGraphicsMb": 0.0
     },
     "openedHalf": {
-      "appMb": 419.4,
-      "rendererMb": 91.7,
+      "appMb": 438.2,
+      "rendererMb": 91.9,
       "renderers": 1,
-      "totalMb": 511.2,
+      "totalMb": 530.1,
       "appRowsMb": {
-        "javaheap": 11.0,
-        "nativeheap": 61.9,
-        "code": 25.2,
-        "stack": 2.0,
+        "javaheap": 10.9,
+        "nativeheap": 62.3,
+        "code": 36.1,
+        "stack": 1.9,
         "graphics": 0.0,
-        "privateother": 279.8,
-        "system": 39.6,
-        "unknown": 295.5
+        "privateother": 286.3,
+        "system": 40.7,
+        "unknown": 301.8
       },
       "rendererGraphicsMb": 0.0
     },
     "after_dom": {
-      "appMb": 430.0,
-      "rendererMb": 127.1,
+      "appMb": 449.9,
+      "rendererMb": 126.5,
       "renderers": 1,
-      "totalMb": 557.1,
+      "totalMb": 576.4,
       "appRowsMb": {
-        "javaheap": 12.1,
-        "nativeheap": 62.1,
-        "code": 25.7,
-        "stack": 1.9,
+        "javaheap": 14.0,
+        "nativeheap": 63.2,
+        "code": 36.2,
+        "stack": 1.8,
         "graphics": 0.0,
-        "privateother": 287.0,
-        "system": 41.2,
-        "unknown": 303.4
+        "privateother": 292.4,
+        "system": 42.3,
+        "unknown": 308.5
       },
       "rendererGraphicsMb": 0.0
     },
     "settled_dom": {
-      "appMb": 430.0,
-      "rendererMb": 127.1,
+      "appMb": 447.2,
+      "rendererMb": 126.5,
       "renderers": 1,
-      "totalMb": 557.1,
+      "totalMb": 573.7,
       "appRowsMb": {
-        "javaheap": 12.2,
-        "nativeheap": 62.1,
-        "code": 25.7,
-        "stack": 1.8,
+        "javaheap": 12.0,
+        "nativeheap": 63.0,
+        "code": 36.2,
+        "stack": 1.7,
         "graphics": 0.0,
-        "privateother": 287.0,
-        "system": 41.2,
-        "unknown": 303.4
+        "privateother": 291.8,
+        "system": 42.3,
+        "unknown": 307.9
       },
       "rendererGraphicsMb": 0.0
     },
     "afterCollection": {
-      "appMb": 430.0,
-      "rendererMb": 96.8,
+      "appMb": 447.5,
+      "rendererMb": 98.1,
       "renderers": 1,
-      "totalMb": 526.8,
+      "totalMb": 545.7,
       "appRowsMb": {
-        "javaheap": 12.2,
-        "nativeheap": 62.1,
-        "code": 25.7,
-        "stack": 1.8,
+        "javaheap": 12.0,
+        "nativeheap": 63.0,
+        "code": 36.2,
+        "stack": 1.7,
         "graphics": 0.0,
-        "privateother": 287.0,
-        "system": 41.2,
-        "unknown": 303.5
+        "privateother": 292.2,
+        "system": 42.3,
+        "unknown": 308.3
       },
       "rendererGraphicsMb": 0.0
     },
     "heap": {
-      "settled": "used:12882,total:15900",
-      "collected": "used:4863,total:6548"
+      "settled": "used:10301,total:25836",
+      "collected": "used:5134,total:6804"
     },
-    "deltaMb": 68.1,
-    "peakDeltaMb": 68.1,
-    "openDeltaMb": 24.4,
-    "openHalfDeltaMb": 22.2
+    "deltaMb": 62.2,
+    "peakDeltaMb": 65.0,
+    "openDeltaMb": 16.2,
+    "openHalfDeltaMb": 18.6
   },
   "webgl": {
     "renderer": "dom",
-    "error": "a software GPU (Android Emulator OpenGL ES Translator (Google SwiftShader))"
+    "error": "a software GPU (ANGLE (Google (Google Inc.), Android Emulator OpenGL ES Translator (Google SwiftShader), OpenGL ES 3.0))"
   },
   "otherFailure": null,
   "verdict": {
     "echo": false,
     "floodWhole": true,
     "ui": false,
-    "memory": true
+    "memory": true,
+    "memoryOpen": true
   }
 }
