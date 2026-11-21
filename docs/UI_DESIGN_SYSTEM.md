@@ -81,6 +81,12 @@ Every component: default/hover(hardware)/pressed/focused/disabled/loading/error 
 - **Settings → Developer → Log viewer (W6, debug and profile builds):** the session's records, newest first, with a level filter and a tag menu whose rows are 48 dp tall.
 - **Goldens:** W6 added four for this chrome: Home's recents in every status, the explorer's menu, the changed-on-disk banner and Privacy (`app/test/goldens/chrome/`).
 
+**Added in Phase 5:**
+- **The terminal panel (W3):** tabs with a state dot (and a bell rung in a hidden tab), a menu with Close, Rename, Clear scrollback, Maximize or Restore size, and End all, which asks first; the extra-keys row, which is `CfSymbolToolbar` with the terminal's keys and latching Ctrl and Alt (`CfToolbarKey.toggled`); the terminal's theme from the tokens (TERMINAL_ARCHITECTURE §3). An ended session keeps its tab, with a line saying how it ended, and since W5 a tombstone after process death says "ended by the system".
+- **Run (W4):** the Run panel (each run with its status chip, Stop, Run again and its terminal), the status strip's chip for the newest run, the copy's progress with Cancel, the dialog of files the runs made, *Export to folder*, and a banner on a session whose native addon could not be built. Settings gains *Save before running*.
+- **The notification (W5):** "*N* terminal sessions running", with End all, on its own low-importance channel.
+- **Honest placeholders:** the Run panel's debugging line says Phase 9; Git and extensions still say Phases 7 and 8 (`later_phases_test.dart`).
+
 ## 6. Iconography
 
 Material Symbols Rounded subset (bundled font, tree-shaken to used glyphs) + custom file-type glyphs (16 dp grid, 1.5 px stroke) for top 20 extensions; generic fallback. No emoji in UI chrome.

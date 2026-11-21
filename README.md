@@ -2,7 +2,7 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 4, runtime integration, was accepted on 2026-11-18 ([report](docs/phases/PHASE_4_REPORT.md)), and Phase 5, the terminal and running code, is planned ([plan](docs/phases/PHASE_5_PLAN.md)). Phase 3, workspace and files, was accepted on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
+> **Status: Phase 5, the terminal and running code, is built and awaits the owner's acceptance ([report](docs/phases/PHASE_5_REPORT.md)). Phase 4, runtime integration, was accepted on 2026-11-18 ([report](docs/phases/PHASE_4_REPORT.md)), Phase 3, workspace and files, on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
 > - Projects live in the app's own storage, and folders open through Android's own picker, with no storage permission.
 > - Home lists the recent projects and folders with their status, and each keeps its tabs, unsaved text and explorer view.
 > - The explorer creates, renames, moves, copies and deletes, and Go to File finds a file by name.
@@ -10,16 +10,15 @@
 > - CodeMirror 6 runs in a hardened Android System WebView, with many tabs, find and replace, a symbol toolbar and hardware shortcuts. Unsaved text survives the app being killed.
 > - Android backup is the user's choice, off by default.
 >
-> The runtime arrived in Phase 4, and the terminal comes in Phase 5; the screens say so honestly. Phase 4 ([plan](docs/phases/PHASE_4_PLAN.md), [report](docs/phases/PHASE_4_REPORT.md)):
-> - Its first package moved CodeForge to Flutter 3.50.0.
-> - Its second vendored t1's sealed-runtime kernel and pinned every input of the runtime.
-> - Its third puts the runtime in the app, so far on the CI emulator. It installs when a workspace opens, verifying every file, while the editor works. It starts again in about 18 ms, and it checks at every start that every program comes from the app. Settings → Runtime shows all of it.
-> - Its fourth runs the runtime's tools: Settings → Linux runtime checks node, python, git, bash, perl, ruby and rg, each against its pinned version, and every command ends with all the processes it started. For now the app runs only those checks: running your own code comes with Phase 5.
-> - Its fifth proves the runtime on real targets: Android 8.0, 8.1, 9, 14 and 16 emulators, and a physical Pixel 8a (Android 14) in Firebase Test Lab, where the first install took 13.6 s and a warm start 73 ms. So Android 8.0 and later is confirmed.
-> - Its sixth searches across files: the runtime's ripgrep in projects, about 120 ms for 10,000 files on the Pixel 8a, and CodeForge's own scan in folders from shared storage. A result opens at its line.
-> - Its seventh completed the third-party notices, which CI keeps current, decided how the userland's source code is offered, drafted the Play listing, the Data safety answers and the privacy policy ([docs/store](docs/store/README.md)), and fixed t1's kernel in place. The release build asks for no permissions, and CI checks it.
+> Phase 5 ([plan](docs/phases/PHASE_5_PLAN.md), [report](docs/phases/PHASE_5_REPORT.md)) runs your code:
+> - **A terminal:** bash on a pseudo-terminal CodeForge writes itself, drawn by xterm.js, with tabs, a row of extra keys, copy and paste, and up to 8 sessions. On a Pixel 8a a keystroke's echo is drawn in 37.2 ms at the 95th percentile (the budget is 50 ms), and 10 MiB of output arrives whole in 3.3 s, with none of the app's frames taking over 32 ms to draw.
+> - **Run:** the open file (JavaScript, Python, shell, Ruby, Perl) or a project's npm script, each in a terminal, with Stop, its exit code, and `file:line` in the output opening the editor there. A folder from shared storage runs in a copy, and the files a run made can be exported back.
+> - **Sessions that last:** a foreground service keeps them running while you use other apps, with a notification that counts them and ends them all. After Android ends the app, each session's tab says how it ended. Each session runs under limits measured on Android 8.0 to 16 and the Pixel 8a first.
+> - **Releases, ready for the owner's keys:** the release workflow builds the signed App Bundle and APK with the source archive beside them (dry runs so far), and About shows the source offer and every licence. Nothing is distributed before the licence review.
 >
-> Every claim is backed by a CI run: see the **[Phase 4 Report](docs/phases/PHASE_4_REPORT.md)** and the **[Phase 3 Report](docs/phases/PHASE_3_REPORT.md)**.
+> The runtime arrived in Phase 4 ([plan](docs/phases/PHASE_4_PLAN.md), [report](docs/phases/PHASE_4_REPORT.md)): t1's sealed Linux userland in the APK, verified as it installs and checked at every start, its seven tools at their pinned versions, search across files, and the real-device gates on Android 8.0 to 16 emulators and a physical Pixel 8a in Firebase Test Lab.
+>
+> Every claim is backed by a CI run: see the **[Phase 5 Report](docs/phases/PHASE_5_REPORT.md)** and the **[Phase 4 Report](docs/phases/PHASE_4_REPORT.md)**.
 
 ---
 
@@ -27,7 +26,9 @@
 
 | Document | What it answers |
 |---|---|
-| **[Phase 4 Report](docs/phases/PHASE_4_REPORT.md)** | What Phase 4 built (the toolchain, the sealed runtime in the app, its tools, the real-device gates, search, the notices and Play's drafts), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
+| **[Phase 5 Report](docs/phases/PHASE_5_REPORT.md)** | What Phase 5 built (the release workflow, the PTY and sessions, the terminal, Run, sessions that last, the terminal's budgets on a phone), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
+| [Phase 5 phone checklist](docs/phases/PHASE_5_PHONE_CHECKLIST.md) | The terminal on your phone: Gboard and the extra keys, taps and typing in the terminal and the editor, nano across a turn, a run, a long session in the background, the tombstones, in about 35 minutes |
+| [Phase 4 Report](docs/phases/PHASE_4_REPORT.md) | What Phase 4 built (the toolchain, the sealed runtime in the app, its tools, the real-device gates, search, the notices and Play's drafts), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
 | [Phase 4 phone checklist](docs/phases/PHASE_4_PHONE_CHECKLIST.md) | The runtime on your phone: the install time, the audit, the tools' versions, search, in about 20 minutes |
 | [Play drafts](docs/store/README.md) | The listing, the Data safety answers, the privacy policy, the release checklist, and the proposed closed test |
 | [Phase 3 Report](docs/phases/PHASE_3_REPORT.md) | What Phase 3 built (projects, folders, the explorer, outside changes), gate-by-gate evidence, the measurements, what is not met, and the owner's decisions |
@@ -35,13 +36,14 @@
 | [Phase 2 Report](docs/phases/PHASE_2_REPORT.md) | What Phase 2 built (the editor), gate-by-gate evidence (CI run ids, hashes, measurements), parked phone checks, limitations, what's next |
 | [Phase 1 Report](docs/phases/PHASE_1_REPORT.md) | What Phase 1 built (the shell and the design system), with its evidence |
 | [Editor Architecture](docs/EDITOR_ARCHITECTURE.md) · [ADR-0004](docs/adr/0004-editor-engine.md) | How the editor works as built; why CodeMirror 6, measured against Monaco |
+| [Terminal Architecture](docs/TERMINAL_ARCHITECTURE.md) · [ADR-0006](docs/adr/0006-terminal-frontend.md) · [ADR-0014](docs/adr/0014-pty-and-sessions.md) | How the terminal works as built: the PTY and the sessions, the page, Run, the lifecycle, and the budgets measured on a phone |
 | [Phase 0 Report](docs/PHASE_0_REPORT.md) | What we found, what we decided, what's risky, what's next |
 | [Runtime Audit](docs/EXISTING_RUNTIME_AUDIT.md) | The existing Linux environment (`m-cyber12/t1`), fully audited |
 | [Architecture](docs/ARCHITECTURE.md) · [Repo Structure](docs/REPOSITORY_STRUCTURE.md) | How the system is built and where everything lives |
 | [Tech Stack](docs/TECH_STACK.md) | Every dependency, verified versions, rejection reasons |
-| **[Phase 5 Plan](docs/phases/PHASE_5_PLAN.md)** · [Phase 4 Plan](docs/phases/PHASE_4_PLAN.md) · [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
+| [Phase 5 Plan](docs/phases/PHASE_5_PLAN.md) · [Phase 4 Plan](docs/phases/PHASE_4_PLAN.md) · [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
 | [Roadmap](docs/ROADMAP.md) | Phases 0–10, dependencies, decision queue |
-| [ADRs](docs/adr/) | 13 architecture decision records |
+| [ADRs](docs/adr/) | 14 architecture decision records |
 
 ## The foundation
 

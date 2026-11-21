@@ -1,6 +1,7 @@
 package dev.codeforge.app.runtime
 
 import android.content.Context
+import android.os.Build
 import android.system.Os
 import android.system.OsConstants
 import android.util.Log
@@ -35,6 +36,8 @@ import org.junit.runners.MethodSorters
  *   * Ending a session (by request, by its time limit, or when its command
  *     exits) leaves no child: no process of the command's tree, in its group
  *     or out of it, and no process of the app beyond the ones before.
+ *   * Phase 5 W7, recorded and not judged: whether node loads a native addon
+ *     written to the app's storage (test g).
  *
  * Every figure goes to the device log (RUNTIME_GATE key=value) and to
  * files/runtime-gate/commands-report.txt, which the gate copies out. A file
@@ -197,6 +200,38 @@ class RuntimeCommandsTest {
         assertEquals(emptyList<Int>(), leftAfterExit)
     }
 
+    /**
+     * Phase 5 W7, recorded and not judged: whether node loads a native addon
+     * (a `.node` library) from the app's storage, where `npm install` of a
+     * package with a prebuilt Android addon leaves one (PHASE_5_PLAN §9, Play's
+     * Device and Network Abuse policy). The library is a copy of the APK's own
+     * preload, which has no constructor. Node's `process.dlopen` either maps
+     * it and then finds no module in it ("did not self-register": loaded), or
+     * the system refuses to map it (refused). ExecModelTest's rule for
+     * programs, refused when the app targets API 29 or later and the device
+     * runs API 29 or later, is recorded beside it as what is expected; the
+     * test asserts only that node ran the probe and gave one of the two.
+     */
+    @Test
+    fun g_whetherNodeLoadsAnAddonFromTheAppsStorage() {
+        val payload = commands()
+        val library = File(context.applicationInfo.nativeLibraryDir, RuntimeEnvironment.PRELOAD)
+        val copy = File(payload.environment.home, "cf-addon-probe.node")
+        library.copyTo(copy, overwrite = true)
+        val result = run("node", "-e", ADDON_PROBE, copy.absolutePath)
+        copy.delete()
+        val outcome = result.stdout.text.trim()
+        val refusedByRule = context.applicationInfo.targetSdkVersion >= 29 && Build.VERSION.SDK_INT >= 29
+        record("addon_from_storage", outcome.substringBefore(' '))
+        record("addon_from_storage_expected", if (refusedByRule) "refused" else "loaded")
+        record(
+            "addon_from_storage_detail",
+            "exit=${result.exitCode} sdk=${Build.VERSION.SDK_INT} ms=${result.durationMs} ${outcome.take(300).replace('\n', ' ')}",
+        )
+        assertEquals("${result.failure} ${result.detail} ${result.stderr.text}", 0, result.exitCode)
+        assertTrue(outcome, outcome.startsWith("loaded") || outcome.startsWith("refused"))
+    }
+
     /** The app's processes (its user id's), zombies aside. */
     private fun ownProcesses(): Set<Int> {
         val uid = Os.getuid().toString()
@@ -251,6 +286,13 @@ class RuntimeCommandsTest {
         const val TAG = "CodeForgeRuntimeGate"
         const val REPORT = "commands-report.txt"
         const val CANARY = "CODEFORGE_CANARY_TOKEN"
+
+        /** Loads its argument as a native addon and says what became of it (test g). */
+        const val ADDON_PROBE =
+            "const path = process.argv[1];" +
+                " try { process.dlopen({ exports: {} }, path); console.log('loaded') }" +
+                " catch (e) { const m = String(e && e.message);" +
+                " console.log((/self-register/.test(m) ? 'loaded ' : 'refused ') + m) }"
 
         private var installed: RuntimeCommands? = null
         private var infoText: String? = null

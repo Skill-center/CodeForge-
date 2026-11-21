@@ -1,6 +1,6 @@
 # Editor Architecture
 
-**Status:** Phase 2 built (W1–W7) and awaiting owner acceptance ([PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md)). **The engine is CodeMirror 6** (ADR-0004 Accepted 2026-11-06, after the W3 benchmark on the emulator and the owner's low-end phone). §6–§10 describe the editor as built.
+**Status:** Phase 2 built (W1–W7) and accepted by the owner on 2026-11-10 ([PHASE_2_REPORT.md](phases/PHASE_2_REPORT.md)); Phase 3 added the explorer's operations, Go to File and outside changes (§6), and Phase 5 W6 the composition (§2). **The engine is CodeMirror 6** (ADR-0004 Accepted 2026-11-06, after the W3 benchmark on the emulator and the owner's low-end phone). §6–§10 describe the editor as built.
 
 ---
 
@@ -72,6 +72,7 @@ Flutter (Dart)                      WebView (bundled assets only)
 └──────────────────────┘
 ```
 
+- **Composition (since Phase 5 W6, the owner's decision):** the manifest's `io.flutter.embedding.android.EnableHcpp` has the engine compose every platform view, this WebView included, with Hybrid Composition++ on Android 14 and later with Impeller on Vulkan: the WebView sits in Android's view hierarchy and SurfaceControl composes it with Flutter's frame, so it is not copied into a texture. Elsewhere, the emulator included, it keeps Flutter's texture layer. On Test Lab's Pixel 8a the app before any terminal took 32.5 MB less with it, the editor's WebView no longer copied (TERMINAL_ARCHITECTURE §2.2). Taps and the keyboard through it are on the Phase 5 phone checklist, since no automated test reaches it with a real keyboard.
 - **One WebView, many documents.** CM6 `EditorState` per open tab; switching tabs swaps state into the single `EditorView` (cheap, keeps scroll/undo per state). Avoids N WebViews (memory, R6).
 - **Dart owns truth for persistence; CM6 owns truth for live editing.** On open: Dart reads the file through `FileService` (strict UTF-8; the byte-order mark and line-ending style are noted and stripped) → `doc.open(id, text, language)`. While editing: CM6 applies changes locally at 60 fps and emits **change sets** (CM6 `ChangeDesc` JSON: retain/insert/delete spans), debounced ~150 ms and flushed on blur, save and tab switch. Dart applies them to its shadow buffer, and the W5 journal makes them crash-safe (§7). On save: Dart takes a snapshot (which flushes pending changes), encodes it in the file's own format and writes it atomically (temp file, flush, rename). A file changed outside the app since it was read is caught at save time by its stamp, and the user decides whether to overwrite. Since Phase 3 W5 a change made while the file is open is also taken in as it happens: a document without unsaved changes reloads through a guarded `doc.replace`, and one with unsaved changes keeps them while the user picks. Details: §6, *Outside changes*.
 - **No full-document sync per keystroke** (spec §6.3). Full text moves only on open, save-conflict resolution, and recovery.

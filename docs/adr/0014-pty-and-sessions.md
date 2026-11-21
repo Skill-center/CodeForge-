@@ -1,6 +1,6 @@
 # ADR-0014: The PTY in CodeForge's launcher, and CodeForge's own terminal sessions
 
-**Status:** Accepted · 2026-11-19 · Phase 5 W2 ([PHASE_5_PLAN.md](../phases/PHASE_5_PLAN.md) W2, which assigns this decision to W2's start, with a measurement) · decided by the agent, as the plan asks · built and described in [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md) §1
+**Status:** Accepted · 2026-11-19 · Phase 5 W2 ([PHASE_5_PLAN.md](../phases/PHASE_5_PLAN.md) W2, which assigns this decision to W2's start, with a measurement) · decided by the agent, as the plan asks · built and described in [TERMINAL_ARCHITECTURE.md](../TERMINAL_ARCHITECTURE.md) §1 · **as built through Phase 5** (W3 to W6, *As built*, below; [PHASE_5_REPORT.md](../phases/PHASE_5_REPORT.md))
 
 ## Context
 - **Termux's terminal code is not available to CodeForge.** Its `terminal-emulator` (`termux.c` and `TerminalSession`) and t1's `HarnessSession`, built on it, are not vendored since the owner chose Apache-2.0 (ADR-0011), and AGENTS §4 rules out copying Termux's code. Phase 5 writes the PTY and the session itself, from POSIX's and Linux's manuals.
@@ -45,3 +45,12 @@ And three smaller choices: window sizes on a FIFO in the session's folder (the p
 - On the phone the host's part of an echo takes up to about 8 ms (p95), which leaves about 41 ms of the budget for the bridge to the page, the WebView and xterm.js. W6 measures the whole path there.
 - W3's view must acknowledge what xterm.js has written (its write callback). W5's foreground service keeps the process, and so the sessions, alive in the background.
 - `termux.c` stays out, so it needs no legal review.
+
+## As built (Phase 5)
+
+The decision held through Phase 5: nothing in W3 to W6 changed the launcher's terminal mode, the frames or the credit. What the later packages added:
+- **W3, the view's acknowledgement.** The terminal page acknowledges a write once xterm.js has parsed it (`term.write`'s callback), and that acknowledgement is the session's credit, as this ADR asked. A flood from the page's side then waits in the kernel, behind the launcher (TERMINAL_ARCHITECTURE §1.3, §2.1).
+- **W4, Run.** A run is a terminal session like any other: the program named in the runtime's `bin`, its arguments, and a folder the host resolves itself, a project's or, for a folder from shared storage, its copy (`TerminalSpec.copy`, ADR-0013). Stop ends the whole tree through the same subreaper and kill phase.
+- **W5, sessions that last.** A foreground service, `SessionService` (`specialUse`), runs while any session runs, so Android keeps the process and the sessions in the background (in phase gate 44777091949, a heartbeat session wrote 326 beats in 332 s in the background, with no gap over 2 s). Every view lets go while the app is paused, and a session without a view reads freely into its ring, so a page Android stopped never stalls a program. A ledger leaves a tombstone for each session after process death. The launcher took three limits, set before the shell starts and reported in its status file: `--fsize` (4 GiB), `--nproc` (2,048) and `--oom-score-adj` (800), each measured on API 26 to 36 and the Pixel 8a first (SECURITY T14, T15).
+- **W6, the whole path on the phone.** A keystroke typed as an input method commits it, through the page, the host, the session's shell and back, to the frame that draws its echo: **p95 37.2 ms** (median 26.8, max 59.4) on Test Lab's Pixel 8a with WebGL, in a profile build (CI 44893095694; 48.4 ms before W6's memory work, CI 44868218258). The host's part, measured by `TerminalSessionTest` (d) in the same run, was p95 6.29 ms, within the ~8 ms this ADR expected. The 10 MiB flood arrived whole through the host in 0.91 s (43 batches, never more than the 256 KiB window unacknowledged) and on the page in 3.3 s, with no Flutter frame over 32 ms.
+- **W6, how output reaches the page.** Dart still gets each batch through `TerminalEvents`, as decided. Dart then hands it to the page through a MessagePort the host gives the page (`webview/PagePorts.kt`), instead of running a script per batch, whose garbage V8 kept after a flood (TERMINAL_ARCHITECTURE §2.2; SECURITY §3).

@@ -12,7 +12,8 @@
 #                        native library directory, a prefix link, a shebang
 #                        through the preload, the audit;
 #   RuntimeCommandsTest  W4: the tools at their pinned versions, the
-#                        environment, no child left;
+#                        environment, no child left; Phase 5 W7: whether node
+#                        loads an addon from the app's storage (recorded);
 #   RuntimeInstallTest   W3: the install, the warm start, a flipped byte, the
 #                        audit; W5: the kernel's manifest stream needs API 33;
 #   SealedShellTest      t1's, ported: bash, sed and the core tools from the
@@ -219,7 +220,7 @@ python3 tool/ci/gate_results.py \
   --expect dev.codeforge.app.runtime.ExecModelTest:1 \
   --expect dev.codeforge.app.runtime.SealedShellTest:2 \
   --expect dev.codeforge.app.runtime.RuntimeInstallTest:7 \
-  --expect dev.codeforge.app.runtime.RuntimeCommandsTest:6 \
+  --expect dev.codeforge.app.runtime.RuntimeCommandsTest:7 \
   --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
   --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
   --require exec_model_audit_outside_apk=0 \

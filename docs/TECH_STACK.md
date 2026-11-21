@@ -10,6 +10,8 @@
 
 **Phase 4 update (2026-11-13, W1; the runtime's rows in §3 as built at Phase 4's end, 2026-11-18):** Flutter **3.50.0** with the Android pins of its template (Kotlin's Gradle plugin 2.4.20, Gradle 9.5.0, and AGP 9.3.3, the 9.3 line's latest patch rather than the template's 9.3.1, whose lint crashes on JDK 17 in release builds), upgraded together as the owner decided, and `package:material_ui` 1.10.0 in place of the framework's Material library, which 3.50 deprecates, are **as built and CI-proven**: CI 43373527631 (`+846: All tests passed!`, analysis clean, 230 files formatted with none changed, 44 Kotlin tests). All 87 files that imported the framework's Material moved by Flutter's own fix, and none of the 26 golden images changed. The workflows moved to the Node 24 majors of GitHub's actions in W1 as well (§6).
 
+**Phase 5 update (2026-11-21, at its exit):** the terminal's four npm packages are **as built and CI-proven**: @xterm/xterm 6.0.0 with addon-fit 0.11.0 and addon-unicode11 0.9.0 since W3, and addon-webgl 0.19.0 since W6, each an exact pin in `editor/package.json` with AGENTS §5's justification (§2), all MIT and without dependencies of their own. The terminal page is 211.0 KiB gzipped against its 256 KiB budget. Phase 5 added no Dart package and no Android library. Its native code is CodeForge's own: the launcher's terminal mode (C, built with the pinned NDK) and the Kotlin host. Hybrid Composition++ (W6) is a setting of the Flutter engine already pinned (`io.flutter.embedding.android.EnableHcpp` in the manifest), not a dependency. Run ids are in [phases/PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md).
+
 ---
 
 ## 1. Core stack (locked by spec + audit)

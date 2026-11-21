@@ -86,10 +86,12 @@ void main() {
       nativeAddonMessage(NativeAddonKind.npm),
       contains('pure-JavaScript'),
     );
-    expect(nativeAddonMessage(NativeAddonKind.pip), contains('prebuilt wheel'));
+    expect(nativeAddonMessage(NativeAddonKind.pip), contains('pure-Python'));
     for (final kind in NativeAddonKind.values) {
       expect(nativeAddonMessage(kind), contains('no C compiler'));
+      expect(nativeAddonMessage(kind), contains('Android 10 and later'));
       expect(nativeAddonMessage(kind), contains('app storage'));
+      expect(nativeAddonMessage(kind), isNot(contains('wheel')));
     }
   });
 }

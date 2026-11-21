@@ -1,6 +1,6 @@
 # Build & Release
 
-**Status:** Design accepted Phase 0 (ADR-0009/0010) · **`ci.yml` and `phase-gate.yml` were implemented in Phase 1**, with the editor job and the editor's gate groups added in Phase 2 (§2.2). **Since Phase 4 W6 they are one workflow, `ci.yml`** (§2.4, the owner's request). §2.1 says how they differ from this spec; `runtime-gates.yml`, `release.yml` and `deps.yml` remain spec until their phases.
+**Status:** Design accepted Phase 0 (ADR-0009/0010) · **`ci.yml` and `phase-gate.yml` were implemented in Phase 1**, with the editor job and the editor's gate groups added in Phase 2 (§2.2). **Since Phase 4 W6 they are one workflow, `ci.yml`** (§2.4, the owner's request). §2.1 says how they differ from this spec. **The runtime gates** run in `ci.yml`'s phase gate since Phase 4 W5 (§2.4), not in a `runtime-gates.yml` of their own. **`release.yml` exists since Phase 5 W1:** a reusable workflow that `ci.yml` calls for a `[release]` dry run; its tag trigger waits for the owner's keys (§2.5, §5). `deps.yml` remains spec.
 
 ---
 
@@ -151,6 +151,16 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
     - `SHA256SUMS` and the report.
 
   PHASE_5_PLAN *As built (W1)* has the detail.
+- **The source archive's tests** (the runtime job, since W1): `runtime/tests/test-sources.py` (27), on a small termux-packages history in a local Git repository with upstreams on `file://` URLs, so no test needs the network.
+- **The launcher's terminal mode** (the runtime job, since W2, gate G2): `runtime/tests/test-pty.py` (19 at W2, 20 since W5) compiles `codeforge-spawn.c` with `-Werror` and runs it on real terminals through Python's `pty` and `termios`. The JVM step runs `TerminalSessionTest` with real processes, which needs the machine's C compiler, bash and coreutils.
+- **The terminal page** (the editor job, since W3, gate G3): `npm run build` also builds `app/assets/terminal/` (`tool/build_terminal.mjs`), and `npm run verify` checks it (`tool/verify_terminal.mjs`): one inline script whose SHA-256 the CSP pins, nothing external, the manifest, the 256 KiB gzipped budget, the packages' notices, then a protocol round trip with the real xterm.js and, since W6, a second boot through a stand-in for the host's port (32 checks). At Phase 5's end the page is 682.8 KiB, 211.0 KiB gzipped (`ci-results/editor/build_terminal.txt`). *Generated code check* covers a fourth Pigeon API (`pigeons/terminal_api.dart`).
+- **The phase gate's Phase 5 groups** (`tool/ci/emulator_gate.sh`, API 36):
+  - **terminal** (W3, G3; since W6 with the budgets, G6): `integration_test/terminal_test.dart`, answered by the terminal driver (taps, text and keys through `adb shell input`, turns through the rotation setting) and `editor/tool/terminal_cdp.mjs` (the composition suite, with the input methods off). Since W6 it records the page's echo, the 10 MiB flood and the memory (`terminal_measure.json`, `terminal_memory.txt`), judged on the phone and recorded here;
+  - **run** (W4, G4): `integration_test/run_test.dart`, with the folder driver answering the picker;
+  - **sessions** (W5, G5): `integration_test/sessions_a_test.dart` and `sessions_b_test.dart`, with the driver answering `service`, `trim`, `procs`, `home`, `front` and `die` (`kill -9` as the app's user).
+- **The runtime legs** (API 26 to 36) run two more instrumented classes: `TerminalSessionTest` (W2, seven tests) and `SessionServiceTest` (W5, four), with their figures required by `gate_results.py`. Since W7 `RuntimeCommandsTest` has a seventh test, which records whether node loads an addon from the app's storage, and is not judged.
+- **Test Lab** (W2, W5, W6): the same classes on the phone. Since W6 the phone's APK is a profile build (`-Pcodeforge.testBuildType=profile`), and its Dart entrypoint also runs `integration_test/phone_terminal_test.dart`. The job requires the terminal's figures: the renderer shipped (`webgl`), the composition (`hcpp`), the host's port, the echo, the flood whole with Flutter's frames, and the open terminal's memory within 90 MB (since the owner's decision, §10 item 7 of PHASE_5_PLAN). A flood's growth is recorded.
+- **The quality job:** *Release manifest* allows the foreground service's three permissions and `SessionService` (W5); the API floor check allows one guarded API 31 call (W5, `setForegroundServiceBehavior`); *Release scripts* runs `check_signer.sh --self-test` (W1).
 
 ## 3. Toolchain pins in CI
 

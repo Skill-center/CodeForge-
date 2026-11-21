@@ -93,13 +93,14 @@ String runtimeToolLine(RuntimeTool tool) {
   };
 }
 
-/// What Settings → Linux runtime says of native addons (Phase 5 W4).
+/// What Settings → Linux runtime says of native addons (Phase 5 W4; since
+/// W7 Android's rule is said from Android 10, as ExecModelTest measures it).
 const String runtimeNativeAddonsText =
     'npm packages with native addons (node-gyp) and pip packages with C '
     'extensions can’t be installed yet: the runtime has no compiler, and a '
-    'build-tools pack comes later. Android also won’t run programs written '
-    'to app storage, so downloaded prebuilt programs can’t run either. '
-    'Pure-JavaScript and pure-Python packages, and prebuilt wheels, work.';
+    'build-tools pack comes later. Android 10 and later also won’t run '
+    'programs written to app storage, so downloaded prebuilt programs can’t '
+    'run there either. Pure-JavaScript and pure-Python packages work.';
 
 /// "JavaScript, Python, shell scripts, Ruby and Perl": what the runtime
 /// can execute.

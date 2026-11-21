@@ -1,6 +1,6 @@
 # CodeForge Architecture
 
-**Status:** Accepted for Phase 1 · as built through Phase 2 in §2.4–§2.7 · Decisions recorded in [adr/](adr/) · Audit basis: [EXISTING_RUNTIME_AUDIT.md](EXISTING_RUNTIME_AUDIT.md)
+**Status:** Accepted for Phase 1 · as built through Phase 2 in §2.4–§2.7, Phase 3 in §2.8, Phase 4 in §2.9–§2.10 and §3, and Phase 5 in §2.11 and §3 · Decisions recorded in [adr/](adr/) · Audit basis: [EXISTING_RUNTIME_AUDIT.md](EXISTING_RUNTIME_AUDIT.md)
 
 ---
 
@@ -48,6 +48,8 @@ CodeForge is a **Flutter application with a Kotlin/Java Android host** that embe
 | Dart ↔ editor WebView | `webview_flutter` JS bridge + `postMessage` | incremental document deltas (CM6 change sets), never whole-file-per-keystroke | both |
 | Kotlin ↔ Linux processes | PTY (JNI) / `ProcessBuilder` + pipes | bytes / JSON-RPC (LSP) | both |
 | Dart ↔ JS schema | shared JSON schema in `packages/bridge_protocol/` (Dart) + `editor/src/protocol/` (TS), contract-tested both sides | one source of truth for message shapes | — |
+
+**As built (Phase 5):** the terminal's output reaches Dart through a Pigeon Flutter API (`TerminalEvents`), as the runtime's and search's events do, rather than an EventChannel; the credit window bounds what is in flight (ADR-0014). Kotlin reaches a shell through the launcher's pseudo-terminal relay, a child process, not JNI. Since W6 host messages reach the terminal page through a MessagePort the host gives it, and the page's messages still come through its JavaScript channel (TERMINAL_ARCHITECTURE §2.2). The terminal protocol v1 is the editor protocol's twin: `editor/src/terminal/` ↔ `app/lib/core/terminal/terminal_protocol.dart`, with shared fixtures.
 
 Rules: every bridge message carries `protocolVersion`, `requestId`, `type`; unknown types/versions are rejected and logged, never silently ignored. Bridge handlers validate paths against workspace roots (canonicalized, symlink-aware) before any I/O.
 
@@ -111,7 +113,7 @@ app/lib/
 - **Persistence (Phase 1):** two versioned `shared_preferences` envelopes — `codeforge.settings.v1` (write-through) and `codeforge.shell.v1` (last restorable route, activity, terminal stop, panel sizes; 400 ms debounce, flushed on pause and dispose) — decoded tolerantly (corrupt or future payloads fall back to defaults per field). Open tabs are intentionally not persisted until the editor exists (Phase 2, Drift).
 - **Renderer:** Impeller, Flutter's default, since Phase 3 W6; Skia (Impeller disabled in the manifest) in Phases 1–2 — see TECH_STACK.md §1.
 - **Errors & logging:** `Result<T>` (`Ok`/`Err`) and the sealed `Failure` family (`StorageFailure`, `BridgeFailure`, `RuntimeFailure`, `ProcessFailure`, `UnexpectedFailure`) as planned; the error zone is `lib/bootstrap.dart` (`runZonedGuarded`, `FlutterError.onError`, `PlatformDispatcher.onError`). The logger keeps a bounded **in-memory** ring buffer (500 records) with redaction at the logger and an injectable sink (debug console). The on-disk sink and the user-facing "details" sheet arrive with the storage layer in Phase 2.
-- **Workbench panels (phone):** the explorer is a draggable sheet as planned, but the terminal is a fixed-stop panel above the status strip, not yet the draggable bottom sheet of §5. The top bar toggles it closed ↔ half and its header closes it. Peek and full are laid out and overflow-tested but have no control until the real terminal arrives (Phase 5).
+- **Workbench panels (phone):** the explorer is a draggable sheet as planned, but the terminal is a fixed-stop panel above the status strip, not yet the draggable bottom sheet of §5. The top bar toggles it closed ↔ half and its header closes it. Peek and full are laid out and overflow-tested but have no control until the real terminal arrives (Phase 5). **As built in Phase 5 W3:** the full stop is the panel's *Maximize* (its menu, with *Restore size*), and the top bar's toggle opens the panel at half or closes it. Peek still has no control, and the panel is still not the draggable sheet of §5 (TERMINAL_ARCHITECTURE §3).
 - **Soft keyboard:** the workbench sizes its terminal from the height the Scaffold actually leaves the body, never from the screen. While the IME is up, `MediaQuery.viewInsets` reads 0 inside the body, and screen-based sizing squeezed the editor until it overflowed (found by phase gate 42110297015). The terminal yields first and hides below 60 dp; the editor pane, nav rail and command palette never overflow (`test/widget/keyboard_insets_test.dart`). The floating symbol toolbar above the IME (§5) arrives with the editor in Phase 2.
 
 ### 2.5 As built in Phase 2 W4 (files, documents, tabs)
@@ -175,6 +177,15 @@ app/lib/
 - **The controller** (`application/runtime_controller.dart`) keeps the host's newest snapshot. The install is lazy: the workbench asks for the runtime when a workspace opens, and the editor works on its files meanwhile. `RuntimeToolsController` keeps the tool probes.
 - **The screens:** the workbench's status strip shows the runtime's state, and Settings → Linux runtime (`features/settings/runtime_screen.dart`) shows its status, the install and start times, the audit, the space used, and each tool against its pinned version (RUNTIME_INTEGRATION.md §3).
 - **The edge:** nothing in Dart starts a process. A command is a program name from the runtime's `bin` and its arguments; the host checks, runs, bounds and ends it (SECURITY.md §2.1).
+
+### 2.11 As built in Phase 5 (the terminal and Run)
+
+- **The service** (`TerminalService` in `services/contracts.dart`, implemented by the Pigeon client `services/terminal/native/pigeon_terminal_service.dart`, API `pigeons/terminal_api.dart`): start a session from a spec (a project's folder name or a folder's copy, a program from the runtime's `bin` or the shell, arguments, a size), write, resize, acknowledge, detach and reattach with the host's buffer, end, remove, End all, and the host's sessions and tombstones. Output and changes arrive through the `TerminalEvents` Flutter API. The honest fake stays for tests and hosts without a terminal.
+- **The page's host** (`application/terminal/terminal_view.dart`) loads the verified terminal page into its own WebView (`services/terminal/terminal_page.dart`), speaks the terminal protocol v1 (`core/terminal/terminal_protocol.dart`), and when the page announces itself again after a restart, the controller replays the appearance and refills every session from the host's buffer. Since W6 it sends through the host's MessagePort (`services/editor/page_port.dart`).
+- **The controller** (`application/terminal/terminal_controller.dart`) keeps the sessions as tabs: UTF-8 output to the page, input and the extra keys, sizes, acknowledgements as credit, links to open, the native-addon banner (`core/terminal/native_addons.dart`). It takes the host's sessions and tombstones when it is made (W5), lets views go in the background and under memory pressure, and draws them again from the host's buffers.
+- **Run** (`core/run/run_commands.dart`, `application/run/run_controller.dart`): what a file or a project runs, each run a terminal session, saved first, with its chip, Stop and Run again; for a folder from shared storage, the copy brought up to date first, and the files the runs made, to export (ADR-0013).
+- **The screens:** the terminal panel (`features/workbench/panels/terminal_pane.dart`: tabs, the extra-keys row, Copy and Paste, Maximize, End all), the Run panel (`run_panel.dart`), the status strip's run chip, and Settings → *Save before running*. Settings → Linux runtime says what the runtime can run, and why native addons can't be built.
+- **The edge holds:** Dart names a project's folder or a copy, never a path, and a program by name; the host resolves, checks, bounds and ends everything (SECURITY.md §2.2).
 
 ## 3. Android host structure
 
@@ -244,8 +255,8 @@ Layout state (panel sizes, active activity, sheet positions) is part of workspac
 ## 6. Threading & lifecycle
 
 - Flutter UI: main isolate. Heavy pure-Dart work (search indexing of small trees, diffing) in isolates; **all process I/O in Kotlin** (bounded thread pools), streamed to Dart via EventChannels with backpressure (coalesced chunks, max event rate).
-- Runtime child processes owned by `SessionRegistry`; foreground-service notification while sessions run (Phase 4+); all children killed on workspace close/app task removal unless user opts into persistence; no orphaned processes (process-group kill, verified by tests).
-- WebViews: created lazily, one editor WebView reused across tabs (CM6 states swapped), destroyed on background memory pressure with state persisted first. *As built in Phase 2: one editor WebView, reused across tabs. It is not destroyed under memory pressure. If Android kills its renderer, the app process ends with it (webview_flutter_android 4.14.1 has no `onRenderProcessGone`), and the journal restores unsaved text on the next start (§2.6).*
+- Runtime child processes owned by `SessionRegistry`; foreground-service notification while sessions run (Phase 4+); all children killed on workspace close/app task removal unless user opts into persistence; no orphaned processes (process-group kill, verified by tests). *As built in Phase 5: terminal sessions outlive a workspace switch (each tab keeps its workspace, and a link from another workspace's terminal is refused) and the app's activity: the foreground service `SessionService` keeps them while any runs, and its notification's End all ends them all. Nothing ends them when the app's task is removed; what a phone does then is not measured (PHASE_5_PHONE_CHECKLIST §6). Ending a session or End all leaves no process (TERMINAL_ARCHITECTURE §1.5, §4).*
+- WebViews: created lazily, one editor WebView reused across tabs (CM6 states swapped), destroyed on background memory pressure with state persisted first. *As built in Phase 5: a second WebView, the terminal's, holds one xterm.js instance per session (TERMINAL_ARCHITECTURE §2.1). Since W6 both are composed by Hybrid Composition++ on Android 14 and later with Impeller on Vulkan, and through Flutter's texture layer elsewhere. In the background every terminal view lets go, and the host's buffers draw them again on return (TERMINAL_ARCHITECTURE §4).* *As built in Phase 2: one editor WebView, reused across tabs. It is not destroyed under memory pressure. If Android kills its renderer, the app process ends with it (webview_flutter_android 4.14.1 has no `onRenderProcessGone`), and the journal restores unsaved text on the next start (§2.6).*
 
 ## 7. What Phase 1 builds vs. later
 
@@ -261,3 +272,5 @@ The workbench's demo code view gave way to the real editor pane. Features still 
 **Phase 3** added the workspace layer: projects in the app's storage, folders through the storage broker, outside changes and the logs (§2.8). Its report is [PHASE_3_REPORT.md](phases/PHASE_3_REPORT.md).
 
 **Phase 4** swapped in the runtime: the fake runtime service gave way to the Pigeon client of the sealed runtime's host (§2.10, §3), and search across files arrived with its two engines (§2.9). The terminal and Git services are still fakes, for Phases 5 and 7. The exit report is [PHASE_4_REPORT.md](phases/PHASE_4_REPORT.md).
+
+**Phase 5** swapped in the terminal: the Pigeon client of the host's terminal sessions, the xterm.js page in its own WebView, and *Run* on top of them (§2.11, §3). The Git service is still a fake, for Phase 7, and the LSP service for Phase 6. The exit report is [PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md).

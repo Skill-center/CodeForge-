@@ -22,6 +22,8 @@ CodeForge-/
 │   │   │                         #   files/: the dart:io file service + demo project;
 │   │   │                         #   platform/: the app's files folder (one channel);
 │   │   │                         #   editor/: WebView surface, page verification;
+│   │   │                         #   page_port.dart: the terminal page's MessagePort
+│   │   │                         #   (Ph. 5 W6; native half in …/webview/PagePorts.kt);
 │   │   │                         #   editor/bench/: benchmark pages + their WebView;
 │   │   │                         #   terminal/: the terminal page's verification and
 │   │   │                         #   its Pigeon client (native/, Ph. 5 W2–W3);
@@ -51,6 +53,8 @@ CodeForge-/
 │   │                             #   …/terminal/: TerminalHost, and SessionService, the
 │   │                             #   sessions' foreground service (W5); …/runtime/:
 │   │                             #   SessionLedger (tombstones), SessionLimits (W5);
+│   │                             #   …/webview/PagePorts.kt: the terminal page's
+│   │                             #   MessagePort, a plugin of the app's own (W6);
 │   │                             #   app/src/androidTest/: the instrumented runtime tests
 │   ├── assets/
 │   │   ├── editor/               # built editor page (gitignored; CI builds it from editor/)
@@ -64,7 +68,13 @@ CodeForge-/
 │   │   └── icons/
 │   ├── test/                     # unit + widget tests mirror lib/; support/: scripted
 │   │                             #   editor page, benchmark pages, in-memory files
-│   ├── integration_test/         # device/emulator workflow tests
+│   ├── integration_test/         # device/emulator workflow tests; Phase 5: terminal_test,
+│   │                             #   run_test, sessions_a/b_test (the gate's groups),
+│   │                             #   phone_terminal_test (Test Lab), terminal_measure.dart
+│   │                             #   (the budgets, shared by both; W6)
+│   ├── ci-results/               # CI's evidence, committed back by its runs: the build's
+│   │                             #   diagnostics; editor/, gate/ (the phase gate),
+│   │                             #   runtime-gates/ (API 26 to 36), testlab/ (the phone)
 │   └── pubspec.yaml              # pinned; lockfile committed
 │
 ├── editor/                       # TypeScript workspace for the editor page (Phase 2)
@@ -73,7 +83,10 @@ CodeForge-/
 │   │   ├── protocol/             # v1 message catalogue, strict validator, change-set reference
 │   │   ├── editor/               # CM6 controller, change batcher, languages, theme, palette
 │   │   ├── terminal/             # terminal protocol v1 + validator, xterm.js controller,
-│   │   │                         #   keys, touch, bridge, entry point, page template
+│   │   │                         #   keys, touch, bridge, entry point, page template;
+│   │   │                         #   ime.ts (the input method's text), links.ts (W4),
+│   │   │                         #   probe.ts (the budgets' measurements) and
+│   │   │                         #   hostport.ts (the host's MessagePort; W6)
 │   │   ├── bridge.ts, main.ts    # host channel + page entry point
 │   │   └── page.html             # template: CSP + inline style + inline script
 │   ├── test/                     # vitest: protocol, change sets vs CM6, controller, bridge
@@ -81,7 +94,8 @@ CodeForge-/
 │   ├── tool/                     # build.mjs, verify_bundle.mjs, check_licenses.mjs,
 │   │                             #   build_terminal.mjs, verify_terminal.mjs and
 │   │                             #   terminal_cdp.mjs (the composition suite's driver,
-│   │                             #   and the gate's probe of each tap),
+│   │                             #   the gate's probe of each tap, and since W6 the
+│   │                             #   page's JavaScript heap, `--heap`),
 │   │                             #   notices.mjs (THIRD_PARTY_NOTICES §3, Phase 4 W7),
 │   │                             #   page_kit.mjs (shared), build_bench.mjs,
 │   │                             #   bench_cdp.mjs (DevTools driver), bench_report.mjs
@@ -122,8 +136,9 @@ CodeForge-/
 │   │                             #   copy re-vendors them from a t1 checkout (W3)
 │   ├── README.md                 # how the supply chain fits together
 │   ├── ci-results/               # the runtime job's evidence (committed back)
-│   └── tests/                    # t1's 2 script tests, CodeForge's 5 (pins, notices,
-│                                 #   provenance, the launcher, sources) + fixtures, live check
+│   └── tests/                    # t1's 2 script tests, CodeForge's 6 (pins, notices,
+│                                 #   provenance, the launcher, its terminal mode (Ph. 5 W2),
+│                                 #   sources) + fixtures, live check
 │
 ├── docs/                         # all project documentation (spec §13)
 │   ├── adr/                      # architecture decision records

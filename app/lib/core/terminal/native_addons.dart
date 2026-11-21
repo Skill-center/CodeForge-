@@ -1,8 +1,10 @@
 /// The native-addon limitation (Phase 5 W4, PHASE_5_PLAN): the runtime
-/// ships no compiler, and Android won't run a program written to the app's
-/// storage. A package that builds a native addon (npm's node-gyp and
-/// prebuild) or a C extension (pip) fails; this spots that in a session's
-/// output so the terminal can say why, once per session. Pure Dart.
+/// ships no compiler, and from Android 10 the system won't run a program
+/// written to the app's storage (ExecModelTest: refused on API 34 and 36 and
+/// the Pixel 8a, allowed on API 26 to 28). A package that builds a native
+/// addon (npm's node-gyp and prebuild) or a C extension (pip) fails; this
+/// spots that in a session's output so the terminal can say why, once per
+/// session. Pure Dart.
 library;
 
 /// What kind of build failed.
@@ -18,21 +20,23 @@ enum NativeAddonKind {
 }
 
 /// What the terminal says for [kind] (PHASE_5_PLAN W4: no compiler ships,
-/// a build-tools pack comes later, Android won't execute a program written
-/// to app storage; pure packages and prebuilt wheels work).
+/// a build-tools pack comes later, Android 10 and later won't execute a
+/// program written to app storage; pure packages work). Since Phase 5 W7 it
+/// no longer suggests prebuilt wheels: a wheel's C extension would be a
+/// library in app storage too.
 String nativeAddonMessage(NativeAddonKind kind) => switch (kind) {
   NativeAddonKind.npm =>
     'A package tried to build a native addon. The runtime has no C '
-        'compiler (a build-tools pack comes later), and Android won’t run '
-        'programs written to app storage. Try a pure-JavaScript package.',
+        'compiler (a build-tools pack comes later), and Android 10 and later '
+        'won’t run programs written to app storage. Try a pure-JavaScript '
+        'package.',
   NativeAddonKind.pip =>
     'A package tried to build a C extension. The runtime has no C compiler '
-        '(a build-tools pack comes later), and Android won’t run programs '
-        'written to app storage. Try a pure-Python package or a prebuilt '
-        'wheel.',
+        '(a build-tools pack comes later), and Android 10 and later won’t run '
+        'programs written to app storage. Try a pure-Python package.',
   NativeAddonKind.compiler =>
     'The runtime has no C compiler (a build-tools pack comes later), and '
-        'Android won’t run programs written to app storage.',
+        'Android 10 and later won’t run programs written to app storage.',
 };
 
 /// Escape sequences (CSI and OSC) that colour and move output: npm colours

@@ -1,6 +1,6 @@
 # Play preparation (Phase 4 W7)
 
-> **Drafts, 2026-11-18.** Written by the agent from t1's `store/` templates (m-cyber12/t1 at `d9789a2`, ADR-0010), checked against what the app does today. Nothing here is submitted. The owner submits it, and checks each answer against Play Console's form on the day, because Google changes the forms.
+> **Drafts, 2026-11-18,** updated at Phase 5's end (2026-11-21) for the terminal and *Run*. Written by the agent from t1's `store/` templates (m-cyber12/t1 at `d9789a2`, ADR-0010), checked against what the app does today. Nothing here is submitted. The owner submits it, and checks each answer against Play Console's form on the day, because Google changes the forms.
 
 | File | What it is |
 |---|---|
@@ -39,6 +39,8 @@
   | The listing, Data safety, content rating, target audience | the owner, from the drafts | drafted |
   | The graphics: an icon at 512 × 512, a feature graphic, 2 to 8 screenshots | the agent | to produce |
   | 15 to 20 testers | the owner | not started |
+  | A licence review of THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md by a person qualified to give one: no binary is distributed before it (the owner, 2026-11-18) | the owner | being arranged by the owner |
 
-- **The date:** the Monday after the last of these is done. If the account is verified by the end of November and Phase 5 W1 lands in early December, the test could start on **Monday 2026-12-07** and meet the 14 days on 2026-12-21.
-- **What testers try:** the editor, projects and folders, search, Settings → Linux runtime, and the first install on their phone (its time is on the Runtime page). Feedback goes through Play's private feedback and the repository's issues.
+- **The date:** the Monday after the last of these is done. Phase 5 W1 landed on 2026-11-18, so the agent's rows wait only for the graphics, which the agent produces once the owner's rows are under way. If the account, the keys and the licence review are done by early December, the test could start on **Monday 2026-12-07** and meet the 14 days on 2026-12-21.
+- **At Phase 5's end** (2026-11-21) the owner's rows are as on 2026-11-18, as far as the agent knows. Since then the build has the terminal and *Run* too, so the closed test can try them from its first build.
+- **What testers try:** the editor, projects and folders, search, Settings → Linux runtime, the first install on their phone (its time is on the Runtime page), and since Phase 5 the terminal (Gboard in it, the extra keys, nano), *Run* on the demo's `main.js` and `app.py`, and a long session in the background with its notification. Feedback goes through Play's private feedback and the repository's issues.

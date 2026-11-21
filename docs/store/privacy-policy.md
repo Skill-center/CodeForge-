@@ -1,6 +1,6 @@
 # CodeForge privacy policy
 
-> **Draft, 2026-11-18,** from t1's `store/privacy-policy.md`; **revised in Phase 5 W1** (2026-11-18) for internet access, which the owner decided that day. For the owner to complete (the three bracketed items) and publish at a public URL before the closed test. Everything below the line is the policy itself.
+> **Draft, 2026-11-18,** from t1's `store/privacy-policy.md`; **revised in Phase 5 W1** (2026-11-18) for internet access, which the owner decided that day, and **in Phase 5 W5** (2026-11-20) for the terminal sessions' foreground service and notification. For the owner to complete (the three bracketed items) and publish at a public URL before the closed test. Everything below the line is the policy itself.
 
 ---
 

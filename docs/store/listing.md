@@ -1,6 +1,6 @@
 # Play Store listing (draft)
 
-> **Draft, 2026-11-18,** from t1's `store/listing.md`. It describes the app as it is at the end of Phase 4, with one change from Phase 5 W1 (2026-11-18): the release build asks for internet access, for the commands the user runs. **Before each upload, check it against the build:** a listing that claims more than the app does is a policy problem. The terminal arrives in Phase 5. Until then the listing says the runtime's tools ship and are checked, not that you can run your own commands.
+> **Draft, 2026-11-18,** from t1's `store/listing.md`; **revised at Phase 5's end** (2026-11-21) for what Phase 5 built: the terminal, *Run*, and sessions that keep running with a notification. The release build asks for internet access (Phase 5 W1) and for the foreground service's permissions (W5). **Before each upload, check it against the build:** a listing that claims more than the app does is a policy problem. A build from before Phase 5 has no terminal, and its listing must not claim one.
 
 ## App identity
 
@@ -55,7 +55,16 @@ A LINUX TOOLCHAIN, INSIDE THE APP
 • Every file is verified when it installs, and every program is checked at each
   start to come from the app itself
 • Settings > Linux runtime shows each tool's version
-• Running your own commands in a terminal comes in a later version
+
+TERMINAL AND RUN
+• A real terminal: bash with tabs, a row of extra keys (Esc, Ctrl, Alt, Tab,
+  arrows), copy and paste, and colours; nano, top and less work
+• Run the open file (JavaScript, Python, shell, Ruby, Perl) or a project's npm
+  script, and tap a file:line in the output to open the editor there
+• Sessions keep running while you use other apps, with a notification that
+  ends them all; what you start ends with everything it started
+• Your code runs as the app, with the app's access: it is not isolated from
+  CodeForge's own files
 
 PRIVATE BY DESIGN
 • No account, no ads, no analytics, no tracking
@@ -74,7 +83,7 @@ offered with every release.
 |---|---|---|
 | App icon | 512 × 512 PNG, 32-bit with alpha | **to produce**, from the launcher icon (`@mipmap/ic_launcher`) |
 | Feature graphic | 1024 × 500, JPEG or 24-bit PNG | **to produce:** the workbench with code, legible as a thumbnail; no third-party marks |
-| Phone screenshots | 2 to 8, JPEG or 24-bit PNG; each side 320 to 3,840 px, the long side at most twice the short | **to capture:** (1) the workbench with a file open, (2) Home with projects and folders, (3) the explorer, (4) search results, (5) Settings → Linux runtime with the versions, (6) the editor's find and replace |
+| Phone screenshots | 2 to 8, JPEG or 24-bit PNG; each side 320 to 3,840 px, the long side at most twice the short | **to capture:** (1) the workbench with a file open, (2) the terminal with a session and the extra-keys row, (3) a run's output in the terminal with the Run panel, (4) Home with projects and folders, (5) the explorer, (6) search results, (7) Settings → Linux runtime with the versions, (8) the editor's find and replace |
 | Tablet screenshots (7- and 10-inch) | optional | the workbench's wide layout |
 
 The screenshots show the demo project only: no real project names, keys or personal files.
@@ -111,7 +120,8 @@ Play Console → App content → Foreground service permissions, at the first up
 
 ```
 First test build. Edit real files in projects and folders, search across a
-project, and see the bundled Linux tools (Node, Python, Git, bash, Perl, Ruby,
-ripgrep) installed and checked on your phone. Works offline. Running your own
-commands comes in a later build.
+project, and run your code: a terminal with bash and the bundled Linux tools
+(Node, Python, Git, Perl, Ruby, ripgrep), and Run for the open file or an npm
+script. Sessions keep running in the background, with a notification to end
+them. Works offline, except for the commands you run that use the network.
 ```

@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Budgets accepted Phase 0 from audited measurements · Benchmark suite built incrementally (spec §9: measure, never assume) · the runtime's figures as at Phase 4's end (2026-11-18; PHASE_4_REPORT.md)
+**Status:** Budgets accepted Phase 0 from audited measurements · Benchmark suite built incrementally (spec §9: measure, never assume) · the runtime's figures as at Phase 4's end (2026-11-18; PHASE_4_REPORT.md) · the terminal's as at Phase 5's end (2026-11-21; PHASE_5_REPORT.md §7)
 
 ---
 
