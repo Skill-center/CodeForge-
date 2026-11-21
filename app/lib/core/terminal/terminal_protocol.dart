@@ -246,11 +246,16 @@ String? _responsePayload(Object? value, String path) {
 }
 
 final Map<String, Check> _terminalToHost = {
-  'terminal.ready': objectCheck({
-    'protocol': intCheck(min: 1),
-    'engine': stringCheck(min: 1, max: 64),
-    'engineVersion': stringCheck(min: 1, max: 64),
-  }),
+  // hostPort (Phase 5 W6): the page holds the port the app posted it as it
+  // loaded (services/editor/page_port.dart).
+  'terminal.ready': objectCheck(
+    {
+      'protocol': intCheck(min: 1),
+      'engine': stringCheck(min: 1, max: 64),
+      'engineVersion': stringCheck(min: 1, max: 64),
+    },
+    {'hostPort': boolCheck},
+  ),
   'terminal.focus': objectCheck({'focused': boolCheck}),
   'terminal.modifiers': objectCheck({'ctrl': boolCheck, 'alt': boolCheck}),
   'terminal.log': objectCheck({

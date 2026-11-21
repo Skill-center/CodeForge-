@@ -170,6 +170,10 @@ final class FakeEditorSurface implements EditorSurface {
     'languages': editorLanguageIds,
   });
 
+  /// The editor page holds no host port (Phase 5 W6: the terminal's only).
+  @override
+  bool usePagePort() => false;
+
   @override
   Future<void> deliver(String message) async {
     switch (parseMessage(message, MessageDirection.hostToEditor)) {

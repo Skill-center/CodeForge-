@@ -12,6 +12,7 @@ import dev.codeforge.app.storage.StorageBroker
 import dev.codeforge.app.storage.StorageEvents
 import dev.codeforge.app.terminal.TerminalApi
 import dev.codeforge.app.terminal.TerminalHost
+import dev.codeforge.app.webview.PagePorts
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -30,7 +31,9 @@ import io.flutter.plugin.common.MethodChannel
  * W2, storage/StorageBroker.kt), behind the typed Pigeon API of
  * pigeons/storage_api.dart; the folder picker answers here, in
  * [onActivityResult]. The sealed runtime (Phase 4 W3, runtime/RuntimeHost.kt)
- * is behind the typed Pigeon API of pigeons/runtime_api.dart.
+ * is behind the typed Pigeon API of pigeons/runtime_api.dart. The terminal
+ * page's MessagePort (Phase 5 W6, webview/PagePorts.kt) is a plugin of the
+ * app's own, added here: it needs a plugin binding to reach the WebView.
  */
 class MainActivity : FlutterActivity() {
     private var keyboardChannel: MethodChannel? = null
@@ -88,9 +91,11 @@ class MainActivity : FlutterActivity() {
             search = SearchHost(this, messenger, broker::searchOps).also { SearchApi.setUp(messenger, it) }
         }
         terminal = TerminalHost(this, messenger).also { TerminalApi.setUp(messenger, it) }
+        flutterEngine.plugins.add(PagePorts())
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        flutterEngine.plugins.remove(PagePorts::class.java)
         keyboardChannel?.setMethodCallHandler(null)
         keyboardChannel = null
         StorageApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)

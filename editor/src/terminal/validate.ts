@@ -105,11 +105,14 @@ const responsePayload: Check = (v, path) => {
 };
 
 const TERMINAL_TO_HOST: Record<string, Check> = {
-  'terminal.ready': obj({
-    protocol: int({ min: 1 }),
-    engine: str({ min: 1, max: 64 }),
-    engineVersion: str({ min: 1, max: 64 }),
-  }),
+  'terminal.ready': obj(
+    {
+      protocol: int({ min: 1 }),
+      engine: str({ min: 1, max: 64 }),
+      engineVersion: str({ min: 1, max: 64 }),
+    },
+    { hostPort: bool },
+  ),
   'terminal.focus': obj({ focused: bool }),
   'terminal.modifiers': obj({ ctrl: bool, alt: bool }),
   'terminal.log': obj({ level: oneOf(LOG_LEVELS), message: str({ max: 4000 }) }),

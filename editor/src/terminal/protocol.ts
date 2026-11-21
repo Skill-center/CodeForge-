@@ -217,7 +217,12 @@ export type ResponsePayload =
   | { re: string; ok: false; error: { code: TerminalErrorCode; message: string } };
 
 export interface TerminalToHost {
-  'terminal.ready': { protocol: number; engine: string; engineVersion: string };
+  /**
+   * The page started. [hostPort] (Phase 5 W6): it holds the port the app
+   * posted it as it loaded (hostport.ts), so the host may send through it
+   * rather than one script per message.
+   */
+  'terminal.ready': { protocol: number; engine: string; engineVersion: string; hostPort?: boolean };
   'terminal.focus': { focused: boolean };
   'terminal.modifiers': { ctrl: boolean; alt: boolean };
   'terminal.log': { level: LogLevel; message: string };

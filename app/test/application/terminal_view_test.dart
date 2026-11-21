@@ -59,6 +59,44 @@ void main() {
     await view.dispose();
   });
 
+  testWidgets('host messages go through the page’s port once it holds one', (
+    tester,
+  ) async {
+    await createView(tester, start: false);
+    page.pageHoldsPort = true;
+    await view.start();
+    await settle(tester);
+    expect(page.portRequests, 1);
+    expect(page.throughPort, isTrue);
+    expect(view.throughPort, isTrue);
+    // A page restarted without it goes back to scripts.
+    page.pageHoldsPort = false;
+    page.restartPage();
+    await settle(tester);
+    expect(page.portRequests, 1);
+    expect(view.throughPort, isFalse);
+    await view.dispose();
+  });
+
+  testWidgets('without a port on either side, the page keeps scripts', (
+    tester,
+  ) async {
+    await createView(tester);
+    expect(page.portRequests, 0);
+    expect(view.throughPort, isFalse);
+    await view.dispose();
+    await createView(tester, start: false);
+    page
+      ..pageHoldsPort = true
+      ..hasPort = false;
+    await view.start();
+    await settle(tester);
+    expect(page.portRequests, 1);
+    expect(view.throughPort, isFalse);
+    expect(view.isReady, isTrue);
+    await view.dispose();
+  });
+
   testWidgets('a page that never starts fails after the timeout', (
     tester,
   ) async {

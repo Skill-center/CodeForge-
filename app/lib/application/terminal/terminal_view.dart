@@ -233,6 +233,7 @@ final class TerminalView {
   int _nextId = 0;
   int _pageStarts = 0;
   int _droppedMessages = 0;
+  bool _throughPort = false;
   bool _disposed = false;
 
   TerminalViewStatus get status => _status;
@@ -244,6 +245,10 @@ final class TerminalView {
 
   /// Messages dropped by the rate limit.
   int get droppedMessages => _droppedMessages;
+
+  /// Whether host messages reach the page through the MessagePort it holds
+  /// (Phase 5 W6) rather than as one script each.
+  bool get throughPort => _throughPort;
 
   bool get isReady => _status.phase == TerminalViewPhase.ready;
 
@@ -311,6 +316,7 @@ final class TerminalView {
     }
     appLogger.warn(_tag, 'page_reload');
     _failPending('The terminal page is reloading.');
+    _throughPort = false;
     _setStatus(const TerminalViewStatus(TerminalViewPhase.loading));
     _armReadyTimer();
     try {
@@ -784,8 +790,16 @@ final class TerminalView {
       appLogger.warn(_tag, 'page_restarted', fields: {'starts': _pageStarts});
       _failPending('The terminal page restarted.');
     }
+    // The page holds the surface's port: everything from here on goes
+    // through it. Nothing was sent since the page loaded, so nothing sent
+    // as a script can arrive after it.
+    _throughPort = payload['hostPort'] == true && _surface.usePagePort();
     final engineVersion = payload.string('engineVersion');
-    appLogger.info(_tag, 'page_ready', fields: {'version': engineVersion});
+    appLogger.info(
+      _tag,
+      'page_ready',
+      fields: {'version': engineVersion, 'port': _throughPort},
+    );
     _setStatus(
       TerminalViewStatus(TerminalViewPhase.ready, engineVersion: engineVersion),
     );

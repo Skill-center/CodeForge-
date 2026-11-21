@@ -3,8 +3,10 @@
  * by tool/build_terminal.mjs; Phase 5 W3).
  *
  * Transport, as the editor page's: the host injects a JavaScript channel
- * named `CodeForgeBridge` (webview_flutter) for page → host messages, and
- * calls `window.codeforge.receive(json)` for host → page messages.
+ * named `CodeForgeBridge` (webview_flutter) for page → host messages. Host →
+ * page messages arrive through the MessagePort the app posts the page as it
+ * loads (hostport.ts, since Phase 5 W6), or, from a host without one, as
+ * calls of `window.codeforge.receive(json)`.
  */
 import { FitAddon } from '@xterm/addon-fit';
 import { Unicode11Addon } from '@xterm/addon-unicode11';
@@ -12,6 +14,7 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import { Terminal } from '@xterm/xterm';
 
 import { TerminalBridge } from './bridge';
+import { HOST_PORT_WAIT_MS, type HostPortTarget, listenForHostPort } from './hostport';
 import {
   DEFAULT_FONT_SIZE,
   type RendererResult,
@@ -117,6 +120,8 @@ const controller = new TerminalController({
 bridge.attach(controller);
 
 page.codeforge = Object.freeze({ receive: (raw: unknown) => bridge.receive(raw) });
+// The app's port (hostport.ts): its messages go to the same bridge.
+const hostPort = listenForHostPort(window as unknown as HostPortTarget, (raw) => bridge.receive(raw));
 
 window.addEventListener('error', (event) => {
   bridge.log('error', `${event.message} (${event.filename}:${event.lineno})`);
@@ -193,9 +198,12 @@ const scheduleLayout = (): void => {
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(scheduleLayout).observe(parent);
 window.addEventListener('resize', scheduleLayout);
 
-// Back from the background: WebGL contexts Android took meanwhile are made again.
+// WebGL draws only while the page shows (controller.ts): hidden (the app in
+// the background, the panel closed), the shown terminal gives its context
+// back, and it takes one again, as one Android took meanwhile, when the page
+// shows again.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') controller.restoreRenderers();
+  controller.setPageVisible(document.visibilityState === 'visible');
 });
 
 /** The bundled font, loaded before any terminal measures its cells (at most 2 s). */
@@ -211,10 +219,14 @@ async function fontReady(): Promise<void> {
   ]);
 }
 
-void fontReady().then(() =>
+// Ready once the font is there and the app's port (or the wait for it is
+// over): the host sends nothing before this, and whether it may send
+// through the port is part of the announcement.
+void Promise.all([fontReady(), hostPort.wait(HOST_PORT_WAIT_MS)]).then(([, attached]) =>
   bridge.emit('terminal.ready', {
     protocol: TERMINAL_PROTOCOL_VERSION,
     engine: 'xterm',
     engineVersion: __XTERM_VERSION__,
+    hostPort: attached,
   }),
 );

@@ -52,6 +52,17 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Platform views (Phase 5 W6, the owner's decision of 2026-11-21):
+             Hybrid Composition++ wherever the engine can (Android 14 and
+             later, Impeller on Vulkan). The WebViews of the editor and the
+             terminal then sit in Android's view hierarchy, composed with
+             SurfaceControl, instead of each being drawn into a texture that
+             Flutter composes (TLHC, which held 31-43 MB of buffers for the
+             terminal on the Pixel 8a). Elsewhere Flutter keeps TLHC.
+             docs/TERMINAL_ARCHITECTURE.md §2.2. -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableHcpp"
+            android:value="true" />
         <service
             android:name=".terminal.SessionService"
             android:exported="false"

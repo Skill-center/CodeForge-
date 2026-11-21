@@ -14,9 +14,10 @@ import '../../services/terminal/terminal_page.dart';
 import 'terminal_view.dart';
 
 /// Creates the WebView the terminal page runs in: one for every session.
+/// Output reaches it through a MessagePort (Phase 5 W6, page_port.dart).
 final terminalSurfaceFactoryProvider = Provider<EditorSurface Function()>(
   (ref) =>
-      () => WebViewEditorSurface(baseUrl: terminalPageBaseUrl),
+      () => WebViewEditorSurface(baseUrl: terminalPageBaseUrl, hostPort: true),
 );
 
 /// Loads the bundled terminal page and verifies it against its manifest.

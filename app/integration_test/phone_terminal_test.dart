@@ -173,6 +173,8 @@ void phoneTerminalTests() {
       }
 
       await promptShown('the prompt');
+      // The terminal open and idle at its full stop: what its budget judges.
+      await Future<void>.delayed(settleTime);
       final opened = await memory('opened');
       // The same at the panel's half stop, where it usually sits.
       final shell = container.read(shellControllerProvider.notifier);
@@ -215,6 +217,8 @@ void phoneTerminalTests() {
       final echo = measured.shippedEcho;
       final flood = measured.shippedFlood;
       _figure('page_renderer_shipped', measured.shipped);
+      _figure('page_composition', measured.composition);
+      _figure('page_host_port', measured.hostPort ? 1 : 0);
       _figure('page_echo_p50_ms', echo.p50Ms);
       _figure('page_echo_p95_ms', echo.p95Ms);
       _figure('page_echo_max_ms', echo.maxMs);
@@ -238,6 +242,10 @@ void phoneTerminalTests() {
       _figure('page_memory_open_delta_mb', measured.openDeltaMb);
       _figure('page_memory_open_half_delta_mb', measured.openHalfDeltaMb ?? -1);
       _figure('page_memory_under_budget', measured.memoryUnderBudget ? 1 : 0);
+      _figure(
+        'page_memory_open_under_budget',
+        measured.openUnderBudget ? 1 : 0,
+      );
       _figure('page_webgl', measured.webglRenderer);
       _figure('page_flood_dart_ms', flood.dartMs);
       final dom = measured.flood['dom'];

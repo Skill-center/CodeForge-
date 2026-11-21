@@ -11,7 +11,9 @@
  *    WebGL asked for where there is none leaves the DOM renderer, an echo
  *    probe types through the input method's path and times the echo the
  *    test writes back, and a flood probe counts and hashes what lies
- *    between its marks.
+ *    between its marks; and the host's port (hostport.ts): without one the
+ *    page says so in terminal.ready, and a second boot, given one as the
+ *    app gives it, says it holds it and answers through it.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -66,6 +68,7 @@ for (let waited = 0; waited < 5000 && !received.some((m) => m.type === 'terminal
 }
 const ready = received.find((m) => m.type === 'terminal.ready');
 check('page announces terminal.ready', ready !== undefined, ready ? `${ready.payload.engine} ${ready.payload.engineVersion}` : 'none');
+check('without a host port, terminal.ready says so', ready?.payload.hostPort === false, JSON.stringify(ready?.payload));
 if (typeof window.codeforge?.receive !== 'function') {
   check('page installs window.codeforge.receive', false);
   console.log(checks.join('\n'));
@@ -175,4 +178,49 @@ const pageErrors = received.filter((m) => m.type === 'terminal.log' && m.payload
 check('no page errors logged', pageErrors.length === 0, pageErrors.map((m) => m.payload.message).join('; '));
 
 await window.happyDOM.close();
+
+// The host's port (Phase 5 W6): a second boot, given a port as the app gives
+// it (a message without a source window, carrying one port). happy-dom has
+// no MessageChannel: the port is a stand-in whose onmessage the page sets.
+const ported = new Window({
+  url: 'https://appassets.androidplatform.net/terminal/',
+  width: 412,
+  height: 400,
+  settings: { enableJavaScriptEvaluation: true, suppressInsecureJavaScriptEnvironmentWarning: true },
+});
+const portReceived = [];
+ported.CodeForgeBridge = { postMessage: (raw) => portReceived.push(JSON.parse(raw)) };
+ported.document.write(html);
+// As the app does once the page has loaded, but before happy-dom's
+// waitUntilComplete, which would wait out the page's wait for the port.
+for (let waited = 0; waited < 5000 && typeof ported.codeforge?.receive !== 'function'; waited += 10) {
+  await settle(10);
+}
+const hostPort = { onmessage: null };
+ported.dispatchEvent(new ported.MessageEvent('message', { data: 'codeforge-host-port', ports: [hostPort] }));
+for (let waited = 0; waited < 5000 && !portReceived.some((m) => m.type === 'terminal.ready'); waited += 50) {
+  await settle(50);
+}
+const portReady = portReceived.find((m) => m.type === 'terminal.ready');
+check(
+  'given the host port, terminal.ready says the page holds it',
+  portReady?.payload.hostPort === true && typeof hostPort.onmessage === 'function',
+  JSON.stringify(portReady?.payload),
+);
+const viaPort = (id, type, payload) => hostPort.onmessage?.({ data: JSON.stringify({ v: 1, id, type, payload }) });
+viaPort('q1', 'session.open', { sessionId: 3 });
+viaPort('q2', 'session.write', { sessionId: 3, seq: 1, data: 'through the port\r\n' });
+await settle(300);
+viaPort('q3', 'session.snapshot', { sessionId: 3 });
+const portResponse = (id) => portReceived.find((m) => m.type === 'response' && m.payload.re === id)?.payload;
+check(
+  'host messages through the port are answered, acknowledged and drawn',
+  portResponse('q1')?.ok === true &&
+    portReceived.some((m) => m.type === 'session.ack' && m.payload.sessionId === 3 && m.payload.seq === 1) &&
+    portResponse('q3')?.result?.screen?.[0] === 'through the port',
+  JSON.stringify(portResponse('q3')?.result?.screen?.[0]),
+);
+ported.codeforge.receive(JSON.stringify({ v: 1, id: 'q4', type: 'session.close', payload: { sessionId: 3 } }));
+check('window.codeforge.receive still answers beside the port', portResponse('q4')?.ok === true);
+await ported.happyDOM.close();
 console.log(checks.join('\n'));

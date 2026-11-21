@@ -194,6 +194,8 @@ void main() {
       'started ms=${starting.elapsedMilliseconds} '
       'size=${prompt.columns}x${prompt.rows}',
     );
+    // The terminal open and idle at its full stop, as on the phone.
+    await Future<void>.delayed(settleTime);
     final opened = await memory('opened');
     // The same at the panel's half stop, where it usually sits.
     final shell = container.read(shellControllerProvider.notifier);
@@ -288,6 +290,8 @@ void main() {
       'memory_peak_delta_mb=${measured.peakDeltaMb} '
       'memory_open_delta_mb=${measured.openDeltaMb} '
       'memory_open_half_delta_mb=${measured.openHalfDeltaMb} '
+      'composition=${measured.composition} '
+      'host_port=${measured.hostPort ? 1 : 0} '
       'webgl=${measured.webglRenderer} other_failure=${measured.otherFailure}',
     );
     expect(measured.shippedEcho.lost, 0);

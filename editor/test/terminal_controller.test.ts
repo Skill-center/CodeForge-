@@ -578,39 +578,71 @@ describe('measurement (Phase 5 W6)', () => {
     return { probed, clock, views };
   }
 
-  it('draws with WebGL by default, new views too, and switches every view on request', () => {
+  it('draws with WebGL in the shown session only, and switches it on request', () => {
     const { probed, views } = measured();
     probed.handle('session.open', { sessionId: 1 });
     expect(views[0]!.renderers).toEqual(['webgl']);
+    // A session opened in the background draws with the DOM's: no WebGL yet.
     probed.handle('session.open', { sessionId: 2, activate: false });
-    expect(views.map((v) => v.renderers)).toEqual([['webgl'], ['webgl']]);
-    expect(probed.handle('probe.read', {})).toMatchObject({ state: 'idle', renderers: { '1': 'webgl', '2': 'webgl' } });
+    expect(views[1]!.renderers).toEqual([]);
+    expect(probed.handle('probe.read', {})).toMatchObject({ state: 'idle', renderers: { '1': 'webgl', '2': 'dom' } });
+    // Showing the other session moves WebGL with it: the hidden one disposes its context.
+    probed.handle('session.activate', { sessionId: 2 });
+    expect(views.map((v) => v.renderers)).toEqual([['webgl', 'dom'], ['webgl']]);
+    expect(probed.handle('probe.read', {})).toMatchObject({ renderers: { '1': 'dom', '2': 'webgl' } });
+    // The host's choice applies to the shown session; the hidden one stays on the DOM's.
+    probed.handle('terminal.configure', { renderer: 'dom' });
+    expect(views.map((v) => v.renderers.at(-1))).toEqual(['dom', 'dom']);
+    probed.handle('session.activate', { sessionId: 1 });
+    expect(views[0]!.renderers).toEqual(['webgl', 'dom']);
+    probed.handle('terminal.configure', { renderer: 'webgl' });
+    expect(views.map((v) => v.renderers)).toEqual([['webgl', 'dom', 'webgl'], ['webgl', 'dom']]);
+    // Closing the shown session leaves no WebGL behind.
+    probed.handle('session.close', { sessionId: 1 });
+    expect(probed.handle('probe.read', {})).toMatchObject({ renderers: { '2': 'dom' } });
+  });
+
+  it('gives WebGL back while the page is hidden, and after a lost context takes it again once shown', () => {
+    const { probed, views } = measured();
+    probed.handle('session.open', { sessionId: 1 });
+    probed.setPageVisible(false);
+    expect(views[0]!.renderers).toEqual(['webgl', 'dom']);
+    // Hidden, a newly shown session stays on the DOM's too.
+    probed.handle('session.open', { sessionId: 2 });
+    expect(views[1]!.renderers).toEqual([]);
+    probed.setPageVisible(true);
+    expect(views.map((v) => v.renderers)).toEqual([['webgl', 'dom'], ['webgl']]);
     // WebGL giving up leaves the view on the DOM's and says why...
-    views[0]!.lose('the WebGL context was lost');
+    views[1]!.lose('the WebGL context was lost');
     expect(probed.handle('probe.read', {})).toMatchObject({
-      renderers: { '1': 'dom', '2': 'webgl' },
+      renderers: { '1': 'dom', '2': 'dom' },
       webglError: 'the WebGL context was lost',
     });
     expect(of('terminal.log').at(-1)?.message).toContain('WebGL gave up');
-    // ...until the page shows again: only the view that lost it tries again.
-    probed.restoreRenderers();
-    expect(views.map((v) => v.renderers)).toEqual([['webgl', 'webgl'], ['webgl']]);
-    expect(probed.handle('probe.read', {})).toMatchObject({ renderers: { '1': 'webgl', '2': 'webgl' } });
-    probed.handle('terminal.configure', { renderer: 'dom' });
-    expect(views.map((v) => v.renderers.at(-1))).toEqual(['dom', 'dom']);
-    probed.restoreRenderers();
-    expect(views.map((v) => v.renderers.at(-1))).toEqual(['dom', 'dom']);
+    // ...and nothing tries again behind the user's back...
+    probed.handle('terminal.configure', { fontSize: 16 });
+    expect(views[1]!.renderers).toEqual(['webgl']);
+    // ...until the page shows again.
+    probed.setPageVisible(false);
+    probed.setPageVisible(true);
+    expect(views[1]!.renderers).toEqual(['webgl', 'webgl']);
+    expect(probed.handle('probe.read', {})).toMatchObject({ renderers: { '1': 'dom', '2': 'webgl' } });
   });
 
-  it('stays on the DOM renderer when WebGL cannot start, and says why once', () => {
-    const { probed } = measured({ webgl: 'fails' });
+  it('stays on the DOM renderer when WebGL cannot start, says why once, and tries again only when asked', () => {
+    const { probed, views } = measured({ webgl: 'fails' });
     probed.handle('session.open', { sessionId: 1 });
-    probed.handle('session.open', { sessionId: 2, activate: false });
+    probed.handle('session.open', { sessionId: 2 });
+    probed.handle('session.activate', { sessionId: 1 });
     expect(probed.handle('probe.read', {})).toMatchObject({
       renderers: { '1': 'dom', '2': 'dom' },
       webglError: 'WebGL2 not supported',
     });
+    // One attempt: switching sessions does not try again.
+    expect(views.map((v) => v.renderers)).toEqual([['webgl'], []]);
     expect(of('terminal.log').filter((log) => log.message.includes('WebGL could not start'))).toHaveLength(1);
+    probed.handle('terminal.configure', { renderer: 'webgl' });
+    expect(views.map((v) => v.renderers)).toEqual([['webgl', 'webgl'], []]);
   });
 
   it('types through the input method path and times each echo from the buffer', async () => {

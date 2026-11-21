@@ -16,10 +16,16 @@
 ///   under 5 %. The page's frames and long tasks are recorded beside them.
 /// - **Memory:** the app's PSS and its WebView renderers' (`dumpsys
 ///   meminfo`, taken by the gate's host or, on Test Lab, by the
-///   instrumentation's shell), before the first terminal and after the
-///   flood; the terminal's delta within 80 MB.
+///   instrumentation's shell), before the first terminal, with the terminal
+///   open and idle, and after the flood; ADR-0006's delta within 80 MB once
+///   the flood settled, and the open terminal's within 90 MB (the owner's
+///   (a) of 2026-11-21, PHASE_5_PLAN §10 item 7).
 /// - **The renderer:** each is measured with xterm.js's DOM renderer and
 ///   with WebGL (addon-webgl), then the DOM's again.
+/// - **How the page is reached** (Phase 5 W6's memory work): how the app's
+///   platform views are composed (Hybrid Composition++ where the engine
+///   can, else Flutter's texture layer) and whether host messages reach the
+///   page through its MessagePort; both recorded with the figures.
 library;
 
 import 'dart:convert';
@@ -37,6 +43,7 @@ import 'package:codeforge/core/terminal/terminal_protocol.dart'
     show terminalRenderers;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart' show HybridAndroidViewController;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -49,6 +56,11 @@ const double echoBudgetMs = 50;
 const double slowFrameMs = 32;
 const double slowFrameBudgetPct = 5;
 const double memoryBudgetMb = 80;
+
+/// The open terminal's budget: open and idle at its full stop, against
+/// before any terminal (the owner's (a) of 2026-11-21, for what Phase 5
+/// W6's memory work left over 80 MB; a flood's growth is recorded beside).
+const double openMemoryBudgetMb = 90;
 
 /// A frame this long is a frozen one (Android vitals: over 700 ms).
 const double frozenFrameMs = 700;
@@ -597,6 +609,19 @@ Future<void> printReport(String marker, Map<String, Object?> report) async {
   await debugPrintDone;
 }
 
+/// How the app's platform views are composed: `hcpp` where the engine
+/// composes them with Hybrid Composition++ (the manifest's EnableHcpp, on
+/// Android 14 and later with Vulkan), else `tlhc`, Flutter's texture layer.
+Future<String> platformViewComposition() async {
+  try {
+    return await HybridAndroidViewController.checkIfSupported()
+        ? 'hcpp'
+        : 'tlhc';
+  } on Object {
+    return 'unknown';
+  }
+}
+
 /// The renderer the app asks for (Phase 5 W6): WebGL. The page draws with
 /// the DOM's where WebGL can't draw (no WebGL2, a software GPU such as the
 /// emulator's): the budgets are judged on what it draws with.
@@ -638,6 +663,11 @@ final class TerminalMeasurements {
   /// What the page draws with when it is asked for [shippedRenderer].
   String shipped = 'unknown';
 
+  /// How the platform views are composed ([platformViewComposition]), and
+  /// whether host messages reached the page through its port.
+  String composition = 'unknown';
+  bool hostPort = false;
+
   /// What WebGL drew with when asked for, and why not when it could not.
   String webglRenderer = 'unknown';
   String? webglError;
@@ -669,15 +699,21 @@ final class TerminalMeasurements {
 
   bool get memoryUnderBudget => deltaMb <= memoryBudgetMb;
 
+  /// The terminal open and idle at its full stop, within its budget.
+  bool get openUnderBudget => openDeltaMb <= openMemoryBudgetMb;
+
   Map<String, Object?> toJson() => {
     'askedRenderer': shippedRenderer,
     'shippedRenderer': shipped,
+    'composition': composition,
+    'hostPort': hostPort,
     'budgets': {
       'echoP95Ms': echoBudgetMs,
       'slowFrameMs': slowFrameMs,
       'slowFramePct': slowFrameBudgetPct,
       'frozenFrameMs': frozenFrameMs,
       'memoryDeltaMb': memoryBudgetMb,
+      'openMemoryDeltaMb': openMemoryBudgetMb,
       'settleSeconds': settleTime.inSeconds,
     },
     'echo': {for (final e in echo.entries) e.key: e.value.toJson()},
@@ -702,6 +738,7 @@ final class TerminalMeasurements {
       'floodWhole': flood.values.every((f) => f.whole),
       'ui': shippedFlood.ui.underBudget,
       'memory': memoryUnderBudget,
+      'memoryOpen': openUnderBudget,
     },
   };
 }
@@ -742,6 +779,13 @@ Future<TerminalMeasurements> measureTerminal({
     before: before,
     opened: opened,
     openedHalf: openedHalf,
+  );
+  measured
+    ..composition = await platformViewComposition()
+    ..hostPort = view.throughPort;
+  report(
+    'reached composition=${measured.composition} '
+    'host_port=${measured.hostPort ? 1 : 0}',
   );
 
   void reportMemory(String label, MemorySample sample) => report(

@@ -60,6 +60,13 @@ abstract interface class EditorSurface {
   /// Hands one serialized host message to the page.
   Future<void> deliver(String message);
 
+  /// The page holds the port the surface posted it as it loaded (Phase 5
+  /// W6; the terminal page says so in `terminal.ready`): until the page
+  /// loads again, [deliver] sends through that port rather than as one
+  /// script per message. Answers whether the surface has such a port;
+  /// without one nothing changes.
+  bool usePagePort();
+
   /// Reloads the page; the host then rebuilds it from its shadows.
   Future<void> reload();
 

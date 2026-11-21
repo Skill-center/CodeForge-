@@ -85,6 +85,15 @@ final class FakeTerminalSurface implements EditorSurface {
   /// acknowledges with [acknowledge], as a slow xterm.js would).
   bool autoAck = true;
 
+  /// Whether a loaded page says it holds the host's port (Phase 5 W6), and
+  /// whether this surface has one to send through ([usePagePort]).
+  bool pageHoldsPort = false;
+  bool hasPort = true;
+
+  /// [usePagePort] calls, and whether messages go through the port now.
+  int portRequests = 0;
+  bool throughPort = false;
+
   final StreamController<String> _messages =
       StreamController<String>.broadcast();
   final StreamController<EditorSurfaceEvent> _events =
@@ -161,13 +170,22 @@ final class FakeTerminalSurface implements EditorSurface {
     activeId = null;
     configuration = null;
     unacknowledged.clear();
+    throughPort = false;
     if (announceReady) {
       emit('terminal.ready', {
         'protocol': terminalProtocolVersion,
         'engine': 'fake',
         'engineVersion': '0.0.0',
+        if (pageHoldsPort) 'hostPort': true,
       });
     }
+  }
+
+  @override
+  bool usePagePort() {
+    portRequests += 1;
+    throughPort = hasPort;
+    return hasPort;
   }
 
   @override

@@ -240,12 +240,19 @@ export class TerminalController {
   private anchor: SelectionAnchor | null = null;
   private lastLink: { sessionId: number; text: string; at: number } | null = null;
   /**
-   * The renderer every view draws with: WebGL, which drew Phase 5 W6's
-   * flood on the phone faster than the DOM and with fewer slow frames, and
-   * the DOM's wherever WebGL can't draw (main.ts: no WebGL2, a software
-   * GPU, a lost context).
+   * The renderer the shown terminal draws with: WebGL, which drew Phase 5
+   * W6's flood on the phone faster than the DOM and with fewer slow frames,
+   * and the DOM's wherever WebGL can't draw (main.ts: no WebGL2, a software
+   * GPU, a lost context). Only the shown terminal, and only while the page
+   * shows: a WebGL context holds its drawing buffers and glyph atlas in GPU
+   * memory, so the hidden sessions draw with the DOM's, which costs nothing
+   * while they are not on screen (W6's memory budget, PHASE_5_PLAN §10).
    */
   private renderer: RendererKind = 'webgl';
+  /** Whether the page shows (document.visibilityState, main.ts). */
+  private pageVisible = true;
+  /** WebGL could not start: not tried again until the host asks for a renderer. */
+  private webglBroken = false;
   /** Why WebGL last could not draw, for the probe's report. */
   private webglError: string | undefined;
   /** The reason last logged, so that each new view does not log it again. */
@@ -413,7 +420,6 @@ export class TerminalController {
         },
       });
     }
-    if (this.renderer !== 'dom') this.applyRenderer(view);
     if (activate) this.activate(sessionId);
     return { cols: terminal.cols, rows: terminal.rows };
   }
@@ -422,6 +428,9 @@ export class TerminalController {
     const view = this.view(sessionId);
     for (const other of this.views.values()) other.element.style.display = other === view ? '' : 'none';
     this.activeId = sessionId;
+    // Shown again: a context it lost is tried again.
+    view.lost = false;
+    this.syncRenderers();
     this.fitView(view);
     if (this.focused) view.terminal.focus();
     return undefined;
@@ -485,32 +494,69 @@ export class TerminalController {
     }
     if (payload.fontSize !== undefined) this.fontSize = payload.fontSize;
     if (payload.scrollback !== undefined) this.scrollback = payload.scrollback;
-    if (payload.renderer !== undefined) this.renderer = payload.renderer;
     for (const view of this.views.values()) {
       if (payload.theme) view.terminal.options.theme = this.theme;
       if (payload.fontSize !== undefined) view.terminal.options.fontSize = this.fontSize;
       if (payload.scrollback !== undefined) view.terminal.options.scrollback = this.scrollback;
-      if (payload.renderer !== undefined) this.applyRenderer(view);
+    }
+    if (payload.renderer !== undefined) {
+      // Asked for: WebGL is tried again even where it could not start.
+      this.renderer = payload.renderer;
+      this.webglBroken = false;
+      const view = this.activeView();
+      if (view) view.lost = false;
+      this.syncRenderers();
     }
     this.layout();
     return undefined;
   }
 
-  /** Puts [view] on the configured renderer; WebGL that can't draw leaves it on the DOM's. */
-  private applyRenderer(view: SessionView): void {
-    view.lost = false;
+  /** Whether [view] should draw with WebGL now: the shown terminal, while the page shows. */
+  private wantsWebgl(view: SessionView): boolean {
+    return (
+      this.renderer === 'webgl' &&
+      this.pageVisible &&
+      view.sessionId === this.activeId &&
+      !view.lost &&
+      !this.webglBroken
+    );
+  }
+
+  /**
+   * Puts every view on the renderer it should draw with: the shown one on
+   * WebGL while the page shows (if that is the configured renderer and it
+   * can draw), every other on the DOM's, which disposes its WebGL.
+   */
+  private syncRenderers(): void {
+    for (const view of this.views.values()) {
+      if (this.wantsWebgl(view)) {
+        if (view.renderer !== 'webgl') this.applyRenderer(view, 'webgl');
+      } else if (view.renderer !== 'dom') {
+        this.applyRenderer(view, 'dom');
+      }
+    }
+  }
+
+  /** Puts [view] on [kind]; WebGL that can't draw leaves it on the DOM's. */
+  private applyRenderer(view: SessionView, kind: RendererKind): void {
     if (!view.setRenderer) {
       view.renderer = 'dom';
-      if (this.renderer !== 'dom') this.webglError = 'this page has no WebGL renderer';
+      if (kind !== 'dom') {
+        this.webglError = 'this page has no WebGL renderer';
+        this.webglBroken = true;
+      }
       return;
     }
-    const result = view.setRenderer(this.renderer, (reason) => {
+    const result = view.setRenderer(kind, (reason) => {
       view.renderer = 'dom';
       view.lost = true;
       this.webglFailed(`WebGL gave up: ${reason}`, reason);
     });
     view.renderer = result.renderer;
-    if (result.error !== undefined) this.webglFailed(`WebGL could not start: ${result.error}`, result.error);
+    if (result.error !== undefined) {
+      this.webglBroken = true;
+      this.webglFailed(`WebGL could not start: ${result.error}`, result.error);
+    }
   }
 
   private webglFailed(message: string, reason: string): void {
@@ -521,12 +567,18 @@ export class TerminalController {
   }
 
   /**
-   * Tries WebGL again in the views that lost its context (the page shows
-   * again after the app was away: Android may take the GPU's memory back).
+   * The page was hidden (the app went to the background, the panel closed)
+   * or shows again. Hidden, the shown terminal gives its WebGL context back
+   * as well; shown again, it takes one again, also after a context Android
+   * took meanwhile (it may take the GPU's memory back from an app away).
    */
-  restoreRenderers(): void {
-    if (this.renderer === 'dom') return;
-    for (const view of this.views.values()) if (view.lost) this.applyRenderer(view);
+  setPageVisible(visible: boolean): void {
+    this.pageVisible = visible;
+    if (visible) {
+      const view = this.activeView();
+      if (view) view.lost = false;
+    }
+    this.syncRenderers();
   }
 
   /** Each view's renderer, by session id. */
