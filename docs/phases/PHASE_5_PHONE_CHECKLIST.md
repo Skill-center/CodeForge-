@@ -11,7 +11,7 @@ The terminal has passed on five emulators (Android 8.0 to 16) and on Test Lab's 
 
 - An arm64 Android phone with Android 8.0 or newer and about 700 MB free. **§3 needs Android 14 or later;** on an older phone, skip it and say so.
 - Gboard, or your usual keyboard (say which).
-- **The APK:** the exit gate's `codeforge-phone-profile-arm64` artifact (pending; linked here after the exit gate runs). It is a zip holding one APK, the profile build with the arm64 runtime, about 164 MB. If you are doing the Phase 3 or Phase 4 checklist too, install this APK once for all of them.
+- **The APK:** on GitHub, signed in, [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/44900930980/artifacts/14707861503) downloads directly (otherwise **Actions →** run 44900930980 **→ Artifacts → `codeforge-phone-profile-arm64`**; kept until 2026-12-21). It is a zip holding one APK, the profile build with the arm64 runtime, 165 MB. Unzip it, open the APK on the phone, and allow "install unknown apps" for your browser or file manager when asked; with adb, `adb install codeforge-phone-profile-arm64.apk`. If you are doing the Phase 3 or Phase 4 checklist too, install this APK once for all of them.
 - Uninstall any earlier CodeForge build first: every CI build is signed with its own throwaway key, so Android refuses to install over another one.
 
 ## 1. Install (3 minutes)

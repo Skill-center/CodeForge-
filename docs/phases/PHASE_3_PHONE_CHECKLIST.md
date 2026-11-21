@@ -18,7 +18,7 @@ The emulator gate runs every group on each `[phase-gate]` commit. A phone adds w
 3. Unzip, open the APK on the phone, and allow "install unknown apps" for your browser or file manager when asked. With adb: `adb uninstall dev.codeforge.app`, then `adb install codeforge-phone-profile-arm64.apk`.
 4. **Keep the APK file:** §9 installs this same file again.
 
-**Or the newer build** (Phase 4 W7, preferred): [the `codeforge-phone-profile-arm64` artifact](https://github.com/Skill-center/CodeForge-/actions/runs/44332891340/artifacts/14444540025) of Phase 4's exit gate, run 44332891340. Install it the same way. Its runtime installs when a workspace first opens: 17.2 s through the app on a Pixel 8a, and longer on a slower phone. The editor works meanwhile.
+**Or a newer build** (preferred): [the `codeforge-phone-profile-arm64` artifact](https://github.com/Skill-center/CodeForge-/actions/runs/44900930980/artifacts/14707861503) of Phase 5's exit gate, run 44900930980 (kept until 2026-12-21), which the Phase 4 and Phase 5 checklists use too; or [Phase 4's](https://github.com/Skill-center/CodeForge-/actions/runs/44332891340/artifacts/14444540025), run 44332891340 (kept until 2026-12-18). Install it the same way. Its runtime installs when a workspace first opens: 17.2 s through the app on a Pixel 8a, and longer on a slower phone. The editor works meanwhile.
 
 This is a profile build: optimised like a release, with a Developer section in Settings. The debug build of the same commit is the `codeforge-debug-apk` artifact of CI [43384226740](https://github.com/Skill-center/CodeForge-/actions/runs/43384226740) (all ABIs, kept until 2027-02-11); no check below needs it.
 

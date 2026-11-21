@@ -7,7 +7,7 @@ The runtime has passed on five emulators (Android 8.0 to 16) and on Test Lab's P
 ## 0. What you need
 
 - An arm64 Android phone with Android 8.0 or newer, and about 700 MB free. On the Pixel 8a in Test Lab, a debug build of 208 MB, its extracted libraries and the installed runtime took 637 MB together (CI 44332891340). This profile build is 164 MB, so expect about 590 MB.
-- **The APK:** on GitHub, signed in, [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/44332891340/artifacts/14444540025) downloads directly (otherwise **Actions →** run 44332891340 **→ Artifacts → `codeforge-phone-profile-arm64`**; kept until 2026-12-18). It is a zip holding one APK, the profile build with the arm64 runtime. If you are doing the Phase 3 checklist too, install this APK once for both.
+- **The APK:** on GitHub, signed in, [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/44332891340/artifacts/14444540025) downloads directly (otherwise **Actions →** run 44332891340 **→ Artifacts → `codeforge-phone-profile-arm64`**; kept until 2026-12-18). It is a zip holding one APK, the profile build with the arm64 runtime. If you are doing the Phase 3 checklist too, install this APK once for both. **Or the newer build** (Phase 5 W7, preferred): [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/44900930980/artifacts/14707861503) of Phase 5's exit gate, run 44900930980, kept until 2026-12-21. It adds the terminal, and [PHASE_5_PHONE_CHECKLIST.md](PHASE_5_PHONE_CHECKLIST.md) uses it too, so one install serves all three checklists.
 - Uninstall any earlier CodeForge build first: every CI build is signed with its own throwaway key, so Android refuses to install over another one.
 
 ## 1. The first install (5 minutes)

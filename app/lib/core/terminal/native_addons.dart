@@ -22,8 +22,9 @@ enum NativeAddonKind {
 /// What the terminal says for [kind] (PHASE_5_PLAN W4: no compiler ships,
 /// a build-tools pack comes later, Android 10 and later won't execute a
 /// program written to app storage; pure packages work). Since Phase 5 W7 it
-/// no longer suggests prebuilt wheels: a wheel's C extension would be a
-/// library in app storage too.
+/// names Android's rule from Android 10, and suggests pure packages only: it
+/// shows when a package found nothing prebuilt and tried to build. A library
+/// in app storage does load (RuntimeCommandsTest g).
 String nativeAddonMessage(NativeAddonKind kind) => switch (kind) {
   NativeAddonKind.npm =>
     'A package tried to build a native addon. The runtime has no C '
