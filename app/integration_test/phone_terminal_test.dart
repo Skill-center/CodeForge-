@@ -234,10 +234,7 @@ void phoneTerminalTests() {
       _figure('page_memory_delta_mb', measured.deltaMb);
       _figure('page_memory_peak_delta_mb', measured.peakDeltaMb);
       _figure('page_memory_open_delta_mb', measured.openDeltaMb);
-      _figure(
-        'page_memory_open_half_delta_mb',
-        measured.openHalfDeltaMb ?? -1,
-      );
+      _figure('page_memory_open_half_delta_mb', measured.openHalfDeltaMb ?? -1);
       _figure('page_memory_under_budget', measured.memoryUnderBudget ? 1 : 0);
       _figure('page_webgl', measured.webglRenderer);
       _figure('page_flood_dart_ms', flood.dartMs);

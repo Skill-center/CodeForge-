@@ -759,7 +759,9 @@ Future<TerminalMeasurements> measureTerminal({
 
   Future<({String renderer, String? error})> switchTo(String asked) async {
     final used = await useRenderer(view, id, asked);
-    report('renderer asked=$asked drawing=${used.renderer} error=${used.error}');
+    report(
+      'renderer asked=$asked drawing=${used.renderer} error=${used.error}',
+    );
     if (asked == 'webgl') {
       measured
         ..webglRenderer = used.renderer
