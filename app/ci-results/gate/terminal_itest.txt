@@ -1,58 +1,83 @@
+Resolving dependencies...
+Downloading packages...
+  built_collection 5.1.2 (6.0.0 available)
+  cli_util 0.6.0 (0.6.1 available)
+  code_assets 2.1.0 (2.2.0 available)
+  cupertino_ui 1.1.6 (1.1.7 available)
+  drift 2.35.3 (2.35.4 available)
+  drift_dev 2.35.2 (2.35.3 available)
+  flutter_riverpod 3.4.3 (3.5.0 available)
+  go_router 18.1.3 (18.1.4 available)
+  jni 1.1.2 (1.2.1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  material_ui 1.10.0 (1.11.1 available)
+  native_toolchain_c 0.19.5 (0.19.6 available)
+  objective_c 9.6.2 (9.6.4 available)
+  pigeon 29.2.0 (30.0.4 available)
+  riverpod 3.4.3 (3.5.0 available)
+  shared_preferences_android 2.5.4 (2.5.5 available)
+  shared_preferences_foundation 2.6.1 (2.6.2 available)
+  sqlite3 3.9.0 (3.9.1 available)
+  test_api 0.7.14 (0.7.15 available)
+Got dependencies!
+19 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart
-Running Gradle task 'assembleDebug'...                             17.1s
+Running Gradle task 'assembleDebug'...                             20.5s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        2,324ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...        2,084ms
 00:00 +0: terminal: echo, G6’s figures, programs at the panel’s size, composition
-FOLDERGATE 1795207398843.1 mem before
-folder gate: request 1795207398843.1 answered app:417863,renderer:80590,renderers:1,via:services
-TERMINAL_GATE memory before app_mb=408.1 renderer_mb=78.7 renderers=1
-TERMINAL_GATE started ms=1324 size=46x22
-FOLDERGATE 1795207398843.2 mem opened
-folder gate: request 1795207398843.2 answered app:434242,renderer:88929,renderers:1,via:services
-TERMGATE 1795207385071.1 tap 540 1443
-TERMGATE 1795207385071.2 text echo%scf-typed-ok
-TERMGATE 1795207385071.3 key 66
+FOLDERGATE 1795241193977.1 mem before
+folder gate: request 1795241193977.1 answered app:419670,renderer:81049,renderers:1,via:services,javaheap:14196,nativeheap:58508,code:25344,stack:1904,graphics:0,privateother:281788,system:37930,unknown:297612,rgraphics:0
+TERMINAL_GATE memory before app_mb=409.8 renderer_mb=79.1 renderers=1
+TERMINAL_GATE started ms=1224 size=46x22
+FOLDERGATE 1795241193977.2 mem opened
+folder gate: request 1795241193977.2 answered app:432049,renderer:93689,renderers:1,via:services,javaheap:13344,nativeheap:63376,code:25880,stack:2080,graphics:0,privateother:286928,system:40441,unknown:302952,rgraphics:0
+FOLDERGATE 1795241193977.3 mem opened-half
+folder gate: request 1795241193977.3 answered app:429493,renderer:93949,renderers:1,via:services,javaheap:11268,nativeheap:63368,code:25784,stack:2072,graphics:0,privateother:286480,system:40521,unknown:302568,rgraphics:0
+TERMGATE 1795241179375.1 tap 540 1443
+TERMGATE 1795241179375.2 text echo%scf-typed-ok
+TERMGATE 1795241179375.3 key 66
 TERMINAL_GATE typed_echo=ok
-TERMINAL_GATE measure renderer asked=dom drawing=dom error=null
-TERMINAL_GATE measure echo dom renderer=dom n=100 lost=0 p50_ms=44.3 p95_ms=92.5 max_ms=113.7 mean_ms=46.5
-terminal measure: flood renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=27026.9 mib_s=0.4 writes=185 max_write=194738 ui_frames=279 ui_slow=279 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=283.1 ui_max_ms=306.2 ui_gap_ms=233.3 page_frames=199 page_slow_pct=88.9 page_max_ms=533.4 long_tasks=45 long_ms=3721
-TERMINAL_GATE measure flood dom renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=27026.9 mib_s=0.4 writes=185 max_write=194738 ui_frames=279 ui_slow=279 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=283.1 ui_max_ms=306.2 ui_gap_ms=233.3 page_frames=199 page_slow_pct=88.9 page_max_ms=533.4 long_tasks=45 long_ms=3721
-FOLDERGATE 1795207398843.3 mem after-dom
-folder gate: request 1795207398843.3 answered app:438467,renderer:155492,renderers:1,via:services
-TERMINAL_GATE measure memory after_dom app_mb=428.2 renderer_mb=151.8 total_mb=580.0
-TERMINAL_GATE measure renderer asked=webgl drawing=webgl error=null
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following TestFailure was thrown running a test:
-The echo probe failed in the page: character 1 (a) was not erased
-
-When the exception was thrown, this was the stack:
-#0      fail (package:matcher/src/expect/expect.dart:187:31)
-#1      _probeOutcome (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_measure.dart:371:9)
-<asynchronous suspension>
-#2      measureEcho (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_measure.dart:433:18)
-<asynchronous suspension>
-#3      measureTerminal.run (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_measure.dart:632:18)
-<asynchronous suspension>
-#4      measureTerminal (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_measure.dart:678:7)
-<asynchronous suspension>
-#5      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart:254:22)
-<asynchronous suspension>
-#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided one frame from package:stack_trace)
-
-The test description was:
-  terminal: echo, G6’s figures, programs at the panel’s size, composition
-════════════════════════════════════════════════════════════════════════════════════════════════════
-01:16 +0 -1: terminal: echo, G6’s figures, programs at the panel’s size, composition [E]
-  Test failed. See exception logs above.
-  The test description was: terminal: echo, G6’s figures, programs at the panel’s size, composition
-  
-01:16 +0 -1: (tearDownAll)
-01:17 +0 -1: Some tests failed.
-
-Failing tests:
-  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/terminal_test.dart: terminal: echo, G6’s figures, programs at the panel’s size, composition
+TERMINAL_GATE measure renderer asked=webgl drawing=dom error=a software GPU (Android Emulator OpenGL ES Translator (Google SwiftShader))
+TERMINAL_GATE measure echo dom renderer=dom n=100 lost=0 p50_ms=50.1 p95_ms=81.0 max_ms=109.6 mean_ms=48.9
+terminal measure: flood renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=31453.7 mib_s=0.3 writes=210 max_write=160729 ui_frames=315 ui_slow=315 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=291.0 ui_build_p95_ms=24.9 ui_raster_p95_ms=109.3 ui_max_ms=354.8 ui_gap_ms=283.3 dart_batches=211 dart_ms=4837.8 wall_ms=33136 page_frames=200 page_slow_pct=94.0 page_max_ms=383.4 long_tasks=53 long_ms=4176
+TERMINAL_GATE measure flood dom renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=31453.7 mib_s=0.3 writes=210 max_write=160729 ui_frames=315 ui_slow=315 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=291.0 ui_build_p95_ms=24.9 ui_raster_p95_ms=109.3 ui_max_ms=354.8 ui_gap_ms=283.3 dart_batches=211 dart_ms=4837.8 wall_ms=33136 page_frames=200 page_slow_pct=94.0 page_max_ms=383.4 long_tasks=53 long_ms=4176
+FOLDERGATE 1795241193977.4 mem after-dom
+folder gate: request 1795241193977.4 answered app:440304,renderer:130155,renderers:1,via:services,javaheap:12428,nativeheap:63600,code:26288,stack:1900,graphics:0,privateother:293888,system:42200,unknown:310724,rgraphics:0
+TERMINAL_GATE measure memory after_dom app_mb=430.0 renderer_mb=127.1 total_mb=557.1
+FOLDERGATE 1795241193977.5 mem settled-dom
+folder gate: request 1795241193977.5 answered app:440273,renderer:130155,renderers:1,via:services,javaheap:12452,nativeheap:63628,code:26292,stack:1832,graphics:0,privateother:293868,system:42201,unknown:310704,rgraphics:0
+TERMINAL_GATE measure memory settled_dom app_mb=430.0 renderer_mb=127.1 total_mb=557.1
+FOLDERGATE 1795241193977.6 heap read
+folder gate: request 1795241193977.6 answered used:12882,total:15900
+FOLDERGATE 1795241193977.7 heap gc
+folder gate: request 1795241193977.7 answered used:4863,total:6548
+FOLDERGATE 1795241193977.8 mem collected-dom
+folder gate: request 1795241193977.8 answered app:440329,renderer:99147,renderers:1,via:services,javaheap:12452,nativeheap:63640,code:26292,stack:1840,graphics:0,privateother:293904,system:42201,unknown:310740,rgraphics:0
+TERMINAL_GATE measure heap settled=used:12882,total:15900 collected=used:4863,total:6548
+TERMINAL_GATE measure memory collected_dom app_mb=430.0 renderer_mb=96.8 total_mb=526.8
+TERMINAL_GATE measure renderer asked=webgl drawing=dom error=a software GPU (Android Emulator OpenGL ES Translator (Google SwiftShader))
+TERMINAL_GATE measure echo dom_again renderer=dom n=100 lost=0 p50_ms=48.5 p95_ms=92.7 max_ms=161.4 mean_ms=51.0
+terminal measure: flood renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=31429.7 mib_s=0.3 writes=201 max_write=170377 ui_frames=309 ui_slow=309 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=294.3 ui_build_p95_ms=31.1 ui_raster_p95_ms=111.5 ui_max_ms=355.3 ui_gap_ms=283.3 dart_batches=202 dart_ms=4178.9 wall_ms=32525 page_frames=193 page_slow_pct=92.7 page_max_ms=366.6 long_tasks=53 long_ms=4345
+TERMINAL_GATE measure flood dom_again renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=31429.7 mib_s=0.3 writes=201 max_write=170377 ui_frames=309 ui_slow=309 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=294.3 ui_build_p95_ms=31.1 ui_raster_p95_ms=111.5 ui_max_ms=355.3 ui_gap_ms=283.3 dart_batches=202 dart_ms=4178.9 wall_ms=32525 page_frames=193 page_slow_pct=92.7 page_max_ms=366.6 long_tasks=53 long_ms=4345
+TERMINAL_GATE measure verdict shipped=dom echo_p95_ms=81.0 flood_whole=1 ui_slow_pct=100.0 memory_delta_mb=68.1 memory_peak_delta_mb=68.1 memory_open_delta_mb=24.4 memory_open_half_delta_mb=22.2 webgl=dom other_failure=null
+TERMINAL_JSON 1/5 {"askedRenderer":"webgl","shippedRenderer":"dom","budgets":{"echoP95Ms":50.0,"slowFrameMs":32.0,"slowFramePct":5.0,"frozenFrameMs":700.0,"memoryDeltaMb":80.0,"settleSeconds":15},"echo":{"dom":{"renderer":"dom","typed":100,"count":100,"lost":0,"p50Ms":50.1,"p95Ms":81.0,"maxMs":109.6,"meanMs":48.9},"dom_again":{"renderer":"dom","typed":100,"count":100,"lost":0,"p50Ms":48.5,"p95Ms":92.7,"maxMs":161.4,"meanMs":51.0}},"flood":{"dom":{"renderer":"dom","whole":true,"chars":10567680,"hash":"59da1fa1","writes":210,"maxWriteChars":160729,"ms":31453.7,"mibPerSecond":0.3,"wallMs":33136,"page":{"frames":{"frames":200,"slowFrames":188,"slowFramePct":94,"p95FrameMs":300.1,"maxFrameMs":383.4,"thresholdMs":32},"longTasks":{"count":53,"totalMs":4176,"maxMs":211}},"ui":{"frames":315,"slowFrames":315,"slowFra
+TERMINAL_JSON 2/5 mePct":100.0,"frozenFrames":0,"p95TotalMs":291.0,"maxTotalMs":354.8,"p95BuildMs":24.9,"p95RasterMs":109.3,"longestGapMs":283.3,"windowed":true},"dart":{"batches":211,"ms":4837.8}},"dom_again":{"renderer":"dom","whole":true,"chars":10567680,"hash":"59da1fa1","writes":201,"maxWriteChars":170377,"ms":31429.7,"mibPerSecond":0.3,"wallMs":32525,"page":{"frames":{"frames":193,"slowFrames":179,"slowFramePct":92.7,"p95FrameMs":300.1,"maxFrameMs":366.6,"thresholdMs":32},"longTasks":{"count":53,"totalMs":4345,"maxMs":174}},"ui":{"frames":309,"slowFrames":309,"slowFramePct":100.0,"frozenFrames":0,"p95TotalMs":294.3,"maxTotalMs":355.3,"p95BuildMs":31.1,"p95RasterMs":111.5,"longestGapMs":283.3,"windowed":true},"dart":{"batches":202,"ms":4178.9}}},"memory":{"before":{"appMb":409.8,"rendererMb":79.1,"rend
+TERMINAL_JSON 3/5 erers":1,"totalMb":489.0,"appRowsMb":{"javaheap":13.9,"nativeheap":57.1,"code":24.8,"stack":1.9,"graphics":0.0,"privateother":275.2,"system":37.0,"unknown":290.6},"rendererGraphicsMb":0.0},"opened":{"appMb":421.9,"rendererMb":91.5,"renderers":1,"totalMb":513.4,"appRowsMb":{"javaheap":13.0,"nativeheap":61.9,"code":25.3,"stack":2.0,"graphics":0.0,"privateother":280.2,"system":39.5,"unknown":295.9},"rendererGraphicsMb":0.0},"openedHalf":{"appMb":419.4,"rendererMb":91.7,"renderers":1,"totalMb":511.2,"appRowsMb":{"javaheap":11.0,"nativeheap":61.9,"code":25.2,"stack":2.0,"graphics":0.0,"privateother":279.8,"system":39.6,"unknown":295.5},"rendererGraphicsMb":0.0},"after_dom":{"appMb":430.0,"rendererMb":127.1,"renderers":1,"totalMb":557.1,"appRowsMb":{"javaheap":12.1,"nativeheap":62.1,"code":25.7,
+TERMINAL_JSON 4/5 "stack":1.9,"graphics":0.0,"privateother":287.0,"system":41.2,"unknown":303.4},"rendererGraphicsMb":0.0},"settled_dom":{"appMb":430.0,"rendererMb":127.1,"renderers":1,"totalMb":557.1,"appRowsMb":{"javaheap":12.2,"nativeheap":62.1,"code":25.7,"stack":1.8,"graphics":0.0,"privateother":287.0,"system":41.2,"unknown":303.4},"rendererGraphicsMb":0.0},"afterCollection":{"appMb":430.0,"rendererMb":96.8,"renderers":1,"totalMb":526.8,"appRowsMb":{"javaheap":12.2,"nativeheap":62.1,"code":25.7,"stack":1.8,"graphics":0.0,"privateother":287.0,"system":41.2,"unknown":303.5},"rendererGraphicsMb":0.0},"heap":{"settled":"used:12882,total:15900","collected":"used:4863,total:6548"},"deltaMb":68.1,"peakDeltaMb":68.1,"openDeltaMb":24.4,"openHalfDeltaMb":22.2},"webgl":{"renderer":"dom","error":"a software GPU (A
+TERMINAL_JSON 5/5 ndroid Emulator OpenGL ES Translator (Google SwiftShader))"},"otherFailure":null,"verdict":{"echo":false,"floodWhole":true,"ui":false,"memory":true}}
+TERMINAL_GATE fit where=portrait columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9 less=ok node=ok
+TERMGATE 1795241179375.4 rotate 1
+TERMINAL_GATE turn to=landscape program=nano columns=60 rows=7 redrawn=ok
+TERMINAL_GATE fit where=landscape columns=60 rows=7 stty=ok nano=ok top=ok top_lines=7 less=ok node=ok
+TERMGATE 1795241179375.5 rotate 0
+TERMINAL_GATE turn to=portrait program=less columns=46 rows=22 redrawn=ok
+TERMINAL_GATE fit where=portrait again columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9 less=ok node=ok
+TERMGATE 1795241179375.6 tap 540 1443
+TERMGATE 1795241179375.7 compose
+TERMINAL_GATE compose_lines=11 compose_ms=10701
+TERMGATE 1795241179375.8 done
+TERMINAL_GATE closed=ok dropped_messages=0
+03:04 +1: (tearDownAll)
+03:06 +1: All tests passed!

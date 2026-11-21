@@ -1,20 +1,59 @@
-terminal_group=fail
-terminal_compose_failures=missing
-terminal: memory before app_mb=408.1 renderer_mb=78.7 renderers=1
-terminal: started ms=1324 size=46x22
+terminal_group=pass
+terminal_compose_failures=0
+terminal: memory before app_mb=409.8 renderer_mb=79.1 renderers=1
+terminal: started ms=1224 size=46x22
 terminal: typed_echo=ok
-terminal: measure renderer asked=dom drawing=dom error=null
-terminal: measure echo dom renderer=dom n=100 lost=0 p50_ms=44.3 p95_ms=92.5 max_ms=113.7 mean_ms=46.5
-terminal: measure flood dom renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=27026.9 mib_s=0.4 writes=185 max_write=194738 ui_frames=279 ui_slow=279 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=283.1 ui_max_ms=306.2 ui_gap_ms=233.3 page_frames=199 page_slow_pct=88.9 page_max_ms=533.4 long_tasks=45 long_ms=3721
-terminal: measure memory after_dom app_mb=428.2 renderer_mb=151.8 total_mb=580.0
-terminal: measure renderer asked=webgl drawing=webgl error=null
-memory: --- mem before (20:43:22): app 417863 KiB
-memory: renderer 27942: 80590 KiB
-memory: --- mem opened (20:43:24): app 434242 KiB
-memory: renderer 27942: 88929 KiB
-memory: --- mem after-dom (20:44:17): app 438467 KiB
-memory: renderer 27942: 155492 KiB
-probe 20:43:25.251 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
-probe 20:43:27.461 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+85ms pointerdown xterm-screen  hasFocus=false","+89ms touchstart xterm-screen  hasFocus=false","+92ms touchend xterm-screen  hasFocus=false","+168ms focus window  hasFocus=true","+168ms focus xterm-helper-textarea value=\"\" hasFocus=true","+170ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+172ms mousedown xterm-screen  hasFocus=true","+174ms click xterm-screen  hasFocus=true"]}
-probe 20:43:28.259 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
-probe 20:43:31.060 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+134ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+144ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+148ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+150ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+180ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+180ms beforeinput x
+terminal: measure renderer asked=webgl drawing=dom error=a software GPU (Android Emulator OpenGL ES Translator (Google SwiftShader))
+terminal: measure echo dom renderer=dom n=100 lost=0 p50_ms=50.1 p95_ms=81.0 max_ms=109.6 mean_ms=48.9
+terminal: measure flood dom renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=31453.7 mib_s=0.3 writes=210 max_write=160729 ui_frames=315 ui_slow=315 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=291.0 ui_build_p95_ms=24.9 ui_raster_p95_ms=109.3 ui_max_ms=354.8 ui_gap_ms=283.3 dart_batches=211 dart_ms=4837.8 wall_ms=33136 page_frames=200 page_slow_pct=94.0 page_max_ms=383.4 long_tasks=53 long_ms=4176
+terminal: measure memory after_dom app_mb=430.0 renderer_mb=127.1 total_mb=557.1
+terminal: measure memory settled_dom app_mb=430.0 renderer_mb=127.1 total_mb=557.1
+terminal: measure heap settled=used:12882,total:15900 collected=used:4863,total:6548
+terminal: measure memory collected_dom app_mb=430.0 renderer_mb=96.8 total_mb=526.8
+terminal: measure renderer asked=webgl drawing=dom error=a software GPU (Android Emulator OpenGL ES Translator (Google SwiftShader))
+terminal: measure echo dom_again renderer=dom n=100 lost=0 p50_ms=48.5 p95_ms=92.7 max_ms=161.4 mean_ms=51.0
+terminal: measure flood dom_again renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=31429.7 mib_s=0.3 writes=201 max_write=170377 ui_frames=309 ui_slow=309 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=294.3 ui_build_p95_ms=31.1 ui_raster_p95_ms=111.5 ui_max_ms=355.3 ui_gap_ms=283.3 dart_batches=202 dart_ms=4178.9 wall_ms=32525 page_frames=193 page_slow_pct=92.7 page_max_ms=366.6 long_tasks=53 long_ms=4345
+terminal: measure verdict shipped=dom echo_p95_ms=81.0 flood_whole=1 ui_slow_pct=100.0 memory_delta_mb=68.1 memory_peak_delta_mb=68.1 memory_open_delta_mb=24.4 memory_open_half_delta_mb=22.2 webgl=dom other_failure=null
+terminal: fit where=portrait columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9 less=ok node=ok
+terminal: turn to=landscape program=nano columns=60 rows=7 redrawn=ok
+terminal: fit where=landscape columns=60 rows=7 stty=ok nano=ok top=ok top_lines=7 less=ok node=ok
+terminal: turn to=portrait program=less columns=46 rows=22 redrawn=ok
+terminal: fit where=portrait again columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9 less=ok node=ok
+terminal: compose_lines=11 compose_ms=10701
+terminal: closed=ok dropped_messages=0
+compose: ok   latin-predictive: "hello world"
+compose: ok   autocorrect-replace: "the"
+compose: ok   pinyin: "你好"
+compose: ok   japanese: "漢字"
+compose: ok   hangul: "한글"
+compose: ok   emoji: "😀👍🏽👩‍💻"
+compose: ok   cancel-composition: "ab"
+compose: ok   ime-backspace: "copy"
+compose: ok   backspace-after-commit: "word"
+compose: ok   words-and-spaces: "ls -la src"
+memory: --- mem before (06:06:37): app 419670 KiB
+memory: renderer 28445: 81049 KiB,javaheap:744,nativeheap:1392,code:33176,stack:444,graphics:0,privateother:20224,system:25069,unknown:56184
+memory: app before:,javaheap:14196,nativeheap:58508,code:25344,stack:1904,graphics:0,privateother:281788,system:37930,unknown:297612
+memory: --- mem opened (06:06:39): app 432049 KiB
+memory: renderer 28445: 93689 KiB,javaheap:720,nativeheap:1460,code:36188,stack:452,graphics:0,privateother:27376,system:27493,unknown:63368
+memory: app opened:,javaheap:13344,nativeheap:63376,code:25880,stack:2080,graphics:0,privateother:286928,system:40441,unknown:302952
+memory: --- mem opened-half (06:06:43): app 429493 KiB
+memory: renderer 28445: 93949 KiB,javaheap:716,nativeheap:1460,code:36252,stack:452,graphics:0,privateother:27592,system:27477,unknown:63552
+memory: app opened-half:,javaheap:11268,nativeheap:63368,code:25784,stack:2072,graphics:0,privateother:286480,system:40521,unknown:302568
+memory: --- mem after-dom (06:07:43): app 440304 KiB
+memory: renderer 28445: 130155 KiB,javaheap:716,nativeheap:1464,code:39580,stack:536,graphics:0,privateother:59516,system:28343,unknown:95540
+memory: app after-dom:,javaheap:12428,nativeheap:63600,code:26288,stack:1900,graphics:0,privateother:293888,system:42200,unknown:310724
+memory: --- mem settled-dom (06:07:56): app 440273 KiB
+memory: renderer 28445: 130155 KiB,javaheap:716,nativeheap:1464,code:39580,stack:536,graphics:0,privateother:59516,system:28343,unknown:95540
+memory: app settled-dom:,javaheap:12452,nativeheap:63628,code:26292,stack:1832,graphics:0,privateother:293868,system:42201,unknown:310704
+memory: --- heap read (06:07:57): used:12882,total:15900
+memory: --- heap gc (06:07:57): used:4863,total:6548
+memory: --- mem collected-dom (06:08:00): app 440329 KiB
+memory: renderer 28445: 99147 KiB,javaheap:716,nativeheap:1464,code:39580,stack:536,graphics:0,privateother:28508,system:28343,unknown:64532
+memory: app collected-dom:,javaheap:12452,nativeheap:63640,code:26292,stack:1840,graphics:0,privateother:293904,system:42201,unknown:310740
+probe 06:06:44.236 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
+probe 06:06:46.594 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+168ms pointerdown xterm-screen  hasFocus=false","+168ms touchstart xterm-screen  hasFocus=false","+169ms touchend xterm-screen  hasFocus=false","+186ms focus window  hasFocus=true","+186ms focus xterm-helper-textarea value=\"\" hasFocus=true","+188ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+191ms mousedown xterm-screen  hasFocus=true","+194ms click xterm-screen  hasFocus=true"]}
+probe 06:06:47.321 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
+probe 06:06:50.138 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+221ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+226ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+243ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+253ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+297ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+298ms beforeinput x
+probe 06:09:10.903 probe arm: {"hasFocus":true,"visibility":"visible","active":"BODY"}
+probe 06:09:13.098 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"BODY"},"events":["+44ms pointerdown xterm-screen  hasFocus=true","+44ms touchstart xterm-screen  hasFocus=true","+44ms touchend xterm-screen  hasFocus=true","+52ms focus xterm-helper-textarea value=\"\" hasFocus=true","+62ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+66ms mousedown xterm-screen  hasFocus=true","+68ms click xterm-screen  hasFocus=true","+884ms blur xterm-helper-textarea value=\"\" hasFocus=true","+885ms focusout xterm-helper-textarea value=\"\" hasFocus=true"]}
