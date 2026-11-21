@@ -103,6 +103,15 @@ String floodLine(int i) {
 
 double _round1(num value) => (value * 10).round() / 10;
 
+/// The build the figures come from: Test Lab's is a profile build since
+/// Phase 5 W6 (its Dart compiled ahead of time, as the app ships), the
+/// emulator gate's a debug build.
+String get buildMode => kDebugMode
+    ? 'debug'
+    : kProfileMode
+    ? 'profile'
+    : 'release';
+
 /// Nearest-rank percentile of [values] (q in 0..1), as the page's stats.
 double percentile(List<double> values, double q) {
   if (values.isEmpty) {
@@ -118,6 +127,18 @@ int _integer(Object? value) => value is num ? value.toInt() : 0;
 Map<String, Object?> _object(Object? value) =>
     value is Map<String, Object?> ? value : const {};
 
+/// The App Summary rows the gate reports for the app (`dumpsys meminfo`).
+const List<String> memoryRows = [
+  'javaheap',
+  'nativeheap',
+  'code',
+  'stack',
+  'graphics',
+  'privateother',
+  'system',
+  'unknown',
+];
+
 /// The app's and its renderers' PSS, in KiB (`dumpsys meminfo`).
 final class MemorySample {
   const MemorySample({
@@ -125,9 +146,12 @@ final class MemorySample {
     required this.appKb,
     required this.rendererKb,
     required this.renderers,
+    this.rows = const {},
+    this.rendererGraphicsKb = 0,
   });
 
-  /// From the gate's answer: `app:<kb>,renderer:<kb>,renderers:<n>,...`.
+  /// From the gate's answer: `app:<kb>,renderer:<kb>,renderers:<n>,...`,
+  /// then the app's App Summary rows and the renderers' graphics.
   factory MemorySample.parse(String label, String answer) {
     final fields = <String, int>{};
     for (final part in answer.split(',')) {
@@ -147,6 +171,11 @@ final class MemorySample {
       appKb: app,
       rendererKb: renderer,
       renderers: fields['renderers'] ?? 0,
+      rows: {
+        for (final row in memoryRows)
+          if ((fields[row] ?? -1) >= 0) row: fields[row]!,
+      },
+      rendererGraphicsKb: fields['rgraphics'] ?? 0,
     );
   }
 
@@ -154,6 +183,10 @@ final class MemorySample {
   final int appKb;
   final int rendererKb;
   final int renderers;
+
+  /// The app's App Summary, by row, in KiB: where its memory is.
+  final Map<String, int> rows;
+  final int rendererGraphicsKb;
 
   int get totalKb => appKb + rendererKb;
 
@@ -164,6 +197,8 @@ final class MemorySample {
     'rendererMb': megabytes(rendererKb),
     'renderers': renderers,
     'totalMb': megabytes(totalKb),
+    'appRowsMb': {for (final e in rows.entries) e.key: megabytes(e.value)},
+    'rendererGraphicsMb': megabytes(rendererGraphicsKb),
   };
 }
 

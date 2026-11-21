@@ -21,8 +21,10 @@
 ///    third the one file the shell changed. The times are recorded, never
 ///    judged.
 ///
-/// The Test Lab job's build is a debug build (the store's and search's
-/// figures say so too); the reports say it.
+/// The Test Lab job's build is a profile build since this work package: the
+/// app's Dart compiled ahead of time, as it ships, while the Android side
+/// keeps debug's signing (it was a debug build before, for the store's and
+/// search's figures too); the reports say which.
 library;
 
 import 'dart:async';
@@ -207,7 +209,7 @@ void phoneTerminalTests() {
 
       await printReport('CODEFORGE_TERMINAL_JSON', {
         'test': 'phone_terminal',
-        'build': kDebugMode ? 'debug' : 'release',
+        'build': buildMode,
         ...measured.toJson(),
       });
       final echo = measured.shippedEcho;
@@ -366,7 +368,7 @@ void phoneTerminalTests() {
       gate.done();
       await printReport('CODEFORGE_COPY_JSON', {
         'test': 'phone_copy',
-        'build': kDebugMode ? 'debug' : 'release',
+        'build': buildMode,
         ...figures,
       });
     },

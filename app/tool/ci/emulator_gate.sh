@@ -866,13 +866,27 @@ folder_save() {
 #   mem <label>   dumpsys meminfo's TOTAL PSS, in KiB, of the app's process
 #                 and of its WebView renderers (the sandboxed processes its
 #                 own service records name; any sandboxed process when they
-#                 name none): app:<kb>,renderer:<kb>,renderers:<n>,via:<how>.
-#                 Each sample's lines go to $RESULTS/terminal_memory.txt.
+#                 name none): app:<kb>,renderer:<kb>,renderers:<n>,via:<how>,
+#                 then the app's App Summary rows (javaheap:<kb>, ...,
+#                 graphics:<kb>, ...) and the renderers' graphics
+#                 (rgraphics:<kb>). Each sample's lines go to
+#                 $RESULTS/terminal_memory.txt.
 #   heap <read|gc> the terminal page's JavaScript heap through its DevTools
 #                 socket (editor/tool/terminal_cdp.mjs --heap): used:<kb>,
 #                 total:<kb>; with gc, after a collection DevTools forced;
 #                 unavailable without a page to ask
 SESSIONS_MARKERS="cf-heartbeat-5201|9999[.]5202|9999[.]5203"
+# summary_rows <dumpsys meminfo output>: its App Summary as ,<row>:<kb>...
+# (javaheap, nativeheap, code, stack, graphics, privateother, system,
+# unknown).
+summary_rows() {
+  printf '%s\n' "$1" | awk '
+    /^ *(Java Heap|Native Heap|Code|Stack|Graphics|Private Other|System|Unknown): *[0-9]/ {
+      name = $0; sub(/:.*/, "", name); gsub(/ /, "", name)
+      value = $0; sub(/^[^:]*: */, "", value); split(value, parts, " ")
+      printf ",%s:%s", tolower(name), parts[1]
+    }'
+}
 # total_pss <dumpsys meminfo output>: its TOTAL PSS in KiB, or nothing.
 total_pss() {
   printf '%s\n' "$1" | awk '
@@ -880,9 +894,10 @@ total_pss() {
     !found && /^ *TOTAL +[0-9]/ { print $2; found = 1 }'
 }
 folder_mem() {
-  local label="$1" app pids via pid kb renderer=0 count=0 info
+  local label="$1" app pids via pid kb renderer=0 count=0 info rows graphics=0 rinfo rg
   info=$("$ADB" shell dumpsys meminfo "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r')
   app=$(total_pss "$info")
+  rows=$(summary_rows "$info")
   pids=$("$ADB" shell dumpsys activity services "$APP_ID" < /dev/null 2>/dev/null | tr -d '\r' \
     | grep -oE 'app=ProcessRecord\{[0-9a-f]+ [0-9]+:[^/}]*sandboxed_process[^/}]*' \
     | sed -E 's/^app=ProcessRecord\{[0-9a-f]+ ([0-9]+):.*/\1/' | sort -u)
@@ -896,17 +911,21 @@ folder_mem() {
     echo "--- mem $label ($(date +%T)): app ${app:-?} KiB"
   } >> "$RESULTS/terminal_memory.txt"
   for pid in $pids; do
-    kb=$(total_pss "$("$ADB" shell dumpsys meminfo "$pid" < /dev/null 2>/dev/null | tr -d '\r')")
+    rinfo=$("$ADB" shell dumpsys meminfo "$pid" < /dev/null 2>/dev/null | tr -d '\r')
+    kb=$(total_pss "$rinfo")
     [ -n "$kb" ] || continue
     renderer=$((renderer + kb))
     count=$((count + 1))
-    echo "renderer $pid: $kb KiB" >> "$RESULTS/terminal_memory.txt"
+    rg=$(summary_rows "$rinfo" | grep -oE ',graphics:[0-9]+' | cut -d: -f2)
+    graphics=$((graphics + ${rg:-0}))
+    echo "renderer $pid: $kb KiB$(summary_rows "$rinfo")" >> "$RESULTS/terminal_memory.txt"
   done
   if [ -z "$app" ]; then
     echo failed:no-app-pss
     return
   fi
-  echo "app:$app,renderer:$renderer,renderers:$count,via:$via"
+  echo "app $label:$rows" >> "$RESULTS/terminal_memory.txt"
+  echo "app:$app,renderer:$renderer,renderers:$count,via:$via$rows,rgraphics:$graphics"
 }
 sessions_safe_marker() {
   case "$1" in

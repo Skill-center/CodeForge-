@@ -24,6 +24,7 @@ import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/search/search_models.dart';
 import 'package:codeforge/services/platform/app_directories.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kProfileMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -163,8 +164,12 @@ void phoneSearchTests() {
           _median([for (final s in timed) of(s) ?? -1]);
       final json = jsonEncode({
         'test': 'phone_search',
-        // The Test Lab job's build is a debug build, as for the store.
-        'build': 'debug',
+        // The Test Lab job's build: debug until Phase 5 W6, profile since.
+        'build': kDebugMode
+            ? 'debug'
+            : kProfileMode
+            ? 'profile'
+            : 'release',
         'files': _files,
         'writeMs': fill.elapsedMilliseconds,
         'needle': {

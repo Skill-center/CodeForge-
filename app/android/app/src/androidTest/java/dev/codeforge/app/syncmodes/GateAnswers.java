@@ -3,6 +3,7 @@ package dev.codeforge.app.syncmodes;
 import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.content.Context;
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.util.Log;
@@ -58,6 +59,13 @@ import java.util.regex.Pattern;
  * pipes or redirections), so files reach shared storage staged in the app's
  * external files folder and copied with {@code cp}. Answers keep to the
  * characters the emulator's driver keeps to.</p>
+ *
+ * <p>The accessibility tree is the picker's alone: an instrumentation that
+ * uses accessibility turns it on for the app, and Flutter then builds its
+ * semantics, which costs every frame and leaves a handle the Dart test must
+ * not end with (CI 44818854015's terminal test failed so). So the shell runs
+ * with {@code FLAG_DONT_USE_ACCESSIBILITY} from before the app starts, and a
+ * pick turns accessibility on only while it drives the picker.</p>
  */
 final class GateAnswers implements Runnable {
     private static final String TAG = "CodeForgeGate";
@@ -69,6 +77,9 @@ final class GateAnswers implements Runnable {
     private static final Pattern RENDERER = Pattern.compile(
         "app=ProcessRecord\\{[0-9a-f]+ ([0-9]+):[^/}]*sandboxed_process");
     private static final Pattern TOTAL_PSS = Pattern.compile("TOTAL PSS:\\s+(\\d+)");
+    /** The App Summary's rows: where the app's memory is. */
+    private static final Pattern SUMMARY_ROW = Pattern.compile(
+        "(?m)^\\s*(Java Heap|Native Heap|Code|Stack|Graphics|Private Other|System|Unknown):\\s+(\\d+)");
     private static final Pattern TOTAL_ROW = Pattern.compile("(?m)^\\s*TOTAL\\s+(\\d+)");
     /** folder_fixture.dart's gateFixture: path, then content. */
     private static final String[] FIXTURE = {
@@ -89,10 +100,11 @@ final class GateAnswers implements Runnable {
         this.context = instrumentation.getTargetContext();
     }
 
-    /** Starts answering, once per process. */
+    /** Starts answering, once per process, with accessibility off before the app starts. */
     static synchronized void start(Instrumentation instrumentation) {
         if (started) return;
         started = true;
+        automation(instrumentation, false);
         Thread thread = new Thread(new GateAnswers(instrumentation), "codeforge-gate-answers");
         thread.setDaemon(true);
         thread.start();
@@ -153,10 +165,26 @@ final class GateAnswers implements Runnable {
         }
     }
 
+    /**
+     * The instrumentation's UiAutomation, using accessibility or not: asking
+     * with other flags makes it connect again with those.
+     */
+    private static UiAutomation automation(Instrumentation instrumentation, boolean accessibility) {
+        if (accessibility || Build.VERSION.SDK_INT < 33) return instrumentation.getUiAutomation(0);
+        return instrumentation.getUiAutomation(UiAutomation.FLAG_DONT_USE_ACCESSIBILITY);
+    }
+
     // ------------------------------------------------------------ memory
 
     private String memory() {
-        Integer app = totalPss(shell("dumpsys meminfo " + PACKAGE));
+        String info = shell("dumpsys meminfo " + PACKAGE);
+        Integer app = totalPss(info);
+        StringBuilder rows = new StringBuilder();
+        Matcher row = SUMMARY_ROW.matcher(info);
+        while (row.find()) {
+            rows.append(',').append(row.group(1).toLowerCase(Locale.ROOT).replace(" ", ""))
+                .append(':').append(row.group(2));
+        }
         Set<Integer> renderers = new TreeSet<>();
         Matcher match = RENDERER.matcher(shell("dumpsys activity services " + PACKAGE));
         while (match.find()) renderers.add(Integer.parseInt(match.group(1)));
@@ -171,16 +199,23 @@ final class GateAnswers implements Runnable {
             }
         }
         long renderer = 0;
+        long rendererGraphics = 0;
         int count = 0;
         for (int pid : renderers) {
-            Integer kb = totalPss(shell("dumpsys meminfo " + pid));
+            String rendererInfo = shell("dumpsys meminfo " + pid);
+            Integer kb = totalPss(rendererInfo);
             if (kb == null) continue;
             renderer += kb;
             count += 1;
+            Matcher graphics = SUMMARY_ROW.matcher(rendererInfo);
+            while (graphics.find()) {
+                if (graphics.group(1).equals("Graphics")) rendererGraphics += Long.parseLong(graphics.group(2));
+            }
             Log.i(TAG, "mem: renderer " + pid + " " + kb + " KiB");
         }
         if (app == null) return "failed:no-app-pss";
-        return "app:" + app + ",renderer:" + renderer + ",renderers:" + count + ",via:" + via;
+        return "app:" + app + ",renderer:" + renderer + ",renderers:" + count + ",via:" + via
+            + rows + ",rgraphics:" + rendererGraphics;
     }
 
     /** dumpsys meminfo's TOTAL PSS in KiB, as the emulator's driver and editor/tool/cdp_kit.mjs read it. */
@@ -230,7 +265,14 @@ final class GateAnswers implements Runnable {
     // ------------------------------------------------------------ the picker
 
     private String pick() {
-        UiAutomation ui = instrumentation.getUiAutomation();
+        try {
+            return pickWith(automation(instrumentation, true));
+        } finally {
+            automation(instrumentation, false);
+        }
+    }
+
+    private String pickWith(UiAutomation ui) {
         long deadline = SystemClock.uptimeMillis() + 120_000L;
         boolean chosen = false;
         while (SystemClock.uptimeMillis() < deadline) {
@@ -282,7 +324,7 @@ final class GateAnswers implements Runnable {
 
     /** Runs [command] as the shell user and answers what it printed. */
     private String shell(String command) {
-        ParcelFileDescriptor descriptor = instrumentation.getUiAutomation().executeShellCommand(command);
+        ParcelFileDescriptor descriptor = automation(instrumentation, false).executeShellCommand(command);
         try (InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(descriptor)) {
             return new String(readAll(in), StandardCharsets.UTF_8);
         } catch (IOException error) {

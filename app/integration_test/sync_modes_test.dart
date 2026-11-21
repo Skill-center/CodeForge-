@@ -38,6 +38,7 @@ void main() {
     final json = jsonEncode({
       'test': 'sync_modes',
       'debug': kDebugMode,
+      'profile': kProfileMode,
       'ms': clock.elapsedMilliseconds,
       'store': store,
     });

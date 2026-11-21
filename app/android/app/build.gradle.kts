@@ -40,6 +40,13 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The build type the instrumented tests run against: debug, unless a
+    // build asks for another. Test Lab's job asks for profile (Phase 5 W6):
+    // the phone measures the terminal's budgets in AOT-compiled Dart, as the
+    // app ships, while Flutter's profile type keeps debug's signing and
+    // debuggability (it starts as a copy of debug).
+    testBuildType = providers.gradleProperty("codeforge.testBuildType").orNull ?: "debug"
+
     packaging {
         jniLibs {
             // The runtime's executables ship as JNI libraries (lib*.so). Packaged

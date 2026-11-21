@@ -1112,7 +1112,8 @@ jobs:
   # (2026-11-17, BUILD_AND_RELEASE §4): a change goes out without the tag,
   # and a separate commit (usually empty) carries it once that run is green.
   #
-  # It builds the arm64-v8a debug APK, which carries the arm64 payload, with
+  # It builds the arm64-v8a profile APK (a debug APK until Phase 5 W6),
+  # which carries the arm64 payload, with
   # integration_test/sync_modes_test.dart as its Dart entrypoint, and its
   # test APK, then runs the test APK's dev.codeforge.app package on one
   # physical arm64 phone with Android 14 or later, picked by
@@ -1251,24 +1252,29 @@ jobs:
       # the app (-Ptarget: the Dart entrypoint, as Flutter documents for Test
       # Lab) and its test APK, so one debug key signs both, which
       # same_signer.sh checks before a test is spent (two runs signed them
-      # with two keys in the runtime gates' first run, 44235180242).
+      # with two keys in the runtime gates' first run, 44235180242). Since
+      # Phase 5 W6 the app is a profile build (its Dart compiled ahead of time,
+      # as it ships, for the terminal's budgets), and the test APK targets it
+      # (app/build.gradle.kts: codeforge.testBuildType); until then both were
+      # debug builds.
       - name: Build the arm64 APKs
         if: steps.asked.outputs.asked == 'true'
         working-directory: app
         run: |
           mkdir -p ../testlab-apk build/testlab
           entry="$GITHUB_WORKSPACE/app/integration_test/sync_modes_test.dart"
-          flutter build apk --debug --target-platform android-arm64 -t "$entry" \
+          flutter build apk --profile --target-platform android-arm64 -t "$entry" \
             > build/testlab/build.txt 2>&1 || { tail -n 40 build/testlab/build.txt; exit 1; }
-          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebug \
-              :app:assembleDebugAndroidTest -Ptarget-platform=android-arm64 -Ptarget="$entry" \
+          ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleProfile \
+              :app:assembleProfileAndroidTest -Pcodeforge.testBuildType=profile \
+              -Ptarget-platform=android-arm64 -Ptarget="$entry" \
               --console=plain ) >> build/testlab/build.txt 2>&1 \
             || { tail -n 40 build/testlab/build.txt; exit 1; }
           grep -E 'sealed payload|CodeForge ABIs|Built ' build/testlab/build.txt || true
-          cp build/app/outputs/apk/debug/app-debug.apk ../testlab-apk/app-debug.apk
-          cp build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk ../testlab-apk/
-          bash tool/ci/same_signer.sh ../testlab-apk/app-debug.apk ../testlab-apk/app-debug-androidTest.apk
-          python3 tool/ci/check_runtime_apk.py ../testlab-apk/app-debug.apk --abi arm64-v8a
+          cp build/app/outputs/apk/profile/app-profile.apk ../testlab-apk/app-profile.apk
+          cp build/app/outputs/apk/androidTest/profile/app-profile-androidTest.apk ../testlab-apk/
+          bash tool/ci/same_signer.sh ../testlab-apk/app-profile.apk ../testlab-apk/app-profile-androidTest.apk
+          python3 tool/ci/check_runtime_apk.py ../testlab-apk/app-profile.apk --abi arm64-v8a
           ls -l ../testlab-apk
 
       - name: Authenticate to Google Cloud
@@ -1319,7 +1325,7 @@ jobs:
         run: |
           status=0
           gcloud firebase test android run --type instrumentation \
-            --app testlab-apk/app-debug.apk --test testlab-apk/app-debug-androidTest.apk \
+            --app testlab-apk/app-profile.apk --test testlab-apk/app-profile-androidTest.apk \
             --device "$DEVICE" --timeout 30m --test-targets "package dev.codeforge.app" \
             --results-history-name codeforge-runtime \
             --results-dir "codeforge-runtime/${{ github.run_id }}-${{ github.run_attempt }}" \
@@ -1337,8 +1343,8 @@ jobs:
           echo "gcloud_exit=$status" >> "$GITHUB_OUTPUT"
           {
             echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ) run=${{ github.run_id }} sha=${GITHUB_SHA:0:7}"
-            echo "app=testlab-apk/app-debug.apk bytes=$(stat -c %s testlab-apk/app-debug.apk)"
-            echo "test=testlab-apk/app-debug-androidTest.apk bytes=$(stat -c %s testlab-apk/app-debug-androidTest.apk)"
+            echo "app=testlab-apk/app-profile.apk bytes=$(stat -c %s testlab-apk/app-profile.apk)"
+            echo "test=testlab-apk/app-profile-androidTest.apk bytes=$(stat -c %s testlab-apk/app-profile-androidTest.apk)"
             echo "device=$DEVICE"
             echo "gcloud_exit=$status ($meaning)"
             echo "--- outcome"
