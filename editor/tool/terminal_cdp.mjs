@@ -29,6 +29,12 @@
  * page's focus state (`document.hasFocus()`, the focused element). Only
  * --adb and --package are needed; it prints one JSON line and exits 0, or
  * 1 when it found no terminal page.
+ *
+ * The page's heap, for the gate's memory figures (Phase 5 W6): `--heap read`
+ * prints the terminal page's JavaScript heap (Runtime.getHeapUsage) as
+ * `used:<KiB>,total:<KiB>`, and `--heap gc` first forces a garbage
+ * collection (HeapProfiler.collectGarbage). It prints `unavailable` and
+ * exits 1 when it found no terminal page.
  * No dependencies: Node 22+ ships fetch and WebSocket (tool/cdp_kit.mjs).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -67,13 +73,17 @@ function parseArgs(argv) {
     else if (flag === '--cases') args.cases = value;
     else if (flag === '--timeout') args.timeout = Number(value);
     else if (flag === '--probe') args.probe = value;
+    else if (flag === '--heap') args.heap = value;
     else continue;
     i += 1;
   }
   if (args.probe !== undefined && args.probe !== 'arm' && args.probe !== 'read') {
     throw new Error('--probe is arm or read');
   }
-  for (const required of args.probe ? ['adb', 'package'] : ['adb', 'package', 'file', 'out']) {
+  if (args.heap !== undefined && args.heap !== 'read' && args.heap !== 'gc') {
+    throw new Error('--heap is read or gc');
+  }
+  for (const required of args.probe || args.heap ? ['adb', 'package'] : ['adb', 'package', 'file', 'out']) {
     if (!args[required]) throw new Error(`--${required} is required`);
   }
   return args;
@@ -187,6 +197,29 @@ if (args.probe) {
     process.exit(0);
   } catch (error) {
     console.log(`${at} probe ${args.probe}: no terminal page (${String(error?.message ?? error)})`);
+    session.close();
+    process.exit(1);
+  }
+}
+if (args.heap) {
+  const ensure = webViewForwarder(args, () => {});
+  const find = async () => {
+    if (!(await ensure().catch(() => false))) return null;
+    const { targets } = await probeTargets(args.port);
+    return targets.find(isTerminalPage) ?? null;
+  };
+  const session = new PageSession({ find, waitMs: 10000, pollMs: 500 });
+  try {
+    const usage = await session.run(`heap ${args.heap}`, async (cdp) => {
+      if (args.heap === 'gc') await cdp.send('HeapProfiler.collectGarbage', {});
+      return cdp.send('Runtime.getHeapUsage', {});
+    });
+    const kib = (bytes) => Math.round(Number(bytes) / 1024);
+    console.log(`used:${kib(usage.usedSize)},total:${kib(usage.totalSize)}`);
+    session.close();
+    process.exit(0);
+  } catch {
+    console.log('unavailable');
     session.close();
     process.exit(1);
   }

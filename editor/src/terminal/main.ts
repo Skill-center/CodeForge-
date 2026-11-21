@@ -30,6 +30,30 @@ const page = window as unknown as {
   codeforge?: { receive(raw: unknown): void };
 };
 
+/**
+ * The name of a software WebGL (SwiftShader, llvmpipe), or null: one is
+ * slower than the DOM renderer (on the emulator in phase gate 44807458944 a
+ * character's erase took over 2 s), so WebGL is used on a real GPU only.
+ * Asked once, on a scratch canvas.
+ */
+let softwareGpu: string | null | undefined;
+function softwareWebgl(): string | null {
+  if (softwareGpu !== undefined) return softwareGpu;
+  softwareGpu = null;
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2');
+    if (gl) {
+      const info = gl.getExtension('WEBGL_debug_renderer_info');
+      const name = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+      if (/swiftshader|llvmpipe|softpipe|software/i.test(name)) softwareGpu = name.slice(0, 200);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    }
+  } catch {
+    // No answer: the addon finds out for itself.
+  }
+  return softwareGpu;
+}
+
 /** One xterm.js terminal: the bundled font, Unicode 11 widths, no blinking (nothing animates forever). */
 const createXterm: TerminalFactory = ({ fontSize, scrollback, theme }) => {
   const terminal = new Terminal({
@@ -46,9 +70,10 @@ const createXterm: TerminalFactory = ({ fontSize, scrollback, theme }) => {
   terminal.loadAddon(fit);
   terminal.loadAddon(new Unicode11Addon());
   terminal.unicode.activeVersion = '11';
-  // The renderer (Phase 5 W6): xterm.js draws with the DOM unless WebGL is
-  // asked for. WebGL2 that can't start, or a context the GPU takes back
-  // later, leaves the terminal on the DOM renderer.
+  // The renderer (Phase 5 W6): WebGL when asked for (the controller's
+  // default) and the GPU is a real one. WebGL2 that can't start, a software
+  // GPU, or a context the GPU takes back later leave the terminal on the DOM
+  // renderer.
   let webgl: WebglAddon | null = null;
   const setRenderer = (kind: RendererKind, lost: (reason: string) => void): RendererResult => {
     if (kind === 'dom') {
@@ -57,6 +82,8 @@ const createXterm: TerminalFactory = ({ fontSize, scrollback, theme }) => {
       return { renderer: 'dom' };
     }
     if (webgl) return { renderer: 'webgl' };
+    const software = softwareWebgl();
+    if (software !== null) return { renderer: 'dom', error: `a software GPU (${software})` };
     const addon = new WebglAddon();
     try {
       terminal.loadAddon(addon);
@@ -165,6 +192,11 @@ const scheduleLayout = (): void => {
 };
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(scheduleLayout).observe(parent);
 window.addEventListener('resize', scheduleLayout);
+
+// Back from the background: WebGL contexts Android took meanwhile are made again.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') controller.restoreRenderers();
+});
 
 /** The bundled font, loaded before any terminal measures its cells (at most 2 s). */
 async function fontReady(): Promise<void> {

@@ -119,12 +119,18 @@ const probeOutcome = async () => {
   return last;
 };
 send('p1', 'probe.read', {});
-check('probe.read answers idle, on the DOM renderer', responseTo('p1')?.result?.state === 'idle' && responseTo('p1')?.result?.renderers?.['7'] === 'dom', JSON.stringify(responseTo('p1')?.result));
+check(
+  'WebGL by default, and the DOM renderer where there is no WebGL2, with why',
+  responseTo('p1')?.result?.state === 'idle' &&
+    responseTo('p1')?.result?.renderers?.['7'] === 'dom' &&
+    /WebGL2/.test(responseTo('p1')?.result?.webglError ?? ''),
+  JSON.stringify(responseTo('p1')?.result),
+);
 send('p2', 'terminal.configure', { renderer: 'webgl' });
 send('p3', 'probe.read', {});
 const noWebgl = responseTo('p3')?.result;
 check(
-  'WebGL where there is none leaves the DOM renderer, and says why',
+  'WebGL asked for again where there is none leaves the DOM renderer',
   responseTo('p2')?.ok === true && noWebgl?.renderers?.['7'] === 'dom' && /WebGL/.test(noWebgl?.webglError ?? ''),
   JSON.stringify(noWebgl),
 );

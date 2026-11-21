@@ -562,8 +562,10 @@ Future<void> printReport(String marker, Map<String, Object?> report) async {
   await debugPrintDone;
 }
 
-/// The renderer the app ships (Phase 5 W6): the budgets are judged on it.
-const String shippedRenderer = 'dom';
+/// The renderer the app asks for (Phase 5 W6): WebGL. The page draws with
+/// the DOM's where WebGL can't draw (no WebGL2, a software GPU such as the
+/// emulator's): the budgets are judged on what it draws with.
+const String shippedRenderer = 'webgl';
 
 /// How long the terminal idles after a flood before its memory counts as
 /// settled: the page's and the app's garbage collectors run when idle.
@@ -574,16 +576,32 @@ typedef OutputStats = ({int batches, int chars, int micros});
 
 /// Everything [measureTerminal] took, for the report and the budgets.
 final class TerminalMeasurements {
-  TerminalMeasurements({required this.before, required this.opened});
+  TerminalMeasurements({
+    required this.before,
+    required this.opened,
+    this.openedHalf,
+  });
 
   final MemorySample before;
+
+  /// The terminal open at its full stop, before any output, and at half.
   final MemorySample opened;
+  final MemorySample? openedHalf;
   final Map<String, EchoFigures> echo = {};
   final Map<String, FloodFigures> flood = {};
 
   /// Two seconds after each flood, and once it settled ([settleTime]).
   final Map<String, MemorySample> afterFlood = {};
   final Map<String, MemorySample> settled = {};
+
+  /// The page's JavaScript heap where DevTools can tell (the emulator):
+  /// settled, then after a garbage collection DevTools forced, and the
+  /// memory then. Attribution only, never judged.
+  final Map<String, String> heap = {};
+  MemorySample? afterCollection;
+
+  /// What the page draws with when it is asked for [shippedRenderer].
+  String shipped = 'unknown';
 
   /// What WebGL drew with when asked for, and why not when it could not.
   String webglRenderer = 'unknown';
@@ -594,23 +612,31 @@ final class TerminalMeasurements {
   String? otherFailure;
 
   /// The shipped renderer's first runs: what the budgets judge.
-  EchoFigures get shippedEcho => echo[shippedRenderer]!;
-  FloodFigures get shippedFlood => flood[shippedRenderer]!;
+  EchoFigures get shippedEcho => echo[shipped]!;
+  FloodFigures get shippedFlood => flood[shipped]!;
 
   double _delta(MemorySample after) =>
       _round1((after.totalKb - before.totalKb) / 1024);
 
   /// The terminal's memory: once settled after its flood, against before
   /// any terminal.
-  double get deltaMb => _delta(settled[shippedRenderer]!);
+  double get deltaMb => _delta(settled[shipped]!);
 
   /// The same two seconds after the flood, its garbage still there.
-  double get peakDeltaMb => _delta(afterFlood[shippedRenderer]!);
+  double get peakDeltaMb => _delta(afterFlood[shipped]!);
+
+  /// The terminal open, before any output: at its full stop and at half.
+  double get openDeltaMb => _delta(opened);
+  double? get openHalfDeltaMb {
+    final half = openedHalf;
+    return half == null ? null : _delta(half);
+  }
 
   bool get memoryUnderBudget => deltaMb <= memoryBudgetMb;
 
   Map<String, Object?> toJson() => {
-    'shippedRenderer': shippedRenderer,
+    'askedRenderer': shippedRenderer,
+    'shippedRenderer': shipped,
     'budgets': {
       'echoP95Ms': echoBudgetMs,
       'slowFrameMs': slowFrameMs,
@@ -624,10 +650,15 @@ final class TerminalMeasurements {
     'memory': {
       'before': before.toJson(),
       'opened': opened.toJson(),
+      'openedHalf': openedHalf?.toJson(),
       for (final e in afterFlood.entries) 'after_${e.key}': e.value.toJson(),
       for (final e in settled.entries) 'settled_${e.key}': e.value.toJson(),
+      'afterCollection': afterCollection?.toJson(),
+      'heap': heap,
       'deltaMb': deltaMb,
       'peakDeltaMb': peakDeltaMb,
+      'openDeltaMb': openDeltaMb,
+      'openHalfDeltaMb': openHalfDeltaMb,
     },
     'webgl': {'renderer': webglRenderer, 'error': webglError},
     'otherFailure': otherFailure,
@@ -647,11 +678,12 @@ Future<MemorySample> Function(String label) memoryFrom(
 ) =>
     (label) async => MemorySample.parse(label, await ask('mem $label'));
 
-/// Echo and the flood with each renderer, the shipped one first and again
-/// last, and the memory after each flood. Session [id] is at its prompt in
+/// Echo and the flood with what the page draws when asked for
+/// [shippedRenderer], then with the other renderer, then the first again,
+/// and the memory after each flood. Session [id] is at its prompt in
 /// [folder]; [promptShown] waits until it is again. The other renderer's
 /// runs are recorded whatever happens to them; a failure in the shipped
-/// renderer's fails the test.
+/// one's fails the test. [ask] reaches the gate for the page's heap.
 Future<TerminalMeasurements> measureTerminal({
   required WidgetTester tester,
   required IntegrationTestWidgetsFlutterBinding binding,
@@ -661,15 +693,21 @@ Future<TerminalMeasurements> measureTerminal({
   required Future<void> Function(String text) write,
   required Future<void> Function(String what) promptShown,
   required Future<MemorySample> Function(String label) memory,
+  required Future<String> Function(String request) ask,
   required MemorySample before,
   required MemorySample opened,
   required void Function(String line) report,
+  MemorySample? openedHalf,
   OutputStats Function()? outputStats,
   int echoCount = 100,
 }) async {
   File('$folder/$floodFile').writeAsStringSync(floodScript);
   final expected = floodExpected();
-  final measured = TerminalMeasurements(before: before, opened: opened);
+  final measured = TerminalMeasurements(
+    before: before,
+    opened: opened,
+    openedHalf: openedHalf,
+  );
 
   void reportMemory(String label, MemorySample sample) => report(
     'memory $label app_mb=${sample.megabytes(sample.appKb)} '
@@ -719,37 +757,55 @@ Future<TerminalMeasurements> measureTerminal({
     }
   }
 
-  final others = [
-    for (final renderer in terminalRenderers)
-      if (renderer != shippedRenderer) renderer,
-  ];
-  for (final asked in [shippedRenderer, ...others]) {
+  Future<({String renderer, String? error})> switchTo(String asked) async {
     final used = await useRenderer(view, id, asked);
-    report(
-      'renderer asked=$asked drawing=${used.renderer} error=${used.error}',
-    );
+    report('renderer asked=$asked drawing=${used.renderer} error=${used.error}');
     if (asked == 'webgl') {
       measured
         ..webglRenderer = used.renderer
         ..webglError = used.error;
     }
-    if (asked == shippedRenderer) {
-      expect(used.renderer, shippedRenderer, reason: used.error);
-      await run(asked, sample: true);
-    } else if (used.renderer == asked) {
-      try {
-        await run(asked, sample: true);
-      } on Object catch (error) {
-        measured.otherFailure = '$error'.split('\n').first;
-        report('renderer $asked stopped: ${measured.otherFailure}');
-        // The line is not known any more: Ctrl-C gives a fresh prompt.
-        await write('\x03');
-        await promptShown('the prompt after $asked stopped');
-      }
+    return used;
+  }
+
+  // What the page draws with when asked for the app's renderer: judged.
+  measured.shipped = (await switchTo(shippedRenderer)).renderer;
+  await run(measured.shipped, sample: true);
+
+  // Where DevTools can tell (the emulator), how much of the page's memory
+  // after the flood is garbage: its heap, then a collection DevTools forces.
+  final heap = await ask('heap read');
+  if (heap != 'unavailable') {
+    measured.heap['settled'] = heap;
+    measured.heap['collected'] = await ask('heap gc');
+    await Future<void>.delayed(const Duration(seconds: 2));
+    final collected = await memory('collected-${measured.shipped}');
+    measured.afterCollection = collected;
+    report('heap settled=$heap collected=${measured.heap['collected']}');
+    reportMemory('collected_${measured.shipped}', collected);
+  }
+
+  // The other renderer, recorded whatever happens.
+  for (final other in terminalRenderers) {
+    if (other == measured.shipped) {
+      continue;
+    }
+    final used = await switchTo(other);
+    if (used.renderer != other) {
+      continue;
+    }
+    try {
+      await run(other, sample: true);
+    } on Object catch (error) {
+      measured.otherFailure = '$error'.split('\n').first;
+      report('renderer $other stopped: ${measured.otherFailure}');
+      // The line is not known any more: Ctrl-C gives a fresh prompt.
+      await write('\x03');
+      await promptShown('the prompt after $other stopped');
     }
   }
   final again = await useRenderer(view, id, shippedRenderer);
-  expect(again.renderer, shippedRenderer, reason: again.error);
-  await run('${shippedRenderer}_again', sample: false);
+  expect(again.renderer, measured.shipped, reason: again.error);
+  await run('${measured.shipped}_again', sample: false);
   return measured;
 }

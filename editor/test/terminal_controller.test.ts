@@ -578,34 +578,39 @@ describe('measurement (Phase 5 W6)', () => {
     return { probed, clock, views };
   }
 
-  it('puts every view on the configured renderer, new ones too, and reports them', () => {
+  it('draws with WebGL by default, new views too, and switches every view on request', () => {
     const { probed, views } = measured();
     probed.handle('session.open', { sessionId: 1 });
-    expect(views[0]!.renderers).toEqual([]);
-    probed.handle('terminal.configure', { renderer: 'webgl' });
+    expect(views[0]!.renderers).toEqual(['webgl']);
     probed.handle('session.open', { sessionId: 2, activate: false });
     expect(views.map((v) => v.renderers)).toEqual([['webgl'], ['webgl']]);
     expect(probed.handle('probe.read', {})).toMatchObject({ state: 'idle', renderers: { '1': 'webgl', '2': 'webgl' } });
-    // WebGL giving up leaves the view on the DOM's, and says why.
+    // WebGL giving up leaves the view on the DOM's and says why...
     views[0]!.lose('the WebGL context was lost');
     expect(probed.handle('probe.read', {})).toMatchObject({
       renderers: { '1': 'dom', '2': 'webgl' },
       webglError: 'the WebGL context was lost',
     });
     expect(of('terminal.log').at(-1)?.message).toContain('WebGL gave up');
+    // ...until the page shows again: only the view that lost it tries again.
+    probed.restoreRenderers();
+    expect(views.map((v) => v.renderers)).toEqual([['webgl', 'webgl'], ['webgl']]);
+    expect(probed.handle('probe.read', {})).toMatchObject({ renderers: { '1': 'webgl', '2': 'webgl' } });
     probed.handle('terminal.configure', { renderer: 'dom' });
+    expect(views.map((v) => v.renderers.at(-1))).toEqual(['dom', 'dom']);
+    probed.restoreRenderers();
     expect(views.map((v) => v.renderers.at(-1))).toEqual(['dom', 'dom']);
   });
 
-  it('stays on the DOM renderer when WebGL cannot start, and says why', () => {
+  it('stays on the DOM renderer when WebGL cannot start, and says why once', () => {
     const { probed } = measured({ webgl: 'fails' });
     probed.handle('session.open', { sessionId: 1 });
-    probed.handle('terminal.configure', { renderer: 'webgl' });
+    probed.handle('session.open', { sessionId: 2, activate: false });
     expect(probed.handle('probe.read', {})).toMatchObject({
-      renderers: { '1': 'dom' },
+      renderers: { '1': 'dom', '2': 'dom' },
       webglError: 'WebGL2 not supported',
     });
-    expect(of('terminal.log').at(-1)?.message).toContain('WebGL could not start');
+    expect(of('terminal.log').filter((log) => log.message.includes('WebGL could not start'))).toHaveLength(1);
   });
 
   it('types through the input method path and times each echo from the buffer', async () => {

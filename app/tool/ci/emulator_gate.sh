@@ -868,6 +868,10 @@ folder_save() {
 #                 own service records name; any sandboxed process when they
 #                 name none): app:<kb>,renderer:<kb>,renderers:<n>,via:<how>.
 #                 Each sample's lines go to $RESULTS/terminal_memory.txt.
+#   heap <read|gc> the terminal page's JavaScript heap through its DevTools
+#                 socket (editor/tool/terminal_cdp.mjs --heap): used:<kb>,
+#                 total:<kb>; with gc, after a collection DevTools forced;
+#                 unavailable without a page to ask
 SESSIONS_MARKERS="cf-heartbeat-5201|9999[.]5202|9999[.]5203"
 # total_pss <dumpsys meminfo output>: its TOTAL PSS in KiB, or nothing.
 total_pss() {
@@ -1078,6 +1082,17 @@ folder_driver() {
       service) answer=$(sessions_service) ;;
       mem)
         if sessions_safe_marker "$arg"; then answer=$(folder_mem "$arg"); else answer=bad-label; fi
+        ;;
+      heap)
+        case "$arg" in
+          read | gc)
+            answer=$(node ../editor/tool/terminal_cdp.mjs --adb "$ADB" --package "$APP_ID" --heap "$arg" \
+              --port 9225 < /dev/null 2>/dev/null | tail -n 1)
+            case "$answer" in used:*) ;; *) answer=unavailable ;; esac
+            echo "--- heap $arg ($(date +%T)): $answer" >> "$RESULTS/terminal_memory.txt"
+            ;;
+          *) answer=bad-label ;;
+        esac
         ;;
       trim) answer=$(sessions_trim "$arg") ;;
       procs)

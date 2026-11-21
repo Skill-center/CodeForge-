@@ -49,6 +49,9 @@ import java.util.regex.Pattern;
  *       then "Allow": {@code picked}, or {@code failed:<why>}.</li>
  *   <li>{@code put <path> <word>}: the shell user writes the word and a line
  *       break to the path in the gate folder: {@code done}.</li>
+ *   <li>{@code heap <read|gc>}: {@code unavailable}. The emulator's driver
+ *       reads the page's JavaScript heap through DevTools; here nothing
+ *       does.</li>
  * </ul>
  *
  * <p>The shell runs one command at a time, with no shell of its own (no
@@ -137,6 +140,8 @@ final class GateAnswers implements Runnable {
                 return fixture();
             case "pick":
                 return pick();
+            case "heap":
+                return "unavailable";
             case "put":
                 if (words.length != 3 || !SAFE_PATH.matcher(words[1]).matches()
                         || words[1].contains("..") || !SAFE_WORD.matcher(words[2]).matches()) {

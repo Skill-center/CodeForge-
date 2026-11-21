@@ -172,6 +172,16 @@ void phoneTerminalTests() {
 
       await promptShown('the prompt');
       final opened = await memory('opened');
+      // The same at the panel's half stop, where it usually sits.
+      final shell = container.read(shellControllerProvider.notifier);
+      shell.setTerminalStop(TerminalStop.half);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+      final openedHalf = await memory('opened-half');
+      shell.setTerminalStop(TerminalStop.full);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 2));
+      await promptShown('the prompt at the full stop again');
       final demo = '${await applicationFilesPath()}/workspaces/demo';
       final measured = await measureTerminal(
         tester: tester,
@@ -182,8 +192,11 @@ void phoneTerminalTests() {
         write: write,
         promptShown: promptShown,
         memory: memory,
+        ask: (request) =>
+            gate.ask(request, timeout: const Duration(seconds: 90)),
         before: before,
         opened: opened,
+        openedHalf: openedHalf,
         report: (line) => debugPrint('phone terminal: $line'),
         outputStats: () =>
             container.read(terminalControllerProvider.notifier).outputStats,
@@ -199,7 +212,7 @@ void phoneTerminalTests() {
       });
       final echo = measured.shippedEcho;
       final flood = measured.shippedFlood;
-      _figure('page_renderer_shipped', shippedRenderer);
+      _figure('page_renderer_shipped', measured.shipped);
       _figure('page_echo_p50_ms', echo.p50Ms);
       _figure('page_echo_p95_ms', echo.p95Ms);
       _figure('page_echo_max_ms', echo.maxMs);
@@ -220,15 +233,20 @@ void phoneTerminalTests() {
       _figure('page_memory_before_mb', before.megabytes(before.totalKb));
       _figure('page_memory_delta_mb', measured.deltaMb);
       _figure('page_memory_peak_delta_mb', measured.peakDeltaMb);
+      _figure('page_memory_open_delta_mb', measured.openDeltaMb);
+      _figure(
+        'page_memory_open_half_delta_mb',
+        measured.openHalfDeltaMb ?? -1,
+      );
       _figure('page_memory_under_budget', measured.memoryUnderBudget ? 1 : 0);
       _figure('page_webgl', measured.webglRenderer);
       _figure('page_flood_dart_ms', flood.dartMs);
-      final webgl = measured.flood['webgl'];
-      if (webgl != null) {
-        _figure('page_webgl_echo_p95_ms', measured.echo['webgl']!.p95Ms);
-        _figure('page_webgl_flood_ms', webgl.ms);
-        _figure('page_webgl_flood_page_slow_pct', webgl.pageSlowPct);
-        _figure('page_webgl_flood_ui_slow_pct', webgl.ui.slowPct);
+      final dom = measured.flood['dom'];
+      if (dom != null) {
+        _figure('page_dom_echo_p95_ms', measured.echo['dom']!.p95Ms);
+        _figure('page_dom_flood_ms', dom.ms);
+        _figure('page_dom_flood_page_slow_pct', dom.pageSlowPct);
+        _figure('page_dom_flood_ui_slow_pct', dom.ui.slowPct);
       }
       await Future<void>.delayed(const Duration(seconds: 1));
       expect(echo.lost, 0);

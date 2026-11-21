@@ -195,6 +195,18 @@ void main() {
       'size=${prompt.columns}x${prompt.rows}',
     );
     final opened = await memory('opened');
+    // The same at the panel's half stop, where it usually sits.
+    final shell = container.read(shellControllerProvider.notifier);
+    shell.setTerminalStop(TerminalStop.half);
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+    final openedHalf = await memory('opened-half');
+    shell.setTerminalStop(TerminalStop.full);
+    await tester.pumpAndSettle();
+    await screenWhere(
+      (screen) => screen.rows == prompt.rows,
+      what: 'the terminal at its full stop again',
+    );
 
     // 1. Typed text echoes.
     final surface = find.byKey(const ValueKey('terminal_surface'));
@@ -260,17 +272,22 @@ void main() {
       write: write,
       promptShown: (what) => screenWhere(promptAtCursor, what: what),
       memory: memory,
+      ask: (request) => gate.ask(request, timeout: const Duration(seconds: 90)),
       before: before,
       opened: opened,
+      openedHalf: openedHalf,
       report: (line) => report('measure $line'),
       outputStats: () => terminals.outputStats,
     );
     report(
-      'measure verdict echo_p95_ms=${measured.shippedEcho.p95Ms} '
+      'measure verdict shipped=${measured.shipped} '
+      'echo_p95_ms=${measured.shippedEcho.p95Ms} '
       'flood_whole=${measured.flood.values.every((f) => f.whole) ? 1 : 0} '
       'ui_slow_pct=${measured.shippedFlood.ui.slowPct} '
       'memory_delta_mb=${measured.deltaMb} '
       'memory_peak_delta_mb=${measured.peakDeltaMb} '
+      'memory_open_delta_mb=${measured.openDeltaMb} '
+      'memory_open_half_delta_mb=${measured.openHalfDeltaMb} '
       'webgl=${measured.webglRenderer} other_failure=${measured.otherFailure}',
     );
     expect(measured.shippedEcho.lost, 0);

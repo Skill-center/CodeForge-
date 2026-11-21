@@ -165,6 +165,8 @@ interface SessionView {
   readonly disposables: Disposable[];
   selection: boolean;
   renderer: RendererKind;
+  /** WebGL lost its context in this view: the DOM draws until it is tried again. */
+  lost: boolean;
 }
 
 interface SelectionAnchor {
@@ -237,10 +239,17 @@ export class TerminalController {
   private focused = false;
   private anchor: SelectionAnchor | null = null;
   private lastLink: { sessionId: number; text: string; at: number } | null = null;
-  /** The renderer every view draws with (Phase 5 W6): the DOM's unless configured. */
-  private renderer: RendererKind = 'dom';
+  /**
+   * The renderer every view draws with: WebGL, which drew Phase 5 W6's
+   * flood on the phone faster than the DOM and with fewer slow frames, and
+   * the DOM's wherever WebGL can't draw (main.ts: no WebGL2, a software
+   * GPU, a lost context).
+   */
+  private renderer: RendererKind = 'webgl';
   /** Why WebGL last could not draw, for the probe's report. */
   private webglError: string | undefined;
+  /** The reason last logged, so that each new view does not log it again. */
+  private loggedWebglError: string | undefined;
   private readonly probe: TerminalProbe;
   readonly gestures: TouchGestures;
 
@@ -363,6 +372,7 @@ export class TerminalController {
       disposables: [],
       selection: false,
       renderer: 'dom',
+      lost: false,
     };
     this.views.set(sessionId, view);
     view.disposables.push(
@@ -488,6 +498,7 @@ export class TerminalController {
 
   /** Puts [view] on the configured renderer; WebGL that can't draw leaves it on the DOM's. */
   private applyRenderer(view: SessionView): void {
+    view.lost = false;
     if (!view.setRenderer) {
       view.renderer = 'dom';
       if (this.renderer !== 'dom') this.webglError = 'this page has no WebGL renderer';
@@ -495,14 +506,27 @@ export class TerminalController {
     }
     const result = view.setRenderer(this.renderer, (reason) => {
       view.renderer = 'dom';
-      this.webglError = reason;
-      this.emit('terminal.log', { level: 'warn', message: `WebGL gave up: ${reason}`.slice(0, 4000) });
+      view.lost = true;
+      this.webglFailed(`WebGL gave up: ${reason}`, reason);
     });
     view.renderer = result.renderer;
-    if (result.error !== undefined) {
-      this.webglError = result.error;
-      this.emit('terminal.log', { level: 'warn', message: `WebGL could not start: ${result.error}`.slice(0, 4000) });
-    }
+    if (result.error !== undefined) this.webglFailed(`WebGL could not start: ${result.error}`, result.error);
+  }
+
+  private webglFailed(message: string, reason: string): void {
+    this.webglError = reason;
+    if (message === this.loggedWebglError) return;
+    this.loggedWebglError = message;
+    this.emit('terminal.log', { level: 'warn', message: message.slice(0, 4000) });
+  }
+
+  /**
+   * Tries WebGL again in the views that lost its context (the page shows
+   * again after the app was away: Android may take the GPU's memory back).
+   */
+  restoreRenderers(): void {
+    if (this.renderer === 'dom') return;
+    for (const view of this.views.values()) if (view.lost) this.applyRenderer(view);
   }
 
   /** Each view's renderer, by session id. */
