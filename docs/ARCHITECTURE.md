@@ -273,4 +273,4 @@ The workbench's demo code view gave way to the real editor pane. Features still 
 
 **Phase 4** swapped in the runtime: the fake runtime service gave way to the Pigeon client of the sealed runtime's host (§2.10, §3), and search across files arrived with its two engines (§2.9). The terminal and Git services are still fakes, for Phases 5 and 7. The exit report is [PHASE_4_REPORT.md](phases/PHASE_4_REPORT.md).
 
-**Phase 5** swapped in the terminal: the Pigeon client of the host's terminal sessions, the xterm.js page in its own WebView, and *Run* on top of them (§2.11, §3). The Git service is still a fake, for Phase 7, and the LSP service for Phase 6. The exit report is [PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md).
+**Phase 5** swapped in the terminal: the Pigeon client of the host's terminal sessions, the xterm.js page in its own WebView, and *Run* on top of them (§2.11, §3). The Git service is still a fake, for Phase 7. There is no LSP service yet, real or fake: Phase 6 adds it ([PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md)). The exit report is [PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md).

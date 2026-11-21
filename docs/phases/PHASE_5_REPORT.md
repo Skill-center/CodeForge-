@@ -1,6 +1,6 @@
 # Phase 5 Report — Terminal & Execution
 
-**Status:** **Built, awaiting the owner's acceptance** (this report asks the owner to accept Phase 5 or ask for changes); the exit gate, 44900930980, passed whole on every target (§4); the phone session (§8) and the owner's release and Play actions (§10) are open, and non-blocking · **Date:** 2026-11-21 · **Branch:** `arena/f57c33ee-codeforge`
+**Status:** **Accepted by the owner on 2026-11-21** (the owner's "next" on 2026-11-21, after the report asked to accept the phase or ask for changes); the exit gate, 44900930980, passed whole on every target (§4); the phone session (§8) and the owner's release and Play actions (§10) are still open, and non-blocking · **Date:** 2026-11-21 · **Branch:** `arena/f57c33ee-codeforge`
 **Plan:** [PHASE_5_PLAN.md](PHASE_5_PLAN.md) · **Spec:** §8 Phase 5, §6.4–6.5, §7, §10 · **Rule:** every claim below cites a CI run, a phase gate or an evidence commit. Where something was not measured or not met, this report says so.
 
 ---
@@ -35,9 +35,9 @@ Phase 5 runs the user's code in CodeForge, on the sealed runtime Phase 4 put in 
 | W4 Run | 2026-11-20 | 44619907768 ✗, 44681887078 ✗, 44683359188 ✗, 44685984006 ✗, 44687566636 ✗, 44689410417, 44705297317 (`+1072`), 44714378285 (the docs) | 44690833991 ✗, 44697552696 ✗, **44707562888** ✓ | — |
 | W5 Sessions that last | 2026-11-20 | 44732997918 (`+1076`; the API floor ✗, fixed in the next commit), 44792580156 (the docs) | 44735804283 ✗, 44744464658 ✗, 44752660910 ✗, 44763350329 ✗, **44777091949** ✓ | **CI 44786509685** (Pixel 8a, 29 of 29) |
 | W6 The terminal gate on real targets, and the memory work | 2026-11-21 | 44804897631 ✗, 44816821921, 44862901068, 44866950104 (`+1086`), 44875569267 (the docs); the memory work 44882599973 (`+1090`), 44892056800, 44895571872 (the docs) | 44807458944 ✗, **44870622961** ✓, **44883909195** ✓ (the memory work) | 44818854015 ✗, 44863955928 ✗, 44868218258 ✗, 44889362793 ✗, **CI 44893095694** ✓ (Pixel 8a, 31 of 31) |
-| W7 The docs and the phase exit | 2026-11-21 | 44899559170 (`+1090`; the code and the docs, `7680614`) | **44900930980** ✓, the exit gate (`e85c408`, an empty commit after 44899559170 passed; evidence `4dcdc75`, `915dbf1`, `9db59b7`) | **CI 44900930980** (Pixel 8a, 32 of 32; 5 of the day's 5) |
+| W7 The docs and the phase exit | 2026-11-21 | 44899559170 (`+1090`; the code and the docs, `7680614`) | **44900930980** ✓, the exit gate (`e85c408`, an empty commit after 44899559170 passed; evidence `4dcdc75`, `915dbf1`, `9db59b7`) | **CI 44900930980** (Pixel 8a, 32 of 32; 3 of the day's 5) |
 
-Every ✗ is explained in §9.3. A `[phase-gate]` push gives one run whose verdict covers CI and the gate. The gates' evidence is committed back to `app/ci-results/gate/` and `app/ci-results/runtime-gates/`, Test Lab's to `app/ci-results/testlab/`, and the runtime job's to `runtime/ci-results/`. Test Lab's plan allows five physical-device tests a day. On 2026-11-21 (UTC), W6 spent four of them, 44863955928, 44868218258, 44889362793 and 44893095694, and the exit gate the fifth.
+Every ✗ is explained in §9.3. A `[phase-gate]` push gives one run whose verdict covers CI and the gate. The gates' evidence is committed back to `app/ci-results/gate/` and `app/ci-results/runtime-gates/`, Test Lab's to `app/ci-results/testlab/`, and the runtime job's to `runtime/ci-results/`. Test Lab's plan allows five physical-device tests a day, and Firebase counts the day from midnight Pacific time (08:00 UTC). W6's 44863955928 and 44868218258 fell in 2026-11-20's day; 44889362793, 44893095694 and the exit gate in 2026-11-21's, which left two.
 
 ## 3. What was built
 

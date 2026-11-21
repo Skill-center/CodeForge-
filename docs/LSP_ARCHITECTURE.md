@@ -1,6 +1,6 @@
 # LSP Architecture
 
-**Status:** Phase 0 design seed · Implementation Phase 6 · Full spec finalized at Phase 6 start
+**Status:** Phase 0 design seed · **Phase 6 planned on 2026-11-21** ([PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md)), which rewrites this document as built · Since the seed: `typescript` 7 is a native port with no Android build, so §2's TypeScript line is 6.0.3, the last JavaScript release (the plan's §0 and §8)
 
 ---
 

@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 6 planned (2026-11-21)
+- [PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md): language intelligence in seven work packages. First a compatibility spike: Pyright, and TypeScript 6.0.3 with typescript-language-server, under the sealed node on API 26 to 36 and the Pixel 8a, with their start, latency and memory measured. Then the servers in the payload (pinned with their integrity, JavaScript only, installed the first time their language is needed), the host's server processes with LSP's framing in Kotlin, the client in Dart, completion, diagnostics, definition, rename and hover in the editor, and the language gate on an arm64 phone. The owner decides which languages get a server, and the memory budget once W1 has measured it (§10).
+- **Found while planning:** `typescript` 7 is a native port with no Android build, so the JavaScript line, 6.0.3, is the candidate. Test Lab counts its daily tests from midnight Pacific time, not UTC: PHASE_5_REPORT's count is corrected.
+
+### Phase 5 accepted (2026-11-21)
+- The owner accepted Phase 5 by saying "next" after its report ([PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md)). The phone session, on the exit gate's APK, the first release and Play's owner actions stay open and non-blocking.
+
 ### Changed — Phase 5 W7, the docs and the phase exit (plan: [phases/PHASE_5_PLAN.md](phases/PHASE_5_PLAN.md), report: [phases/PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md))
 - **Phase 5 is written up:** [PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md), with every gate's evidence, and [PHASE_5_PHONE_CHECKLIST.md](phases/PHASE_5_PHONE_CHECKLIST.md) for the owner's phone. The checklist covers Gboard and the extra keys, taps and typing through Hybrid Composition++ in the terminal and the editor, nano across a turn, a run, a long session in the background, and the tombstones.
 - **ADR-0014 as built:** W3's acknowledgement through xterm.js's write callback, Run's sessions, W5's service and limits, and the whole path measured on the Pixel 8a: echo 37.2 ms at p95, with the host's part 6.3 ms.
