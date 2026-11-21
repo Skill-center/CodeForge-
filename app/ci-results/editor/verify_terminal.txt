@@ -1,10 +1,10 @@
 ok   exactly one inline script (1)
-ok   CSP pins the inline script hash (sha256-50o8yv51mmps8EUyBxDxD2Sty6axVEmXWIH9xdMejw8=)
+ok   CSP pins the inline script hash (sha256-rZTInogNurGDx7OTp1nDUOZeFJHA525CZSIsi/6rwLc=)
 ok   manifest records the same CSP hash
 ok   no external references in the markup
 ok   CSP denies everything by default
 ok   manifest sha256 matches the file
-ok   gzipped size within budget (215385 B of 262144 B)
+ok   gzipped size within budget (215708 B of 262144 B)
 ok   manifest names xterm.js and protocol 1 (6.0.0)
 ok   NOTICES.txt carries @xterm/addon-fit
 ok   NOTICES.txt carries @xterm/addon-unicode11
@@ -19,10 +19,10 @@ ok   an extra key sends its sequence (["\u001b[A"])
 ok   a paste is sanitized and bracketed ("\u001b[200~ls[201~ -l\rrm\u001b[201~")
 ok   a write to an unknown session is refused
 ok   an invalid request is answered with bad_payload
-ok   probe.read answers idle, on the DOM renderer ({"state":"idle","kind":null,"sessionId":null,"renderers":{"7":"dom"}})
-ok   WebGL where there is none leaves the DOM renderer, and says why ({"state":"idle","kind":null,"sessionId":null,"renderers":{"7":"dom"},"webglError":"WebGL2 not supported null"})
+ok   WebGL by default, and the DOM renderer where there is no WebGL2, with why ({"state":"idle","kind":null,"sessionId":null,"renderers":{"7":"dom"},"webglError":"WebGL2 not supported null"})
+ok   WebGL asked for again where there is none leaves the DOM renderer ({"state":"idle","kind":null,"sessionId":null,"renderers":{"7":"dom"},"webglError":"WebGL2 not supported null"})
 ok   probe.echo answered at once
-ok   an echo probe types as the input method does, and times each echo ({"state":"done","echo":{"count":2,"p50Ms":6.6,"p95Ms":7,"maxMs":7,"meanMs":6.8,"lost":0,"typed":2,"samplesMs":[6.6,7]},"inputs":["a","","b",""]})
+ok   an echo probe types as the input method does, and times each echo ({"state":"done","echo":{"count":2,"p50Ms":6.6,"p95Ms":6.9,"maxMs":6.9,"meanMs":6.8,"lost":0,"typed":2,"samplesMs":[6.6,6.9]},"inputs":["a","","b",""]})
 ok   a flood probe counts and hashes exactly what lies between its marks ({"state":"done","chars":5800,"hash":"58d3e7bd","expected":"58d3e7bd"})
 ok   session.close answered ok
 ok   no page errors logged
