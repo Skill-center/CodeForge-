@@ -1128,8 +1128,10 @@ jobs:
   #   since Phase 5 W6 the terminal's budgets (G6: echo, the 10 MiB flood
   #   with Flutter's frames, memory; xterm.js's DOM renderer and WebGL; the
   #   page composed by Hybrid Composition++ and reached through its
-  #   MessagePort, W6's memory work) and a folder's copy through Android's
-  #   picker
+  #   MessagePort, W6's memory work; the memory judged with the terminal
+  #   open and idle at its full stop, within 90 MB, and a flood's growth
+  #   recorded, the owner's decision of 2026-11-21) and a folder's copy
+  #   through Android's picker
   #   (integration_test/phone_terminal_test.dart), whose requests the
   #   instrumentation answers (syncmodes/GateAnswers.java).
   # One matrix on one phone: 1 of the Spark plan's 5 free physical-device
@@ -1440,7 +1442,7 @@ jobs:
             --require page_echo_under_budget=1 \
             --require page_flood_whole=1 \
             --require page_flood_ui_under_budget=1 \
-            --require page_memory_under_budget=1 \
+            --require page_memory_open_under_budget=1 \
             --need-document CODEFORGE_SYNC_JSON \
             --need-document CODEFORGE_SEARCH_JSON \
             --need-document CODEFORGE_TERMINAL_JSON \

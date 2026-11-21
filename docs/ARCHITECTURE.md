@@ -207,6 +207,11 @@ As built (Phase 4), beside those:
 - **The vendored modules** (W2): `native/sealed-runtime/` and `native/runtime-core/`, built as Gradle modules of the app, with their own JVM tests.
 - **138 JVM tests** in CI at Phase 4's end (`:app:testDebugUnitTest`, CI 44297145654), and the kernel's 23 (`:native:sealed-runtime:test`). The instrumented tests (`src/androidTest/`) run on the gate's emulators and in Test Lab (TESTING.md §1.4).
 
+As built (Phase 5), beside those:
+- **The terminal** (W2–W5, TERMINAL_ARCHITECTURE.md §1 and §4): in `runtime/`, `Terminals.kt` starts sessions and `TerminalSession.kt` runs each through the launcher's terminal mode (a PTY, ADR-0014), with `SessionRegistry.kt`, `SessionLimits.kt` and `SessionLedger.kt` (the tombstones); in `terminal/`, `TerminalHost.kt` implements the Pigeon `TerminalApi` and `SessionService.kt` is the foreground service that runs while any session does.
+- **`webview/PagePorts.kt`** (W6, TERMINAL_ARCHITECTURE.md §2.2): the terminal page's MessagePort, the native half of `lib/services/editor/page_port.dart` on the MethodChannel `dev.codeforge/page_port`. It is a Flutter plugin of the app's own, which `MainActivity.kt` adds to the engine (and removes with it), because webview_flutter_android hands out its WebViews to native code only through a plugin binding (`WebViewFlutterAndroidExternalApi.getWebView`).
+- **The manifest's `io.flutter.embedding.android.EnableHcpp`** (W6, the owner's decision): the engine composes every platform view, the editor's and the terminal's WebViews, with Hybrid Composition++ (SurfaceControl) on Android 14 and later with Impeller on Vulkan, and with Flutter's texture layer elsewhere.
+
 The host is a **thin orchestration layer**: it contains no provisioning logic of its own — that lives in the vendored, JVM-tested modules. `harness-core`'s rule carries over: *UI never contains provisioning logic; provisioning never contains UI.*
 
 ## 4. Data architecture
