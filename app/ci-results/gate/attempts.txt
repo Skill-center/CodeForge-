@@ -2,9 +2,9 @@ smoke attempt=1 exit=0
 editor attempt=1 exit=0
 editing attempt=1 exit=0
 keys attempt=1 exit=0
-keys_events: 0 ANRs, 0 crashes since boot
+keys_events: 3 ANRs, 0 crashes since boot
 editor_bench_codemirror attempt=1 exit=0
-editor_bench_monaco attempt=1 exit=0
+editor_bench_monaco attempt=1 exit=1
 large_files_itest attempt=1 exit=0
 restore_a attempt=1 exit=0
 restore_b attempt=1 exit=0
@@ -37,23 +37,23 @@ explorer_disk_checks=19 explorer_listings=3
 watch_itest attempt=1 exit=0
 watch_group=pass
 watch_picker_picked=1 watch_outside_changes=12 watch_backgrounded=2
-watch_reload project 947 ms (device clock)
-watch_resume project 0 ms (from coming back)
-watch_reload folder 725 ms (device clock)
-watch_resume folder 0 ms (from coming back)
+watch_reload project 933 ms (device clock)
+watch_resume project 266 ms (from coming back)
+watch_reload folder 713 ms (device clock)
+watch_resume folder 400 ms (from coming back)
 measure_itest attempt=1 exit=0
 measure_group=pass
 measure_picker_picked=1
-measure: project of 10000 files written in 3151 ms (setup)
-measure: project opened in 346 ms (root listed)
-measure: Go to File's index of 10000 files in 141 ms (median of 3: 203, 141, 139)
-measure: dart:io 1048614 chars: write 27 ms, read 15 ms (medians of 3)
-measure: dart:io 10485681 chars: write 78 ms, read 42 ms (medians of 3)
-measure: digest of 10 MiB on the UI isolate: 211 ms, 0 frames, longest without one 211 ms
-measure: digest of 10 MiB on a background isolate: 617 ms, 12 frames, longest without one 116 ms
-measure: listing 1000 entries through the broker: 464 ms (median of 3: 464, 769, 366)
-measure: broker 1048614 chars: write 44 ms, read 22 ms (medians of 3)
-measure: broker 10485681 chars: write 153 ms, read 92 ms (medians of 3)
+measure: project of 10000 files written in 5837 ms (setup)
+measure: project opened in 533 ms (root listed)
+measure: Go to File's index of 10000 files in 326 ms (median of 3: 405, 326, 306)
+measure: dart:io 1048614 chars: write 27 ms, read 38 ms (medians of 3)
+measure: dart:io 10485681 chars: write 209 ms, read 63 ms (medians of 3)
+measure: digest of 10 MiB on the UI isolate: 446 ms, 0 frames, longest without one 446 ms
+measure: digest of 10 MiB on a background isolate: 1420 ms, 18 frames, longest without one 156 ms
+measure: listing 1000 entries through the broker: 762 ms (median of 3: 1346, 642, 762)
+measure: broker 1048614 chars: write 121 ms, read 79 ms (medians of 3)
+measure: broker 10485681 chars: write 261 ms, read 127 ms (medians of 3)
 runtime_a attempt=1 exit=0
 runtime_b attempt=1 exit=0
 runtime_group=pass
@@ -61,9 +61,9 @@ runtime_instrumented=pass OK (14 tests)
 runtime_pair=pass
 runtime_device_abi=x86_64
 runtime_device_payload=3dc2163786c5abef
-runtime_device_apk_bytes=218181557
+runtime_device_apk_bytes=218224912
 runtime_device_exec_manifest_entries=535
-runtime_device_first_install_ms=3584
+runtime_device_first_install_ms=9464
 runtime_device_first_install_files=13894
 runtime_device_first_install_verified=13894
 runtime_device_first_install_bytes=274844694
@@ -74,16 +74,16 @@ runtime_device_audit_outside_scripts=24
 runtime_device_audit_shipped=535
 runtime_device_audit_scanned=7611
 runtime_device_audit_truncated=false
-runtime_device_audit_ms=322
+runtime_device_audit_ms=876
 runtime_device_prefix_bytes=274844694
 runtime_device_prefix_files=13894
 runtime_device_native_library_bytes=139995440
-runtime_device_installed_total_bytes=633021691
-runtime_device_warm_start_ms_samples=15,17,15,18,18
-runtime_device_warm_start_ms_median=17
+runtime_device_installed_total_bytes=633065046
+runtime_device_warm_start_ms_samples=41,40,41,36,43
+runtime_device_warm_start_ms_median=41
 runtime_device_warm_start_budget_ms=100
 runtime_device_warm_audit_outside_apk=0
-runtime_device_warm_audit_ms=305
+runtime_device_warm_audit_ms=823
 runtime_device_relinked_after_move=1
 runtime_device_flipped_byte_offset=33554432
 runtime_device_flipped_byte_problem=corrupt
@@ -91,35 +91,35 @@ runtime_device_flipped_byte_detail=the payload archive is damaged: invalid entry
 runtime_device_digest_problem=corrupt
 runtime_device_digest_detail=digest differs: bin/am
 runtime_device_kernel_manifest_stream=read 1 sdk=36
-runtime_device_commands_tools_ms=407
-runtime_device_commands_tool_node=26.13.1/ok pinned=26.13.1 ms=140 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
-runtime_device_commands_tool_python=3.14.10/ok pinned=3.14.10 ms=151 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
-runtime_device_commands_tool_git=2.56.1/ok pinned=2.56.1 ms=12 detail=git version 2.56.1
-runtime_device_commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=17 detail=5.3.9(1)-release
-runtime_device_commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=19 detail=5.44.0 3
-runtime_device_commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=52 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
-runtime_device_commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=12 detail=ripgrep 15.2.0
+runtime_device_commands_tools_ms=738
+runtime_device_commands_tool_node=26.13.1/ok pinned=26.13.1 ms=219 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
+runtime_device_commands_tool_python=3.14.10/ok pinned=3.14.10 ms=286 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
+runtime_device_commands_tool_git=2.56.1/ok pinned=2.56.1 ms=31 detail=git version 2.56.1
+runtime_device_commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=25 detail=5.3.9(1)-release
+runtime_device_commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=37 detail=5.44.0 3
+runtime_device_commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=101 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
+runtime_device_commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=32 detail=ripgrep 15.2.0
 runtime_device_commands_environment_names=ANDROID_ART_ROOT,ANDROID_DATA,ANDROID_I18N_ROOT,ANDROID_ROOT,ANDROID_TZDATA_ROOT,GEM_HOME,HOME,LANG,LC_ALL,LD_LIBRARY_PATH,LD_PRELOAD,NODE_PATH,NPM_CONFIG_UPDATE_NOTIFIER,PATH,PERL5LIB,PREFIX,PWD,PYTHONHOME,RUBYLIB,SHELL,SSL_CERT_FILE,TERM,TERMUX_APP__DATA_DIR,TERMUX__PREFIX,TERMUX__ROOTFS,TMPDIR,XDG_CACHE_HOME,XDG_CONFIG_HOME,XDG_DATA_HOME,XDG_STATE_HOME
 runtime_device_commands_pythonhome=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr
 runtime_device_commands_gem_home=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
 runtime_device_commands_node_path=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules
 runtime_device_commands_rubylib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0/x86_64-linux-android
 runtime_device_commands_perl5lib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0
-runtime_device_commands_npm_version=12.2.2 exit=0 failure=null ms=228
+runtime_device_commands_npm_version=12.2.2 exit=0 failure=null ms=448
 runtime_device_commands_cap=kept=1024 bytes=300000 truncated=true
-runtime_device_commands_timeout=failure=timed_out ms=509 ended=1
-runtime_device_commands_tree=sleeps=5 with_marker=6 group=21902 in_group=5 setsid=true
+runtime_device_commands_timeout=failure=timed_out ms=522 ended=1
+runtime_device_commands_tree=sleeps=5 with_marker=6 group=24466 in_group=5 setsid=true
 runtime_device_commands_end=failure=ended ended=5 remaining=0 ms=101 left=0 in_group=0 processes_before=1 processes_after=1
 runtime_device_commands_timeout_tree=ended=3 left=0
 runtime_device_commands_exit_tree=exit=0 ended=1 left=0
 runtime_device_commands_addon_from_storage=loaded
 runtime_device_commands_addon_from_storage_expected=refused
-runtime_device_commands_addon_from_storage_detail=exit=0 sdk=36 ms=114 loaded Module did not self-register: '/data/user/0/dev.codeforge.app/files/runtime-gate/commands/home/cf-addon-probe.node'.
+runtime_device_commands_addon_from_storage_detail=exit=0 sdk=36 ms=220 loaded Module did not self-register: '/data/user/0/dev.codeforge.app/files/runtime-gate/commands/home/cf-addon-probe.node'.
 RUNTIME_UI before_open state=unknown
-RUNTIME_UI editor_open state=installing done=0 total=0
-RUNTIME_UI first_install state=ready abi=x86_64 payload=3dc2163786c5abef install_ms=5999 open_to_audited_ms=7537 progress_frames=38 problem=null outside_apk=0 shipped=535 audit_ms=422 detail=null
-RUNTIME_UI warm_start state=ready warm_start_ms=111 relinked=535 install_ms=5999 outside_apk=0 shipped=535 audit_ms=1253 problem=null detail=null
-RUNTIME_UI tools ok=7 of=7 ms=819 node=26.13.1/ok python=3.14.10/ok git=2.56.1/ok bash=5.3.9/ok perl=5.44.0/ok ruby=4.0.9/ok rg=15.2.0/ok
+RUNTIME_UI editor_open state=notInstalled done=0 total=0
+RUNTIME_UI first_install state=ready abi=x86_64 payload=3dc2163786c5abef install_ms=20725 open_to_audited_ms=24038 progress_frames=154 problem=null outside_apk=0 shipped=535 audit_ms=1429 detail=null
+RUNTIME_UI warm_start state=ready warm_start_ms=482 relinked=535 install_ms=20725 outside_apk=0 shipped=535 audit_ms=2936 problem=null detail=null
+RUNTIME_UI tools ok=7 of=7 ms=1659 node=26.13.1/ok python=3.14.10/ok git=2.56.1/ok bash=5.3.9/ok perl=5.44.0/ok ruby=4.0.9/ok rg=15.2.0/ok
 RUNTIME_UI tool node detail=26.13.1 /data/data/dev.codeforge.app/files/coding-harness/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
 RUNTIME_UI tool python detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
 RUNTIME_UI tool git detail=git version 2.56.1
@@ -127,74 +127,74 @@ RUNTIME_UI tool bash detail=5.3.9(1)-release
 RUNTIME_UI tool perl detail=5.44.0 3
 RUNTIME_UI tool ruby detail=4.0.9 /data/data/dev.codeforge.app/files/coding-harness/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
 RUNTIME_UI tool rg detail=ripgrep 15.2.0
-RUNTIME_UI exec failure=null exit=0 stdout=42 ms=133 detail=null
-runtime_apk_debug_x64_bytes=250257131
-runtime_apk_release_x64_bytes=161533036
-runtime_apk_phone_arm64_bytes=176641630
+RUNTIME_UI exec failure=null exit=0 stdout=42 ms=266 detail=null
+runtime_apk_debug_x64_bytes=250300486
+runtime_apk_release_x64_bytes=161550096
+runtime_apk_phone_arm64_bytes=176684957
 search_itest attempt=1 exit=0
 search_group=pass
 search_picker_picked=1
-search: project of 10000 files written in 3401 ms (setup)
-search: needle run 1: ripgrep done 200 lines in 200 files; first 216 ms, all 336 ms (host 184 / 299 ms)
-search: needle run 2: ripgrep done 200 lines in 200 files; first 42 ms, all 91 ms (host 30 / 83 ms)
-search: needle run 3: ripgrep done 200 lines in 200 files; first 45 ms, all 101 ms (host 39 / 95 ms)
-search: whole word: ripgrep done 100 lines in 100 files; first 35 ms, all 91 ms (host 27 / 81 ms)
-search: regular expression: ripgrep done 500 lines in 500 files; first 59 ms, all 125 ms (host 56 / 116 ms)
-search: include m2: ripgrep done 10 lines in 10 files; first 79 ms, all 95 ms (host 48 / 64 ms)
-search: exclude s0: ripgrep done 90 lines in 90 files; first 60 ms, all 99 ms (host 49 / 90 ms)
-search: match case: ripgrep done 0 lines in 0 files; first null ms, all 93 ms (host null / 90 ms)
-search: look-around: ripgrep failed (badQuery) 0 lines in 0 files; first null ms, all 43 ms (host null / 28 ms)
-search: cancelled at the first results: ripgrep cancelled 38 lines in 38 files; first 60 ms, all 79 ms (host 39 / 55 ms)
-search: cancelled: Stop asked at 1 lines, ended with 38 lines, 50 ms from Stop to the summary; ripgrep processes left: 0
-search: the panel query, prepared: ripgrep done 0 lines in 0 files; first null ms, all 36 ms (host null / 32 ms)
+search: project of 10000 files written in 5651 ms (setup)
+search: needle run 1: ripgrep done 200 lines in 200 files; first 825 ms, all 1395 ms (host 735 / 1303 ms)
+search: needle run 2: ripgrep done 200 lines in 200 files; first 133 ms, all 550 ms (host 107 / 524 ms)
+search: needle run 3: ripgrep done 200 lines in 200 files; first 169 ms, all 639 ms (host 137 / 591 ms)
+search: whole word: ripgrep done 100 lines in 100 files; first 138 ms, all 543 ms (host 118 / 514 ms)
+search: regular expression: ripgrep done 500 lines in 500 files; first 143 ms, all 477 ms (host 126 / 449 ms)
+search: include m2: ripgrep done 10 lines in 10 files; first 144 ms, all 201 ms (host 124 / 176 ms)
+search: exclude s0: ripgrep done 90 lines in 90 files; first 99 ms, all 457 ms (host 91 / 447 ms)
+search: match case: ripgrep done 0 lines in 0 files; first null ms, all 331 ms (host null / 308 ms)
+search: look-around: ripgrep failed (badQuery) 0 lines in 0 files; first null ms, all 80 ms (host null / 69 ms)
+search: cancelled at the first results: ripgrep cancelled 32 lines in 32 files; first 178 ms, all 215 ms (host 129 / 167 ms)
+search: cancelled: Stop asked at 1 lines, ended with 32 lines, 72 ms from Stop to the summary; ripgrep processes left: 0
+search: the panel query, prepared: ripgrep done 0 lines in 0 files; first null ms, all 71 ms (host null / 62 ms)
 search: opened m0/s0/f07.js at line 3, column 17 (offset 60)
-search: folder scan run 1: scan done 100 lines in 100 files of 1007; first 1771 ms, all 7214 ms (host 1691 / 7137 ms)
-search: folder scan run 2: scan done 100 lines in 100 files of 1007; first 884 ms, all 3620 ms (host 876 / 3613 ms)
-search: folder scan run 3: scan done 100 lines in 100 files of 1007; first 862 ms, all 3437 ms (host 858 / 3428 ms)
-search: folder needle: scan done 1 lines in 1 files of 1007; first 685 ms, all 3723 ms (host 676 / 3714 ms)
-search: folder whole word: scan done 2 lines in 2 files of 1007; first 682 ms, all 3286 ms (host 673 / 3273 ms)
-search: copy of the gate folder into app storage, through the broker one file at a time: 1008 files and 7 folders, 4065 bytes, in 6060 ms
-host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=184 ms=299
-host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=30 ms=83
-host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=39 ms=95
-host: search ripgrep done files=null matched=100 lines=100 matches=100 firstMs=27 ms=81
-host: search ripgrep done files=null matched=500 lines=500 matches=500 firstMs=56 ms=116
-host: search ripgrep done files=null matched=10 lines=10 matches=10 firstMs=48 ms=64
-host: search ripgrep done files=null matched=90 lines=90 matches=90 firstMs=49 ms=90
-host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=90
-host: search ripgrep failed/bad_query files=null matched=0 lines=0 matches=0 firstMs=null ms=28
-host: search ripgrep cancelled files=null matched=38 lines=38 matches=38 firstMs=39 ms=55
-host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=32
-host: search ripgrep done files=null matched=1 lines=1 matches=1 firstMs=580 ms=706
-host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=1691 ms=7137
-host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=876 ms=3613
-host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=858 ms=3428
-host: search scan done files=1007 matched=1 lines=1 matches=1 firstMs=676 ms=3714
-host: search scan done files=1007 matched=2 lines=2 matches=2 firstMs=673 ms=3273
+search: folder scan run 1: scan done 100 lines in 100 files of 1007; first 7353 ms, all 33024 ms (host 7285 / 32932 ms)
+search: folder scan run 2: scan done 100 lines in 100 files of 1007; first 4415 ms, all 18195 ms (host 4310 / 18088 ms)
+search: folder scan run 3: scan done 100 lines in 100 files of 1007; first 4184 ms, all 15683 ms (host 4175 / 15676 ms)
+search: folder needle: scan done 1 lines in 1 files of 1007; first 2798 ms, all 15612 ms (host 2782 / 15592 ms)
+search: folder whole word: scan done 2 lines in 2 files of 1007; first 2952 ms, all 15371 ms (host 2934 / 15322 ms)
+search: copy of the gate folder into app storage, through the broker one file at a time: 1008 files and 7 folders, 4065 bytes, in 18715 ms
+host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=735 ms=1303
+host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=107 ms=524
+host: search ripgrep done files=null matched=200 lines=200 matches=200 firstMs=137 ms=591
+host: search ripgrep done files=null matched=100 lines=100 matches=100 firstMs=118 ms=514
+host: search ripgrep done files=null matched=500 lines=500 matches=500 firstMs=126 ms=449
+host: search ripgrep done files=null matched=10 lines=10 matches=10 firstMs=124 ms=176
+host: search ripgrep done files=null matched=90 lines=90 matches=90 firstMs=91 ms=447
+host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=308
+host: search ripgrep failed/bad_query files=null matched=0 lines=0 matches=0 firstMs=null ms=69
+host: search ripgrep cancelled files=null matched=32 lines=32 matches=32 firstMs=129 ms=167
+host: search ripgrep done files=null matched=0 lines=0 matches=0 firstMs=null ms=62
+host: search ripgrep done files=null matched=1 lines=1 matches=1 firstMs=1399 ms=1401
+host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=7285 ms=32932
+host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=4310 ms=18088
+host: search scan done files=1007 matched=100 lines=100 matches=100 firstMs=4175 ms=15676
+host: search scan done files=1007 matched=1 lines=1 matches=1 firstMs=2782 ms=15592
+host: search scan done files=1007 matched=2 lines=2 matches=2 firstMs=2934 ms=15322
 terminal_itest attempt=1 exit=0
 terminal_group=pass
 terminal_compose_failures=0
-terminal: memory before app_mb=413.4 renderer_mb=80.5 renderers=1
-terminal: started ms=1510 size=46x22
+terminal: memory before app_mb=423.0 renderer_mb=84.3 renderers=1
+terminal: started ms=2920 size=46x22
 terminal: typed_echo=ok
 terminal: measure reached composition=tlhc host_port=1
 terminal: measure renderer asked=webgl drawing=dom error=a software GPU (Android Emulator OpenGL ES Translator (Google SwiftShader))
-terminal: measure echo dom renderer=dom n=100 lost=0 p50_ms=37.3 p95_ms=73.3 max_ms=96.5 mean_ms=39.7
-terminal: measure flood dom renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=23500.5 mib_s=0.4 writes=171 max_write=191648 ui_frames=286 ui_slow=286 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=240.2 ui_build_p95_ms=18.8 ui_raster_p95_ms=93.6 ui_max_ms=289.2 ui_gap_ms=233.3 dart_batches=172 dart_ms=2797.2 wall_ms=24550 page_frames=192 page_slow_pct=90.6 page_max_ms=316.6 long_tasks=37 long_ms=2700
-terminal: measure memory after_dom app_mb=438.0 renderer_mb=124.4 total_mb=562.4
-terminal: measure memory settled_dom app_mb=434.6 renderer_mb=124.5 total_mb=559.1
-terminal: measure heap settled=used:10075,total:24980 collected=used:4905,total:6292
-terminal: measure memory collected_dom app_mb=435.0 renderer_mb=98.5 total_mb=533.4
+terminal: measure echo dom renderer=dom n=100 lost=0 p50_ms=77.5 p95_ms=145.5 max_ms=175.1 mean_ms=83.5
+terminal: measure flood dom renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=39843.7 mib_s=0.3 writes=205 max_write=201930 ui_frames=327 ui_slow=327 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=350.2 ui_build_p95_ms=27.9 ui_raster_p95_ms=132.3 ui_max_ms=429.6 ui_gap_ms=366.7 dart_batches=206 dart_ms=4098.0 wall_ms=41542 page_frames=209 page_slow_pct=91.4 page_max_ms=583.3 long_tasks=92 long_ms=7912
+terminal: measure memory after_dom app_mb=447.4 renderer_mb=129.7 total_mb=577.0
+terminal: measure memory settled_dom app_mb=444.3 renderer_mb=129.6 total_mb=573.9
+terminal: measure heap settled=used:11204,total:24912 collected=used:4940,total:6804
+terminal: measure memory collected_dom app_mb=444.5 renderer_mb=102.9 total_mb=547.5
 terminal: measure renderer asked=webgl drawing=dom error=a software GPU (Android Emulator OpenGL ES Translator (Google SwiftShader))
-terminal: measure echo dom_again renderer=dom n=100 lost=0 p50_ms=32.9 p95_ms=63.1 max_ms=80.8 mean_ms=34.2
-terminal: measure flood dom_again renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=20697.0 mib_s=0.5 writes=182 max_write=200514 ui_frames=246 ui_slow=246 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=238.9 ui_build_p95_ms=27.9 ui_raster_p95_ms=89.1 ui_max_ms=282.6 ui_gap_ms=216.7 dart_batches=183 dart_ms=1966.1 wall_ms=21517 page_frames=187 page_slow_pct=86.6 page_max_ms=283.3 long_tasks=34 long_ms=2199
-terminal: measure verdict shipped=dom echo_p95_ms=73.3 flood_whole=1 ui_slow_pct=100.0 memory_delta_mb=65.2 memory_peak_delta_mb=68.6 memory_open_delta_mb=30.9 memory_open_half_delta_mb=30.6 composition=tlhc host_port=1 webgl=dom other_failure=null
+terminal: measure echo dom_again renderer=dom n=100 lost=0 p50_ms=88.1 p95_ms=142.8 max_ms=176.6 mean_ms=85.9
+terminal: measure flood dom_again renderer=dom whole=1 chars=10567680 hash=59da1fa1 ms=41649.0 mib_s=0.2 writes=196 max_write=262144 ui_frames=304 ui_slow=304 ui_slow_pct=100.0 ui_frozen=0 ui_p95_ms=389.2 ui_build_p95_ms=38.0 ui_raster_p95_ms=142.5 ui_max_ms=477.2 ui_gap_ms=400.0 dart_batches=197 dart_ms=3798.9 wall_ms=43714 page_frames=205 page_slow_pct=94.6 page_max_ms=566.7 long_tasks=107 long_ms=9960
+terminal: measure verdict shipped=dom echo_p95_ms=145.5 flood_whole=1 ui_slow_pct=100.0 memory_delta_mb=66.6 memory_peak_delta_mb=69.7 memory_open_delta_mb=20.6 memory_open_half_delta_mb=18.4 composition=tlhc host_port=1 webgl=dom other_failure=null
 terminal: fit where=portrait columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9 less=ok node=ok
 terminal: turn to=landscape program=nano columns=60 rows=7 redrawn=ok
 terminal: fit where=landscape columns=60 rows=7 stty=ok nano=ok top=ok top_lines=7 less=ok node=ok
 terminal: turn to=portrait program=less columns=46 rows=22 redrawn=ok
 terminal: fit where=portrait again columns=46 rows=22 stty=ok nano=ok top=ok top_lines=9 less=ok node=ok
-terminal: compose_lines=11 compose_ms=9960
+terminal: compose_lines=11 compose_ms=15164
 terminal: closed=ok dropped_messages=0
 compose: ok   latin-predictive: "hello world"
 compose: ok   autocorrect-replace: "the"
@@ -206,32 +206,32 @@ compose: ok   cancel-composition: "ab"
 compose: ok   ime-backspace: "copy"
 compose: ok   backspace-after-commit: "word"
 compose: ok   words-and-spaces: "ls -la src"
-memory: --- mem before (07:32:21): app 423333 KiB
-memory: renderer 26659: 82397 KiB,javaheap:740,nativeheap:1384,code:32864,stack:432,graphics:0,privateother:20744,system:26233,unknown:56312
-memory: app before:,javaheap:11284,nativeheap:59400,code:31956,stack:1848,graphics:0,privateother:282356,system:36489,unknown:297992
-memory: --- mem opened (07:32:39): app 442048 KiB
-memory: renderer 26659: 95354 KiB,javaheap:756,nativeheap:1452,code:36036,stack:440,graphics:0,privateother:27472,system:29198,unknown:63032
-memory: app opened:,javaheap:13256,nativeheap:64376,code:30916,stack:1968,graphics:0,privateother:291724,system:39808,unknown:307700
-memory: --- mem opened-half (07:32:42): app 445905 KiB
-memory: renderer 26659: 91183 KiB,javaheap:756,nativeheap:1452,code:36556,stack:440,graphics:0,privateother:22696,system:29283,unknown:58320
-memory: app opened-half:,javaheap:11272,nativeheap:69748,code:30780,stack:1980,graphics:0,privateother:292256,system:39869,unknown:308240
-memory: --- mem after-dom (07:33:32): app 448497 KiB
-memory: renderer 26659: 127434 KiB,javaheap:756,nativeheap:1456,code:39904,stack:572,graphics:0,privateother:54800,system:29946,unknown:90488
-memory: app after-dom:,javaheap:14288,nativeheap:64932,code:31384,stack:1888,graphics:0,privateother:294440,system:41565,unknown:311164
-memory: --- mem settled-dom (07:33:46): app 445069 KiB
-memory: renderer 26659: 127458 KiB,javaheap:756,nativeheap:1456,code:39904,stack:572,graphics:0,privateother:54800,system:29970,unknown:90488
-memory: app settled-dom:,javaheap:12480,nativeheap:63428,code:31384,stack:1788,graphics:0,privateother:294424,system:41565,unknown:311148
-memory: --- heap read (07:33:46): used:10075,total:24980
-memory: --- heap gc (07:33:46): used:4905,total:6292
-memory: --- mem collected-dom (07:33:49): app 445421 KiB
-memory: renderer 26659: 100818 KiB,javaheap:756,nativeheap:1456,code:39904,stack:572,graphics:0,privateother:28160,system:29970,unknown:63848
-memory: app collected-dom:,javaheap:12476,nativeheap:63440,code:31384,stack:1788,graphics:0,privateother:294732,system:41601,unknown:311456
-probe 07:32:43.576 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
-probe 07:32:45.814 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+106ms pointerdown xterm-screen  hasFocus=false","+107ms touchstart xterm-screen  hasFocus=false","+112ms touchend xterm-screen  hasFocus=false","+140ms focus window  hasFocus=true","+140ms focus xterm-helper-textarea value=\"\" hasFocus=true","+147ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+160ms mousedown xterm-screen  hasFocus=true","+174ms click xterm-screen  hasFocus=true"]}
-probe 07:32:46.420 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
-probe 07:32:49.398 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+195ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+201ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+208ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+217ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+237ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+237ms beforeinput x
-probe 07:34:43.334 probe arm: {"hasFocus":true,"visibility":"visible","active":"BODY"}
-probe 07:34:45.507 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"BODY"},"events":["+49ms pointerdown xterm-screen  hasFocus=true","+49ms touchstart xterm-screen  hasFocus=true","+55ms touchend xterm-screen  hasFocus=true","+56ms focus xterm-helper-textarea value=\"\" hasFocus=true","+57ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+61ms mousedown xterm-screen  hasFocus=true","+61ms click xterm-screen  hasFocus=true","+710ms blur xterm-helper-textarea value=\"\" hasFocus=true","+710ms focusout xterm-helper-textarea value=\"\" hasFocus=true"]}
+memory: --- mem before (13:16:22): app 433182 KiB
+memory: renderer 30756: 86339 KiB,javaheap:744,nativeheap:1360,code:34052,stack:440,graphics:0,privateother:20172,system:29571,unknown:56016
+memory: app before:,javaheap:13252,nativeheap:60456,code:38824,stack:1792,graphics:0,privateother:282688,system:36170,unknown:298112
+memory: --- mem opened (13:16:41): app 444282 KiB
+memory: renderer 30756: 96312 KiB,javaheap:716,nativeheap:1440,code:38064,stack:448,graphics:0,privateother:23284,system:32360,unknown:59176
+memory: app opened:,javaheap:15256,nativeheap:61988,code:39048,stack:1948,graphics:0,privateother:286844,system:39198,unknown:302528
+memory: --- mem opened-half (13:16:45): app 441854 KiB
+memory: renderer 30756: 96472 KiB,javaheap:712,nativeheap:1440,code:38064,stack:448,graphics:0,privateother:23448,system:32360,unknown:59340
+memory: app opened-half:,javaheap:11352,nativeheap:63320,code:38976,stack:1848,graphics:0,privateother:287084,system:39274,unknown:302844
+memory: --- mem after-dom (13:18:03): app 458111 KiB
+memory: renderer 30756: 132775 KiB,javaheap:712,nativeheap:1444,code:41356,stack:528,graphics:0,privateother:55508,system:33227,unknown:91464
+memory: app after-dom:,javaheap:15512,nativeheap:63060,code:39224,stack:1832,graphics:0,privateother:297072,system:41411,unknown:313632
+memory: --- mem settled-dom (13:18:16): app 454955 KiB
+memory: renderer 30756: 132743 KiB,javaheap:712,nativeheap:1444,code:41356,stack:528,graphics:0,privateother:55476,system:33227,unknown:91432
+memory: app settled-dom:,javaheap:12472,nativeheap:63072,code:39224,stack:1808,graphics:0,privateother:296968,system:41411,unknown:313528
+memory: --- heap read (13:18:17): used:11204,total:24912
+memory: --- heap gc (13:18:17): used:4940,total:6804
+memory: --- mem collected-dom (13:18:20): app 455219 KiB
+memory: renderer 30756: 105415 KiB,javaheap:712,nativeheap:1444,code:41356,stack:528,graphics:0,privateother:28148,system:33227,unknown:64104
+memory: app collected-dom:,javaheap:12468,nativeheap:63072,code:39224,stack:1808,graphics:0,privateother:297236,system:41411,unknown:313796
+probe 13:16:46.478 probe arm: {"hasFocus":false,"visibility":"visible","active":"BODY"}
+probe 13:16:48.971 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+217ms pointerdown xterm-screen  hasFocus=false","+221ms touchstart xterm-screen  hasFocus=false","+227ms touchend xterm-screen  hasFocus=false","+253ms focus window  hasFocus=true","+253ms focus xterm-helper-textarea value=\"\" hasFocus=true","+269ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+309ms mousedown xterm-screen  hasFocus=true","+327ms click xterm-screen  hasFocus=true"]}
+probe 13:16:50.277 probe arm: {"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"}
+probe 13:16:54.139 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"xterm-helper-textarea"},"events":["+303ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+315ms beforeinput xterm-helper-textarea it=insertText data=\"e\" value=\"\" hasFocus=true","+334ms input xterm-helper-textarea it=insertText data=\"e\" value=\"e\" hasFocus=true","+374ms keyup xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+377ms keydown xterm-helper-textarea key=\"Unidentified\" kc=229 value=\"\" hasFocus=true","+378ms beforeinput x
+probe 13:19:57.072 probe arm: {"hasFocus":true,"visibility":"visible","active":"BODY"}
+probe 13:19:59.545 probe read: {"state":{"hasFocus":true,"visibility":"visible","active":"BODY"},"events":["+164ms pointerdown xterm-screen  hasFocus=true","+164ms touchstart xterm-screen  hasFocus=true","+167ms touchend xterm-screen  hasFocus=true","+168ms focus xterm-helper-textarea value=\"\" hasFocus=true","+182ms focusin xterm-helper-textarea value=\"\" hasFocus=true","+196ms mousedown xterm-screen  hasFocus=true","+224ms click xterm-screen  hasFocus=true","+1210ms blur xterm-helper-textarea value=\"\" hasFocus=true","+1211ms focusout xterm-helper-textarea value=\"\" hasFocus=true"]}
 run_itest attempt=1 exit=0
 run_group=pass
 run_picker_picked=1
@@ -239,34 +239,19 @@ run: file=main.js program=node exit=0 lines=3
 run: file=app.py program=python exit=0
 run: file=gate-shell.sh program=bash exit=3
 run: npm=start exit=0 lines=5 banner=false
-run: stop status="Signal 1" ms=196 left=0
-run: native_output gyp ERR! command "/data/app/~~vdCKpq5VVP82jH5P | mVUvbg==/dev.codeforge.app-j1L-NlG5R_CtT6HNA9c | VMw==/lib/x86_64/libnode.so" "/data/user/0/dev | .codeforge.app/files/coding-harness/rootfs/dat | a/data/com.termux/files/usr/lib/node_modules/n | pm/node_modules/node-gyp/bin/node-gyp.js" "reb | uild" | gyp ERR! cwd /data/data/dev.codeforge.app/file | s/workspaces/demo/addon | gyp ERR! node -v v26.13.1 | gyp ERR! node-gyp -v v13.0.0 | gyp ERR! not ok
+run: stop status="Signal 1" ms=366 left=0
+run: native_output gyp ERR! command "/data/app/~~kdWzCreKxh02CL8R | PW9z7Q==/dev.codeforge.app-FWwfeHQauhHiWnEe8Mp | D5Q==/lib/x86_64/libnode.so" "/data/user/0/dev | .codeforge.app/files/coding-harness/rootfs/dat | a/data/com.termux/files/usr/lib/node_modules/n | pm/node_modules/node-gyp/bin/node-gyp.js" "reb | uild" | gyp ERR! cwd /data/data/dev.codeforge.app/file | s/workspaces/demo/addon | gyp ERR! node -v v26.13.1 | gyp ERR! node-gyp -v v13.0.0 | gyp ERR! not ok
 run: native kind=npm exit=1 first="gyp ERR! build error"
 run: e2e part1=ok first="e2e one" then="e2e one|e2e two"
-run: copy_first files=1006 copied=1006 unchanged=0 removed=0 bytes=4354 copied_bytes=4354 skipped=0 left_out=0 ms=3968
-run: copy_second files=1006 copied=0 unchanged=1006 removed=0 bytes=4354 copied_bytes=0 skipped=0 left_out=0 ms=449
-run: copy_third files=1006 copied=1 unchanged=1005 removed=0 bytes=4342 copied_bytes=8 skipped=0 left_out=0 ms=362
+run: copy_first files=1006 copied=1006 unchanged=0 removed=0 bytes=4354 copied_bytes=4354 skipped=0 left_out=0 ms=11219
+run: copy_second files=1006 copied=0 unchanged=1006 removed=0 bytes=4354 copied_bytes=0 skipped=0 left_out=0 ms=1070
+run: copy_third files=1006 copied=1 unchanged=1005 removed=0 bytes=4342 copied_bytes=8 skipped=0 left_out=0 ms=1077
 run: export files=1 changes=1 checked_on_disk=ok
-host: copy: 1006 copied, 0 unchanged, 0 removed in 3968 ms
-host: copy: 0 copied, 1006 unchanged, 0 removed in 449 ms
-host: copy: 1 copied, 1005 unchanged, 0 removed in 362 ms
-sessions_a exit=79 (the app is killed at its end)
-sessions_b attempt=1 exit=0
-sessions_group=pass
-sessions: away service=fg:1,type:0x40000000,title:2-terminal-sessions-running processes=count:2,oom:800,app:200
-sessions: background seconds=332 beats=327 longest_gap_s=2
-sessions: part_a=ok
-sessions: part_b=ok listed=2,3 job=count:1,oom:800,app:0
-sessions: pressure low=sent,trimmed:0 critical=sent,trimmed:2 released_ms=3419
-sessions: pressure redrawn_beat=8 running=2
-sessions: return beat=336 shell=answers job=count:1,oom:800,app:0
-sessions: service with_new=fg:1,type:0x40000000,title:1-terminal-session-running after_last=none new_id=4
+host: copy: 1006 copied, 0 unchanged, 0 removed in 11219 ms
+host: copy: 0 copied, 1006 unchanged, 0 removed in 1070 ms
+host: copy: 1 copied, 1005 unchanged, 0 removed in 1077 ms
+sessions_a exit=1 (the app is killed at its end)
+sessions_group=fail
+sessions: pressure low=sent,trimmed:0 critical=sent,trimmed:0 released_ms=3459
 sessions: service_started fg:1,type:0x40000000,title:2-terminal-sessions-running
 sessions: sessions seven=1 heartbeat=2 shell=3 first_beat=2
-sessions: tombstones 1:seven:exited with code 7,2:heartbeat:ended by the system,3:Terminal 1:ended by the system
-sessions_killed=1
-sessions_left_after_kill=0
-sessions_kill_oom_score_adj 2485: 800
-sessions_kill_oom_score_adj 2488: 800
-sessions_kill_oom_score_adj 2531: 800
-sessions_left_after_force_stop=0

@@ -1,23 +1,23 @@
 Editor benchmark (Phase 2 W3) — CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (profile mode is refused on emulators); accel=kvm
 
 codemirror 6.43.15  page 293.9 KiB gzipped  input editcontext  runs 3
-  ok  cold load → first editor frame         196.8 ms  (budget 800 ms)
-  OVER typing p95, engine path                100.9 ms  (budget 32 ms)
-  OVER input p95, DevTools key events          60.9 ms  (budget 32 ms)
-  OVER 1 MiB scroll, frames > 32 ms              100 %  (budget 5 %)
+  ok  cold load → first editor frame         335.5 ms  (budget 800 ms)
+  OVER typing p95, engine path                201.7 ms  (budget 32 ms)
+  OVER input p95, DevTools key events         134.4 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms             93.8 %  (budget 5 %)
   ok  IME composition failures                      0  (budget 0)
-  OVER memory, app + renderer PSS             520.4 MB  (budget 250 MB)
+  OVER memory, app + renderer PSS             532.9 MB  (budget 250 MB)
   ok  shipped size, gzipped                  300922 B  (budget 1572864 B)
-      1 MiB open 131.1 ms, 1 MiB typing p95 74.4 ms, features ok, highlighting ok
-      1 MiB as plain text: open 93.5 ms, typing p95 105.5 ms, scroll frames > 32 ms 100 % (record-only)
+      1 MiB open 155.2 ms, 1 MiB typing p95 224.1 ms, features ok, highlighting ok
+      1 MiB as plain text: open 285.3 ms, typing p95 220.5 ms, scroll frames > 32 ms 100 % (record-only)
 
 monaco 0.57.0  page 1029.5 KiB gzipped  input editcontext  runs 3
-  ok  cold load → first editor frame         335.1 ms  (budget 800 ms)
-  OVER typing p95, engine path                106.9 ms  (budget 32 ms)
-  OVER input p95, DevTools key events          53.8 ms  (budget 32 ms)
-  OVER 1 MiB scroll, frames > 32 ms             96.2 %  (budget 5 %)
+  OVER cold load → first editor frame        1345.8 ms  (budget 800 ms)
+  OVER typing p95, engine path                  203 ms  (budget 32 ms)
+  OVER input p95, DevTools key events           153 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms              100 %  (budget 5 %)
   ok  IME composition failures                      0  (budget 0)
-  OVER memory, app + renderer PSS             602.4 MB  (budget 250 MB)
+  OVER memory, app + renderer PSS               624 MB  (budget 250 MB)
   ok  shipped size, gzipped                 1054170 B  (budget 1572864 B)
-      1 MiB open 282.8 ms, 1 MiB typing p95 123.9 ms, features ok, highlighting ok
-      1 MiB as plain text: open 242.4 ms, typing p95 108.4 ms, scroll frames > 32 ms 100 % (record-only)
+      1 MiB open 708.6 ms, 1 MiB typing p95 246.1 ms, features ok, highlighting n/a
+      1 MiB as plain text: open 389.8 ms, typing p95 269.9 ms, scroll frames > 32 ms 94.4 % (record-only)
