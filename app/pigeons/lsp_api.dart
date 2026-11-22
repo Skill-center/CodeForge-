@@ -20,6 +20,16 @@
 // the main thread, as the terminal's output does. Every method answers
 // through a callback (`@asyncCallback`), so the generated Kotlin needs no
 // coroutines library.
+//
+// Since W4 the host also says where things are and when things happened. A
+// start names the workspace's folder as the server sees it (links resolved),
+// the runtime's programs and the server's own folder: Dart builds the
+// documents' URIs and the servers' options from them, and never sends a path
+// back. A send answers once its message is written to the server's stdin,
+// and every message comes with when the host read it whole, both on the
+// monotonic clock (Kotlin's System.nanoTime, Dart's Timeline.now), so Dart
+// can split each request's time into the host's queue, the server and the
+// delivery (PHASE_6_PLAN W4).
 import 'package:pigeon/pigeon.dart';
 
 /// A started server, or why none started: 'not_ready', 'bad_request',
@@ -35,7 +45,15 @@ import 'package:pigeon/pigeon.dart';
   ),
 )
 class LspStartMessage {
-  LspStartMessage({this.handle, this.failure, this.detail, this.running});
+  LspStartMessage({
+    this.handle,
+    this.failure,
+    this.detail,
+    this.running,
+    this.root,
+    this.bin,
+    this.serverDirectory,
+  });
 
   /// The server's handle, when it started.
   int? handle;
@@ -45,6 +63,29 @@ class LspStartMessage {
 
   /// For 'already_running': the handle of the server that runs.
   int? running;
+
+  /// When it started: its workspace's folder, absolute and with links
+  /// resolved, as the server sees it (its working directory).
+  String? root;
+
+  /// When it started: the runtime's programs' folder (its python).
+  String? bin;
+
+  /// When it started: the folder the server is installed in.
+  String? serverDirectory;
+}
+
+/// A message queued and then written to a server's stdin, or why not.
+class LspSendMessage {
+  LspSendMessage({this.failure, this.writtenUs});
+
+  /// Why it was not written: 'no_such_server', 'not_running' (also when the
+  /// server ended before it was written), 'bad_request' (over 16 MiB) or
+  /// 'queue_full'.
+  String? failure;
+
+  /// When it was written and flushed, on the monotonic clock, in µs.
+  int? writtenUs;
 }
 
 /// One running server, as it is now.
@@ -127,11 +168,10 @@ abstract class LspApi {
   @asyncCallback
   LspStartMessage start(String server, String? project, String? copy);
 
-  /// Queues [message], one JSON-RPC message, for the server's stdin. Null, or
-  /// why not: 'no_such_server', 'not_running', 'bad_request' (over 16 MiB) or
-  /// 'queue_full'.
+  /// Queues [message], one JSON-RPC message, for the server's stdin, and
+  /// answers once it is written there (or why it was not).
   @asyncCallback
-  String? send(int handle, String message);
+  LspSendMessage send(int handle, String message);
 
   /// Stops the server with its whole tree; its exit follows. Null, or why
   /// not: 'no_such_server' or 'not_running'.
@@ -146,9 +186,10 @@ abstract class LspApi {
 /// What the language servers' host tells Dart unasked.
 @FlutterApi()
 abstract class LspEvents {
-  /// One whole message a server wrote.
+  /// One whole message a server wrote, and when the host had read it whole,
+  /// on the monotonic clock, in µs.
   @asyncCallback
-  void received(int handle, String json);
+  void received(int handle, String json, int readUs);
 
   /// A server ended; nothing more comes from it.
   @asyncCallback

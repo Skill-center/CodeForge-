@@ -195,6 +195,99 @@ final class TerminalFailure extends Failure {
   String get kind => 'terminal';
 }
 
+/// Why a language server, or a call to one, failed (Phase 6 W4): the host's
+/// codes (runtime/LspHost.kt's LspFailure, pigeons/lsp_api.dart), then the
+/// client's own.
+enum LspProblem {
+  /// The runtime is not ready, or is being installed.
+  notReady('not_ready'),
+
+  /// A server or a workspace the host refused.
+  badRequest('bad_request'),
+
+  /// This APK carries no such server.
+  notInApk('not_in_apk'),
+
+  /// The server's files in the APK are damaged.
+  damaged('damaged'),
+
+  /// The device could not store the server.
+  storage('storage'),
+
+  /// Two servers run already.
+  tooMany('too_many'),
+
+  /// This server runs already: [LspFailure.running] names it.
+  alreadyRunning('already_running'),
+
+  /// The runtime's launcher or its node could not start it.
+  launchFailed('launch_failed'),
+
+  /// No server has that handle.
+  noSuchServer('no_such_server'),
+
+  /// The server is ending or has ended.
+  notRunning('not_running'),
+
+  /// Too much waits for the server's stdin already.
+  queueFull('queue_full'),
+
+  /// The server did not answer in time.
+  timeout('timeout'),
+
+  /// Whoever asked moved on.
+  cancelled('cancelled'),
+
+  /// The server ended and is starting again.
+  restarting('restarting'),
+
+  /// The server is off.
+  stopped('stopped'),
+
+  /// The server answered with an error ([LspFailure.errorCode]).
+  serverError('server_error'),
+
+  /// No host here (`flutter test`), or the host did not answer.
+  unavailable('unavailable'),
+
+  unknown('unknown');
+
+  const LspProblem(this.code);
+
+  final String code;
+
+  static LspProblem fromCode(String? code) {
+    for (final problem in values) {
+      if (problem.code == code) {
+        return problem;
+      }
+    }
+    return unknown;
+  }
+}
+
+/// A language server, or a call to one, that failed (Phase 6 W4).
+final class LspFailure extends Failure {
+  const LspFailure(
+    super.message, {
+    required this.problem,
+    this.running,
+    this.errorCode,
+    super.cause,
+  });
+
+  final LspProblem problem;
+
+  /// For [LspProblem.alreadyRunning]: the handle of the server that runs.
+  final int? running;
+
+  /// For [LspProblem.serverError]: the server's JSON-RPC error code.
+  final int? errorCode;
+
+  @override
+  String get kind => 'lsp';
+}
+
 /// A child process failed to start, misbehaved, or exited unexpectedly.
 final class ProcessFailure extends Failure {
   const ProcessFailure(super.message, {this.exitCode, super.cause});

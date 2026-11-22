@@ -3,6 +3,7 @@
 library;
 
 import 'package:codeforge/app.dart';
+import 'package:codeforge/application/lsp/lsp_controller.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -31,16 +32,21 @@ Future<void> pumpUntil(
   }
 }
 
+/// The real app over [prefs]. Language servers stay off unless
+/// [languageServers] asks for them (Phase 6 W4): the groups that measure
+/// something else measure it as before.
 Future<void> pumpRealApp(
   WidgetTester tester,
   SharedPreferences prefs, {
   List<Override> overrides = const [],
+  bool languageServers = false,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         settingsStoreProvider.overrideWithValue(PrefsSettingsStore(prefs)),
         shellStateStoreProvider.overrideWithValue(PrefsShellStateStore(prefs)),
+        languageServersEnabledProvider.overrideWithValue(languageServers),
         ...overrides,
       ],
       child: const CodeForgeApp(),

@@ -40,6 +40,7 @@ import '../services/contracts.dart';
 import 'documents/document_controller.dart';
 import 'explorer_view_controller.dart';
 import 'file_index.dart';
+import 'lsp/lsp_controller.dart';
 import 'providers.dart';
 import 'workspace_controller.dart';
 
@@ -354,6 +355,11 @@ final class FileWatchController extends Notifier<List<String>> {
     switch (listed) {
       case Ok<List<FileEntry>>(:final value):
         ref.read(fileIndexProvider.notifier).folderListed(folder, value);
+        // What changed in it, for the language servers that asked (Phase 6
+        // W4), once the status strip has them running.
+        if (ref.exists(lspControllerProvider)) {
+          ref.read(lspControllerProvider.notifier).folderListed(folder, value);
+        }
       case Err<List<FileEntry>>(
         failure: FileFailure(problem: FileProblem.notFound),
       ):
@@ -364,6 +370,9 @@ final class FileWatchController extends Notifier<List<String>> {
         workspace.forget(folder);
         ref.read(explorerViewProvider.notifier).pathRemoved(folder);
         ref.read(fileIndexProvider.notifier).removed(folder);
+        if (ref.exists(lspControllerProvider)) {
+          ref.read(lspControllerProvider.notifier).folderGone(folder);
+        }
       case Err<List<FileEntry>>():
         break;
     }

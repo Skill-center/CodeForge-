@@ -90,7 +90,13 @@ data class LspMemory(val pssKib: Long, val rssKib: Long, val processes: Int, val
 
 /** What a language server tells whoever started it: its messages, then its exit, in order, on the host's delivery thread. */
 interface LspListener {
-    fun onMessage(handle: Long, message: String)
+    /**
+     * One whole message the server wrote, with [readNs], when the host had
+     * read it whole: [System.nanoTime], the monotonic clock that Dart's
+     * `Timeline.now` reads too, so Dart can time a message's delivery
+     * (PHASE_6_PLAN W4, the request's stages).
+     */
+    fun onMessage(handle: Long, message: String, readNs: Long)
 
     fun onExit(exit: LspExit)
 }
@@ -161,10 +167,12 @@ class LspHost(
     /**
      * Starts server [serverId] in [workspace], with [listener] told of its
      * messages and its exit. Installs the server first if it is not yet
-     * (that may take seconds: never on the main thread).
+     * (that may take seconds: never on the main thread). [heapCapMb] caps
+     * V8's heap ([heapMb] unless a measurement asks otherwise); 0 sets no
+     * cap (W4 measures Pyright both ways on the phone).
      */
     @Synchronized
-    fun start(serverId: String, workspace: LspWorkspace, listener: LspListener): LspStart {
+    fun start(serverId: String, workspace: LspWorkspace, listener: LspListener, heapCapMb: Int = heapMb): LspStart {
         if (!SERVER_ID.matches(serverId)) return LspStart.failed(LspFailure.BAD_REQUEST, "a server is named by its id, not \"$serverId\"")
         val directory = try {
             if ((workspace.project == null) == (workspace.copy == null)) {
@@ -210,7 +218,7 @@ class LspHost(
             val builder = ProcessBuilder(command).directory(directory)
             builder.environment().clear()
             builder.environment().putAll(environment.variables(directory))
-            builder.environment()[NODE_OPTIONS] = "--max-old-space-size=$heapMb"
+            if (heapCapMb > 0) builder.environment()[NODE_OPTIONS] = "--max-old-space-size=$heapCapMb"
             builder.start()
         } catch (failure: IOException) {
             statusFile?.delete()
@@ -222,6 +230,8 @@ class LspHost(
             server = installed.server,
             workspace = workspace,
             directory = directory,
+            serverDirectory = installed.directory,
+            bin = environment.bin,
             installMs = if (installed.reused) 0L else installed.millis,
             registered = registered,
             registry = sessions,
@@ -241,11 +251,13 @@ class LspHost(
     /**
      * Queues [message] for server [handle]'s stdin. Null, or why not. (Not
      * `running[handle]?.send(message) ?: NO_SUCH_SERVER`: the elvis would
-     * also take a successful send's null for a missing server.)
+     * also take a successful send's null for a missing server.) [written]
+     * is told once for a queued message, as [LanguageServerProcess.send]
+     * says.
      */
-    fun send(handle: Long, message: String): LspFailure? {
+    fun send(handle: Long, message: String, written: ((Long?) -> Unit)? = null): LspFailure? {
         val server = running[handle] ?: return LspFailure.NO_SUCH_SERVER
-        return server.send(message)
+        return server.send(message, written)
     }
 
     /** Stops server [handle] with its tree. Null, or why not (as [send]). */
@@ -333,7 +345,12 @@ class LanguageServerProcess internal constructor(
     val handle: Long,
     val server: LanguageServers.Server,
     val workspace: LspWorkspace,
+    /** Its workspace's folder, links resolved: its working directory, and the root its client names. */
     val directory: File,
+    /** Where the server is installed (LanguageServers): its client names files of it in the server's options. */
+    val serverDirectory: File,
+    /** The runtime's programs: its client names the runtime's python to Pyright. */
+    val bin: File,
     /** How long its install took before it started; 0 when it was installed already. */
     val installMs: Long,
     private val registered: SessionRegistry.Session,
@@ -364,7 +381,11 @@ class LanguageServerProcess internal constructor(
     @Volatile
     private var broken: String? = null
 
-    private val outbox = LinkedBlockingQueue<ByteArray>()
+    /** False once the writer has stopped: nothing queued after that is written. */
+    @Volatile
+    private var writing: Boolean = true
+
+    private val outbox = LinkedBlockingQueue<Outgoing>()
     private val queued = AtomicLong()
     private val stderr = ByteTail(STDERR_KEPT)
     private var errors: Thread? = null
@@ -393,15 +414,40 @@ class LanguageServerProcess internal constructor(
     /** What its stderr ends with. */
     fun stderrTail(): String = stderr.text()
 
-    /** Queues [message] for its stdin. Null, or why not. */
-    fun send(message: String): LspFailure? {
-        if (!alive || requested != null) return LspFailure.NOT_RUNNING
+    /**
+     * Queues [message] for its stdin. Null, or why not. A queued message's
+     * [written] is told exactly once, on the writer's thread or the
+     * reader's: [System.nanoTime] once the message is written to the
+     * server's stdin and flushed, or null when it never will be (the server
+     * ended first). Dart times a request's stay in this queue with it
+     * (PHASE_6_PLAN W4). It must neither block nor throw.
+     */
+    fun send(message: String, written: ((Long?) -> Unit)? = null): LspFailure? {
+        if (!alive || !writing || requested != null) return LspFailure.NOT_RUNNING
         val frame = LspFrames.frame(message)
         if (frame.size - HEADER_ALLOWANCE > LspFrames.MAX_MESSAGE_BYTES) return LspFailure.BAD_REQUEST
         if (queued.get() + frame.size > MAX_QUEUED_BYTES) return LspFailure.QUEUE_FULL
         queued.addAndGet(frame.size.toLong())
-        outbox.offer(frame)
+        outbox.offer(Outgoing(frame, written))
+        // It ended meanwhile, and nothing will write this: say so (each message is drained once).
+        if (!alive || !writing) dropQueued()
         return null
+    }
+
+    /** Tells every message still queued that it will not be written, and forgets it; the writer's stop stays queued. */
+    private fun dropQueued() {
+        val dropped = ArrayList<Outgoing>()
+        outbox.drainTo(dropped)
+        var stop = false
+        for (message in dropped) {
+            if (message === STOP) {
+                stop = true
+            } else {
+                queued.addAndGet(-message.frame.size.toLong())
+                message.written?.invoke(null)
+            }
+        }
+        if (stop) outbox.offer(STOP)
     }
 
     /** Ends it with its tree, saying why. Null, or why not. */
@@ -419,8 +465,9 @@ class LanguageServerProcess internal constructor(
         try {
             while (true) {
                 val message = reader.read() ?: break
+                val readNs = System.nanoTime()
                 received.incrementAndGet()
-                delivery.execute { listener.onMessage(handle, message) }
+                delivery.execute { listener.onMessage(handle, message, readNs) }
             }
         } catch (bad: LspFramingException) {
             broken = "${bad.reason}: ${bad.message}"
@@ -439,7 +486,7 @@ class LanguageServerProcess internal constructor(
         }
         errors?.join(STDERR_JOIN_MS)
         alive = false
-        outbox.clear()
+        dropQueued()
         outbox.offer(STOP)
         registry.finished(registered)
         val exit = describe(LauncherStatus.read(registered.statusFile))
@@ -483,27 +530,41 @@ class LanguageServerProcess internal constructor(
 
     private fun writeMessages() {
         val output = registered.process.outputStream
+        var current: Outgoing? = null
         try {
             while (true) {
-                val frame = outbox.take()
-                if (frame === STOP) break
-                output.write(frame)
+                val next = outbox.take()
+                if (next === STOP) break
+                current = next
+                output.write(next.frame)
                 output.flush()
-                queued.addAndGet(-frame.size.toLong())
+                val writtenNs = System.nanoTime()
+                current = null
+                queued.addAndGet(-next.frame.size.toLong())
                 sent.incrementAndGet()
+                next.written?.invoke(writtenNs)
             }
         } catch (closed: IOException) {
             // The server has gone: its exit says how.
         } catch (interrupted: InterruptedException) {
             Thread.currentThread().interrupt()
         } finally {
+            writing = false
+            current?.let { unwritten ->
+                queued.addAndGet(-unwritten.frame.size.toLong())
+                unwritten.written?.invoke(null)
+            }
             try {
                 output.close()
             } catch (ignored: IOException) {
                 // Closed already.
             }
+            dropQueued()
         }
     }
+
+    /** A framed message waiting for the server's stdin, and who to tell once it is written (or never will be). */
+    private class Outgoing(val frame: ByteArray, val written: ((Long?) -> Unit)?)
 
     companion object {
         /** The stderr kept for the exit (PHASE_6_PLAN W3). */
@@ -515,7 +576,7 @@ class LanguageServerProcess internal constructor(
         private const val HEADER_ALLOWANCE = 64
         private const val ERROR_CHUNK = 4096
         private const val STDERR_JOIN_MS = 500L
-        private val STOP = ByteArray(0)
+        private val STOP = Outgoing(ByteArray(0), null)
     }
 }
 

@@ -30,6 +30,7 @@ import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/application/editor/editor_status.dart';
 import 'package:codeforge/application/editor/find_controller.dart';
 import 'package:codeforge/application/keyboard_state.dart';
+import 'package:codeforge/application/lsp/lsp_controller.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/services/contracts.dart';
@@ -61,6 +62,8 @@ void main() {
           shellStateStoreProvider.overrideWithValue(
             PrefsShellStateStore(prefs),
           ),
+          // As every group but W6's: no language servers (Phase 6 W4).
+          languageServersEnabledProvider.overrideWithValue(false),
           hardwareKeyboardSourceProvider.overrideWithValue(keyboard),
         ],
         child: const CodeForgeApp(),

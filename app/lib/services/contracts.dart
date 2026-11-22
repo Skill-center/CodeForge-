@@ -2,10 +2,10 @@
 ///
 /// Contracts never leak platform types. Files are real since Phase 2 W4
 /// (services/files/local_file_service.dart), the sealed runtime since
-/// Phase 4 W3 (services/runtime/runtime_service.dart), and terminal
-/// sessions since Phase 5 W2 (services/terminal/native/); the other
-/// services stay honest fakes until their phase, behind these exact
-/// contracts.
+/// Phase 4 W3 (services/runtime/runtime_service.dart), terminal sessions
+/// since Phase 5 W2 (services/terminal/native/), and the language servers'
+/// host since Phase 6 W4 (services/lsp/native/); the other services stay
+/// honest fakes until their phase, behind these exact contracts.
 library;
 
 import 'dart:typed_data';
@@ -13,6 +13,7 @@ import 'dart:typed_data';
 import '../core/errors/failure.dart';
 import '../core/files/file_stamp.dart';
 import '../core/files/text_codec.dart';
+import '../core/lsp/lsp_models.dart';
 import '../core/terminal/terminal_models.dart';
 
 /// What can be done to a file or folder (Phase 3 W4). A project's items
@@ -265,6 +266,36 @@ abstract interface class TerminalService {
 
   /// Forgets exited session [id] and its buffer.
   Future<Result<void>> remove(int id);
+}
+
+/// The language servers' host (Phase 6 W3, W4; pigeons/lsp_api.dart): a
+/// supervised pipe to each server. It starts a server in a workspace named,
+/// never a path; carries whole JSON-RPC messages both ways; stops it; and
+/// says how it ended. The protocol is the client's (application/lsp/).
+/// Every failure is an [LspFailure].
+abstract interface class LspService {
+  /// False where no host can run servers (the honest fake, `flutter test`).
+  bool get available;
+
+  /// Every server's messages, in order for each server.
+  Stream<LspIncoming> get messages;
+
+  /// Every server's end; nothing more comes from it after.
+  Stream<LspExit> get exits;
+
+  /// Starts [server] in [workspace], installing it first the first time
+  /// (seconds, once).
+  Future<Result<LspStarted>> start(LspServerId server, LspWorkspace workspace);
+
+  /// Sends [message], one JSON-RPC message, to server [handle]: done once
+  /// the host has written it to the server's stdin.
+  Future<Result<LspWritten>> send(int handle, String message);
+
+  /// Stops server [handle] with its whole tree; its exit follows.
+  Future<Result<void>> stop(int handle);
+
+  /// The servers that run, oldest first, with their memory.
+  Future<Result<List<LspServerInfo>>> servers();
 }
 
 /// Git status for the status strip. Phase 6 provides the real impl.

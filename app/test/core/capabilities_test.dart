@@ -122,4 +122,21 @@ void main() {
       expect(capabilities.interpreter, isNull, reason: language);
     }
   });
+
+  test('a language is analyzable while its server runs (Phase 6 W4)', () {
+    for (final language in ['python', 'javascript', 'typescript', 'tsx']) {
+      expect(
+        capabilitiesOf(language, runtimeReady: true).analyzable,
+        isFalse,
+        reason: language,
+      );
+      final running = capabilitiesOf(
+        language,
+        runtimeReady: true,
+        analyzable: true,
+      );
+      expect(running.analyzable, isTrue, reason: language);
+      expect(running.editable, isTrue, reason: language);
+    }
+  });
 }

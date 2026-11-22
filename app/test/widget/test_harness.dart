@@ -58,6 +58,7 @@ final class TestHarness {
     FakeRuntimeService? runtime,
     FakeSearchService? search,
     TerminalService? terminal,
+    LspService? lsp,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -69,7 +70,8 @@ final class TestHarness {
        projects = projects ?? MemoryProjectStorage(),
        runtime = runtime ?? FakeRuntimeService(),
        search = search ?? FakeSearchService(),
-       terminal = terminal ?? FakeTerminalService() {
+       terminal = terminal ?? FakeTerminalService(),
+       lsp = lsp ?? FakeLspService() {
     // A folder imported as a project lands in the project storage, as
     // Kotlin's import lands in the projects' folder (Phase 5 W4).
     broker?.onImport ??= (name, files) =>
@@ -115,6 +117,11 @@ final class TestHarness {
   /// test passes a scripted one.
   final TerminalService terminal;
 
+  /// The language servers' host (Phase 6 W4): the honest fake, unavailable,
+  /// so the status strip shows no server chip, unless a test passes a
+  /// scripted one.
+  final LspService lsp;
+
   /// Every scripted terminal page created through this harness, newest last.
   final List<FakeTerminalSurface> terminalSurfaces = [];
 
@@ -151,6 +158,7 @@ final class TestHarness {
     runtimeServiceProvider.overrideWithValue(runtime),
     searchServiceProvider.overrideWithValue(search),
     terminalServiceProvider.overrideWithValue(terminal),
+    lspServiceProvider.overrideWithValue(lsp),
     // Where a device keeps the app's files: terminal links name files by
     // their absolute paths (Phase 5 W4).
     appFilesPathProvider.overrideWithValue(() async => filesPath),

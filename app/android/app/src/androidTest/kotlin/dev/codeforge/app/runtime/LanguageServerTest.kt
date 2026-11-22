@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.ceil
 import org.json.JSONArray
 import org.json.JSONObject
@@ -57,8 +58,10 @@ import org.junit.runners.MethodSorters
  * rename and the fix, on a generated project of 200 files. Test e (W3)
  * refuses a second Pyright while one runs, then kills the running one's node
  * with SIGKILL: the host reports it as signaled, and nothing of its group is
- * left. Every figure goes to the device log (RUNTIME_GATE lsp_...) and to
- * files/runtime-gate/lsp-report.txt, which the gate copies out.
+ * left. Test f (W4) splits Pyright's completion time into its stages, with
+ * the host's heap cap and without it. Every figure goes to the device log
+ * (RUNTIME_GATE lsp_...) and to files/runtime-gate/lsp-report.txt, which the
+ * gate copies out.
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class LanguageServerTest {
@@ -207,7 +210,7 @@ class LanguageServerTest {
         val group = awaitGroup(process)
         var exit: LspExit? = null
         try {
-            val initialized = server.request("initialize", initializeParams(case, root), INITIALIZE_TIMEOUT_MS).first
+            val initialized = server.request("initialize", initializeParams(case.options, root), INITIALIZE_TIMEOUT_MS).first
             record("${case.id}_initialize_ms", SystemClock.elapsedRealtime() - started)
             val capabilities = (initialized as? JSONObject)?.optJSONObject("capabilities")
             val info = (initialized as? JSONObject)?.optJSONObject("serverInfo")
@@ -401,13 +404,121 @@ class LanguageServerTest {
         assertNull("the host still lists it", host().get(process.handle))
     }
 
-    private fun initializeParams(case: Case, root: File): JSONObject =
+    /**
+     * W4: where Pyright's completion time goes, and what the heap cap costs.
+     * W3's gates found Pyright's completion after an edit slower on the phone
+     * than W2 had (p95 83 to 113 ms against 58 to 62), for a reason not yet
+     * known. Here the two-file project's 50 completions after an edit run
+     * four times, alternating Pyright under the host's heap cap and with
+     * none, and each request's time is split into its stages: the host's
+     * queue (from the send until written to the server's stdin), the server
+     * (until its answer was read whole) and the delivery (until this test's
+     * listener had it); the rest of the total is the waiting thread's wake.
+     */
+    @Test
+    fun f_pyrightsCompletionStagesWithAndWithoutTheHeapCap() {
+        install("pyright")
+        for (round in 1..STAGE_ROUNDS) {
+            for (capped in listOf(true, false)) stages(round, capped)
+        }
+    }
+
+    private fun stages(round: Int, capped: Boolean) {
+        val id = "stages_${if (capped) "capped" else "uncapped"}$round"
+        val root = File(projects(), "stages").canonicalFile
+        root.deleteRecursively()
+        root.mkdirs()
+        File(root, "a.py").writeText(PY_MAIN)
+        File(root, "b.py").writeText(PY_OTHER)
+        val main = File(root, "a.py")
+        var text = PY_MAIN
+        var version = 1
+        val folders = JSONArray().put(JSONObject().put("uri", uriOf(root)).put("name", root.name))
+        val client = Client(id, { section -> pythonConfiguration(section) }, folders)
+        val launched = host().start("pyright", LspWorkspace(project = "stages"), client, heapCapMb = if (capped) host().heapMb else 0)
+        assertNull("$id: ${launched.failure?.code} ${launched.detail}", launched.failure)
+        val process = launched.server!!
+        client.attach(host(), process.handle)
+        val group = awaitGroup(process)
+        var exit: LspExit? = null
+        try {
+            record("${id}_node_options", nodeOptions(process))
+            client.request("initialize", initializeParams(JSONObject(), root), INITIALIZE_TIMEOUT_MS)
+            client.notify("initialized", JSONObject())
+            client.notify(
+                "textDocument/didOpen",
+                JSONObject().put(
+                    "textDocument",
+                    JSONObject().put("uri", uriOf(main)).put("languageId", "python").put("version", version).put("text", text),
+                ),
+            )
+            val first = client.awaitDiagnostics(main, DIAGNOSTICS_TIMEOUT_MS) { list -> mentions(list, "undefined_thing") }
+            assertNotNull("$id: no diagnostic naming undefined_thing", first)
+            val completion = JSONObject()
+                .put("textDocument", JSONObject().put("uri", uriOf(main)))
+                .put("position", positionOf(text, "greeter.greet()" to "greeter.".length))
+                .put("context", JSONObject().put("triggerKind", 2).put("triggerCharacter", "."))
+            repeat(STAGE_WARMUP) { client.timedRequest("textDocument/completion", completion, REQUEST_TIMEOUT_MS) }
+            val total = LongArray(WARM)
+            val queued = LongArray(WARM)
+            val served = LongArray(WARM)
+            val delivered = LongArray(WARM)
+            for (index in 0 until WARM) {
+                val lineCount = text.count { it == '\n' }
+                val insert = "# edit $index\n"
+                version += 1
+                client.notify("textDocument/didChange", change(main, version, lineCount, 0, lineCount, 0, insert))
+                text += insert
+                val timed = client.timedRequest("textDocument/completion", completion, REQUEST_TIMEOUT_MS)
+                assertTrue("$id: greet is gone after edit $index", labelsOf(timed.result).contains("greet"))
+                total[index] = timed.totalUs
+                queued[index] = timed.queueUs
+                served[index] = timed.serverUs
+                delivered[index] = timed.deliveryUs
+            }
+            record("${id}_edit_us", spread(total))
+            record("${id}_queue_us", spread(queued))
+            record("${id}_server_us", spread(served))
+            record("${id}_delivery_us", spread(delivered))
+            record("${id}_memory_after", memory(group))
+            client.request("shutdown", null, REQUEST_TIMEOUT_MS)
+            client.notify("exit", null)
+            val ended = client.waitForExit(EXIT_TIMEOUT_MS)
+            exit = ended
+            assertNotNull("$id: the server did not exit after exit", ended)
+        } finally {
+            if (exit == null) {
+                host().stop(process.handle)
+                client.waitForExit(EXIT_TIMEOUT_MS)
+            }
+            awaitGone(group)
+        }
+    }
+
+    /** The NODE_OPTIONS the server's node runs with, from its /proc environ (the app's own processes are readable). */
+    private fun nodeOptions(process: LanguageServerProcess): String {
+        val deadline = SystemClock.elapsedRealtime() + FIND_TIMEOUT_MS
+        var child = process.child()
+        while (child == null && SystemClock.elapsedRealtime() < deadline) {
+            SystemClock.sleep(FIND_POLL_MS)
+            child = process.child()
+        }
+        if (child == null) return "unknown"
+        return try {
+            String(File("/proc/$child/environ").readBytes(), Charsets.UTF_8).split('\u0000')
+                .firstOrNull { it.startsWith("NODE_OPTIONS=") }?.substringAfter('=') ?: "none"
+        } catch (unreadable: IOException) {
+            "unreadable"
+        }
+    }
+
+    private fun initializeParams(options: JSONObject, root: File): JSONObject =
         JSONObject()
             .put("processId", JSONObject.NULL)
             .put("clientInfo", JSONObject().put("name", "codeforge-spike").put("version", "1"))
             .put("rootUri", uriOf(root))
             .put("workspaceFolders", JSONArray().put(JSONObject().put("uri", uriOf(root)).put("name", root.name)))
-            .put("initializationOptions", case.options)
+            .put("initializationOptions", options)
             .put(
                 "capabilities",
                 JSONObject()
@@ -531,6 +642,10 @@ class LanguageServerTest {
         private const val TAG = "CodeForgeRuntimeGate"
         private const val REPORT = "lsp-report.txt"
         private const val WARM = 50
+
+        /** Test f: rounds of the capped and the uncapped run, and completions before each run's 50. */
+        private const val STAGE_ROUNDS = 2
+        private const val STAGE_WARMUP = 5
         private const val INITIALIZE_TIMEOUT_MS = 120_000L
         private const val DIAGNOSTICS_TIMEOUT_MS = 240_000L
         private const val REQUEST_TIMEOUT_MS = 60_000L
@@ -852,6 +967,9 @@ private class Client(
     private val diagnostics = LinkedBlockingQueue<JSONObject>()
     private val exits = LinkedBlockingQueue<LspExit>()
 
+    /** When the host read each answer whole, and when it reached this listener (System.nanoTime), by request id. */
+    private val answerTimes = ConcurrentHashMap<Int, Pair<Long, Long>>()
+
     @Volatile
     private var exited: LspExit? = null
 
@@ -869,10 +987,14 @@ private class Client(
         this.handle = handle
     }
 
-    override fun onMessage(handle: Long, message: String) {
+    override fun onMessage(handle: Long, message: String, readNs: Long) {
+        val deliveredNs = System.nanoTime()
         val bytes = message.toByteArray(Charsets.UTF_8).size
         if (bytes > largest) largest = bytes
-        dispatch(JSONObject(message))
+        val json = JSONObject(message)
+        // An answer's times, for its request's stages (W4).
+        if (!json.has("method") && json.has("id")) answerTimes[json.optInt("id")] = Pair(readNs, deliveredNs)
+        dispatch(json)
     }
 
     override fun onExit(exit: LspExit) {
@@ -908,6 +1030,52 @@ private class Client(
         if (params != null) message.put("params", params)
         send(message)
     }
+
+    /**
+     * Sends [method] and waits for its answer, timing its stages (W4), in µs:
+     * the host's queue (sent until written to the server's stdin), the server
+     * (until its answer was read whole) and the delivery (until this
+     * listener had it), all on System.nanoTime.
+     */
+    fun timedRequest(method: String, params: JSONObject?, timeoutMs: Long): Timed {
+        val number = nextId.getAndIncrement()
+        val queue = LinkedBlockingQueue<JSONObject>()
+        waiting[number] = queue
+        val message = JSONObject().put("jsonrpc", "2.0").put("id", number).put("method", method)
+        if (params != null) message.put("params", params)
+        val target = host ?: throw AssertionError("$id: not attached to a server")
+        // 0 until told; -1 when the host says it was never written.
+        val writtenAt = AtomicLong(0L)
+        val started = System.nanoTime()
+        val refused = target.send(handle, message.toString()) { writtenNs -> writtenAt.set(writtenNs ?: -1L) }
+        if (refused != null) throw AssertionError("$id: the host refused a message: ${refused.code}")
+        val answer = try {
+            queue.poll(timeoutMs, TimeUnit.MILLISECONDS)
+        } finally {
+            waiting.remove(number)
+        }
+        val answeredNs = System.nanoTime()
+        if (answer == null) {
+            throw AssertionError("$id: no answer to $method in $timeoutMs ms (exit: ${exited?.end?.code}); stderr: ${exited?.stderr?.takeLast(STDERR_SHOWN)}")
+        }
+        val error = answer.optJSONObject("error")
+        if (error != null) throw AssertionError("$id: $method failed: $error")
+        // The writer tells its time just after its flush, which a quick answer can overtake.
+        val deadline = System.nanoTime() + WRITTEN_WAIT_NS
+        while (writtenAt.get() == 0L && System.nanoTime() < deadline) Thread.yield()
+        val (readNs, deliveredNs) = answerTimes.remove(number) ?: Pair(answeredNs, answeredNs)
+        val written = writtenAt.get().takeIf { it > 0L } ?: started
+        return Timed(
+            result = answer.opt("result") ?: JSONObject.NULL,
+            totalUs = (answeredNs - started) / 1_000L,
+            queueUs = (written - started).coerceAtLeast(0L) / 1_000L,
+            serverUs = (readNs - written).coerceAtLeast(0L) / 1_000L,
+            deliveryUs = (deliveredNs - readNs).coerceAtLeast(0L) / 1_000L,
+        )
+    }
+
+    /** A timed request's answer and its stages, in µs. */
+    class Timed(val result: Any, val totalUs: Long, val queueUs: Long, val serverUs: Long, val deliveryUs: Long)
 
     /** The next diagnostics for [file] that [accept] takes, or null once [timeoutMs] has passed. */
     fun awaitDiagnostics(file: File, timeoutMs: Long, accept: (JSONArray) -> Boolean): JSONArray? {
@@ -962,6 +1130,7 @@ private class Client(
 
     private companion object {
         const val STDERR_SHOWN = 2_000
+        const val WRITTEN_WAIT_NS = 100_000_000L
 
         fun pathOf(uri: String): String? =
             try {

@@ -22,11 +22,13 @@ import java.util.concurrent.ConcurrentHashMap
  * messages.
  *
  * A server's messages and its exit go to Dart through LspEvents on the main
- * thread, in order. The servers belong to this engine, whose Dart side holds
- * their protocol state: when the engine goes ([close]), they are stopped.
- * Sending and stopping are answered on the main thread at once: a message is
- * queued for the server's writer thread, a stop sends a signal. Logs name
- * servers by handle and id, never a message or a path.
+ * thread, in order, each message with when the host read it whole. The
+ * servers belong to this engine, whose Dart side holds their protocol state:
+ * when the engine goes ([close]), they are stopped. A stop is answered at
+ * once (it sends a signal); a send once its message is written to the
+ * server's stdin, with when (W4: Dart times each request's stay in the
+ * host's queue), or at once when it is refused. Logs name servers by handle
+ * and id, never a message or a path.
  */
 class LanguageServerHost(context: Context, messenger: BinaryMessenger) : LspApi {
     private val hub = RuntimeHubs.get(context)
@@ -40,9 +42,10 @@ class LanguageServerHost(context: Context, messenger: BinaryMessenger) : LspApi 
     private var closed = false
 
     private val listener = object : LspListener {
-        override fun onMessage(handle: Long, message: String) {
+        override fun onMessage(handle: Long, message: String, readNs: Long) {
+            val readUs = readNs / NANOS_PER_MICRO
             main.post {
-                if (!closed) events.received(handle, message) { }
+                if (!closed) events.received(handle, message, readUs) { }
             }
         }
 
@@ -91,6 +94,7 @@ class LanguageServerHost(context: Context, messenger: BinaryMessenger) : LspApi 
             } else {
                 Log.w(TAG, "language server $server not started: ${started.failure?.code}")
             }
+            val live = process?.takeIf { !closed }
             callback(
                 Result.success(
                     LspStartMessage(
@@ -98,16 +102,31 @@ class LanguageServerHost(context: Context, messenger: BinaryMessenger) : LspApi 
                         failure = started.failure?.code,
                         detail = started.detail,
                         running = started.running,
+                        root = live?.directory?.absolutePath,
+                        bin = live?.bin?.absolutePath,
+                        serverDirectory = live?.serverDirectory?.absolutePath,
                     ),
                 ),
             )
         }
     }
 
-    override fun send(handle: Long, message: String, callback: (Result<String?>) -> Unit) {
+    override fun send(handle: Long, message: String, callback: (Result<LspSendMessage>) -> Unit) {
         val host = hub.languageServers()
-        val failure = if (host == null) LspFailure.NO_SUCH_SERVER else host.send(handle, message)
-        callback(Result.success(failure?.code))
+        if (host == null) {
+            callback(Result.success(LspSendMessage(failure = LspFailure.NO_SUCH_SERVER.code)))
+            return
+        }
+        // Answered once written, from the writer's thread (or the reader's, when the server ended first).
+        val refused = host.send(handle, message) { writtenNs ->
+            val answer = if (writtenNs == null) {
+                LspSendMessage(failure = LspFailure.NOT_RUNNING.code)
+            } else {
+                LspSendMessage(writtenUs = writtenNs / NANOS_PER_MICRO)
+            }
+            main.post { callback(Result.success(answer)) }
+        }
+        if (refused != null) callback(Result.success(LspSendMessage(failure = refused.code)))
     }
 
     override fun stop(handle: Long, callback: (Result<String?>) -> Unit) {
@@ -139,5 +158,6 @@ class LanguageServerHost(context: Context, messenger: BinaryMessenger) : LspApi 
 
     private companion object {
         const val TAG = "CodeForgeLsp"
+        const val NANOS_PER_MICRO = 1_000L
     }
 }

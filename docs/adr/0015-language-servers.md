@@ -81,8 +81,8 @@ MB here is KiB / 1024, as Phase 5's memory figures were.
 ## Consequences
 - **Memory: a server costs 167 to 255 MB of PSS on the phone,** past what PERFORMANCE §2 planned. With the editor and an open terminal (497.3 MB in Phase 5's exit gate, CI 44900930980), the app reaches about 665 to 753 MB, against PERFORMANCE's 600 MB for the editor, a terminal and one language server.
   - Keeping 600 MB would mean a server under about 103 MB beside them, while the servers take 142 to 219 MB idle.
-  - So the budget goes to the owner (PHASE_6_PLAN §10, item 3).
-  - Whatever the decision, W3 stops a server that has had no open document for 10 minutes, and runs at most two at once.
+  - So the budget went to the owner, who chose (b) on 2026-11-22: each server has a budget of its own, 300 MB of PSS on the gate's 200-file project on the phone; the app's own budgets stay, and the total is recorded (PHASE_6_PLAN §10, item 3).
+  - With it, a server with no open document for 10 minutes is stopped (W4, in Dart), at most two run at once (W3's `LspHost`), and servers are the first thing stopped on Android's low-memory warning (W3).
 - **Size:** about 11.0 MB per device, which W2 measures in the bundle.
 - **TypeScript 6.0.3 is the last JavaScript TypeScript.** It checks JavaScript and TypeScript today. Moving to TypeScript 7 means shipping its native binary among the APK's programs.
 - **The first install** would grow by Pyright's 5,423 files. W2 installs each language's server only when that language is first needed.

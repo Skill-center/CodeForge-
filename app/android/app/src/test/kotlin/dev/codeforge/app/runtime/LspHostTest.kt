@@ -3,9 +3,12 @@ package dev.codeforge.app.runtime
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.nio.file.Files
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -149,6 +152,66 @@ class LspHostTest {
         assertTrue(answer, answer.contains("\"node_options\": \"--max-old-space-size=${LspHost.HEAP_MB}\""))
         assertTrue("the app's own variables leaked: $answer", answer.contains("\"canary\": null"))
         assertEquals(File(projects, "demo").canonicalFile, server.directory)
+        // What Dart is told (W4): where the server is installed, and the runtime's programs.
+        assertEquals(File(environment.root, "codeforge/lsp/alpha").canonicalFile, server.serverDirectory.canonicalFile)
+        assertEquals(environment.bin, server.bin)
+    }
+
+    @Test
+    fun aStartMayGoWithoutTheHeapCap() {
+        val listener = Recorder()
+        val started = host.start("alpha", LspWorkspace(project = "demo"), listener, heapCapMb = 0)
+        assertNull("${started.failure}: ${started.detail}", started.failure)
+        started.server!!.send(request(1, "env"))
+        val answer = listener.waitForMessage { it.contains("\"cwd\"") }
+        assertTrue(answer, answer.contains("\"node_options\": null"))
+    }
+
+    @Test
+    fun aSendIsToldWhenItsMessageIsWrittenAndEachMessageWhenItWasRead() {
+        val listener = Recorder()
+        val server = start(listener)
+        val before = System.nanoTime()
+        val told = CountDownLatch(1)
+        val calls = AtomicInteger()
+        val writtenAt = AtomicLong(-1L)
+        val refused = host.send(server.handle, request(1, "echo")) { writtenNs ->
+            writtenAt.set(writtenNs ?: -2L)
+            calls.incrementAndGet()
+            told.countDown()
+        }
+        assertNull(refused)
+        assertTrue("never told the message was written", told.await(10, TimeUnit.SECONDS))
+        val answer = listener.waitForMessage { it.contains("\"id\": 1") }
+        val readAt = listener.readAt(answer)
+        val after = System.nanoTime()
+        // Both on System.nanoTime, between the send and now. (Which comes first is not asserted: the writer
+        // takes its time after the flush, by when a quick server may have answered.)
+        assertTrue("written at ${writtenAt.get()}, outside $before..$after", writtenAt.get() in before..after)
+        assertTrue("read at $readAt, outside $before..$after", readAt in before..after)
+        Thread.sleep(100)
+        assertEquals("told once", 1, calls.get())
+    }
+
+    @Test
+    fun messagesStillQueuedWhenTheServerEndsAreToldTheyWereNotWritten() {
+        val listener = Recorder()
+        val server = start(listener)
+        // The stub stops reading: the pipe fills during the first big message, and the rest wait in the queue.
+        server.send(request(1, "hang"))
+        val big = request(2, "echo", "{\"text\":\"${"z".repeat(256 * 1024)}\"}")
+        val told = Collections.synchronizedList(mutableListOf<Long?>())
+        val sends = 8
+        repeat(sends) {
+            assertNull(server.send(big) { writtenNs -> told.add(writtenNs) })
+        }
+        assertNull(host.stop(server.handle))
+        assertEquals(LspEnd.STOPPED, listener.waitForExit().end)
+        val deadline = System.nanoTime() + 5_000_000_000L
+        while (told.size < sends && System.nanoTime() < deadline) Thread.sleep(20)
+        assertEquals("every queued message is told once: $told", sends, told.size)
+        assertTrue("some were never written: $told", told.any { it == null })
+        assertEquals(LspFailure.NOT_RUNNING, server.send(big))
     }
 
     @Test
@@ -301,14 +364,19 @@ class LspHostTest {
         private val lock = ReentrantLock()
         private val changed = lock.newCondition()
         private val received = mutableListOf<String>()
+        private val reads = mutableListOf<Long>()
         private var exit: LspExit? = null
 
-        override fun onMessage(handle: Long, message: String) {
+        override fun onMessage(handle: Long, message: String, readNs: Long) {
             lock.withLock {
                 received.add(message)
+                reads.add(readNs)
                 changed.signalAll()
             }
         }
+
+        /** When the host read [message] whole. */
+        fun readAt(message: String): Long = lock.withLock { reads[received.indexOf(message)] }
 
         override fun onExit(exit: LspExit) {
             lock.withLock {

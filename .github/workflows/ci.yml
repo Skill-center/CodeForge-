@@ -388,6 +388,17 @@ jobs:
         continue-on-error: true
         run: flutter analyze > ci-results/analyze.txt 2>&1
 
+      - name: Analyze digest
+        if: steps.analyze.outcome == 'failure'
+        # As the test digest below: only [bootstrap] runs commit analyze.txt,
+        # so the first issues go where the API can read them (Phase 6 W4).
+        run: |
+          { grep -E '(error|warning|info) •' ci-results/analyze.txt || tail -n 40 ci-results/analyze.txt; } \
+            | head -n 40 \
+            | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+            | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/analyze-digest.txt"
+          echo "::warning title=Analyze failed (first 40 issues)::$(cat "$RUNNER_TEMP/analyze-digest.txt")"
+
       - name: Architecture import lint
         id: imports
         continue-on-error: true
@@ -1465,7 +1476,7 @@ jobs:
             --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
             --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
             --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
-            --expect dev.codeforge.app.runtime.LanguageServerTest:5 \
+            --expect dev.codeforge.app.runtime.LanguageServerTest:6 \
             --expect dev.codeforge.app.syncmodes.SyncModesTest:4 \
             --require lsp_install_damaged=damaged \
             --require lsp_crash=signaled:9 \

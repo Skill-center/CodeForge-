@@ -228,7 +228,7 @@ python3 tool/ci/gate_results.py \
   --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
   --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
   --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
-  --expect dev.codeforge.app.runtime.LanguageServerTest:5 \
+  --expect dev.codeforge.app.runtime.LanguageServerTest:6 \
   --require lsp_install_damaged=damaged \
   --require lsp_crash=signaled:9 \
   --require exec_model_audit_outside_apk=0 \

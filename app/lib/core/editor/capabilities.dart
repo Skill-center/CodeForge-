@@ -1,8 +1,9 @@
 /// What CodeForge can do with each language (spec §6.5,
-/// docs/RUNTIME_INTEGRATION.md §3): every language is *editable*; one becomes
-/// *analyzable* when its language server passes its smoke suite (Phase 6),
-/// *compilable* with the build-tools pack, and *executable* when the sealed
-/// runtime can run it. Since Phase 4 W4, JavaScript, Python and shell
+/// docs/RUNTIME_INTEGRATION.md §3): every language is *editable*; one is
+/// *analyzable* while its language server is installed, verified and running
+/// (Phase 6 W4: Python with Pyright, JavaScript and TypeScript with the
+/// TypeScript server), *compilable* with the build-tools pack, and
+/// *executable* when the sealed runtime can run it. Since Phase 4 W4, JavaScript, Python and shell
 /// scripts are executable once the runtime is ready; Ruby and Perl joined
 /// them with Run (Phase 5 W4, core/run/run_commands.dart).
 library;
@@ -119,16 +120,19 @@ String capabilityLanguageFor(String path, {String? firstLine}) {
   return natural;
 }
 
-/// The capabilities of [language], with the runtime ready or not. Only the
-/// runtime's readiness flips anything: executable, for the languages in
+/// The capabilities of [language], with the runtime ready or not, and its
+/// language server running or not ([analyzable], Phase 6 W4). The
+/// runtime's readiness flips executable, for the languages in
 /// [runtimeInterpreters].
 LanguageCapabilities capabilitiesOf(
   String language, {
   required bool runtimeReady,
+  bool analyzable = false,
 }) {
   final interpreter = runtimeInterpreters[language];
   return LanguageCapabilities(
     language: language,
+    analyzable: analyzable,
     executable: runtimeReady && interpreter != null,
     interpreter: interpreter,
   );

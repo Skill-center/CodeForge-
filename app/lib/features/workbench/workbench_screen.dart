@@ -17,6 +17,7 @@ import '../../application/documents/document_controller.dart';
 import '../../application/editor/editor_providers.dart';
 import '../../application/editor/find_controller.dart';
 import '../../application/file_watch_controller.dart';
+import '../../application/lsp/lsp_controller.dart';
 import '../../application/run/run_controller.dart';
 import '../../application/runtime_controller.dart';
 import '../../application/shell_controller.dart';
@@ -27,6 +28,7 @@ import '../../core/editor/capabilities.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/text_codec.dart';
 import '../../core/files/workspace_location.dart';
+import '../../core/lsp/lsp_models.dart';
 import '../../core/platform/breakpoints.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';
@@ -696,8 +698,18 @@ class _StatusStripRow extends ConsumerWidget {
     final runtimeReady = ref.watch(
       runtimeControllerProvider.select((s) => s.state == RuntimeState.ready),
     );
+    // The document's language server, where servers can run (Phase 6 W4).
+    final server = activeDoc == null || activeDoc.largeFile
+        ? null
+        : LspServerId.forLanguage(activeDoc.language);
+    final serverStatus = ref.watch(
+      lspControllerProvider.select(
+        (s) => server == null || !s.available ? null : s.statusOf(server),
+      ),
+    );
     // What the runtime can do with the document's language (Phase 4 W4):
-    // shell scripts, which the editor shows as plain text, included.
+    // shell scripts, which the editor shows as plain text, included. It is
+    // analyzable while its server runs (Phase 6 W4).
     final capabilities = activeDoc == null
         ? null
         : capabilitiesOf(
@@ -712,6 +724,7 @@ class _StatusStripRow extends ConsumerWidget {
               ),
             ),
             runtimeReady: runtimeReady,
+            analyzable: serverStatus?.running ?? false,
           );
     return CfStatusStrip(
       children: [
@@ -733,6 +746,8 @@ class _StatusStripRow extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _RunChip(onTap: onRunChip),
+                  if (server != null && serverStatus != null)
+                    _LanguageServerChip(server: server, status: serverStatus),
                   if (activeDoc != null) ...[
                     CfStatusChip(
                       key: const ValueKey('status_language'),
@@ -791,6 +806,51 @@ String? languageCapabilityTooltip(LanguageCapabilities? capabilities) {
   return capabilities.executable
       ? '$title: Run uses $interpreter in the Linux runtime'
       : '$title: Run needs the Linux runtime, which is not ready';
+}
+
+/// The active document's language server (Phase 6 W4): starting, ready,
+/// analysing, restarting or off, with why in its tooltip. When the server
+/// gave up (three restarts in five minutes, or a start that cannot succeed
+/// by itself), a tap starts it again.
+class _LanguageServerChip extends ConsumerWidget {
+  const _LanguageServerChip({required this.server, required this.status});
+
+  final LspServerId server;
+  final LspStatus status;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = CfColors.of(context);
+    final restartable = status.canRestart;
+    return CfStatusChip(
+      key: const ValueKey('status_lsp'),
+      icon: restartable ? CfIcons.restartAlt : null,
+      label: '${server.title}: ${status.phase.label}',
+      color: status.phase == LspPhase.restarting || restartable
+          ? colors.warning
+          : null,
+      tooltip: languageServerTooltip(server, status),
+      onTap: restartable
+          ? () => unawaited(
+              ref.read(lspControllerProvider.notifier).restart(server),
+            )
+          : null,
+    );
+  }
+}
+
+/// What the language server chip's tooltip says.
+String languageServerTooltip(LspServerId server, LspStatus status) {
+  final reason = status.reason;
+  final said = switch (status.phase) {
+    LspPhase.off => reason ?? '${server.title} starts with a file it analyses',
+    LspPhase.starting => '${server.title} is starting',
+    LspPhase.ready => '${server.title} is analysing this file as you type',
+    LspPhase.analysing => '${server.title} is analysing the project',
+    LspPhase.restarting =>
+      '${server.title} is restarting: ${reason ?? 'it ended'}',
+  };
+  return status.canRestart ? '$said. Tap to restart.' : said;
 }
 
 /// The newest run's status (Phase 5 W4): running, its exit code, or the

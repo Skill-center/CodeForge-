@@ -20,6 +20,7 @@ import 'package:codeforge/app.dart';
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/editor/editor_host.dart';
 import 'package:codeforge/application/editor/editor_providers.dart';
+import 'package:codeforge/application/lsp/lsp_controller.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/application/shell_controller.dart';
 import 'package:codeforge/core/errors/failure.dart';
@@ -53,6 +54,8 @@ void main() {
           shellStateStoreProvider.overrideWithValue(
             PrefsShellStateStore(prefs),
           ),
+          // As every group but W6's: no language servers (Phase 6 W4).
+          languageServersEnabledProvider.overrideWithValue(false),
           // The picker opens inside the gate folder (W3's Reconnect opens
           // it at a folder's old place the same way).
           folderPickerStartProvider.overrideWithValue(gateFolderStartUri),

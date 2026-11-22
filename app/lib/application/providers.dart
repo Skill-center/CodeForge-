@@ -17,6 +17,7 @@ import '../services/files/native/pigeon_storage_broker.dart';
 import '../services/files/project_storage.dart';
 import '../services/files/saf_file_service.dart';
 import '../services/files/storage_broker.dart';
+import '../services/lsp/native/pigeon_lsp_service.dart';
 import '../services/platform/app_directories.dart';
 import '../services/platform/backup_channel.dart';
 import '../services/runtime/native/pigeon_runtime_service.dart';
@@ -138,6 +139,17 @@ final backupServiceProvider = Provider<BackupService>((ref) {
 final terminalServiceProvider = Provider<TerminalService>((ref) {
   ref.keepAlive();
   final service = PigeonTerminalService();
+  ref.onDispose(() => unawaited(service.dispose()));
+  return service;
+});
+
+/// The language servers' host (Phase 6 W4, docs/LSP_ARCHITECTURE.md),
+/// through the Kotlin host (android/…/lsp/LanguageServerHost.kt). Without a
+/// host (`flutter test`) every call fails as unavailable; tests override
+/// this with the honest fake (services/fakes.dart) or a scripted service.
+final lspServiceProvider = Provider<LspService>((ref) {
+  ref.keepAlive();
+  final service = PigeonLspService();
   ref.onDispose(() => unawaited(service.dispose()));
   return service;
 });
