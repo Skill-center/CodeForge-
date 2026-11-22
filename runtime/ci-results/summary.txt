@@ -2,31 +2,33 @@
 Python 3.14.4
 *** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***
 --- script-tests
-=== PASS runtime/tests/test-check-bundle-size.py
-Ran 9 tests in 0.009s
-OK
+server beta: 1 packages, 3 files, 116 bytes, 529 in its archive
+server alpha: 2 packages, 7 files, 488 bytes, 1631 in its archive
+server beta: 1 packages, 3 files, 116 bytes, 529 in its archive
+server alpha: 2 packages, 7 files, 488 bytes, 1631 in its archive
+server beta: 1 packages, 3 files, 116 bytes, 529 in its archive
 === PASS runtime/tests/test-notices.py
-Ran 27 tests in 4.485s
+Ran 27 tests in 4.881s
 OK
 === PASS runtime/tests/test-pins.py
-Ran 21 tests in 2.561s
+Ran 21 tests in 3.531s
 OK
 === PASS runtime/tests/test-provenance.py
-Ran 15 tests in 0.133s
+Ran 15 tests in 0.147s
 OK
 === PASS runtime/tests/test-pty.py
-Ran 20 tests in 9.232s
+Ran 20 tests in 10.383s
 OK
 === PASS runtime/tests/test-sealed-payload.py
 === PASS runtime/tests/test-sources.py
-Ran 27 tests in 2.007s
+Ran 27 tests in 2.196s
 OK
 === PASS runtime/tests/test-spawn.py
-Ran 22 tests in 3.762s
+Ran 22 tests in 3.754s
 OK
-script_test_files=8 cases=142 failed_files=0
+script_test_files=9 cases=164 failed_files=0
 --- provenance
-provenance: OK - 23 vendored files (14 with the package renamed, 9 byte for byte; 2 patched) and 21 of CodeForge's own
+provenance: OK - 23 vendored files (14 with the package renamed, 9 byte for byte; 2 patched) and 26 of CodeForge's own
 --- pins
 pins: OK - 50 for aarch64 (2 for consistency), 50 for x86_64 (2 for consistency) on bootstrap 2026.02.12-r1+apt.android-7; resolved 2026-11-13T09:43:19Z
 --- fetch
@@ -48,3 +50,9 @@ notices: THIRD_PARTY_NOTICES.md is current
 notices: SOURCE_OFFER.md is current
 notices: app/assets/licenses/userland.txt is current
 notices: 112 package versions, 55 under a copyleft licence; 67 distinct licence texts
+--- language-servers
+language servers: the pins hold
+fetched 61 tarballs, each verified, into runtime/generated/lsp-cache
+server pyright: 1 packages, 5423 files, 19457120 bytes, 6058159 in its archive
+server typescript: 2 packages, 145 files, 26803017 bytes, 5154895 in its archive
+language-server notices: already current
