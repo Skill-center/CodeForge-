@@ -23,51 +23,51 @@ Got dependencies!
 19 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/sessions_a_test.dart
-Running Gradle task 'assembleDebug'...                             20.8s
+Running Gradle task 'assembleDebug'...                             17.5s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...           3.5s
+Installing build/app/outputs/flutter-apk/app-debug.apk...        2,254ms
 00:00 +0: sessions A: the service, memory pressure, five minutes away, then the process dies
-FOLDERGATE 1795353803300.1 service
-folder gate: request 1795353803300.1 answered fg:1,type:0x40000000,title:2-terminal-sessions-running
+FOLDERGATE 1795358018719.1 service
+folder gate: request 1795358018719.1 answered fg:1,type:0x40000000,title:2-terminal-sessions-running
 SESSIONS_GATE service_started fg:1,type:0x40000000,title:2-terminal-sessions-running
 SESSIONS_GATE sessions seven=1 heartbeat=2 shell=3 first_beat=2
-FOLDERGATE 1795353803300.2 trim RUNNING_LOW
-folder gate: request 1795353803300.2 answered sent,trimmed:0
-FOLDERGATE 1795353803300.3 trim RUNNING_CRITICAL
-folder gate: request 1795353803300.3 answered sent,trimmed:0
-SESSIONS_GATE pressure low=sent,trimmed:0 critical=sent,trimmed:0 released_ms=3459
-══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
-The following TestFailure was thrown running a test:
-Expected: 'sent,trimmed:2'
-  Actual: 'sent,trimmed:0'
-   Which: is different.
-          Expected: ... t,trimmed:2
-            Actual: ... t,trimmed:0
-                                  ^
-           Differ at offset 13
-two sessions had no view
-
-When the exception was thrown, this was the stack:
-#4      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/sessions_a_test.dart:295:7)
-<asynchronous suspension>
-#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
-<asynchronous suspension>
-<asynchronous suspension>
-(elided one frame from package:stack_trace)
-
-This was caught by the test expectation on the following line:
-  file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/sessions_a_test.dart line 295
-The test description was:
-  sessions A: the service, memory pressure, five minutes away, then the process dies
-════════════════════════════════════════════════════════════════════════════════════════════════════
-00:41 +0 -1: sessions A: the service, memory pressure, five minutes away, then the process dies [E]
-  Test failed. See exception logs above.
-  The test description was: sessions A: the service, memory pressure, five minutes away, then the process dies
-  
-00:41 +0 -1: (tearDownAll)
-00:42 +0 -1: Some tests failed.
+FOLDERGATE 1795358018719.2 trim RUNNING_LOW
+folder gate: request 1795358018719.2 answered sent,trimmed:0
+FOLDERGATE 1795358018719.3 trim RUNNING_CRITICAL
+folder gate: request 1795358018719.3 answered sent,trimmed:2
+SESSIONS_GATE pressure low=sent,trimmed:0 critical=sent,trimmed:2 released_ms=3237
+SESSIONS_GATE pressure redrawn_beat=9 running=2
+FOLDERGATE 1795358018719.4 home
+folder gate: request 1795358018719.4 answered done
+sessions gate: away 30 s, beats 40
+sessions gate: away 60 s, beats 69
+FOLDERGATE 1795358018719.5 service
+folder gate: request 1795358018719.5 answered fg:1,type:0x40000000,title:2-terminal-sessions-running
+FOLDERGATE 1795358018719.6 procs cf-heartbeat-5201
+folder gate: request 1795358018719.6 answered count:2,oom:800,app:200
+SESSIONS_GATE away service=fg:1,type:0x40000000,title:2-terminal-sessions-running processes=count:2,oom:800,app:200
+sessions gate: away 90 s, beats 99
+sessions gate: away 120 s, beats 128
+sessions gate: away 150 s, beats 158
+sessions gate: away 180 s, beats 187
+sessions gate: away 210 s, beats 217
+sessions gate: away 240 s, beats 246
+sessions gate: away 270 s, beats 275
+sessions gate: away 300 s, beats 305
+sessions gate: away 330 s, beats 334
+FOLDERGATE 1795358018719.7 front
+folder gate: request 1795358018719.7 answered done
+SESSIONS_GATE background seconds=332 beats=325 longest_gap_s=2
+FOLDERGATE 1795358018719.8 procs 9999.5202
+folder gate: request 1795358018719.8 answered count:1,oom:800,app:0
+SESSIONS_GATE return beat=336 shell=answers job=count:1,oom:800,app:0
+SESSIONS_GATE part_a=ok
+FOLDERGATE 1795358018719.9 die
+06:01 +0: sessions A: the service, memory pressure, five minutes away, then the process dies - did not complete [E]
+06:01 +0: (tearDownAll) - did not complete [E]
+06:01 +0: Some tests failed.
 
 Failing tests:
-  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/sessions_a_test.dart: sessions A: the service, memory pressure, five minutes away, then the process dies
+  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/sessions_a_test.dart: (tearDownAll) (did not complete)
+  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/sessions_a_test.dart: sessions A: the service, memory pressure, five minutes away, then the process dies (did not complete)
+No tests were found.
