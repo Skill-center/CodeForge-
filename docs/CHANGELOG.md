@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 6 W1, the language servers' compatibility spike (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
+- **Both candidate servers work under the sealed runtime,** on every target: Pyright 1.1.414 for Python, and typescript-language-server 6.1.0 with TypeScript 6.0.3 for JavaScript and TypeScript ([ADR-0015](adr/0015-language-servers.md)). Each initializes, reports a fixture's error, completes a known member, finds a definition and renames across two files, clears the error once it is fixed, and exits with nothing left, on API 26 to 36 and on a Pixel 8a with Android 14.
+- **Fast enough:** on the phone, completion after an edit took 43 to 93 ms at the 95th percentile against a 300 ms budget, and the first diagnostics 1.2 to 2.8 s after a file opened.
+- **Heavier than planned:** a server takes 167 to 255 MB of PSS on the phone, so the editor, a terminal and a server come to about 665 to 753 MB against PERFORMANCE's 600 MB. The owner decides the budget (PHASE_6_PLAN §10, item 3).
+- **Checked before they reach a device:** the servers come from the npm registry at pinned versions, each tarball checked against the registry's SHA-512, and refused if it holds native code, a link or a path outside the package (`app/tool/ci/fetch_language_servers.py`).
+- Verified by: plain CI 44976282000; phase gate 44977463887, whole: `LanguageServerTest` 4 of 4 on each runtime leg, every emulator group at its first attempt, the cold start at 1,169 ms, and Test Lab's Pixel 8a 36 of 36 in the same run.
+
 ### Phase 6 planned (2026-11-21)
 - [PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md): language intelligence in seven work packages. First a compatibility spike: Pyright, and TypeScript 6.0.3 with typescript-language-server, under the sealed node on API 26 to 36 and the Pixel 8a, with their start, latency and memory measured. Then the servers in the payload (pinned with their integrity, JavaScript only, installed the first time their language is needed), the host's server processes with LSP's framing in Kotlin, the client in Dart, completion, diagnostics, definition, rename and hover in the editor, and the language gate on an arm64 phone. The owner decides which languages get a server, and the memory budget once W1 has measured it (§10).
 - **The owner's decision (2026-11-22):** both languages get a server, Python and JavaScript/TypeScript (§10, item 2, option (a)).

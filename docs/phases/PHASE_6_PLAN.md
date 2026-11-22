@@ -1,6 +1,6 @@
 # Phase 6 Plan — Language Intelligence
 
-**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 under way** · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
+**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 done on 2026-11-22** (phase gate 44977463887: both servers pass the smoke suite on API 26 to 36 and on Test Lab's Pixel 8a; see *As built (W1)* and ADR-0015). **The memory budget with a server awaits the owner** (§10, item 3) · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
 
 ---
 
@@ -126,6 +126,25 @@ ROADMAP and LSP_ARCHITECTURE §2 put it first, and every later package builds on
   - ADR-0015 (language servers) records the choice with these numbers, and LSP_ARCHITECTURE §2 its table.
   - A server ships only if it passes on every target.
   - If a server's memory puts the app past PERFORMANCE's 600 MB with the editor and a terminal, W1's report brings the numbers to the owner with options (§10, item 3), as Phase 5's W6 did.
+
+**As built (W1):**
+- **G1 met.** `LanguageServerTest`'s 4 tests passed on every runtime leg (API 26, 27, 28, 34 and 36) and on Test Lab's Pixel 8a with Android 14, in phase gate 44977463887 (Test Lab in the same run: 36 of 36 tests). The rest of the gate passed too: every emulator group at its first attempt, and the cold start at 1,169 ms. The evidence is in `bf8f7f1`, `932dab3` and `1a7c870`. [ADR-0015](../adr/0015-language-servers.md) records the choice with the numbers: **Pyright 1.1.414, and typescript-language-server 6.1.0 with TypeScript 6.0.3.**
+- **On the phone:**
+  - **First diagnostics:** Pyright 1.21 s on two files and 1.51 s on 200; TypeScript 2.46 and 2.77 s.
+  - **Completion after an edit, at the 95th percentile:** Pyright 43 and 56 ms; TypeScript 93 and 60 ms. That is within a third of the 300 ms budget.
+  - **Memory (PSS of the server's process group) after the completions:** Pyright 167.1 and 210.1 MB; TypeScript 246.7 and 255.2 MB.
+- **Memory is past what PERFORMANCE planned.** With the editor and an open terminal (497.3 MB in Phase 5's exit gate), a server takes the app to about 665 to 753 MB, against 600 MB. The numbers and a recommendation go to the owner (§10, item 3).
+- **Also found:**
+  - Pyright resolved `import pip` on every target, so node starts the runtime's python.
+  - The launcher's command mode hands a server its stdin unchanged.
+  - The largest message was 37,991 bytes, the TypeScript project's 199 diagnostics.
+  - Each server exited with 0 after `exit`, and nothing of its group was left.
+- **Built:**
+  - `app/tool/ci/language_servers.json`, the spike's pins with the registry's SHA-512.
+  - `fetch_language_servers.py`. It checks each tarball's integrity and refuses native code, links and paths outside the package. Its 15 self-test cases run with the gate's other scripts.
+  - `LanguageServerTest`, with the legs and Test Lab fetching the servers before they build the test APK, and expecting its 4 tests.
+  - Plain CI 44976282000 compiled it before the gate ran.
+- **As planned, with one addition:** completion is timed both repeated (the servers cache the answer) and after an edit (as typing does). W6 judges the budget on the second.
 
 ### W2 — The servers in the payload (1 session) → G2
 
@@ -359,6 +378,12 @@ LSP_ARCHITECTURE (as built), ADR-0015 (new), SECURITY §2.3, ARCHITECTURE, EDITO
    - **(b)** give the server a budget of its own, beside the app's.
 
    The agent brings the numbers and a recommendation at W1's end.
+   - **W1's numbers (2026-11-22, phase gate 44977463887; ADR-0015):** a server takes 167 to 255 MB of PSS on the Pixel 8a, idle at 142 to 219 MB. With the editor and an open terminal (497.3 MB), the app reaches about 665 to 753 MB.
+   - **(a) is not reachable as stated:** it would need a server under about 103 MB beside the editor and a terminal, below what node and the standard library's stubs take idle.
+   - **The agent recommends (b):**
+     - each server within **300 MB of PSS** on the gate's 200-file project on the phone (Pyright measured 210.1 MB, TypeScript 255.2 MB);
+     - the app's own budgets kept as they are, and the total with a server recorded, as Phase 5 recorded a flood's growth;
+     - idle servers stopped after 10 minutes, at most two at once, and servers stopped first when Android warns of low memory.
 4. **Non-blocking, carried from Phase 5:**
    - the phone session: PHASE_5_PHONE_CHECKLIST, and the Phase 3 and Phase 4 checklists, on the exit gate's APK (until 2026-12-21);
    - the first release: the keys, and the licence review, which the servers' notices join;

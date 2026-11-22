@@ -162,6 +162,14 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
 - **Test Lab** (W2, W5, W6): the same classes on the phone. Since W6 the phone's APK is a profile build (`-Pcodeforge.testBuildType=profile`), and its Dart entrypoint also runs `integration_test/phone_terminal_test.dart`. The job requires the terminal's figures: the renderer shipped (`webgl`), the composition (`hcpp`), the host's port, the echo, the flood whole with Flutter's frames, and the open terminal's memory within 90 MB (since the owner's decision, §10 item 7 of PHASE_5_PLAN). A flood's growth is recorded.
 - **The quality job:** *Release manifest* allows the foreground service's three permissions and `SessionService` (W5); the API floor check allows one guarded API 31 call (W5, `setForegroundServiceBehavior`); *Release scripts* runs `check_signer.sh --self-test` (W1).
 
+### 2.6 Added in Phase 6
+
+- **W1, the language servers' compatibility spike:**
+  - `app/tool/ci/language_servers.json` pins the candidates (Pyright 1.1.414, TypeScript 6.0.3, typescript-language-server 6.1.0) with the npm registry's SHA-512.
+  - `fetch_language_servers.py` writes them into the test APK's assets (`android/app/src/androidTest/assets/lsp/`, which Git ignores). It runs in the runtime build job and in the Test Lab job, before Gradle builds the test APK, and fails the job, naming the package, if a tarball doesn't match or holds native code.
+  - Its self-test runs on every push in the *Test Lab scripts* step.
+  - The legs run `LanguageServerTest`, copy its `lsp-report.txt`, and expect its 4 tests, as does Test Lab's judge. The test APK grew from about 0.1 MB to 11.1 MB.
+
 ## 3. Toolchain pins in CI
 
 - Flutter: `.flutter-version` (**3.50.0** since Phase 4 W1; 3.47.9 before). Both workflows read the file and pass the version to `subosito/flutter-action`; the next step records the Flutter installed (`ci-results/flutter.txt`, and a notice on the run) and fails if it is another.

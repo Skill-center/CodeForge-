@@ -43,7 +43,7 @@
 | [Tech Stack](docs/TECH_STACK.md) | Every dependency, verified versions, rejection reasons |
 | **[Phase 6 Plan](docs/phases/PHASE_6_PLAN.md)** · [Phase 5 Plan](docs/phases/PHASE_5_PLAN.md) · [Phase 4 Plan](docs/phases/PHASE_4_PLAN.md) · [Phase 3 Plan](docs/phases/PHASE_3_PLAN.md) · [Phase 2 Plan](docs/phases/PHASE_2_PLAN.md) · [Phase 1 Plan](docs/phases/PHASE_1_PLAN.md) · [UI Design System](docs/UI_DESIGN_SYSTEM.md) | The phase plans (work packages, gates, tests, and what each package built) · the "Forge" tokens, contrast-audited |
 | [Roadmap](docs/ROADMAP.md) | Phases 0–10, dependencies, decision queue |
-| [ADRs](docs/adr/) | 14 architecture decision records |
+| [ADRs](docs/adr/) | 15 architecture decision records |
 
 ## The foundation
 

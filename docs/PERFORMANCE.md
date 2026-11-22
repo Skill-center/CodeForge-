@@ -31,10 +31,10 @@ Rule carried from t1: **unique-inode bytes are storage truth** (hardlinks make n
 | Terminal flood (10 MB) | UI stays responsive; ≤ 5% frames > 32 ms · **measured in Phase 5 W6:** the Pixel 8a whole in 3.0 s, 0.5 % of Flutter's frames over 32 ms, none frozen (DOM: 4.1 s, 4.9 %); the emulator whole in 31.5 s, every frame slow on its software GPU. **After W6's memory work:** the Pixel 8a whole in 3.3 s with no frame over 32 ms (DOM: 2.4 s, 2.7 %) | Flutter's frame timings while an overlay keeps it drawing, and the page's own frames |
 | Terminal memory delta | ≤ 80 MB (ADR-0006) · **measured in Phase 5 W6, not met:** the Pixel 8a 85.2 MB with the terminal open at its full stop (73.5 MB at half), 153.7 MB settled after the flood; the emulator 24.4 and 68.1 MB. **The owner's decision** (PHASE_5_PLAN §10, item 7): work it down, then judge the terminal open and idle at its full stop **within 90 MB** and record a flood's growth. **After W6's memory work** (Hybrid Composition++, the host's MessagePort, WebGL for the shown session only): the Pixel 8a 53.6 MB open (38.1 MB at half), 114.8 MB settled after the flood (CI 44889362793), then 55.3 and 100.3 MB with the judge as decided, which passed (CI 44893095694), and 44.6 and 130.2 MB in Phase 5's exit gate (CI 44900930980); the emulator 16.2 and 62.2 MB | `dumpsys meminfo` PSS, the app and its WebView renderer, by row |
 | App RSS: shell idle | ≤ 250 MB | `dumpsys meminfo` sampling |
-| App RSS: editor + 1 terminal + LSP | ≤ 600 MB on 6 GB device | same |
+| App RSS: editor + 1 terminal + LSP | ≤ 600 MB on 6 GB device · **Phase 6 W1:** a language server alone takes 167 to 255 MB of PSS on the Pixel 8a, so with the editor and an open terminal (497.3 MB) the app comes to about 665 to 753 MB. The owner's decision (PHASE_6_PLAN §10, item 3) | same |
 | WebView count steady-state | ≤ 2 (editor + optional terminal) | instance counter assertion |
 | Battery: 1 h idle with sessions open | ≤ 2%/h | Battery Historian run at Phase 10 |
-| LSP completion round-trip p95 | ≤ 300 ms warm | LSP client timings |
+| LSP completion round-trip p95 | ≤ 300 ms warm · **measured in Phase 6 W1** (phase gate 44977463887; ADR-0015), completion after an edit: the Pixel 8a 43 ms (Pyright) and 93 ms (TypeScript) on two files, 56 and 60 ms on 200; the emulators 16 to 78 ms | LSP client timings |
 
 ## 3. Principles (enforced in review)
 
