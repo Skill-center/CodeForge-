@@ -1,6 +1,6 @@
 # Phase 6 Plan — Language Intelligence
 
-**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 done on 2026-11-22** (phase gate 44977463887: both servers pass the smoke suite on API 26 to 36 and on Test Lab's Pixel 8a; see *As built (W1)* and ADR-0015). **The memory budget with a server awaits the owner** (§10, item 3) · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
+**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 done on 2026-11-22** (phase gate 44977463887: both servers pass the smoke suite on API 26 to 36 and on Test Lab's Pixel 8a; see *As built (W1)* and ADR-0015). **W2 done on 2026-11-22** (CI 44994907490; phase gate 44995822826, with Test Lab's Pixel 8a 39 of 39 in the same run; see *As built (W2)*). **The memory budget with a server awaits the owner** (§10, item 3) · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
 
 ---
 
@@ -165,6 +165,40 @@ ROADMAP and LSP_ARCHITECTURE §2 put it first, and every later package builds on
 - **The notices.** THIRD_PARTY_NOTICES gains a section written from the lockfile (each package with its version, licence and text), and the app's licence page lists them. CI fails when the section is stale. Nothing is copyleft, so SOURCE_OFFER is unchanged.
 - **Size:** `check-bundle-size.py`'s limit holds, and the figure is recorded (about 159 MB per device, by §0's estimate).
 - **Provenance:** native/PROVENANCE.md gets rows for the new files under `runtime/`.
+
+**As built (W2):**
+- **G2 met** (CI 44994907490; phase gate 44995822826, whole: every emulator group at its first attempt, the cold start at 873 ms, no ANR; Test Lab's Pixel 8a 39 of 39 in the same run; evidence `cfa7ae6`, `91db062` and `10030555`).
+- **Pinned:** `runtime/language-servers/` holds `package.json`, npm's version 3 lockfile and `bundled.json`.
+  - `language_servers.py check` holds them to:
+    - exact versions on the npm registry, each with a SHA-512;
+    - a licence allowlist: 0BSD, Apache-2.0, BlueOak-1.0.0, BSD-2-Clause, BSD-3-Clause, ISC and MIT;
+    - no install script in anything that ships.
+  - The one package with an install script, Pyright's optional `fsevents` for macOS, never ships.
+  - CI fetched and verified all 61 tarballs.
+- **Built:** one archive and manifest per server, reproducible, with native code refused.
+  - Pyright is 6.06 MB with 5,423 files, the TypeScript server 5.15 MB with 145.
+  - The release x86_64 APK grew from 150,023,619 to 161,533,268 bytes.
+  - The base module is 158.3 MB on arm64, 79.2 % of Play's 200 MB (148.0 MB at Phase 5's exit).
+  - The APK check requires each archive, stored as it is.
+- **Installed when first asked for:** every file is verified against its manifest, no other file is allowed, and the folder is then renamed into place with a marker.
+  - First install on the emulators: Pyright 0.83 to 2.48 s, the TypeScript server 0.26 to 0.75 s.
+  - First install on the Pixel 8a: 3.65 s and 0.51 s.
+  - Reuse at a later start: 0 to 5 ms.
+- **Damage refused:** an archive with one byte changed was refused as `damaged` on every target (the zip's CRC check caught it). Nothing was left in place, and the APK's own archive installed afterwards.
+- **The notices:** THIRD_PARTY_NOTICES §6 lists 61 package versions, 3 shipped and 58 bundled inside them. The app's licence page shows their 42 distinct texts. CI checks both.
+- **Differs from the plan:**
+  - **No npm in the build.** The plan had `npm ci --ignore-scripts`. Instead `language_servers.py` reads the lockfile itself, downloads each tarball and checks its SHA-512, so an APK build needs only Python, as the payload's does. npm is needed only to re-pin (`lock`, which CI runs for a [repin] commit).
+  - **The bundled packages weren't planned.** Pyright and typescript-language-server bundle 58 npm packages into their JavaScript, without those packages' licence texts. `bundled.json` pins them from the source maps (pnpm's store paths give the versions), and their own tarballs give the texts. Two of them, `@yarnpkg/fslib` and `@yarnpkg/libzip` (BSD-2-Clause), ship no licence file. THIRD_PARTY_NOTICES names them for the licence review.
+  - **What asks for a server, and its progress, move.** The installer is built and tested. W3's `LspHost` asks it for a server before starting one, and W4 shows the progress in the status strip. No `LspService` exists before then.
+  - **The cache.** CI's runtime job caches the tarballs under the pins' hash. The APK builds download the three shipped tarballs (9.3 MB) from the registry, which keeps every version.
+- **Tests:**
+  - `runtime/tests/test-language-servers.py` (22);
+  - `LanguageServersTest` (14, JVM);
+  - `LanguageServerInstallTest` (3, on every leg and the phone);
+  - `test/services/language_server_licenses_test.dart` (3);
+  - 3 new self-test cases in `check_runtime_apk.py`.
+  - `LanguageServerTest` now runs the servers as installed from the app's assets, and W1's test-APK fetch is gone.
+  - Counts: `+1093: All tests passed!` and 202 Kotlin tests (CI 44994907490).
 
 ### W3 — The host: a server's process and its messages (1–2 sessions) → G3
 

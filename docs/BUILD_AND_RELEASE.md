@@ -169,6 +169,10 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - `fetch_language_servers.py` writes them into the test APK's assets (`android/app/src/androidTest/assets/lsp/`, which Git ignores). It runs in the runtime build job and in the Test Lab job, before Gradle builds the test APK, and fails the job, naming the package, if a tarball doesn't match or holds native code.
   - Its self-test runs on every push in the *Test Lab scripts* step.
   - The legs run `LanguageServerTest`, copy its `lsp-report.txt`, and expect its 4 tests, as does Test Lab's judge. The test APK grew from about 0.1 MB to 11.1 MB.
+- **W2, the servers in the payload** (replacing W1's fetch into the test APK):
+  - **The build:** `native/runtime-core/build.gradle.kts` registers `LanguageServersTask` for every variant of a build that carries a payload. It runs `runtime/language_servers.py build`, whose archives, manifests and `lsp/servers.json` become generated assets. The tarballs come from `runtime/generated/lsp-cache` or the npm registry, each verified. The app stores the archives as they are (`noCompress` "zip"), and `check_runtime_apk.py` requires them.
+  - **The runtime job** has a *Language servers* step on every push. It checks the pins offline, fetches all 61 tarballs verified (cached as `lsp-npm-v1-<hash of the lockfile and bundled.json>`), builds the archives and checks the notices. In a commit-back run it rewrites the notices, and the commit-back adds `runtime/language-servers/` and `app/assets/licenses/language-servers.txt`. A `[repin]` commit first runs `language_servers.py lock`, which uses npm to rewrite the lockfile from `package.json`, then rewrites `bundled.json` from the source maps and the registry.
+  - **The legs and Test Lab** run `LanguageServerInstallTest` too, copy its `lsp-install-report.txt` (the legs), and require `lsp_install_damaged=damaged`.
 
 ## 3. Toolchain pins in CI
 

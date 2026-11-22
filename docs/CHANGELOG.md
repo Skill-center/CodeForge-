@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 6 W2, the language servers in the payload (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
+- **The servers ship in the app:** Pyright (6.06 MB) and the TypeScript server (5.15 MB) as archives beside the userland, built from npm packages pinned with their SHA-512 in `runtime/language-servers/`. The base module is now 158.3 MB, 79.2 % of Play's limit.
+- **Installed when first needed:** a server is extracted into the runtime and verified file by file the first time it is asked for, then reused. On a Pixel 8a, Pyright's first install took 3.65 s and a later start 5 ms. A damaged archive is refused and leaves nothing behind.
+- **Checked before they ship:** exact versions on the npm registry, a permissive licence allowlist, no install scripts, and no native code. The build fails on any of them.
+- **Their licences are in the app:** THIRD_PARTY_NOTICES §6 lists 61 package versions, including 58 bundled inside the servers' JavaScript, and the licence page shows their texts. Two bundled packages ship without a licence file and are listed for the licence review.
+- Verified by: CI 44994907490 (`+1093: All tests passed!`, 202 Kotlin tests); phase gate 44995822826, whole: the install tests 3 of 3 and the smoke suite 4 of 4 on each runtime leg, every emulator group at its first attempt, the cold start at 873 ms, and Test Lab's Pixel 8a 39 of 39 in the same run.
+
 ### Added — Phase 6 W1, the language servers' compatibility spike (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
 - **Both candidate servers work under the sealed runtime,** on every target: Pyright 1.1.414 for Python, and typescript-language-server 6.1.0 with TypeScript 6.0.3 for JavaScript and TypeScript ([ADR-0015](adr/0015-language-servers.md)). Each initializes, reports a fixture's error, completes a known member, finds a definition and renames across two files, clears the error once it is fixed, and exits with nothing left, on API 26 to 36 and on a Pixel 8a with Android 14.
 - **Fast enough:** on the phone, completion after an edit took 43 to 93 ms at the 95th percentile against a 300 ms budget, and the first diagnostics 1.2 to 2.8 s after a file opened.

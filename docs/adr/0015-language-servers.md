@@ -86,3 +86,8 @@ MB here is KiB / 1024, as Phase 5's memory figures were.
 - **Size:** about 11.0 MB per device, which W2 measures in the bundle.
 - **TypeScript 6.0.3 is the last JavaScript TypeScript.** It checks JavaScript and TypeScript today. Moving to TypeScript 7 means shipping its native binary among the APK's programs.
 - **The first install** would grow by Pyright's 5,423 files. W2 installs each language's server only when that language is first needed.
+
+## As built (W2)
+- **The servers ship in the APK** (CI 44994907490; phase gate 44995822826). Pyright's archive is 6.06 MB and the TypeScript server's 5.15 MB, each with a manifest of every file's SHA-256. `runtime/language_servers.py` builds them from `runtime/language-servers/`, where npm's lockfile pins every package with its SHA-512. The base module is 158.3 MB, 79.2 % of Play's limit.
+- **Installed when first asked for** (`LanguageServers`), verified file by file. First installs took 0.83 to 2.48 s for Pyright on the emulators and 3.65 s on the Pixel 8a, and reuse at a later start 0 to 5 ms. A damaged archive is refused and leaves nothing in place.
+- **The notices** cover the 58 npm packages bundled inside the two servers' JavaScript, from their source maps (THIRD_PARTY_NOTICES §6).

@@ -64,7 +64,8 @@ CodeForge-/
 │   │   │                         #   from editor/ with the editor page; Phase 5 W3)
 │   │   ├── fonts/                # bundled UI + mono fonts (offline)
 │   │   ├── licenses/             # (Ph. 5 W1) CodeForge's LICENSE, copied; userland.txt, the
-│   │   │                         #   userland's licence texts (runtime/notices.py; CI checks it)
+│   │   │                         #   userland's licence texts (runtime/notices.py; CI checks it);
+│   │   │                         #   language-servers.txt (Ph. 6 W2, runtime/language_servers.py)
 │   │   └── icons/
 │   ├── test/                     # unit + widget tests mirror lib/; support/: scripted
 │   │                             #   editor page, benchmark pages, in-memory files
@@ -132,6 +133,9 @@ CodeForge-/
 │   ├── sources.py                # (Phase 5 W1) the copyleft packages' corresponding source:
 │   │                             #   recipes at the commits that built them, Termux's build
 │   │                             #   system, the upstream files verified; fails closed
+│   ├── language_servers.py       # (Phase 6 W2) the language servers: check · fetch (verified) ·
+│   │                             #   build (archives + manifests for the APK) · notices · lock
+│   ├── language-servers/         # their pins: package.json, npm's lockfile, bundled.json
 │   ├── provenance.py             # checks native/PROVENANCE.md against the vendored files;
 │   │                             #   copy re-vendors them from a t1 checkout (W3)
 │   ├── README.md                 # how the supply chain fits together

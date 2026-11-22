@@ -143,6 +143,11 @@ Manifest-declared permissions (`workspace.read`, `workspace.write`, `terminal.sp
   - **The runtime's inputs** are pinned with their SHA-256 (runtime/pins.json), and a missing or changed package fails the build closed (W2).
   - **t1's vendored code** is checked file by file against t1's commit on every push; the one change beyond the package name is a recorded patch (native/PROVENANCE.md, W7).
   - **The licences:** the editor page's npm packages must carry a licence from a permissive allowlist, and every pub package, dev tools included, fails the build on GPL, AGPL, SSPL or an unknown licence. Since W7, THIRD_PARTY_NOTICES.md's lists are written from the resolved dependencies and checked on every push, the userland's included, and CI fails if a userland package has no licence named.
+- **As built in Phase 6 W2, the language servers** (ADR-0015):
+  - **Pinned:** their npm packages are pinned with SHA-512 in a lockfile, and so are the 58 packages bundled inside them (`runtime/language-servers/`).
+  - **Verified:** every tarball is checked against its pin before it is used.
+  - **Refused:** native code, a link or a path outside the package fails the build. Every licence must be on a permissive allowlist, and no install script runs.
+  - **Checked again on the device:** the installer verifies every file against the server's manifest as it writes it, and allows no other file.
 
 ## 7. Vulnerability handling
 

@@ -33,6 +33,8 @@ CM6 (WebView) ──bridge──► EditorService (Dart) ──► LspService (D
 
 **Measured in Phase 6 W1** (phase gate 44977463887; [ADR-0015](adr/0015-language-servers.md)): Pyright 1.1.414, and typescript-language-server 6.1.0 with TypeScript 6.0.3 (not 5.9: 6.0.3 is the last JavaScript release), pass the smoke suite under the sealed runtime on API 26 to 36 and on a Pixel 8a. On the phone, completion after an edit took 43 to 93 ms at p95, and a server 167 to 255 MB of PSS.
 
+**Shipped since Phase 6 W2** (phase gate 44995822826): the APK carries each server as an archive with a manifest (`assets/lsp/`), built from the pins in `runtime/language-servers/` by `runtime/language_servers.py`. `LanguageServers` (Kotlin) installs a server into `<runtime root>/codeforge/lsp/<id>` the first time it is asked for, verifying every file, and reuses it after.
+
 **Gate:** each server must pass a smoke suite (initialize → didOpen → completion → diagnostics → shutdown) on an arm64 device under the sealed runtime before its language flips `analyzable: true` in the capability model. Failure = graceful syntax-only mode with a visible status chip, never a broken editor (spec §6.6).
 
 ## 3. Document sync & performance

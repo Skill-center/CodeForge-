@@ -75,7 +75,7 @@ From t1 @ `0e26d7a`, the audited sealed payload, rebuilt by CodeForge from pinne
 | Perl / Ruby | 5.44.0-1 / 4.0.9 | P1, runs (already in the core set) |
 | ripgrep | 15.2.0 (+pcre2 10.49) | search across files in projects since Phase 4 W6 |
 | clang/cmake/make | Termux current | P1, on-demand pack (PFD / full variant) |
-| TypeScript LSP / Pyright | via sealed Node/npm | P1, Phase 6 compatibility spike required |
+| Pyright / the TypeScript language server | Pyright 1.1.414; typescript-language-server 6.1.0 with TypeScript 6.0.3 | Phase 6: chosen in W1 (ADR-0015), in the APK since W2, installed into the runtime when first needed; pinned in `runtime/language-servers/` |
 
 **Rule:** no runtime binary is downloaded or replaced without re-running the payload pipeline + exec gates. No second copy of any runtime ever ships.
 
