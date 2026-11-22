@@ -15,6 +15,7 @@ The scripts that turn pinned Termux packages into the sealed payload the app shi
 | `notices.py` | CodeForge | Drafts THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md from the pinned packages' licence files, and (Phase 5 W1) writes their texts for the app's licence page, `app/assets/licenses/userland.txt`: each distinct text once, after the packages that carry it, a link followed to its text, and a text missing from the payload failing the run |
 | `sources.py` | CodeForge | (Phase 5 W1) Builds the source archive SOURCE_OFFER.md promises: for each copyleft package version in its table, the termux-packages commit whose recipe gives that version, that recipe and Termux's build system at that commit, and the upstream files from the recipe's URLs, each verified against the recipe's SHA-256. Fails closed, naming the package; the same inputs give the same bytes |
 | `provenance.py` | CodeForge | `check`s native/PROVENANCE.md against the vendored files · `copy` re-vendors them from a t1 checkout with their recorded change · `record` writes the hashes |
+| `language_servers.py`, `language-servers/` | CodeForge | (Phase 6 W2, ADR-0015) The language servers: `package.json` pins their npm packages and says which make up each server, npm's lockfile pins every package with its SHA-512, and `bundled.json` lists the packages bundled inside their JavaScript (from the source maps), for the notices. `check` the pins offline · `fetch` the tarballs, verified · `build` each server's archive and manifest (refusing native code), which Gradle puts in the APK beside the userland · `notices` · `lock` (re-pin, with npm) |
 | `tests/` | both | t1's two script tests; CodeForge's pins, notices, provenance, launcher and sources tests; the live fail-closed check |
 
 ## Commands
@@ -33,6 +34,10 @@ python3 runtime/sources.py build --termux /tmp/termux-packages --cache runtime/g
 python3 runtime/pins.py info --arch x86_64 --out runtime/generated/payload/assets/runtime-info-x86_64.json
 python3 runtime/provenance.py check
 python3 runtime/provenance.py copy --t1 /path/to/t1   # at PROVENANCE's commit; then record
+python3 runtime/language_servers.py check        # offline: the language servers' pins and rules
+python3 runtime/language_servers.py build --out runtime/generated/lsp-build   # fetches into runtime/generated/lsp-cache
+python3 runtime/language_servers.py notices [--check]
+python3 runtime/language_servers.py lock         # re-pin after editing language-servers/package.json (needs npm)
 for t in runtime/tests/test-*.py; do python3 "$t" || echo "FAILED: $t"; done
 ```
 

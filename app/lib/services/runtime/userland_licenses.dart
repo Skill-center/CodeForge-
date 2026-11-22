@@ -44,7 +44,14 @@ Stream<LicenseEntry> userlandLicenses(AssetBundle bundle) async* {
 /// after one is a `Packages: name version, ...` line, a `Files: path, ...`
 /// line (the text's paths in the payload), an empty line, then the text.
 /// Anything else is a [FormatException].
-List<LicenseEntry> parseUserlandLicenses(String text) {
+///
+/// runtime/language_servers.py writes the language servers' file in the same
+/// format (Phase 6 W2), which [scope] and [filesIn] describe instead.
+List<LicenseEntry> parseUserlandLicenses(
+  String text, {
+  String scope = 'the Linux userland',
+  String filesIn = ' in the userland',
+}) {
   final entries = <LicenseEntry>[];
   for (final section in text.split('\n$userlandEntrySeparator\n').skip(1)) {
     final lines = section.split('\n');
@@ -69,8 +76,8 @@ List<LicenseEntry> parseUserlandLicenses(String text) {
     entries.add(
       LicenseEntryWithLineBreaks(
         names.toList(),
-        'In the Linux userland: ${packages.join(', ')}. '
-        'The text, at $files in the userland:\n\n$body',
+        'In $scope: ${packages.join(', ')}. '
+        'The text, at $files$filesIn:\n\n$body',
       ),
     );
   }

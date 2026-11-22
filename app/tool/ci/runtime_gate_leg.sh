@@ -49,8 +49,8 @@ EMU_LOG="${RUNNER_TEMP:-/tmp}/runtime-gate-emulator-$API.log"
 CLASSES="dev.codeforge.app.runtime.ExecModelTest,dev.codeforge.app.runtime.RuntimeCommandsTest"
 CLASSES="$CLASSES,dev.codeforge.app.runtime.RuntimeInstallTest,dev.codeforge.app.runtime.SealedShellTest"
 CLASSES="$CLASSES,dev.codeforge.app.runtime.SessionServiceTest,dev.codeforge.app.runtime.TerminalSessionTest"
-# Phase 6 W1: the language servers' compatibility spike (PHASE_6_PLAN §3).
-CLASSES="$CLASSES,dev.codeforge.app.runtime.LanguageServerTest"
+# Phase 6: the language servers' install (W2) and their smoke suite (W1).
+CLASSES="$CLASSES,dev.codeforge.app.runtime.LanguageServerInstallTest,dev.codeforge.app.runtime.LanguageServerTest"
 # The checkout carries the last run's committed evidence for every leg; this
 # leg's artifact must hold its own folder alone (the first run's evidence job
 # merged five artifacts that each held all five, stale ones included).
@@ -205,7 +205,7 @@ timeout --kill-after=30s 30m "$ADB" shell am instrument -w -r -e class "$CLASSES
   > "$RESULTS/instrumented.txt" 2>&1
 echo "am_instrument_exit=$?" >> "$RESULTS/readiness.txt"
 for report in report commands-report exec-model-report sealed-shell-report session-service-report terminal-report \
-  lsp-report; do
+  lsp-report lsp-install-report; do
   "$ADB" shell run-as "$APP_ID" cat "files/runtime-gate/$report.txt" < /dev/null \
     > "$RESULTS/$report.txt" 2>&1 || true
 done
@@ -220,14 +220,16 @@ python3 tool/ci/gate_results.py \
   --figures "$RESULTS/report.txt" --figures "$RESULTS/commands-report.txt" \
   --figures "$RESULTS/exec-model-report.txt" --figures "$RESULTS/sealed-shell-report.txt" \
   --figures "$RESULTS/terminal-report.txt" --figures "$RESULTS/session-service-report.txt" \
-  --figures "$RESULTS/lsp-report.txt" \
+  --figures "$RESULTS/lsp-report.txt" --figures "$RESULTS/lsp-install-report.txt" \
   --expect dev.codeforge.app.runtime.ExecModelTest:1 \
   --expect dev.codeforge.app.runtime.SealedShellTest:2 \
   --expect dev.codeforge.app.runtime.RuntimeInstallTest:7 \
   --expect dev.codeforge.app.runtime.RuntimeCommandsTest:7 \
   --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
   --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
+  --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
   --expect dev.codeforge.app.runtime.LanguageServerTest:4 \
+  --require lsp_install_damaged=damaged \
   --require exec_model_audit_outside_apk=0 \
   --require audit_outside_apk=0 \
   --require warm_audit_outside_apk=0 \

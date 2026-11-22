@@ -36,7 +36,7 @@ The same inputs give the same bytes. A file whose host fails comes from a mirror
 
 - [x] The release workflow assembles and publishes the source archive. **Built in Phase 5 W1:** the dry run CI 44399784786 assembled it whole (*As built*, above). A release publishes it beside the APK, in the same draft GitHub Release; that step is written, and runs once the owner's keys exist and the owner decides the first release (PHASE_5_PLAN §10).
 - [x] The app's About shows the offer. **Built in Phase 5 W1:** About → Source code shows the offer's own words (*The offer in the app*, below) rather than a link to this file, so the offer is there without a network. About → Open-source licenses lists the userland's packages with their texts.
-- [ ] A person qualified to give one reviews this file and THIRD_PARTY_NOTICES.md (THIRD_PARTY_NOTICES §6).
+- [ ] A person qualified to give one reviews this file and THIRD_PARTY_NOTICES.md (THIRD_PARTY_NOTICES §7).
 
 No binary that contains the userland is distributed until these are done.
 

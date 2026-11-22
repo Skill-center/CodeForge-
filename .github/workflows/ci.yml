@@ -538,8 +538,7 @@ jobs:
           status=0
           { python3 tool/ci/testlab_device.py --self-test \
               && python3 tool/ci/testlab_diagnose.py --self-test \
-              && python3 tool/ci/gate_results.py --self-test \
-              && python3 tool/ci/fetch_language_servers.py --self-test; } \
+              && python3 tool/ci/gate_results.py --self-test; } \
             > ci-results/testlab-scripts.txt 2>&1 || status=$?
           cat ci-results/testlab-scripts.txt
           exit "$status"
@@ -1037,20 +1036,64 @@ jobs:
           python3 runtime/notices.py --cache "$CACHE" $mode 2>&1 | tee "$RESULTS/notices.txt"
           exit "${PIPESTATUS[0]}"
 
+      # Phase 6 W2: the language servers (runtime/language_servers.py; ADR-0015).
+      # Their tarballs are cached under the hash of their pins; the npm
+      # registry keeps every version, so a miss only downloads them again.
+      - name: Restore the language servers' tarballs
+        id: lsp_cache
+        uses: actions/cache/restore@v6
+        with:
+          path: runtime/generated/lsp-cache
+          key: lsp-npm-v1-${{ hashFiles('runtime/language-servers/package-lock.json', 'runtime/language-servers/bundled.json') }}
+
+      # A [repin] commit re-locks them first (npm writes the lockfile, then the
+      # source maps and the registry bundled.json). Then, on every push: the
+      # pins checked offline (exact versions, the registry, SHA-512, the
+      # licence allowlist, no install script that would ship), every tarball
+      # fetched and verified, the servers' archives built (refusing native
+      # code), and the notices' section and the app's licence file checked, or
+      # in a commit-back run rewritten and committed below.
+      - name: Language servers
+        id: lsp
+        continue-on-error: true
+        run: |
+          status=0
+          {
+            if [ "${{ steps.mode.outputs.repin }}" = true ]; then
+              python3 runtime/language_servers.py lock --cache runtime/generated/lsp-cache || status=1
+            fi
+            python3 runtime/language_servers.py check || status=1
+            python3 runtime/language_servers.py fetch --bundled --cache runtime/generated/lsp-cache || status=1
+            python3 runtime/language_servers.py build --cache runtime/generated/lsp-cache \
+              --out runtime/generated/lsp-build || status=1
+            mode=--check
+            [ "${{ steps.mode.outputs.commit_back }}" = true ] && mode=
+            python3 runtime/language_servers.py notices --cache runtime/generated/lsp-cache $mode || status=1
+          } > "$RESULTS/language-servers.txt" 2>&1
+          cat "$RESULTS/language-servers.txt"
+          exit "$status"
+
+      - name: Save the language servers' tarballs
+        if: steps.lsp.outcome == 'success' && steps.lsp_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: runtime/generated/lsp-cache
+          key: lsp-npm-v1-${{ hashFiles('runtime/language-servers/package-lock.json', 'runtime/language-servers/bundled.json') }}
+
       - name: Runtime digest
         if: always()
         run: |
           {
-            for f in tools script-tests provenance repin pins fetch fail-closed payload-summary notices; do
+            for f in tools script-tests provenance repin pins fetch fail-closed payload-summary notices language-servers; do
               [ -f "$RESULTS/$f.txt" ] || continue
               echo "--- $f"
-              grep -E '^(Ran |OK|FAILED|PASS|FAIL|=== |provenance:|pins:|fetched |bootstrap |resolved |wrote |live-fail-closed:|payload |notices:|script_test_files|cache_hit|Python|\*\*\* Zstandard)' \
+              grep -E '^(Ran |OK|FAILED|PASS|FAIL|=== |provenance:|pins:|fetched |bootstrap |resolved |wrote |live-fail-closed:|payload |notices:|script_test_files|cache_hit|Python|\*\*\* Zstandard|language servers:|server |language-server notices:|locked|refused:|problem:)' \
                 "$RESULTS/$f.txt" | tail -n 25
             done
           } | tee "$RESULTS/summary.txt"
           for pair in "script_tests:script-tests" "provenance:provenance" "repin:repin" \
                       "pins:pins" "fetch:fetch" "fail_closed:fail-closed" "payload:payload-failures" \
-                      "notices:notices"; do
+                      "notices:notices" "lsp:language-servers"; do
             step="${pair%%:*}"; file="$RESULTS/${pair#*:}.txt"
             case "$step" in
               script_tests) outcome="${{ steps.script_tests.outcome }}" ;;
@@ -1061,6 +1104,7 @@ jobs:
               fail_closed) outcome="${{ steps.fail_closed.outcome }}" ;;
               payload) outcome="${{ steps.payload.outcome }}" ;;
               notices) outcome="${{ steps.notices.outcome }}" ;;
+              lsp) outcome="${{ steps.lsp.outcome }}" ;;
             esac
             [ "$outcome" = failure ] && [ -f "$file" ] || continue
             tail -n 20 "$file" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
@@ -1074,7 +1118,7 @@ jobs:
           git config user.name "codeforge-ci"
           git config user.email "ci@codeforge.invalid"
           git add -A -- runtime/pins.json "$RESULTS" THIRD_PARTY_NOTICES.md SOURCE_OFFER.md \
-            app/assets/licenses/userland.txt
+            app/assets/licenses/userland.txt runtime/language-servers app/assets/licenses/language-servers.txt
           if ! git diff --cached --quiet; then
             git commit -m "chore(ci): runtime pins, notices and results [skip ci]"
             bash app/tool/ci/push_with_retry.sh "${{ github.ref_name }}"
@@ -1084,7 +1128,7 @@ jobs:
         if: always()
         run: |
           fail=0
-          for gate in script_tests provenance repin pins fetch fail_closed notices; do
+          for gate in script_tests provenance repin pins fetch fail_closed notices lsp; do
             case "$gate" in
               script_tests) outcome="${{ steps.script_tests.outcome }}" ;;
               provenance) outcome="${{ steps.provenance.outcome }}" ;;
@@ -1093,6 +1137,7 @@ jobs:
               fetch) outcome="${{ steps.fetch.outcome }}" ;;
               fail_closed) outcome="${{ steps.fail_closed.outcome }}" ;;
               notices) outcome="${{ steps.notices.outcome }}" ;;
+              lsp) outcome="${{ steps.lsp.outcome }}" ;;
             esac
             # A re-pin is enforced only when the commit asked for one.
             if [ "$gate" = repin ] && [ "${{ steps.mode.outputs.repin }}" != true ]; then
@@ -1268,11 +1313,6 @@ jobs:
         working-directory: app
         run: |
           mkdir -p ../testlab-apk build/testlab
-          # Phase 6 W1: the candidate language servers, for LanguageServerTest.
-          python3 tool/ci/fetch_language_servers.py --pins tool/ci/language_servers.json \
-            --out android/app/src/androidTest/assets/lsp > build/testlab/language-servers.txt 2>&1 \
-            || { cat build/testlab/language-servers.txt; exit 1; }
-          cat build/testlab/language-servers.txt
           entry="$GITHUB_WORKSPACE/app/integration_test/sync_modes_test.dart"
           flutter build apk --profile --target-platform android-arm64 -t "$entry" \
             > build/testlab/build.txt 2>&1 || { tail -n 40 build/testlab/build.txt; exit 1; }
@@ -1417,8 +1457,10 @@ jobs:
             --expect dev.codeforge.app.runtime.RuntimeCommandsTest:7 \
             --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
             --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
+            --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
             --expect dev.codeforge.app.runtime.LanguageServerTest:4 \
             --expect dev.codeforge.app.syncmodes.SyncModesTest:4 \
+            --require lsp_install_damaged=damaged \
             --require exec_model_audit_outside_apk=0 \
             --require audit_outside_apk=0 \
             --require warm_audit_outside_apk=0 \
@@ -1875,17 +1917,9 @@ jobs:
       # test APK, so one debug key signs both (two runs signed them with two
       # keys in the first run of these gates, 44235180242), which
       # same_signer.sh checks before any leg starts.
-      # Phase 6 W1: the candidate language servers go into the test APK's
-      # assets first (fetch_language_servers.py: each tarball checked against
-      # the registry's SHA-512, refused if it holds native code), for
-      # LanguageServerTest on every leg.
       - name: Build the APKs
         run: |
           mkdir -p build/runtime-gates
-          python3 tool/ci/fetch_language_servers.py --pins tool/ci/language_servers.json \
-            --out android/app/src/androidTest/assets/lsp > build/runtime-gates/language-servers.txt 2>&1 \
-            || { cat build/runtime-gates/language-servers.txt; exit 1; }
-          cat build/runtime-gates/language-servers.txt
           flutter build apk --debug --target-platform android-x64 > build/runtime-gates/build.txt 2>&1 \
             || { tail -n 40 build/runtime-gates/build.txt; exit 1; }
           ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebug \

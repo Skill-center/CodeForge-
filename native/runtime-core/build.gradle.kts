@@ -1,7 +1,7 @@
 // CodeForge's own build script for the runtime core (Phase 4 W3;
 // docs/RUNTIME_INTEGRATION.md §2, native/PROVENANCE.md).
 //
-// An Android library, `dev.codeforge.runtime.core`, holding four things:
+// An Android library, `dev.codeforge.runtime.core`, holding five things:
 //   * t1's Android adapter over the sealed kernel (HarnessConfig, HarnessPaths
 //     and exec/SealedPayloadInstaller), vendored with the packages renamed;
 //   * the preload: t1's harness-exec.c (the LD_PRELOAD path translator), built
@@ -17,6 +17,8 @@
 //     executables generated jniLibs. The app packages native libraries the
 //     legacy way, so Android extracts the executables into nativeLibraryDir,
 //     the one place an app targeting API 29+ may execve() from.
+//   * since Phase 6 W2, the language servers, in builds that carry a payload:
+//     each server's archive and manifest become generated assets too.
 //
 // Which ABIs a build targets, and which one carries the payload, the root
 // project decides from Flutter's `target-platform` (app/android/build.gradle.kts).
@@ -266,6 +268,52 @@ abstract class SealedPayloadTask : DefaultTask() {
     }
 }
 
+/**
+ * The language servers (Phase 6 W2; docs/adr/0015-language-servers.md): each
+ * server's archive and manifest, and lsp/servers.json, built from the pins in
+ * runtime/language-servers/ by runtime/language_servers.py. Their npm
+ * tarballs come from runtime/generated/lsp-cache or the registry, each
+ * verified against its pinned SHA-512, and a package holding native code
+ * fails the build. They are JavaScript, so a payload of any ABI carries the
+ * same; a build without a payload carries none, since node runs them.
+ * The app's LanguageServers installs each the first time it is needed.
+ */
+abstract class LanguageServersTask : DefaultTask() {
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
+    /** The pins and the script that reads them. */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sources: ConfigurableFileCollection
+
+    @get:Internal
+    abstract val repositoryRoot: DirectoryProperty
+
+    @get:Internal
+    abstract val cache: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val assetsDirectory: DirectoryProperty
+
+    @TaskAction
+    fun build() {
+        val out = assetsDirectory.get().asFile
+        out.deleteRecursively()
+        out.mkdirs()
+        execOperations.exec {
+            workingDir = repositoryRoot.get().asFile
+            commandLine(
+                "python3", "runtime/language_servers.py", "build",
+                "--cache", cache.get().asFile.absolutePath, "--out", out.absolutePath,
+            )
+        }
+        val archives = out.resolve("lsp").listFiles()?.count { it.name.endsWith(".zip") } ?: 0
+        logger.lifecycle("language servers: $archives archives")
+        if (archives == 0) throw GradleException("runtime/language_servers.py built no server")
+    }
+}
+
 fun taskSuffix(value: String): String =
     value.split('-', '_').joinToString("") { part -> part.replaceFirstChar { it.uppercase() } }
 
@@ -290,6 +338,19 @@ androidComponents {
             ndkDirectory.set(sdkComponents.ndkDirectory)
         }
         variant.sources.jniLibs?.addGeneratedSourceDirectory(spawn, NativeExecutableTask::outputDirectory)
+        if (payloadAbis.isNotEmpty()) {
+            val servers = tasks.register<LanguageServersTask>("languageServers$name") {
+                sources.from(
+                    repoDir.resolve("runtime/language-servers/package.json"),
+                    repoDir.resolve("runtime/language-servers/package-lock.json"),
+                    repoDir.resolve("runtime/language-servers/bundled.json"),
+                    repoDir.resolve("runtime/language_servers.py"),
+                )
+                repositoryRoot.set(repoDir)
+                cache.set(repoDir.resolve("runtime/generated/lsp-cache"))
+            }
+            variant.sources.assets?.addGeneratedSourceDirectory(servers, LanguageServersTask::assetsDirectory)
+        }
         for (abi in payloadAbis) {
             val payload = tasks.register<SealedPayloadTask>("sealedPayload$name${taskSuffix(abi)}") {
                 this.abi.set(abi)

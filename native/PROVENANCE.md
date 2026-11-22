@@ -56,7 +56,7 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 - **The tests:** t1's tests are changed only in that line (gate G2). `provenance.py check` proves it for every file: undoing the rename gives t1's SHA-256 exactly.
 **The runtime core (`rename`).** t1's two packages are renamed on the `package` and `import` lines, and nowhere else: `io.mcyber12.codingharness.core` becomes `dev.codeforge.runtime.core`, and `io.mcyber12.sealed` becomes `dev.codeforge.runtime.sealed`. t1 has no export script for `harness-core`, so `provenance.py copy` makes the copy. It refuses a file that names a t1 package anywhere else (a comment, a fully qualified name), since the rename would not reach it, and `check` requires that no `io.mcyber12` is left.
 
-- **The licence notice:** this statement of the change is the notice Apache-2.0 §4(b) asks for. **Decided in W7:** the renamed files carry no notice inside them. t1 and CodeForge have the same owner, who wrote t1 and allowed CodeForge to change it (2026-11-18), and the same licence text; this file and `native/patches/` record every change, and `check` proves each file equals t1's up to it (THIRD_PARTY_NOTICES §6). The licence review before the first binary release looks at it again.
+- **The licence notice:** this statement of the change is the notice Apache-2.0 §4(b) asks for. **Decided in W7:** the renamed files carry no notice inside them. t1 and CodeForge have the same owner, who wrote t1 and allowed CodeForge to change it (2026-11-18), and the same licence text; this file and `native/patches/` record every change, and `check` proves each file equals t1's up to it (THIRD_PARTY_NOTICES §7). The licence review before the first binary release looks at it again.
 - **The runtime core's tests:** t1's `harness-core` tests (`HarnessEnvironmentTest`, `PackCommandsTest`) test the apt shape and `HarnessEnvironment`, which were not vendored, so none of them applies to the three classes. The runtime host's JVM tests and its instrumented tests cover them (`app/android/app/src/test/` and `src/androidTest/`, `runtime` packages), and W5 brings t1's on-device gates.
 
 **The module's build script.** `native/sealed-runtime/build.gradle.kts` is t1's `sealed-runtime/build.gradle` translated to the Kotlin DSL, with the same settings (Java 17, JUnit 4.13.2), and it states `useJUnit()`.
@@ -97,7 +97,7 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | CodeForge file | What it is |
 |---|---|
 | `native/PROVENANCE.md` | this record |
-| `native/runtime-core/build.gradle.kts` | the runtime core's build script (W3): the ABIs, ndk-build for the preload, the compile task for the exec probe and (W4) the launcher, and the payload task that builds one ABI's sealed payload from the pins |
+| `native/runtime-core/build.gradle.kts` | the runtime core's build script (W3): the ABIs, ndk-build for the preload, the compile task for the exec probe and (W4) the launcher, and the payload task that builds one ABI's sealed payload from the pins; since Phase 6 W2 the language servers' task |
 | `native/runtime-core/src/main/AndroidManifest.xml` | the runtime core's manifest, empty: the app decides how native libraries are packaged |
 | `native/runtime-core/src/main/jni/Android.mk` | ndk-build for `harness-exec.c` with t1's 16 KB flags; t1's own also builds `termux.c`, this one never does (ADR-0011) |
 | `native/patches/t1-0001-runtime-manifest-read.patch` | CodeForge's fix to t1's kernel, applied to the vendored copy (*Patches*) |
@@ -117,6 +117,11 @@ scripts/export-sealed-runtime.sh <CodeForge>/native/sealed-runtime/src/main/java
 | `runtime/tests/test-spawn.py` | the launcher's tests (W4), on the host's C compiler: output and exit status, its own session and group, clean signals, a child left behind, a tree stopped whole, processes that left the group, exec failures, and nothing left behind; since Phase 5 W5 the limits: each as asked and reported, a write past the file size and a fork past the process count failing, a limit never raised and a score never lowered, bad values refused |
 | `runtime/tests/test-pty.py` | the launcher's terminal mode's tests (Phase 5 W2, gate G2), with real pseudo-terminals and the host's bash: echo, bytes unchanged both ways, `stty size` after a resize and SIGWINCH, Ctrl-C to the job in front, the shell's session and controlling terminal, the exit code with the output before it, the tree ended by a stop, a closed stdin, a broken stdout or a bad frame, a 10 MB flood whole under flow control, input larger than every buffer, failures, and the relay's cost to an echo (ADR-0014); since Phase 5 W5 the limits holding in the session's shell |
 | `runtime/tests/live-fail-closed.py` | CI's check that a missing pinned package fails closed against the real repository |
+| `runtime/language_servers.py` | the language servers (Phase 6 W2, ADR-0015): `check` the pins offline, `fetch` the npm tarballs (each verified against its SHA-512), `build` each server's archive and manifest for the APK (refusing native code), `notices` (THIRD_PARTY_NOTICES §6 and the app's licence file), `lock` (re-pin) |
+| `runtime/language-servers/package.json` | the language servers' npm packages at exact versions, and which make up each server |
+| `runtime/language-servers/package-lock.json` | npm's lockfile for them: every package with its registry tarball and SHA-512 integrity |
+| `runtime/language-servers/bundled.json` | the npm packages bundled inside the servers' JavaScript, from their source maps, with their tarballs and integrity, for the notices |
+| `runtime/tests/test-language-servers.py` | language_servers.py's tests, on pins and tarballs built in memory, without the network |
 <!-- own:end -->
 
 ## Re-vendoring

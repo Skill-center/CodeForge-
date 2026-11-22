@@ -1,7 +1,6 @@
 package dev.codeforge.app.runtime
 
 import android.content.Context
-import android.content.res.AssetManager
 import android.os.Build
 import android.os.SystemClock
 import android.system.Os
@@ -19,7 +18,6 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.zip.ZipInputStream
 import kotlin.math.ceil
 import org.json.JSONArray
 import org.json.JSONObject
@@ -39,13 +37,14 @@ import org.junit.runners.MethodSorters
  *
  *   * The candidates: Pyright 1.1.414 for Python, and typescript-language-server
  *     6.1.0 with TypeScript 6.0.3 for TypeScript.
- *   * They come from this test APK's assets (lsp: one zip per package and
- *     servers.json), which app/tool/ci/fetch_language_servers.py writes from
- *     app/tool/ci/language_servers.json before the APK is built, each tarball
- *     checked against the npm registry's SHA-512 and refused if it holds
- *     native code. They are JavaScript: the runtime's node runs them from its
- *     home, as Run runs a user's script, with no new program. W2 moves the
- *     chosen ones into the payload.
+ *   * Since W2 they come from the app's own assets, as they ship: the
+ *     installer (LanguageServers) extracts each from its archive into the
+ *     runtime's state folder, verifying every file against its manifest
+ *     (runtime/language_servers.py builds both from the pins in
+ *     runtime/language-servers/). In W1 they came from this test APK's
+ *     assets. They are JavaScript: the runtime's node runs them, as Run runs
+ *     a user's script, with no new program. LanguageServerInstallTest tests
+ *     the install itself.
  *   * A server starts as a command does (the launcher, in its own session and
  *     process group, under the session limits) but keeps its stdin: its
  *     messages go both ways, framed by Content-Length, JSON-RPC 2.0 inside.
@@ -63,7 +62,6 @@ import org.junit.runners.MethodSorters
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class LanguageServerTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
-    private val assets: AssetManager = InstrumentationRegistry.getInstrumentation().context.assets
     private val gate = File(context.filesDir, "runtime-gate")
 
     private fun record(key: String, value: Any?) {
@@ -76,16 +74,16 @@ class LanguageServerTest {
     @Test
     fun a_pyrightPassesTheSmokeSuite() {
         File(gate, REPORT).delete()
-        val servers = manifest()
-        record("servers", servers.values.joinToString(",") { "${it.getString("name")}@${it.getString("version")}" })
+        val described = servers().available()
+        record("servers", described.flatMap { it.packages }.joinToString(",") { "${it.name}@${it.version}" })
         record("device_sdk", Build.VERSION.SDK_INT)
         record("abi", Build.SUPPORTED_ABIS.firstOrNull())
-        val pyright = unpack("pyright")
+        val pyright = install("pyright")
         smoke(
             Case(
                 id = "pyright",
                 language = "python",
-                script = File(pyright, "langserver.index.js"),
+                script = pyright.entry,
                 arguments = listOf("--stdio"),
                 options = JSONObject(),
                 configuration = { section -> pythonConfiguration(section) },
@@ -107,15 +105,14 @@ class LanguageServerTest {
 
     @Test
     fun b_typescriptPassesTheSmokeSuite() {
-        val typescript = unpack("typescript")
-        val server = unpack("typescript-language-server")
+        val server = install("typescript")
         smoke(
             Case(
                 id = "typescript",
                 language = "typescript",
-                script = File(server, "lib/cli.mjs"),
-                arguments = listOf("--stdio"),
-                options = typescriptOptions(typescript),
+                script = server.entry,
+                arguments = server.server.arguments,
+                options = typescriptOptions(File(server.directory, "node_modules/typescript")),
                 configuration = { JSONObject() },
                 files = mapOf("a.ts" to TS_MAIN, "b.ts" to TS_OTHER, "tsconfig.json" to TS_CONFIG),
                 main = "a.ts",
@@ -135,14 +132,14 @@ class LanguageServerTest {
 
     @Test
     fun c_pyrightOnAGeneratedProject() {
-        val pyright = unpacked("pyright")
+        val pyright = install("pyright")
         val files = pythonProject()
         record("pyright_project_files", files.size)
         smoke(
             Case(
                 id = "pyright_project",
                 language = "python",
-                script = File(pyright, "langserver.index.js"),
+                script = pyright.entry,
                 arguments = listOf("--stdio"),
                 options = JSONObject(),
                 configuration = { section -> pythonConfiguration(section) },
@@ -164,17 +161,16 @@ class LanguageServerTest {
 
     @Test
     fun d_typescriptOnAGeneratedProject() {
-        val modules = unpacked("typescript-language-server").parentFile!!
-        unpacked("typescript")
+        val server = install("typescript")
         val files = typescriptProject()
         record("typescript_project_files", files.size)
         smoke(
             Case(
                 id = "typescript_project",
                 language = "typescript",
-                script = File(modules, "typescript-language-server/lib/cli.mjs"),
-                arguments = listOf("--stdio"),
-                options = typescriptOptions(File(modules, "typescript")),
+                script = server.entry,
+                arguments = server.server.arguments,
+                options = typescriptOptions(File(server.directory, "node_modules/typescript")),
                 configuration = { JSONObject() },
                 files = files,
                 main = "src/main.ts",
@@ -394,48 +390,13 @@ class LanguageServerTest {
             .put("tsserver", JSONObject().put("path", File(typescript, "lib/tsserver.js").absolutePath).put("useSyntaxServer", "never"))
             .put("disableAutomaticTypingAcquisition", true)
 
-    /** servers.json from the assets, by package name. */
-    private fun manifest(): Map<String, JSONObject> {
-        val text = try {
-            assets.open("lsp/servers.json").bufferedReader().use { it.readText() }
-        } catch (missing: IOException) {
-            throw AssertionError(
-                "this test APK carries no language servers: app/tool/ci/fetch_language_servers.py writes them before it is built",
-            )
-        }
-        val servers = JSONObject(text).getJSONArray("servers")
-        return (0 until servers.length()).map { servers.getJSONObject(it) }.associateBy { it.getString("name") }
-    }
+    private fun servers(): LanguageServers = LanguageServers(AssetPayloadSource(context), commands().environment.root)
 
-    /** Unpacks a package's zip from the assets into the runtime's lsp/node_modules/<name>. */
-    private fun unpack(name: String): File {
-        val target = File(commands().environment.home, "lsp/node_modules/$name")
-        target.deleteRecursively()
-        target.mkdirs()
-        val base = target.canonicalPath + File.separator
-        val started = SystemClock.elapsedRealtime()
-        var files = 0
-        var bytes = 0L
-        ZipInputStream(assets.open("lsp/$name.zip").buffered()).use { zip ->
-            while (true) {
-                val entry = zip.nextEntry ?: break
-                if (entry.isDirectory) continue
-                val file = File(target, entry.name)
-                assertTrue("$name: an entry outside its folder: ${entry.name}", file.canonicalPath.startsWith(base))
-                file.parentFile?.mkdirs()
-                bytes += file.outputStream().use { output -> zip.copyTo(output) }
-                files += 1
-            }
-        }
-        val key = if (name == "typescript-language-server") "tls" else name
-        record("${key}_unpacked", "files=$files bytes=$bytes ms=${SystemClock.elapsedRealtime() - started}")
-        return target
-    }
-
-    /** A package unpacked by an earlier test, or unpacked now when this test runs alone. */
-    private fun unpacked(name: String): File {
-        val target = File(commands().environment.home, "lsp/node_modules/$name")
-        return if (File(target, "package.json").isFile) target else unpack(name)
+    /** The server [id] from the app's assets: installed by the first test that asks, reused by the rest. */
+    private fun install(id: String): LanguageServers.Installed {
+        val installed = servers().ensure(id)
+        record("${id}_install", "reused=${installed.reused} files=${installed.files} ms=${installed.millis}")
+        return installed
     }
 
     /** The memory of every process in the server's group: PSS and RSS, in KiB, from /proc. */

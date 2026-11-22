@@ -13,10 +13,13 @@ native/runtime-core/build.gradle.kts puts it there:
     since Phase 4 W4, the command launcher (libcodeforge-spawn.so);
   * native libraries for that ABI only: no APK carries two;
   * native libraries compressed in the APK (legacy packaging), which is what
-    makes Android extract them into nativeLibraryDir as real files.
+    makes Android extract them into nativeLibraryDir as real files;
+  * since Phase 6 W2, the language servers (runtime/language_servers.py):
+    assets/lsp/servers.json, and each server it names with its archive,
+    stored as it is, and its manifest.
 
 With --no-payload it checks the opposite: a build that carries no runtime
-holds none of the payload's assets.
+holds none of the payload's assets, and no language server.
 
 Usage:
   check_runtime_apk.py <apk> --abi x86_64     the payload of that ABI
@@ -28,11 +31,13 @@ Prints key=value lines (runtime_apk_*), and exits 1 on any finding.
 """
 
 import io
+import json
 import os
 import sys
 import zipfile
 
 ABIS = ("arm64-v8a", "x86_64")
+SERVERS = "assets/lsp/servers.json"
 OURS = ("libharness-exec.so", "libharnessprobe.so", "libcodeforge-spawn.so")
 
 
@@ -79,11 +84,15 @@ def check(apk, abi=None):
                             % (len(stored), stored[0]))
         if abi is None:
             carried = [name for name in names
-                       if any(name in payload_assets(each) for each in ABIS)]
+                       if any(name in payload_assets(each) for each in ABIS) or name.startswith("assets/lsp/")]
             facts.append("runtime_apk_payload=none")
             if carried:
                 findings.append("a build without a runtime carries %s" % ", ".join(sorted(carried)))
             return findings, facts
+
+        servers_found, servers_facts = check_servers(archive, infos)
+        findings.extend(servers_found)
+        facts.extend(servers_facts)
 
         for name in payload_assets(abi):
             if name not in names:
@@ -122,7 +131,33 @@ def check(apk, abi=None):
     return findings, facts
 
 
-def _apk(abi=None, *, stored_libs=False, extra_abi=False, drop=None, compress_zip=False):
+def check_servers(archive, infos):
+    """(findings, facts) for the language servers a payload APK carries."""
+    if SERVERS not in infos:
+        return ["missing %s: the language servers" % SERVERS], ["runtime_apk_lsp_servers=none"]
+    try:
+        servers = json.loads(archive.read(SERVERS).decode("utf-8"))["servers"]
+    except (ValueError, KeyError, TypeError) as error:
+        return ["%s is malformed: %s" % (SERVERS, error)], []
+    findings = []
+    archive_bytes = 0
+    for server in servers:
+        for key in ("archive", "manifest"):
+            name = "assets/%s" % server.get(key, "")
+            if name not in infos:
+                findings.append("missing %s, server %s's %s" % (name, server.get("id"), key))
+        name = "assets/%s" % server.get("archive", "")
+        if name in infos:
+            archive_bytes += infos[name].file_size
+            if infos[name].compress_type != zipfile.ZIP_STORED:
+                findings.append("%s is compressed again in the APK" % name)
+    facts = ["runtime_apk_lsp_servers=%s" % ",".join(server.get("id", "?") for server in servers),
+             "runtime_apk_lsp_archive_bytes=%d" % archive_bytes]
+    return findings, facts
+
+
+def _apk(abi=None, *, stored_libs=False, extra_abi=False, drop=None, compress_zip=False,
+         servers=True, compress_lsp=False):
     """A synthetic APK for the self-test."""
     data = io.BytesIO()
     lib_type = zipfile.ZIP_STORED if stored_libs else zipfile.ZIP_DEFLATED
@@ -145,6 +180,15 @@ def _apk(abi=None, *, stored_libs=False, extra_abi=False, drop=None, compress_zi
                     archive.writestr(name, b"# header\nbin/git\tlibgit.so\n")
                 else:
                     archive.writestr(name, b"{}")
+        if abi and servers:
+            lsp = {"assets/lsp/servers.json": json.dumps({"schema": 1, "servers": [
+                       {"id": "demo", "archive": "lsp/demo.zip", "manifest": "lsp/demo-manifest.txt"}]}).encode(),
+                   "assets/lsp/demo.zip": b"PK demo", "assets/lsp/demo-manifest.txt": b"# sha256\tsize\tpath\n"}
+            for name, body in lsp.items():
+                if name == drop:
+                    continue
+                stored = name.endswith(".zip") and not compress_lsp
+                archive.writestr(name, body, compress_type=zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED)
     data.seek(0)
     return data
 
@@ -161,6 +205,9 @@ def self_test():
         ("the zip compressed again", lambda: check(_apk("x86_64", compress_zip=True), "x86_64"), True),
         ("a payload where none belongs", lambda: check(_apk("x86_64")), True),
         ("the wrong ABI's payload", lambda: check(_apk("x86_64"), "arm64-v8a"), True),
+        ("a payload without the language servers", lambda: check(_apk("x86_64", servers=False), "x86_64"), True),
+        ("a server's archive missing", lambda: check(_apk("x86_64", drop="assets/lsp/demo.zip"), "x86_64"), True),
+        ("a server's archive compressed again", lambda: check(_apk("x86_64", compress_lsp=True), "x86_64"), True),
     ]
     for name, run, should_find in cases:
         findings, _ = run()

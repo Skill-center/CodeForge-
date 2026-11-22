@@ -20,6 +20,7 @@ import 'services/editor/bench/bench_pages.dart';
 import 'services/editor/editor_page.dart';
 import 'services/logging/file_log_sink.dart';
 import 'services/perf/frame_stats.dart';
+import 'services/runtime/language_server_licenses.dart';
 import 'services/runtime/userland_licenses.dart';
 import 'services/settings/settings_store.dart';
 import 'services/shell/shell_state.dart';
@@ -59,6 +60,8 @@ Future<void> bootstrap() async {
       LicenseRegistry.addLicense(bundledUserlandLicenses);
       // The terminal page's npm packages: xterm.js (Phase 5 W3).
       LicenseRegistry.addLicense(bundledTerminalLicenses);
+      // The language servers' packages and their texts (Phase 6 W2).
+      LicenseRegistry.addLicense(bundledLanguageServerLicenses);
       // Settings → Developer → Frame timing (G6 on a real device).
       if (!kReleaseMode) {
         frameStats.start();

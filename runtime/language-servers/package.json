@@ -1,0 +1,29 @@
+{
+  "name": "codeforge-language-servers",
+  "private": true,
+  "description": "The language servers CodeForge ships (Phase 6, docs/adr/0015-language-servers.md). runtime/language_servers.py reads this file and its lockfile; see runtime/README.md.",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "pyright": "1.1.414",
+    "typescript": "6.0.3",
+    "typescript-language-server": "6.1.0"
+  },
+  "codeforge": {
+    "servers": [
+      {
+        "id": "pyright",
+        "languages": ["python"],
+        "packages": ["pyright"],
+        "entry": "node_modules/pyright/langserver.index.js",
+        "arguments": ["--stdio"]
+      },
+      {
+        "id": "typescript",
+        "languages": ["javascript", "typescript"],
+        "packages": ["typescript-language-server", "typescript"],
+        "entry": "node_modules/typescript-language-server/lib/cli.mjs",
+        "arguments": ["--stdio"]
+      }
+    ]
+  }
+}

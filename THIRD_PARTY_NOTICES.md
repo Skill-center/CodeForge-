@@ -1,6 +1,6 @@
 # Third-party notices
 
-> **Completed in Phase 4 W7** (2026-11-18), from the pinned packages (Phase 4 W2) and the app's resolved dependencies. ADR-0011's interim rule 3 and ADR-0010: published before the first binary release. Its generated sections are checked by CI on every push, so they follow the dependencies. It is not legal advice; the open points are in section 6.
+> **Completed in Phase 4 W7** (2026-11-18), from the pinned packages (Phase 4 W2) and the app's resolved dependencies. ADR-0011's interim rule 3 and ADR-0010: published before the first binary release. Its generated sections are checked by CI on every push, so they follow the dependencies. It is not legal advice; the open points are in section 7.
 
 CodeForge's own code is licensed under the Apache License 2.0 (`LICENSE`). The app also contains, or ships beside it, software by others under their own licences. This file lists that software and says where the full licence texts are. In the app, About → *Open-source licenses* shows Flutter's, the Dart packages', the editor page's and (since Phase 5 W1) the userland's texts, About → *Bundled font licenses* the fonts', and About → *CodeForge's license* CodeForge's own.
 
@@ -280,7 +280,88 @@ A text with a double dagger (‡) is not in the payload under the name the link 
 
 <!-- userland:end -->
 
-## 6. Done, and still open
+## 6. The language servers
+
+**What they are.** Since Phase 6 W2 the app carries two language servers, which the runtime's node runs: Pyright, and typescript-language-server with TypeScript ([ADR-0015](docs/adr/0015-language-servers.md)). They are npm packages, pinned with their integrity in `runtime/language-servers/` and shipped as archives beside the userland. Each is installed into the runtime the first time it is needed.
+
+**What they carry.** Each npm package keeps its own licence. Pyright and typescript-language-server also bundle other npm packages into their JavaScript, and ship without those packages' licence texts. `runtime/language_servers.py` reads the bundled packages and their versions from the shipped packages' source maps, which name pnpm's store paths, into `runtime/language-servers/bundled.json`. It then takes each one's licence files from its own tarball, verified against the registry's SHA-512.
+
+**Where the texts are.** The app carries them as `app/assets/licenses/language-servers.txt`, each distinct text once after the packages that carry it, and its licence page lists them. CI checks this table and that file against the pins.
+
+<!-- language-servers:begin -->
+<!-- Written by runtime/language_servers.py from runtime/language-servers/. Do not edit by hand: CI checks it. -->
+
+**61 package versions** ship in the language servers: 3 as their own files and 58 bundled inside their JavaScript. Pyright: `pyright` 1.1.414, with 37 bundled inside; the TypeScript server: `typescript` 6.0.3 and `typescript-language-server` 6.1.0, with 21 bundled inside. Licences, counted per package version: MIT 48, ISC 5, Apache-2.0 2, BSD-2-Clause 2, BSD-3-Clause 2, 0BSD 1, BlueOak-1.0.0 1.
+
+| Package | Version | Licence | Server | Ships | Licence text |
+|---|---|---|---|---|---|
+| pyright | 1.1.414 | MIT | Pyright | its own files | `LICENSE.txt`, `dist/typeshed-fallback/LICENSE` |
+| typescript | 6.0.3 | Apache-2.0 | the TypeScript server | its own files | `LICENSE.txt`, `ThirdPartyNoticeText.txt` |
+| typescript-language-server | 6.1.0 | Apache-2.0 | the TypeScript server | its own files | `LICENSE` |
+| @yarnpkg/fslib | 2.10.4 | BSD-2-Clause | Pyright | bundled in `pyright@1.1.414` | none in its package |
+| @yarnpkg/libzip | 2.3.0 | BSD-2-Clause | Pyright | bundled in `pyright@1.1.414` | none in its package |
+| ansi-styles | 4.3.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `license` |
+| anymatch | 3.1.3 | ISC | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| binary-extensions | 2.3.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `license` |
+| braces | 3.0.3 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| buffer-from | 1.1.2 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| chalk | 4.1.2 | MIT | Pyright | bundled in `pyright@1.1.414` | `license` |
+| chokidar | 3.6.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| color-convert | 2.0.1 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| color-name | 1.1.4 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| command-line-args | 5.2.1 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| commander | 15.1.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE` |
+| crypto-random-string | 4.0.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `license` |
+| fill-range | 7.1.1 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| find-up-simple | 1.0.1 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `license` |
+| fs-extra | 11.4.1 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE` |
+| glob-parent | 5.1.2 | ISC | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| graceful-fs | 4.2.11 | ISC | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE` |
+| has-flag | 4.0.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `license` |
+| is-binary-path | 2.1.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `license` |
+| is-extglob | 2.1.1 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| is-glob | 4.0.3 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| is-number | 7.0.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| isexe | 4.0.0 | BlueOak-1.0.0 | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE.md` |
+| jsonc-parser | 3.3.1 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE.md` |
+| jsonfile | 6.2.1 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE` |
+| lodash.camelcase | 4.3.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| normalize-path | 3.0.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| p-debounce | 6.0.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `license` |
+| package-up | 5.0.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `license` |
+| picomatch | 2.3.2 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| readdirp | 3.6.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| semver | 7.8.6 | ISC | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE` |
+| smol-toml | 1.7.0 | BSD-3-Clause | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| source-map | 0.6.1 | BSD-3-Clause | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| source-map-support | 0.5.21 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE.md` |
+| supports-color | 7.2.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `license` |
+| temp-dir | 3.0.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `license` |
+| tempy | 3.2.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `license` |
+| tmp | 0.2.7 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| to-regex-range | 5.0.1 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE` |
+| tslib | 1.14.1 | 0BSD | Pyright | bundled in `pyright@1.1.414` | `LICENSE.txt` |
+| unique-string | 3.0.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `license` |
+| universalify | 2.0.1 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE` |
+| vscode-jsonrpc | 10.0.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-jsonrpc | 9.0.1 | MIT | Pyright | bundled in `pyright@1.1.414` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver | 10.1.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver | 11.0.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver-protocol | 3.18.2 | MIT | Pyright | bundled in `pyright@1.1.414` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver-protocol | 3.18.5 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver-textdocument | 1.0.12 | MIT | Pyright | bundled in `pyright@1.1.414` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver-textdocument | 1.0.16 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver-types | 3.18.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-languageserver-types | 3.18.5 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `License.txt`, `thirdpartynotices.txt` |
+| vscode-uri | 3.1.0 | MIT | Pyright | bundled in `pyright@1.1.414` | `LICENSE.md` |
+| vscode-uri | 3.2.0 | MIT | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE.md` |
+| which | 7.0.0 | ISC | the TypeScript server | bundled in `typescript-language-server@6.1.0` | `LICENSE` |
+
+**Without a licence text in their package** (2): @yarnpkg/fslib@2.10.4, @yarnpkg/libzip@2.3.0. Their package.json names the licence; the text is for the licence review.
+
+<!-- language-servers:end -->
+
+## 7. Done, and still open
 
 - [x] Sections 2 and 3 listed, each written and checked by CI from the resolved dependencies.
 - [x] Every package section 5 could not name has a licence: Phase 4 W7 read each one's Termux recipe (the dagger), and a subpackage that carries no text points to its parent's. CI fails if a named text is not in the payload, or if a review is no longer needed.
