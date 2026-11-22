@@ -1,400 +1,400 @@
-11-22 13:56:50.249   646   921 V WifiConnectivityManager: schedulePeriodicScanTimer intervalMs 160000
-11-22 13:56:50.250   646   925 I WifiScanningService: Registering listener= com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@bb3821f uid=1000 packageName=null workSource=WorkSource{1000}
-11-22 13:56:50.250   646   925 I WifiScanningService: start scan: ClientInfo[uid=1000, package=null, attributionTag=null, com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@bb3821f] package null AttributionTag null
-11-22 13:56:50.250   646   925 I WifiScanningService: addSingleScanRequest: ClientInfo[uid=1000, package=null, attributionTag=null, com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@bb3821f],WorkSource{1010}, ScanSettings {  type:HIGH ACCURACY band:unspecified ignoreLocationSettings:false period:0 reportEvents:3 numBssidsPerScan:0 maxScansToCache:0 rnrSetting:2 6GhzPscOnlyEnabled:false channels:[ 2437  ]  } 
-11-22 13:56:50.253   646   925 D WifiScanningService: replySucceeded onSuccess
-11-22 13:56:50.260  1247  1247 D wpa_supplicant: nl80211: Drv Event 33 (NL80211_CMD_TRIGGER_SCAN) received for wlan0
-11-22 13:56:50.260  1247  1247 D wpa_supplicant: wlan0: nl80211: Scan trigger
-11-22 13:56:50.260  1247  1247 D wpa_supplicant: wlan0: Event SCAN_STARTED (47) received
-11-22 13:56:50.260  1247  1247 D wpa_supplicant: wlan0: External program started a scan
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: nl80211: Drv Event 34 (NL80211_CMD_NEW_SCAN_RESULTS) received for wlan0
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: wlan0: nl80211: New scan results available
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: nl80211: Scan probed for SSID ''
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: nl80211: Scan included frequencies: 2437
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: wlan0: Event SCAN_RESULTS (3) received
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: nl80211: Received scan results (1 BSSes)
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: nl80211: Scan results indicate BSS status with 02:15:b2:00:00:01 as associated
-11-22 13:56:50.313   646  1084 D WifiNl80211Manager: Scan result ready event
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: wlan0: BSS: Start scan result update 9
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: BSS: last_scan_res_used=1/32
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: wlan0: New scan results available (own=0 ext=1)
-11-22 13:56:50.313   646  1084 D WifiNative: Scan result ready event
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: wlan0: Do not use results from externally requested scan operation for network selection
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: p2p-dev-wlan0: Updating scan results from sibling
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: nl80211: Received scan results (1 BSSes)
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: p2p-dev-wlan0: BSS: Start scan result update 9
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: BSS: last_scan_res_used=1/32
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: p2p-dev-wlan0: New scan results available (own=0 ext=1)
-11-22 13:56:50.313  1247  1247 D wpa_supplicant: p2p-dev-wlan0: Do not use results from externally requested scan operation for network selection
-11-22 13:56:50.314   646   925 D WifiNl80211Manager: get 1 scan results from wificond
-11-22 13:56:50.314   646   925 D WifiNative: get 1 scan results from wificond
-11-22 13:56:50.315  2572  3057 I WifiScanner: onFullResults
-11-22 13:56:50.315   646   925 I WifiScanningService: singleScanResults: ClientInfo[uid=1000, package=null, attributionTag=null, com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@bb3821f],results=1
-11-22 13:56:50.315   646   925 I WifiScanningService: singleScanResults listener: ClientInfo[uid=1000, package=android, attributionTag=null, com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@79ef8e9],results=1
-11-22 13:56:50.315   646   921 D WifiScanRequestProxy: Scan results received
-11-22 13:56:50.315   646   921 D WifiScanRequestProxy: Received 1 scan results
-11-22 13:56:50.315   646   925 I WifiScanningService: singleScanResults listener: ClientInfo[uid=1000, package=android, attributionTag=null, com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@4bbaf7e],results=1
-11-22 13:56:50.315   646   925 I WifiScanningService: singleScanResults listener: ClientInfo[uid=1000, package=android, attributionTag=null, com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@bf9c128],results=1
-11-22 13:56:50.316   646   921 I HalDevMgr: bestIfaceCreationProposal is null, requestIface=STA, existingIface=[name=wlan0 type=STA]
-11-22 13:56:50.316   646   921 V WifiConnectivityManager: AllSingleScanListener onResults: start network selection
-11-22 13:56:50.316   646   921 V WifiConfigManager: getSavedNetworkFromScanResult Found "AndroidWifi"NONE for AndroidWifi[[ESS]]
-11-22 13:56:50.316   646   921 D WifiNetworkSelector: Current connected network: 0
-11-22 13:56:50.317   646   921 D WifiNetworkSelector: wlan0: Current connected network already sufficient. Skip network selection.
-11-22 13:56:50.317   646   921 V WifiLastResortWatchdog: updateAvailableNetworks: size = 0
-11-22 13:56:50.317   646   921 V WifiLastResortWatchdog: mWatchdogFeatureEnabled: true
-11-22 13:56:50.317   646   921 V WifiLastResortWatchdog: mWatchdogAllowedToTrigger: true
-11-22 13:56:50.317   646   921 V WifiLastResortWatchdog: mRecentAvailableNetworks: 1
-11-22 13:56:50.317   646   921 V WifiLastResortWatchdog:  02:15:b2:00:00:01: "AndroidWifi" HasEverConnected: false, Failures: {Assoc: 0, Auth: 0, Dhcp: 0}, Age: 8
-11-22 13:56:50.317   646   921 V WifiLastResortWatchdog: mSsidFailureCount:
-11-22 13:56:50.317   646   921 V WifiLastResortWatchdog: "AndroidWifi": 1, HasEverConnected: false, Failures: {Assoc: 0, Auth: 0, Dhcp: 0}
-11-22 13:56:50.317   646   921 V WifiConnectivityManager: AllSingleScanListener:  No candidates
-11-22 13:56:50.317   646   925 I WifiScanningService: singleScanResults listener: ClientInfo[uid=10146, package=com.google.android.gms, attributionTag=network_location_provider, android.net.wifi.IWifiScannerListener$Stub$Proxy@158fb97],results=1
-11-22 13:56:50.318   646   925 I WifiScanningService: Unregistering listener= com.android.server.wifi.scanner.WifiScannerInternal$ScanListener@bb3821f uid=1000 packageName=null workSource=WorkSource{1000}
-11-22 13:56:50.393   646   750 D ActivityManager: freezing 2887 com.android.traceur
-11-22 13:56:50.393   646   750 D ActivityManager: freezing 3648 com.google.android.accessibility.switchaccess
-11-22 13:56:50.394   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:50.394   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:50.394   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10130} in 0ms
-11-22 13:56:50.394   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:50.395   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:50.395   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10162} in 1ms
-11-22 13:56:50.397   646   750 D ActivityManager: freezing 3650 com.google.android.apps.safetyhub
-11-22 13:56:50.397   646   750 D ActivityManager: freezing 3642 com.google.android.apps.messaging
-11-22 13:56:50.401   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:50.401   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:50.401   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10137} in 0ms
-11-22 13:56:50.474   646   750 D ActivityManager: freezing 1742 com.google.android.cellbroadcastreceiver
-11-22 13:56:50.474   646   750 D ActivityManager: freezing 3651 com.google.android.marvin.talkback
-11-22 13:56:50.475   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:50.475   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:50.475   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10192} in 0ms
-11-22 13:56:50.476   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:50.476   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:50.476   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10165} in 0ms
-11-22 13:56:50.502   646   750 D ActivityManager: freezing 3652 com.google.android.healthconnect.controller
-11-22 13:56:50.503   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:50.503   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:50.503   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10213} in 0ms
-11-22 13:56:51.446  1121  1280 D ApfFilter: (wlan0): Ignoring RA RA fe80::2 -> ff02::1 1800s fec0::/64 86400s/14400s  which matches RA fe80::2 -> ff02::1 1800s fec0::/64 86400s/14400s 
-11-22 13:56:51.931  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_offset=33554432
-11-22 13:56:51.931  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_problem=corrupt
-11-22 13:56:51.931  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
-11-22 13:56:52.009  3833  3996 I TestRunner: finished: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-22 13:56:52.010  3833  3996 I TestRunner: started: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-22 13:56:52.171   646   750 D ActivityManager: freezing 2701 com.google.android.gms.ui
-11-22 13:56:53.113   646   921 D WifiClientModeImpl[41832:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=36 freq=2437 RxLinkSpeed=2
-11-22 13:56:53.113   646   921 D WifiDataStall: tx tput in kbps: 37000
-11-22 13:56:53.113   646   921 D WifiDataStall: rx tput in kbps: 37000
-11-22 13:56:53.113   646   921 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
-11-22 13:56:53.113   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:53.113   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:53.113   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:53.113   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:53.114   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:53.114   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:53.114   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:53.114   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:53.114   646   921 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1121795276 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 36Mbps, Tx Link speed: 36Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
-11-22 13:56:53.115   646   921 D WifiScoreCard: txRate: 1 txSpeed: 36
-11-22 13:56:53.115   646   921 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 2094496554 RSSI -50 txSpeed -1
-11-22 13:56:53.115   646   921 D WifiClientModeImpl[41832:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=36 tx=0.0, 0.0, 0.0 rx=0.2 bcn=0 [on:0 tx:0 rx:0 period:3004] from screen [on:0 period:59483387] score=60
-11-22 13:56:53.450   646   750 D ActivityManager: freezing 1008 com.google.android.permissioncontroller
-11-22 13:56:53.451   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:53.452   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:53.452   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10204} in 1ms
-11-22 13:56:54.995   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:54.995   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:54.996   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10190} in 1ms
-11-22 13:56:54.996   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:56:54.997   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:56:54.997   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={20190} in 1ms
-11-22 13:56:55.889   646   750 D ActivityManager: freezing 4983 com.google.android.googlequicksearchbox:search
-11-22 13:56:56.117   646   921 D WifiClientModeImpl[41832:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=36 freq=2437 RxLinkSpeed=2
-11-22 13:56:56.117   646   921 D WifiDataStall: tx tput in kbps: 37000
-11-22 13:56:56.117   646   921 D WifiDataStall: rx tput in kbps: 37000
-11-22 13:56:56.117   646   921 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:56.117   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:56.118   646   921 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1121795276 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 36Mbps, Tx Link speed: 36Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
-11-22 13:56:56.119   646   921 D WifiScoreCard: txRate: 1 txSpeed: 36
-11-22 13:56:56.119   646   921 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 2094496554 RSSI -50 txSpeed -1
-11-22 13:56:56.119   646   921 D WifiClientModeImpl[41832:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=36 tx=0.0, 0.0, 0.0 rx=0.0 bcn=0 [on:0 tx:0 rx:0 period:3004] from screen [on:0 period:59486391] score=60
-11-22 13:56:57.714  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE digest_problem=corrupt
-11-22 13:56:57.715  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE digest_detail=digest differs: bin/am
-11-22 13:56:58.280  3833  3996 I TestRunner: finished: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-22 13:56:58.285  3833  3996 I TestRunner: started: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-22 13:56:58.285  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE kernel_manifest_stream=read 1 sdk=36
-11-22 13:56:58.286  3833  3996 I TestRunner: finished: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
-11-22 13:56:58.287  3833  3996 I TestRunner: started: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:56:59.121   646   921 D WifiClientModeImpl[41832:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=36 freq=2437 RxLinkSpeed=2
-11-22 13:56:59.121   646   921 D WifiDataStall: tx tput in kbps: 37000
-11-22 13:56:59.121   646   921 D WifiDataStall: rx tput in kbps: 37000
-11-22 13:56:59.121   646   921 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:56:59.121   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:56:59.122   646   921 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1121795276 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 36Mbps, Tx Link speed: 36Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
-11-22 13:56:59.122   646   921 D WifiScoreCard: txRate: 1 txSpeed: 36
-11-22 13:56:59.122   646   921 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 2094496554 RSSI -50 txSpeed -1
-11-22 13:56:59.122   646   921 D WifiClientModeImpl[41832:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=36 tx=0.0, 0.0, 0.0 rx=0.0 bcn=0 [on:0 tx:0 rx:0 period:3003] from screen [on:0 period:59489394] score=60
-11-22 13:56:59.759  1184  1404 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
-11-22 13:56:59.871   646   681 D OomAdjuster: Not killing cached processes
-11-22 13:56:59.909   444   475 I netd    : tetherGetStats() -> {[]} <0.26ms>
-11-22 13:57:00.005   646   750 D ActivityManager: freezing 1493 com.google.android.gms
-11-22 13:57:00.007   646   750 D ActivityManager: freezing 4166 com.google.android.adservices.api
-11-22 13:57:00.141   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:57:00.141   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:57:00.141   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10190} in 1ms
-11-22 13:57:00.889   444   475 I netd    : tetherGetStats() -> {[]} <0.27ms>
-11-22 13:57:01.206  1593  2528 I IPCThreadState: oneway function results for code 2 on binder at 0x7b3db5d32e40 will be dropped but finished with status UNKNOWN_TRANSACTION
-11-22 13:57:02.123   646   921 D WifiClientModeImpl[41832:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
-11-22 13:57:02.123   646   921 D WifiDataStall: tx tput in kbps: 37000
-11-22 13:57:02.123   646   921 D WifiDataStall: rx tput in kbps: 37000
-11-22 13:57:02.123   646   921 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:02.124   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:02.125   646   921 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1121795276 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
-11-22 13:57:02.125   646   921 D WifiScoreCard: txRate: 1 txSpeed: 2
-11-22 13:57:02.125   646   921 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 2094496554 RSSI -50 txSpeed -1
-11-22 13:57:02.125   646   921 D WifiClientModeImpl[41832:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=0.8, 0.0, 0.0 rx=0.4 bcn=0 [on:0 tx:0 rx:0 period:3003] from screen [on:0 period:59492397] score=60
-11-22 13:57:03.729   646   973 D BackgroundInstallControlService: Package event received: 0
-11-22 13:57:03.749   444   475 I netd    : tetherGetStats() -> {[]} <0.25ms>
-11-22 13:57:03.868  5264  5264 W libcodeforge-sp: type=1400 audit(0.0:908): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:04.067     0     0 W audit   : audit_lost=805 audit_rate_limit=5 audit_backlog_limit=64
-11-22 13:57:03.872  5264  5264 W libcodeforge-sp: type=1400 audit(0.0:909): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:04.072     0     0 E audit   : rate limit exceeded
-11-22 13:57:03.872  5264  5264 W libcodeforge-sp: type=1400 audit(0.0:910): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:03.872  5264  5264 W libcodeforge-sp: type=1400 audit(0.0:911): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:03.876  5268  5268 W bash    : type=1400 audit(0.0:912): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:03.905  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_first_answer_ms=40
-11-22 13:57:03.921  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash=ok
-11-22 13:57:03.941  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash_exit=3
-11-22 13:57:03.942  3833  3996 I TestRunner: finished: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:03.944  3833  3996 I TestRunner: started: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:03.986  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_stty=24x80,40x120
-11-22 13:57:04.093  3833  3996 I TestRunner: finished: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:04.094  3833  3996 I TestRunner: started: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:04.302  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_prompt_ms=207
-11-22 13:57:04.359  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_repl=ok exit=0
-11-22 13:57:04.360  3833  3996 I TestRunner: finished: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:04.361  3833  3996 I TestRunner: started: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:04.984   646   691 I WifiService: isFeatureSupported uid=1000 returns [WIFI_FEATURE_INFRA, WIFI_FEATURE_P2P, WIFI_FEATURE_MOBILE_HOTSPOT, WIFI_FEATURE_WPA3_SAE, WIFI_FEATURE_WPA3_SUITE_B, WIFI_FEATURE_OWE, WIFI_FEATURE_DPP, WIFI_FEATURE_AP_RAND_MAC, WIFI_FEATURE_MBO, WIFI_FEATURE_FILS_SHA256, WIFI_FEATURE_FILS_SHA384, WIFI_FEATURE_SAE_PK, WIFI_FEATURE_DPP_ENROLLEE_RESPONDER, WIFI_FEATURE_PASSPOINT_TERMS_AND_CONDITIONS, WIFI_FEATURE_WFD_R2, WIFI_FEATURE_DECORATED_IDENTITY, WIFI_FEATURE_TRUST_ON_FIRST_USE, WIFI_FEATURE_SET_TLS_MINIMUM_VERSION, WIFI_FEATURE_TLS_V1_3, WIFI_FEATURE_WEP, WIFI_FEATURE_WPA_PERSONAL]
-11-22 13:57:05.126   646   921 D WifiClientModeImpl[41832:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
-11-22 13:57:05.126   646   921 D WifiDataStall: tx tput in kbps: 37000
-11-22 13:57:05.126   646   921 D WifiDataStall: rx tput in kbps: 37000
-11-22 13:57:05.126   646   921 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
-11-22 13:57:05.126   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:05.126   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:05.127   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:05.127   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:05.127   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:05.127   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:05.127   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:05.127   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:05.127   646   921 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1121795276 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
-11-22 13:57:05.127   646   921 D WifiScoreCard: txRate: 1 txSpeed: 2
-11-22 13:57:05.127   646   921 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 2094496554 RSSI -50 txSpeed -1
-11-22 13:57:05.127   646   921 D WifiClientModeImpl[41832:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=0.3, 0.0, 0.0 rx=0.1 bcn=0 [on:0 tx:0 rx:0 period:3002] from screen [on:0 period:59495399] score=60
-11-22 13:57:06.213   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:57:06.214   646   927 D InetDiagMessage: Destroyed 1 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:57:06.214   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10142} in 1ms
-11-22 13:57:06.214   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:57:06.215   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:57:06.215   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={20142} in 1ms
-11-22 13:57:06.897  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_us=p50=451 p95=598 max=955 n=50
-11-22 13:57:06.897  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_p95_under_budget=1
-11-22 13:57:07.004  3833  3996 I TestRunner: finished: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:07.006  3833  3996 I TestRunner: started: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:07.014  3833  3996 I v.codeforge.app: Explicit concurrent mark compact GC freed 436KB AllocSpace bytes, 3(1116KB) LOS objects, 24% free, 2199KB/2932KB, paused 67us,791us total 7.638ms
-11-22 13:57:07.016  5295  5295 W libcodeforge-sp: type=1400 audit(0.0:988): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:07.220     0     0 W audit   : audit_lost=880 audit_rate_limit=5 audit_backlog_limit=64
-11-22 13:57:07.024  5295  5295 W libcodeforge-sp: type=1400 audit(0.0:989): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:07.222     0     0 E audit   : rate limit exceeded
-11-22 13:57:07.024  5295  5295 W libcodeforge-sp: type=1400 audit(0.0:990): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:07.024  5295  5295 W libcodeforge-sp: type=1400 audit(0.0:991): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:07.028  5298  5298 W bash    : type=1400 audit(0.0:992): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:07.736  3833  3996 I v.codeforge.app: Explicit concurrent mark compact GC freed 204KB AllocSpace bytes, 4(548KB) LOS objects, 24% free, 3239KB/4319KB, paused 66us,816us total 6.325ms
-11-22 13:57:07.736  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood=bytes=10485760 batches=42 ms=715 high_water=262144 window=262144 buffer=1048576 heap_growth_kib=1040 native_growth_kib=0
-11-22 13:57:07.736  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_whole=1
-11-22 13:57:07.736  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_within_window=1
-11-22 13:57:07.738  3833  3996 I TestRunner: finished: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:07.739  3833  3996 I TestRunner: started: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:07.889  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_ninth=too_many
-11-22 13:57:08.016  3833  3996 I TestRunner: finished: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:08.018  3833  3996 I TestRunner: started: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:08.024  5340  5340 W libcodeforge-sp: type=1400 audit(0.0:1132): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:08.028  5340  5340 W libcodeforge-sp: type=1400 audit(0.0:1133): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:08.028  5340  5340 W libcodeforge-sp: type=1400 audit(0.0:1134): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:08.225     0     0 W audit   : audit_lost=1022 audit_rate_limit=5 audit_backlog_limit=64
-11-22 13:57:08.028  5340  5340 W libcodeforge-sp: type=1400 audit(0.0:1135): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:08.230     0     0 E audit   : rate limit exceeded
-11-22 13:57:08.028  5343  5343 W libcodeforge-sp: type=1400 audit(0.0:1136): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
-11-22 13:57:08.130   646   921 D WifiClientModeImpl[41832:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
-11-22 13:57:08.131   646   921 D WifiDataStall: tx tput in kbps: 37000
-11-22 13:57:08.131   646   921 D WifiDataStall: rx tput in kbps: 37000
-11-22 13:57:08.131   646   921 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
-11-22 13:57:08.131   646   921 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
-11-22 13:57:08.131   646   921 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1121795276 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
-11-22 13:57:08.131   646   921 D WifiScoreCard: txRate: 1 txSpeed: 2
-11-22 13:57:08.131   646   921 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 2094496554 RSSI -50 txSpeed -1
-11-22 13:57:08.131   646   921 D WifiClientModeImpl[41832:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=0.3, 0.0, 0.0 rx=0.0 bcn=0 [on:0 tx:0 rx:0 period:3004] from screen [on:0 period:59498403] score=60
-11-22 13:57:08.132  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_tree=sleeps=5 with_marker=7
-11-22 13:57:08.242  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all=left=0 ms=107 shell=ended/4 script=ended/3 remaining=0 processes_before=1 processes_after=1
-11-22 13:57:08.242  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_left=0
-11-22 13:57:08.242  3833  3996 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_processes_left=0
-11-22 13:57:08.243  3833  3996 I TestRunner: finished: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
-11-22 13:57:08.244  3833  3996 I TestRunner: run finished: 36 tests, 0 failed, 0 ignored
-11-22 13:57:08.252   444  5354 I resolv  : GetAddrInfoHandler::run: {100 100 100 983140 10216 0}
-11-22 13:57:08.252   444  5355 I resolv  : res_nmkquery: (QUERY, IN, AAAA)
-11-22 13:57:08.252   444  5356 I resolv  : res_nmkquery: (QUERY, IN, A)
-11-22 13:57:08.257   444  5356 I resolv  : res_nsend: used send_dg 58 terrno: 0
-11-22 13:57:08.257   444  5356 I resolv  : doQuery: rcode=0, ancount=1, return value=58
-11-22 13:57:08.268   444  5355 I resolv  : res_nsend: used send_dg 70 terrno: 0
-11-22 13:57:08.268   444  5355 I resolv  : doQuery: rcode=0, ancount=1, return value=70
-11-22 13:57:08.820  3833  3996 I MonitoringInstr: waitForActivitiesToComplete() took: 0ms
-11-22 13:57:08.823   646  1084 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
-11-22 13:57:08.824   646  1084 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
-11-22 13:57:08.824   646  1084 D AccessibilityManagerService: restoreCurrentUserForTestAutomationIfNeededLocked(): ignoring because device doesn't support visible background users
-11-22 13:57:08.824   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.824   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.824   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.824   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.824   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.824   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.824   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.825   646   646 D BatterySaverPolicy: accessibility changed to false, updating policy.
-11-22 13:57:08.829   646  1741 I ActivityManager: Force stopping dev.codeforge.app appid=10216 user=0: finished inst
-11-22 13:57:08.831  1593  2328 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
-11-22 13:57:08.831  3795  3795 I app_process: System.exit called, status: 0
-11-22 13:57:08.831  3795  3795 I AndroidRuntime: VM exiting with result code 0.
-11-22 13:57:09.016     0     0 I binder  : 646:1741 ioctl 400c620e 7b3b43c05f6c returned -11
-11-22 13:57:09.017     0     0 I binder  : 646:1741 ioctl 400c620e 7b3b43c05f6c returned -11
-11-22 13:57:09.024     0     0 I binder_alloc: 3795: binder_alloc_buf, no vma
-11-22 13:57:08.838  1593  2109 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
-11-22 13:57:08.838   646  1741 E ActivityManager: Unable to freeze binder for 3833: -11
-11-22 13:57:08.838  1593  2109 I AiAiEcho: EchoTargets: 
-11-22 13:57:08.838  1593  2109 I AiAiEcho: Filtered by AiAi flag check: 
-11-22 13:57:08.838  1593  2109 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
-11-22 13:57:08.838  1593  2109 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
-11-22 13:57:09.026     0     0 W binder_debug: 19 callbacks suppressed
-11-22 13:57:09.026     0     0 I binder  : cannot allocate buffer: vma cleared, target dead or dying
-11-22 13:57:09.027     0     0 I binder  : 646:681 transaction async to 3795:0 failed 307079/29189/-3, size 88-0 line 3548
-11-22 13:57:08.843   646   681 E IPCThreadState: Binder transaction failure. id: 307079, BR_*: 29189, error: -3 (No such process)
-11-22 13:57:08.843   646   681 W ActivityManager: pid 646 system sent binder code 18 with flags 1 to frozen apps and got error -32
-11-22 13:57:08.843   646   681 W ActivityManager: Error shutting down UiAutomationConnection
-11-22 13:57:08.844  1593  2109 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
-11-22 13:57:08.844  1593  2109 I AiAiEcho: EchoTargets: 
-11-22 13:57:08.844  1593  2109 I AiAiEcho: Filtered by AiAi flag check: 
-11-22 13:57:08.844  1593  2109 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
-11-22 13:57:08.844  1593  2109 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
-11-22 13:57:08.845  1593  2109 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
-11-22 13:57:08.845  1593  2109 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
-11-22 13:57:08.845  1007  1007 W PageIndicator: Total number of pages invalid: 0. Assuming 1 page.
-11-22 13:57:08.846   646  1741 I ActivityManager: Killing 3833:dev.codeforge.app/u0a216 (adj 0): stop dev.codeforge.app due to finished inst
-11-22 13:57:08.848  1263  1263 D SsBaseTemplateCard: No text view can be set up
-11-22 13:57:08.848  1263  1263 D SsBaseTemplateCard: Passed-in item info is null
-11-22 13:57:08.848  1263  1263 D SsBaseTemplateCard: Passed-in item info is null
-11-22 13:57:08.848  1263  1263 D SsBaseTemplateCard: Passed-in item info is null
-11-22 13:57:08.848  1263  1263 I SsBaseTemplateCard: Secondary card pane is null
-11-22 13:57:08.849   646  1741 D OomAdjuster: Not killing cached processes
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.849   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.850   646  1741 W IPCThreadState: Sending oneway calls to frozen process.
-11-22 13:57:08.856  1007  1007 W DSRotLockSettingsMngr: Setting is ignored, but no fallback was specified.
-11-22 13:57:08.869   444   475 I netd    : tetherGetStats() -> {[]} <0.32ms>
-11-22 13:57:08.875   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:57:08.881   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:57:08.885   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={10216} in 11ms
-11-22 13:57:08.885   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
-11-22 13:57:08.886   646   927 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
-11-22 13:57:08.886   646   927 D InetDiagMessage: Destroyed live tcp sockets for uids={20216} in 1ms
-11-22 13:57:08.891   529   529 I adbd    : Remote process closed the socket (on MSG_PEEK)
-11-22 13:57:08.892   447   447 I Zygote  : Process 3833 exited due to signal 9 (Killed)
-11-22 13:57:08.893   646   683 I libprocessgroup: Removed cgroup /sys/fs/cgroup/apps/uid_10216/pid_3833
-11-22 13:57:08.894   646  1741 V ActivityManager: Got obituary of 3833:dev.codeforge.app
-11-22 13:57:09.077     0     0 I binder  : undelivered TRANSACTION_COMPLETE
-11-22 13:57:09.080     0     0 I binder  : undelivered transaction 307145, process died.
-11-22 13:57:09.269     0     0 I logd    : logdr: UID=2000 GID=2000 PID=5378 n tail=0 logMask=99 pid=0 start=0ns deadline=0ns
-11-22 13:57:09.376     0     0 I logd    : logdr: UID=2000 GID=2000 PID=5381 n tail=0 logMask=99 pid=0 start=0ns deadline=0ns
+11-22 20:48:18.361  3169  3169 D WM-SystemJobService: onStartJob for WorkGenerationalId(workSpecId=6c345ebe-c6f7-48dc-8069-d3bce8199ed3, generation=0)
+11-22 20:48:18.368  3169  3336 I DialerVvmExecutorImpl: com.android.dialer.voicemail.service.impl.scheduler.VvmExecutorImpl.execute:229 Beginning VVM action: ACTIVATE with retryCount: 2 for ComponentInfo{com.android.phone/com.android.services.telephony.TelephonyConnectionService}, 1, UserHandle{0} [CONTEXT enable_persistent_logger=true ]
+11-22 20:48:18.370   446   479 I netd    : tetherGetStats() -> {[]} <0.28ms>
+11-22 20:48:18.371  3169  3348 D WM-Processor: Work WorkGenerationalId(workSpecId=6c345ebe-c6f7-48dc-8069-d3bce8199ed3, generation=0) is already enqueued for processing
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: com.android.dialer.voicemail.service.impl.vvmclients.rest.RestVvmCarrierService.getMsisdn:420 Retrieved phone number in an unexpected format: +15551234567 [CONTEXT disable_client_error_logging=true ]
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: zxo: MEDIUM
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at a.cN(PG:15)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at pxq.apply(PG:489)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at zcp.apply(PG:13)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at aaka.d(PG:3)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at aakb.run(PG:38)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at umz.run(PG:7)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at aadu.run(PG:44)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at tdt.run(PG:78)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at cp.run(PG:143)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at java.lang.Thread.run(Thread.java:1119)
+11-22 20:48:18.374  3169  3362 E DialerRestVvmCarrierService: 	at uoe.run(PG:61)
+11-22 20:48:18.375  3169  3362 I DialerLogcatLoggingBindings: com.android.dialer.logging.logcat.LogcatLoggingBindings.logImpression:54 Impression: ANDROID_API_UNEXPECTED_PHONE_NUMBER_FORMAT
+11-22 20:48:18.375  3169  3336 I DialerVvmActivation: com.android.dialer.voicemail.service.impl.vvmclients.rest.VvmActivation.activate:73 activate
+11-22 20:48:18.375  3169  3362 W DialerGbaCredentialProvider: com.android.dialer.voicemail.service.impl.vvmclients.rest.GbaCredentialProvider$1.onAuthenticationFailure:93 GBA failed with reason: 1 [CONTEXT disable_client_error_logging=true ]
+11-22 20:48:18.376  3169  3336 I DialerSingletonScopedExternalsLogging: com.google.android.dialershared.externals.logging.SingletonScopedExternalsLogging.recordCallMethodInvocation:75 event: TELEPHONY_BOOTSTRAP_AUTHENTICATION_REQUEST, function parameters: [], return value: Default
+11-22 20:48:18.376  3169  3336 W DialerVvmExecutorImpl: com.android.dialer.voicemail.service.impl.scheduler.VvmExecutorImpl.executeWorkOnCarrierService:444 Could not complete vvm work with action: ACTIVATE. Error: [GeneralFailureReason: UNSPECIFIED, RestFailureReason: GBA_AUTHENTICATION_FAILURE_FEATURE_NOT_SUPPORTED, OmtpFailureReason: OMTP_UNSPECIFIED] for ComponentInfo{com.android.phone/com.android.services.telephony.TelephonyConnectionService}, 1, UserHandle{0} [CONTEXT disable_client_error_logging=true enable_persistent_logger=true ]
+11-22 20:48:18.376  3169  3336 I DialerVvmExecutorImpl: com.android.dialer.voicemail.service.impl.scheduler.VvmExecutorImpl.executeWork:204 VvmResult is: # pug@1db0ddb for ComponentInfo{com.android.phone/com.android.services.telephony.TelephonyConnectionService}, 1, UserHandle{0}
+11-22 20:48:18.377  3169  3336 I DialerLoggingConsentCheckerImpl: com.google.android.dialershared.logging.consent.impl.LoggingConsentCheckerImpl.getConsent:72 timer stop with success, timer present: false
+11-22 20:48:18.378  3169  3336 I DialerLoggingConsentCheckerImpl: com.google.android.dialershared.logging.consent.impl.LoggingConsentCheckerImpl.getConsent:72 timer stop with success, timer present: false
+11-22 20:48:18.394   655  1846 D FileUtils: Rounded bytes from 4110614528 to 8000000000
+11-22 20:48:18.400  3169  3362 I DialerSingletonScopedExternalsLogging: com.google.android.dialershared.externals.logging.SingletonScopedExternalsLogging.recordCallMethodInvocation:75 event: TIKTOK_WORK_EXECUTION_MONITOR_ON_WORK_FINISHED, function parameters: [6c345ebe-c6f7-48dc-8069-d3bce8199ed3,com.android.dialer.voicemail.service.impl.VvmTaskWorker], return value: Retry
+11-22 20:48:18.408  3169  3362 I DialerLoggingConsentCheckerImpl: com.google.android.dialershared.logging.consent.impl.LoggingConsentCheckerImpl.getConsent:72 timer stop with success, timer present: false
+11-22 20:48:18.419   655  1846 D FileUtils: Rounded bytes from 4110614528 to 8000000000
+11-22 20:48:18.420  3169  3337 I WM-WorkerWrapper: Worker result RETRY for Work [ id=6c345ebe-c6f7-48dc-8069-d3bce8199ed3, tags={ com.google.apps.tiktok.contrib.work.TikTokListenableWorker,1,ACTIVATE,TikTokWorker#com.android.dialer.voicemail.service.impl.VvmTaskWorker } ]
+11-22 20:48:18.421  3169  3169 D WM-Processor: fgy 6c345ebe-c6f7-48dc-8069-d3bce8199ed3 executed; reschedule = true
+11-22 20:48:18.422  3169  3169 D WM-GreedyScheduler: Stopping tracking for WorkGenerationalId(workSpecId=6c345ebe-c6f7-48dc-8069-d3bce8199ed3, generation=0)
+11-22 20:48:18.423  3169  3169 D WM-SystemJobService: 6c345ebe-c6f7-48dc-8069-d3bce8199ed3 executed on JobScheduler
+11-22 20:48:18.428  3169  3337 D WM-GreedyScheduler: Cancelling work ID 6c345ebe-c6f7-48dc-8069-d3bce8199ed3
+11-22 20:48:18.433  3169  3337 D WM-SystemJobScheduler: Scheduling work ID 0470b6d0-c3ef-470c-83b6-351b86d41f2eJob ID 27
+11-22 20:48:18.435  3169  3337 D WM-GreedyScheduler: Ignoring {WorkSpec: 37afe825-8d27-4f78-9264-6ce1e293bc13}. Requires device idle.
+11-22 20:48:18.438  3169  3337 D WM-GreedyScheduler: Ignoring {WorkSpec: 5b87ae20-8501-4f8a-a779-763118106e8e}. Requires device idle.
+11-22 20:48:18.438  3169  3337 D WM-GreedyScheduler: Ignoring {WorkSpec: dd0358f3-8521-4870-a830-0c2cad601715}. Requires device idle.
+11-22 20:48:18.438  3169  3337 D WM-GreedyScheduler: Ignoring {WorkSpec: a1c0e9c3-b2d4-4eaa-8209-86c6ba0e0dca}. Requires device idle.
+11-22 20:48:18.438  3169  3337 D WM-GreedyScheduler: Ignoring {WorkSpec: 5342063e-e0a1-4225-ba3f-2df1a078023c}. Requires device idle.
+11-22 20:48:18.438  3169  3337 D WM-NetworkStateTracker: Unregistering network callback
+11-22 20:48:18.542  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_offset=33554432
+11-22 20:48:18.542  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_problem=corrupt
+11-22 20:48:18.542  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
+11-22 20:48:18.605  3921  4065 I TestRunner: finished: e_aFlippedByteFailsTypedAndIsNeverMarkedInstalled(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-22 20:48:18.606  3921  4065 I TestRunner: started: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-22 20:48:18.921   655   707 W ActivityManager: pid 655 system sent binder code 2 with flags 1 to frozen apps and got error -32
+11-22 20:48:18.932   655   707 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:18.935   655   707 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:19.010   655   707 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:19.041   655   689 I system_server: Background concurrent mark compact GC freed 23MB AllocSpace bytes, 37(728KB) LOS objects, 45% free, 28MB/52MB, paused 625us,1.105ms total 106.472ms
+11-22 20:48:19.256   655   707 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:19.310   655   707 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:19.706   655   707 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:19.719   655   707 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:19.877  1203  1449 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+11-22 20:48:19.994   446   479 I netd    : tetherGetStats() -> {[]} <0.27ms>
+11-22 20:48:20.207  1491  1491 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.gms.common.BIND_SHARED_PREFS xflg=0x4 pkg=com.google.android.gms }
+11-22 20:48:20.208   655  1846 D OomAdjuster: Not killing cached processes
+11-22 20:48:20.527   655   943 D WifiClientModeImpl[34725:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
+11-22 20:48:20.527   655   943 D WifiDataStall: tx tput in kbps: 37000
+11-22 20:48:20.527   655   943 D WifiDataStall: rx tput in kbps: 37000
+11-22 20:48:20.527   655   943 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
+11-22 20:48:20.527   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:20.527   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:20.527   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:20.527   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:20.528   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:20.528   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:20.528   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:20.528   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:20.529   655   943 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1989151268 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+11-22 20:48:20.529   655   943 D WifiScoreCard: txRate: 1 txSpeed: 2
+11-22 20:48:20.529   655   943 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 1565701806 RSSI -50 txSpeed -1
+11-22 20:48:20.529   655   943 D WifiClientModeImpl[34725:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=0.0, 0.0, 0.0 rx=0.0 bcn=0 [on:0 tx:0 rx:0 period:3003] from screen [on:0 period:84170801] score=60
+11-22 20:48:21.808   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:21.808   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:21.808   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10167} in 1ms
+11-22 20:48:21.809   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:21.809   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:21.809   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={20167} in 1ms
+11-22 20:48:21.809   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:21.810   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:21.810   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10162} in 0ms
+11-22 20:48:21.810   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:21.810   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:21.810   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={20162} in 0ms
+11-22 20:48:21.811   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:21.811   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:21.811   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10135} in 1ms
+11-22 20:48:21.811   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:21.812   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:21.812   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={20135} in 0ms
+11-22 20:48:22.405   655  1654 D CompatChangeReporter: Compat change id reported: 311208629; UID 10146; state: ENABLED
+11-22 20:48:22.871  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE digest_problem=corrupt
+11-22 20:48:22.871  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE digest_detail=digest differs: bin/am
+11-22 20:48:23.289  3921  4065 I TestRunner: finished: f_aFileThatDiffersFromItsManifestFailsTyped(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-22 20:48:23.294  3921  4065 I TestRunner: started: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-22 20:48:23.295  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE kernel_manifest_stream=read 1 sdk=36
+11-22 20:48:23.295  3921  4065 I TestRunner: finished: g_theKernelReadsAManifestStreamOnEveryApiLevel(dev.codeforge.app.runtime.RuntimeInstallTest)
+11-22 20:48:23.296  3921  4065 I TestRunner: started: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:23.430   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:23.430   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:23.430   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10136} in 0ms
+11-22 20:48:23.431   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:23.431   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:23.431   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={20136} in 1ms
+11-22 20:48:23.530   655   943 D WifiClientModeImpl[34725:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
+11-22 20:48:23.530   655   943 D WifiDataStall: tx tput in kbps: 37000
+11-22 20:48:23.530   655   943 D WifiDataStall: rx tput in kbps: 37000
+11-22 20:48:23.530   655   943 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
+11-22 20:48:23.530   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:23.530   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:23.530   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:23.530   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:23.530   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:23.530   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:23.531   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:23.531   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:23.531   655   943 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1989151268 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+11-22 20:48:23.531   655   943 D WifiScoreCard: txRate: 1 txSpeed: 2
+11-22 20:48:23.531   655   943 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 1565701806 RSSI -50 txSpeed -1
+11-22 20:48:23.531   655   943 D WifiClientModeImpl[34725:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=0.0, 0.0, 0.0 rx=0.0 bcn=0 [on:0 tx:0 rx:0 period:3002] from screen [on:0 period:84173803] score=60
+11-22 20:48:25.218   655   774 D ActivityManager: freezing 2613 com.google.android.gms.ui
+11-22 20:48:25.430   655  1654 D OomAdjuster: Not killing cached processes
+11-22 20:48:25.446   446   479 I netd    : tetherGetStats() -> {[]} <0.34ms>
+11-22 20:48:26.339  1491  1491 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.mobstore.service.START xflg=0x4 pkg=com.google.android.gms }
+11-22 20:48:26.413  1491  1491 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.gms.audit.service.START xflg=0x4 pkg=com.google.android.gms }
+11-22 20:48:26.531   655   943 D WifiClientModeImpl[34725:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
+11-22 20:48:26.532   655   943 D WifiDataStall: tx tput in kbps: 37000
+11-22 20:48:26.532   655   943 D WifiDataStall: rx tput in kbps: 37000
+11-22 20:48:26.532   655   943 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
+11-22 20:48:26.532   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:26.533   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:26.533   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:26.533   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:26.533   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:26.533   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:26.533   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:26.533   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:26.534   655   943 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1989151268 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+11-22 20:48:26.534   655   943 D WifiScoreCard: txRate: 1 txSpeed: 2
+11-22 20:48:26.534   655   943 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 1565701806 RSSI -50 txSpeed -1
+11-22 20:48:26.534   655   943 D WifiClientModeImpl[34725:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=0.0, 0.0, 0.0 rx=0.0 bcn=0 [on:0 tx:0 rx:0 period:3003] from screen [on:0 period:84176806] score=60
+11-22 20:48:26.922   655   774 D ActivityManager: freezing 3567 com.google.android.accessibility.switchaccess
+11-22 20:48:26.923   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:26.923   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:26.924   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10167} in 1ms
+11-22 20:48:26.930   655   774 D ActivityManager: freezing 3613 com.google.android.marvin.talkback
+11-22 20:48:26.930   655   774 D ActivityManager: freezing 2939 com.android.traceur
+11-22 20:48:26.931   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:26.931   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:26.932   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10162} in 1ms
+11-22 20:48:26.932   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:26.933   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:26.933   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10130} in 1ms
+11-22 20:48:26.952   655   774 D ActivityManager: freezing 3564 com.google.android.apps.messaging
+11-22 20:48:27.019   655   774 D ActivityManager: freezing 3584 com.google.android.healthconnect.controller
+11-22 20:48:27.020   655   774 D ActivityManager: freezing 3579 com.google.android.apps.safetyhub
+11-22 20:48:27.020   655   774 D ActivityManager: freezing 1528 com.google.android.cellbroadcastreceiver
+11-22 20:48:27.022   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:27.023   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:27.023   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10204} in 1ms
+11-22 20:48:27.023   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:27.023   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:27.023   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10137} in 0ms
+11-22 20:48:27.043   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:27.044   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:27.044   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10211} in 1ms
+11-22 20:48:27.572  5278  5278 W libcodeforge-sp: type=1400 audit(0.0:1066): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:27.735     0     0 W audit   : audit_lost=943 audit_rate_limit=5 audit_backlog_limit=64
+11-22 20:48:27.736     0     0 E audit   : rate limit exceeded
+11-22 20:48:27.572  5278  5278 W libcodeforge-sp: type=1400 audit(0.0:1067): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:27.572  5278  5278 W libcodeforge-sp: type=1400 audit(0.0:1068): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:27.588  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_first_answer_ms=19
+11-22 20:48:27.572  5278  5278 W libcodeforge-sp: type=1400 audit(0.0:1069): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:27.572  5282  5282 W bash    : type=1400 audit(0.0:1070): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:27.604  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash=ok
+11-22 20:48:27.725  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_bash_exit=3
+11-22 20:48:27.726  3921  4065 I TestRunner: finished: a_bashEchoesAndAnswersInAnXtermTerminal(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:27.727  3921  4065 I TestRunner: started: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:27.771  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_stty=24x80,40x120
+11-22 20:48:27.877  3921  4065 I TestRunner: finished: b_sttySizeFollowsAResize(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:27.878  3921  4065 I TestRunner: started: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:28.037  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_prompt_ms=158
+11-22 20:48:28.110  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_node_repl=ok exit=0
+11-22 20:48:28.110  3921  4065 I TestRunner: finished: c_nodesReplAnswers(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:28.112  3921  4065 I TestRunner: started: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:28.428   655   774 D ActivityManager: freezing 3169 com.google.android.dialer
+11-22 20:48:28.429   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:28.429   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:28.429   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10136} in 1ms
+11-22 20:48:28.471  1750  2481 I IPCThreadState: oneway function results for code 2 on binder at 0x709d45fe6820 will be dropped but finished with status UNKNOWN_TRANSACTION
+11-22 20:48:28.494   446   479 I netd    : tetherGetStats() -> {[]} <0.34ms>
+11-22 20:48:29.535   655   943 D WifiClientModeImpl[34725:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
+11-22 20:48:29.535   655   943 D WifiDataStall: tx tput in kbps: 37000
+11-22 20:48:29.535   655   943 D WifiDataStall: rx tput in kbps: 37000
+11-22 20:48:29.535   655   943 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:29.535   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:29.535   655   943 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1989151268 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+11-22 20:48:29.535   655   943 D WifiScoreCard: txRate: 1 txSpeed: 2
+11-22 20:48:29.535   655   943 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 1565701806 RSSI -50 txSpeed -1
+11-22 20:48:29.535   655   943 D WifiClientModeImpl[34725:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=0.0, 0.0, 0.0 rx=0.0 bcn=0 [on:0 tx:0 rx:0 period:3001] from screen [on:0 period:84179807] score=60
+11-22 20:48:29.876  1203  1449 D SatelliteController: iisInCarrierRoamingNbIotNtn: satellite is disabled
+11-22 20:48:29.976   655   774 D ActivityManager: freezing 1035 com.google.android.permissioncontroller
+11-22 20:48:29.977   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:29.977   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:29.977   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10198} in 1ms
+11-22 20:48:30.649  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_us=p50=483 p95=571 max=1423 n=50
+11-22 20:48:30.650  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_echo_p95_under_budget=1
+11-22 20:48:30.756  3921  4065 I TestRunner: finished: d_aKeystrokesEchoIsWellInsideTheBudget(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:30.757  3921  4065 I TestRunner: started: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:30.765  3921  4065 I v.codeforge.app: Explicit concurrent mark compact GC freed 436KB AllocSpace bytes, 3(1116KB) LOS objects, 24% free, 2203KB/2937KB, paused 55us,614us total 6.919ms
+11-22 20:48:30.768  5309  5309 W libcodeforge-sp: type=1400 audit(0.0:1146): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:30.934     0     0 W audit   : audit_lost=1018 audit_rate_limit=5 audit_backlog_limit=64
+11-22 20:48:30.936     0     0 E audit   : rate limit exceeded
+11-22 20:48:30.768  5309  5309 W libcodeforge-sp: type=1400 audit(0.0:1147): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:30.768  5309  5309 W libcodeforge-sp: type=1400 audit(0.0:1148): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:30.768  5309  5309 W libcodeforge-sp: type=1400 audit(0.0:1149): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:30.772  5312  5312 W bash    : type=1400 audit(0.0:1150): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:31.415   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:31.415   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:31.415   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10199} in 0ms
+11-22 20:48:31.416   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:31.416   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:31.416   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={20199} in 1ms
+11-22 20:48:31.572  3921  4065 I v.codeforge.app: Explicit concurrent mark compact GC freed 144KB AllocSpace bytes, 4(464KB) LOS objects, 24% free, 3239KB/4319KB, paused 60us,650us total 6.521ms
+11-22 20:48:31.572  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood=bytes=10485760 batches=42 ms=800 high_water=262144 window=262144 buffer=1048576 heap_growth_kib=1036 native_growth_kib=0
+11-22 20:48:31.573  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_whole=1
+11-22 20:48:31.573  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_flood_within_window=1
+11-22 20:48:31.573  3921  4065 I TestRunner: finished: e_aFloodArrivesWholeWithTheMemoryBounded(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:31.574  3921  4065 I TestRunner: started: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:31.707  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_ninth=too_many
+11-22 20:48:31.819  3921  4065 I TestRunner: finished: f_theNinthSessionIsRefused(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:31.820  3921  4065 I TestRunner: started: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:31.824  5354  5354 W libcodeforge-sp: type=1400 audit(0.0:1290): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:31.832  5354  5354 W libcodeforge-sp: type=1400 audit(0.0:1291): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:32.003     0     0 W audit   : audit_lost=1157 audit_rate_limit=5 audit_backlog_limit=64
+11-22 20:48:31.832  5354  5354 W libcodeforge-sp: type=1400 audit(0.0:1292): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:32.004     0     0 E audit   : rate limit exceeded
+11-22 20:48:31.832  5354  5354 W libcodeforge-sp: type=1400 audit(0.0:1293): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:31.832  5357  5357 W libcodeforge-sp: type=1400 audit(0.0:1294): avc:  denied  { search } for  name="tests" dev="dm-55" ino=196612 scontext=u:r:untrusted_app:s0:c216,c256,c512,c768 tcontext=u:object_r:shell_test_data_file:s0 tclass=dir permissive=0 app=dev.codeforge.app
+11-22 20:48:31.896  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_tree=sleeps=5 with_marker=7
+11-22 20:48:32.006  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all=left=0 ms=107 shell=ended/4 script=ended/3 remaining=0 processes_before=1 processes_after=1
+11-22 20:48:32.006  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_left=0
+11-22 20:48:32.006  3921  4065 I CodeForgeRuntimeGate: RUNTIME_GATE terminal_end_all_processes_left=0
+11-22 20:48:32.007  3921  4065 I TestRunner: finished: g_endAllLeavesNoProcess(dev.codeforge.app.runtime.TerminalSessionTest)
+11-22 20:48:32.008  3921  4065 I TestRunner: run finished: 37 tests, 0 failed, 0 ignored
+11-22 20:48:32.020   446  5368 I resolv  : GetAddrInfoHandler::run: {100 100 100 983140 10216 0}
+11-22 20:48:32.020   446  5369 I resolv  : res_nmkquery: (QUERY, IN, AAAA)
+11-22 20:48:32.020   446  5370 I resolv  : res_nmkquery: (QUERY, IN, A)
+11-22 20:48:32.036   446  5370 I resolv  : res_nsend: used send_dg 128 terrno: 0
+11-22 20:48:32.036   446  5370 I resolv  : doQuery: rcode=0, ancount=5, return value=128
+11-22 20:48:32.066   446  5369 I resolv  : res_nsend: used send_dg 176 terrno: 0
+11-22 20:48:32.067   446  5369 I resolv  : doQuery: rcode=0, ancount=5, return value=176
+11-22 20:48:32.413   655   774 D ActivityManager: freezing 5043 com.google.android.googlequicksearchbox:search
+11-22 20:48:32.539   655   943 D WifiClientModeImpl[34725:wlan0]: updateLinkLayerStatsRssiSpeedFrequencyCapabilities rssi=-50 TxLinkspeed=2 freq=2437 RxLinkSpeed=2
+11-22 20:48:32.539   655   943 D WifiDataStall: tx tput in kbps: 37000
+11-22 20:48:32.539   655   943 D WifiDataStall: rx tput in kbps: 37000
+11-22 20:48:32.539   655   943 V WifiConfigManager: Updating scan detail cache freq=2437 BSSID=02:15:b2:00:00:01 RSSI=-50 for "AndroidWifi"NONE
+11-22 20:48:32.539   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:32.539   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:32.539   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:32.539   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:32.540   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:32.540   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:32.540   655   943 D WifiThroughputPredictor:  utilization (LLS) 80 isBluetoothConnected: false final utilization: 80
+11-22 20:48:32.540   655   943 D WifiThroughputPredictor:  BW: 0 RSSI: -50 Nss: 1 Mode: 1 symDur: 4000 snrDb 30 bitPerTone: 4500 rate: 54 throughput: 37
+11-22 20:48:32.540   655   943 D WifiScoreCard: BSSID update SIGNAL_POLL ID: 1989151268 SSID: "AndroidWifi", BSSID: 02:15:b2:00:00:01, MAC: 02:15:b2:00:00:00, IP: /10.0.2.16, Security type: 0, Supplicant state: COMPLETED, Wi-Fi standard: legacy, RSSI: -50, Link speed: 2Mbps, Tx Link speed: 2Mbps, Max Supported Tx Link speed: 54Mbps, Rx Link speed: 2Mbps, Max Supported Rx Link speed: 54Mbps, Frequency: 2437MHz, Net ID: 0, Metered hint: false, score: 60, isUsable: true, CarrierMerged: false, SubscriptionId: -1, IsPrimary: 1, Trusted: true, Restricted: false, Ephemeral: false, OEM paid: false, OEM private: false, OSU AP: false, FQDN: <none>, Provider friendly name: <none>, Requesting package name: <none>"AndroidWifi"openMLO Information: , Is TID-To-Link negotiation supported by the AP: false, AP MLD Address: <none>, AP MLO Link Id: <none>, AP MLO Affiliated links: <none>, Vendor Data: <none>
+11-22 20:48:32.540   655   943 D WifiScoreCard: txRate: 2 txSpeed: 2
+11-22 20:48:32.540   655   943 D WifiScoreCard: network update SIGNAL_POLL "AndroidWifi" ID: 1565701806 RSSI -50 txSpeed -1
+11-22 20:48:32.540   655   943 D WifiClientModeImpl[34725:wlan0]:  ClientModeImpl$L2ConnectedState screen=on 1 0 "AndroidWifi" 02:15:b2:00:00:01 rssi=-50 f=2437 sc=60 link=2 tx=1.0, 0.0, 0.0 rx=0.8 bcn=0 [on:0 tx:0 rx:0 period:3005] from screen [on:0 period:84182812] score=60
+11-22 20:48:32.612  3921  4065 I MonitoringInstr: waitForActivitiesToComplete() took: 0ms
+11-22 20:48:32.613   655  1846 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+11-22 20:48:32.614   655  1846 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+11-22 20:48:32.614   655  1846 D AccessibilityManagerService: restoreCurrentUserForTestAutomationIfNeededLocked(): ignoring because device doesn't support visible background users
+11-22 20:48:32.614   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.614   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.614   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.614   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.614   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.615   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.617   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.617   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.617   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.617   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.617   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.617   655   655 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.617   655   655 D BatterySaverPolicy: accessibility changed to false, updating policy.
+11-22 20:48:32.617  1750  2481 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
+11-22 20:48:32.619   655  1654 I ActivityManager: Force stopping dev.codeforge.app appid=10216 user=0: finished inst
+11-22 20:48:32.777     0     0 I binder  : 655:1654 ioctl 400c620e 709bac232f6c returned -11
+11-22 20:48:32.778     0     0 I binder  : 655:1654 ioctl 400c620e 709bac232f6c returned -11
+11-22 20:48:32.624   655  1654 E ActivityManager: Unable to freeze binder for 3921: -11
+11-22 20:48:32.626   655  1654 I ActivityManager: Killing 3921:dev.codeforge.app/u0a216 (adj 0): stop dev.codeforge.app due to finished inst
+11-22 20:48:32.628   655  1654 D OomAdjuster: Not killing cached processes
+11-22 20:48:32.628   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.628   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.628   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.628   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.628   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.628   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.628   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.629   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.630   655  1654 W IPCThreadState: Sending oneway calls to frozen process.
+11-22 20:48:32.632   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:32.632   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:32.634   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={10216} in 8ms
+11-22 20:48:32.635   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+11-22 20:48:32.635   655   949 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+11-22 20:48:32.635   655   949 D InetDiagMessage: Destroyed live tcp sockets for uids={20216} in 1ms
+11-22 20:48:32.638  1033  1033 W DSRotLockSettingsMngr: Setting is ignored, but no fallback was specified.
+11-22 20:48:32.639  1750  1997 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+11-22 20:48:32.640  1750  1997 I AiAiEcho: EchoTargets: 
+11-22 20:48:32.640  1750  1997 I AiAiEcho: Filtered by AiAi flag check: 
+11-22 20:48:32.640  1750  1997 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+11-22 20:48:32.640  1750  1997 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+11-22 20:48:32.642  1750  1997 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+11-22 20:48:32.642  1750  1997 I AiAiEcho: EchoTargets: 
+11-22 20:48:32.642  1750  1997 I AiAiEcho: Filtered by AiAi flag check: 
+11-22 20:48:32.642  1750  1997 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+11-22 20:48:32.643  1750  1997 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+11-22 20:48:32.643  1750  1997 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+11-22 20:48:32.643  1277  1277 D SsBaseTemplateCard: No text view can be set up
+11-22 20:48:32.643  1277  1277 D SsBaseTemplateCard: Passed-in item info is null
+11-22 20:48:32.643  1277  1277 D SsBaseTemplateCard: Passed-in item info is null
+11-22 20:48:32.643  1277  1277 D SsBaseTemplateCard: Passed-in item info is null
+11-22 20:48:32.643  1277  1277 I SsBaseTemplateCard: Secondary card pane is null
+11-22 20:48:32.644  1750  1997 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
+11-22 20:48:32.644  1033  1033 W PageIndicator: Total number of pages invalid: 0. Assuming 1 page.
+11-22 20:48:32.647  3900  3900 I app_process: System.exit called, status: 0
+11-22 20:48:32.647  3900  3900 I AndroidRuntime: VM exiting with result code 0.
+11-22 20:48:32.660   446   479 I netd    : tetherGetStats() -> {[]} <0.62ms>
+11-22 20:48:32.825     0     0 W binder_debug: 22 callbacks suppressed
+11-22 20:48:32.825     0     0 I binder  : undelivered TRANSACTION_COMPLETE
+11-22 20:48:32.676   655   759 V ActivityManager: Got obituary of 3921:dev.codeforge.app
+11-22 20:48:32.832     0     0 I binder  : undelivered transaction 298690, process died.
+11-22 20:48:32.679   531   531 I adbd    : Remote process closed the socket (on MSG_PEEK)
+11-22 20:48:32.681   449   449 I Zygote  : Process 3921 exited due to signal 9 (Killed)
+11-22 20:48:32.681   655   710 I libprocessgroup: Removed cgroup /sys/fs/cgroup/apps/uid_10216/pid_3921
+11-22 20:48:33.011     0     0 I logd    : logdr: UID=2000 GID=2000 PID=5393 n tail=0 logMask=99 pid=0 start=0ns deadline=0ns
+11-22 20:48:33.191     0     0 I logd    : logdr: UID=2000 GID=2000 PID=5396 n tail=0 logMask=99 pid=0 start=0ns deadline=0ns
