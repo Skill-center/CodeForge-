@@ -29,8 +29,7 @@ import 'package:pigeon/pigeon.dart';
   PigeonOptions(
     dartOut: 'lib/services/lsp/native/lsp_api.g.dart',
     dartOptions: DartOptions(),
-    kotlinOut:
-        'android/app/src/main/kotlin/dev/codeforge/app/lsp/LspApi.g.kt',
+    kotlinOut: 'android/app/src/main/kotlin/dev/codeforge/app/lsp/LspApi.g.kt',
     kotlinOptions: KotlinOptions(package: 'dev.codeforge.app.lsp'),
     dartPackageName: 'codeforge',
   ),
