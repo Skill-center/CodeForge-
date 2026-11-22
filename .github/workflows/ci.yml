@@ -613,6 +613,8 @@ jobs:
         run: |
           {
             df -h / | awk 'NR == 2 { print "disk " $4 " free of " $2 }'
+            echo '--- the compiler, first 40 errors:'
+            grep -n -A 2 -E '^e: ' ci-results/kotlin-tests.txt | head -n 40
             grep -n -A 12 -E 'What went wrong|No space left|FAILED' \
               ci-results/kotlin-tests.txt | head -n 30
             echo '--- the last 15 lines:'

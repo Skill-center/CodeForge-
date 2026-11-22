@@ -21,6 +21,7 @@ import org.json.JSONObject
 import org.junit.AfterClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.FixMethodOrder
 import org.junit.Test
@@ -302,16 +303,17 @@ class LanguageServerTest {
             val ending = SystemClock.elapsedRealtime()
             server.request("shutdown", null, REQUEST_TIMEOUT_MS)
             server.notify("exit", null)
-            exit = server.waitForExit(EXIT_TIMEOUT_MS)
+            val ended = server.waitForExit(EXIT_TIMEOUT_MS)
+            exit = ended
             record(
                 "${case.id}_shutdown",
-                "end=${exit?.end?.code} exit=${exit?.exitCode} ms=${SystemClock.elapsedRealtime() - ending} " +
+                "end=${ended?.end?.code} exit=${ended?.exitCode} ms=${SystemClock.elapsedRealtime() - ending} " +
                     "messages=${process.received.get()} sent=${process.sent.get()} largest_message=${server.largest} " +
                     "log_messages=${server.logMessages}",
             )
-            assertNotNull("${case.id}: the server did not exit after exit", exit)
-            assertEquals("${case.id}: how it ended", LspEnd.EXITED, exit!!.end)
-            assertEquals("${case.id}: the server's exit code", 0, exit.exitCode)
+            assertNotNull("${case.id}: the server did not exit after exit", ended)
+            assertEquals("${case.id}: how it ended", LspEnd.EXITED, ended!!.end)
+            assertEquals("${case.id}: the server's exit code", 0, ended.exitCode)
         } finally {
             if (exit == null) {
                 host().stop(process.handle)

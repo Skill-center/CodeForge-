@@ -74,11 +74,11 @@ class LspHostTest {
             Files.createSymbolicLink(File(bin, "sleep").toPath(), sleep.toPath())
         }
         sessions = SessionRegistry(killGroup = { group -> CommandRunnerTest.killGroup(group) }, graceMs = 300L)
-        host = host()
+        host = newHost()
         marker = "%d.%04d".format(400 + serial.incrementAndGet(), CommandRunnerTest.selfPid() % 10000)
     }
 
-    private fun host(maxServers: Int = LspHost.MAX_SERVERS, source: PayloadSource = StubServers.source()): LspHost =
+    private fun newHost(maxServers: Int = LspHost.MAX_SERVERS, source: PayloadSource = StubServers.source()): LspHost =
         LspHost(
             environment = environment,
             launcher = launcher!!,
@@ -274,7 +274,7 @@ class LspHostTest {
 
             override fun open(name: String) = stubs.open(name).also { opened.add(name) }
         }
-        host = host(source = counting)
+        host = newHost(source = counting)
         val first = start(Recorder())
         assertTrue(File(environment.root, "codeforge/lsp/alpha/${StubServers.ENTRY}").isFile)
         host.stop(first.handle)
