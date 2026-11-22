@@ -87,6 +87,12 @@ MB here is KiB / 1024, as Phase 5's memory figures were.
 - **TypeScript 6.0.3 is the last JavaScript TypeScript.** It checks JavaScript and TypeScript today. Moving to TypeScript 7 means shipping its native binary among the APK's programs.
 - **The first install** would grow by Pyright's 5,423 files. W2 installs each language's server only when that language is first needed.
 
+## As built (W3)
+
+- **The launcher's mode:** the command mode with stdin open, as the plan's W3 asked to decide. W1 had run both servers through it on every target, and `LspHostTest` runs the real launcher against a stub server. No pipe mode was added.
+- **The host** (`LspHost`): at most two servers, one per server; the workspace named by a project or a copy, never a path; the runtime's environment plus `NODE_OPTIONS=--max-old-space-size=256`; memory read from `/proc` every 10 s; servers stopped first on Android's low-memory warnings (PHASE_6_PLAN §10 item 3, decision (b)). No foreground service.
+- **Measured** (gate 45029118568): a second Pyright was refused, and a server killed with SIGKILL was reported as signaled with nothing of its tree left, on every target. Through the host, completion after an edit stayed within 111.9 ms at p95 on the phone. Pyright was slower there than in W2, for a reason not yet known (PHASE_6_PLAN, *As built (W3)*).
+
 ## As built (W2)
 - **The servers ship in the APK** (CI 44994907490; phase gate 44995822826). Pyright's archive is 6.06 MB and the TypeScript server's 5.15 MB, each with a manifest of every file's SHA-256. `runtime/language_servers.py` builds them from `runtime/language-servers/`, where npm's lockfile pins every package with its SHA-512. The base module is 158.3 MB, 79.2 % of Play's limit.
 - **Installed when first asked for** (`LanguageServers`), verified file by file. First installs took 0.83 to 2.48 s for Pyright on the emulators and 3.65 s on the Pixel 8a, and reuse at a later start 0 to 5 ms. A damaged archive is refused and leaves nothing in place.

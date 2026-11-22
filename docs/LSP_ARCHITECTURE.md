@@ -35,6 +35,8 @@ CM6 (WebView) ──bridge──► EditorService (Dart) ──► LspService (D
 
 **Shipped since Phase 6 W2** (phase gate 44995822826): the APK carries each server as an archive with a manifest (`assets/lsp/`), built from the pins in `runtime/language-servers/` by `runtime/language_servers.py`. `LanguageServers` (Kotlin) installs a server into `<runtime root>/codeforge/lsp/<id>` the first time it is asked for, verifying every file, and reuses it after.
 
+**Hosted since Phase 6 W3** (phase gate 45029118568): `LspHost` (Kotlin) runs a server through the launcher's command mode with stdin open, in its own process group under the sessions' limits. It carries whole messages both ways, framed by `LspFrameReader` (whole messages only, 16 MiB at most, strict UTF-8, typed errors), and reports each exit as exited, signaled, stopped, memory, broken or lost, with the last 64 KiB of stderr. At most two servers run, one per server. The workspace is a project's name or a copy's id, never a path. Dart reaches it through the Pigeon API `LspApi` (start, send, stop, servers), with `LspEvents` (received, exited) for messages and exits (`pigeons/lsp_api.dart`). The 10-minute idle stop is Dart's (W4), since only Dart knows which documents are open.
+
 **Gate:** each server must pass a smoke suite (initialize → didOpen → completion → diagnostics → shutdown) on an arm64 device under the sealed runtime before its language flips `analyzable: true` in the capability model. Failure = graceful syntax-only mode with a visible status chip, never a broken editor (spec §6.6).
 
 ## 3. Document sync & performance

@@ -30,7 +30,8 @@ CodeForge-/
 │   │   │                         #   perf/: frame timing recorder;
 │   │   │                         #   runtime/: the runtime's state + its Pigeon client (Ph. 4),
 │   │   │                         #   the userland's licence texts for About (Ph. 5 W1);
-│   │   │                         #   search/: search across files + its Pigeon client (Ph. 4 W6)
+│   │   │                         #   search/: search across files + its Pigeon client (Ph. 4 W6);
+│   │   │                         #   lsp/native/: the language servers' Pigeon client (Ph. 6 W3)
 │   │   ├── application/          # controllers + providers; editor/: the editor host;
 │   │   │                         #   terminal/: the terminal page's host + the
 │   │   │                         #   sessions' tabs (Ph. 5 W3), links to open (W4);

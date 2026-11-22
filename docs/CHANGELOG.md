@@ -4,6 +4,14 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 6 W3, the language servers' host (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
+- **The app can run a language server:** `LspHost` starts one through the launcher with its stdin open, in its own process group under the sessions' limits. It carries whole messages both ways, stops the server with its whole tree, and says how each one ended (its exit code or signal, and the last 64 KiB of its stderr).
+- **Messages are checked:** a message over 16 MiB, a malformed header or invalid UTF-8 ends the server as broken, never as half a message.
+- **Bounded:** at most two servers, one per server; a project or a folder's copy by name, never a path; a 256 MB V8 heap cap; memory read every 10 s; servers stopped first when Android warns of low memory. No foreground service.
+- **Dart's side:** the Pigeon API `LspApi` (start, send, stop, servers) with `LspEvents` for messages and exits. The client that uses it comes in W4.
+- **Pyright got slower on the phone** through the host (completion after an edit at up to 111.9 ms p95, against 62.4 ms in W2), in both of W3's gates, for a reason not yet known. That is within the 300 ms budget, and W4 times each stage of a request.
+- Verified by: CI 45020136733 (`+1093: All tests passed!`, 225 Kotlin tests) and plain CI 45027761446 on the final code; phase gate 45029118568, whole (the first, 45021556836, failed its sessions group on a log line W3 had changed, since fixed): `LanguageServerTest` 5 of 5 on each runtime leg (a second Pyright refused, a SIGKILL reported as signal 9 with nothing of its tree left), every emulator group at its first attempt, the cold start at 1,094 ms, and Test Lab's Pixel 8a 40 of 40 in the same run.
+
 ### Phase 6's memory budget decided (2026-11-22)
 - The owner chose (b) (PHASE_6_PLAN §10, item 3): each language server gets a budget of its own, 300 MB of PSS for its process tree on the gate's 200-file project on the phone, beside the app's budgets, which stay as they are. The total is recorded. Servers stop first when Android warns of low memory, at most two run, and an idle one stops after 10 minutes.
 

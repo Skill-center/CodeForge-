@@ -173,6 +173,10 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - **The build:** `native/runtime-core/build.gradle.kts` registers `LanguageServersTask` for every variant of a build that carries a payload. It runs `runtime/language_servers.py build`, whose archives, manifests and `lsp/servers.json` become generated assets. The tarballs come from `runtime/generated/lsp-cache` or the npm registry, each verified. The app stores the archives as they are (`noCompress` "zip"), and `check_runtime_apk.py` requires them.
   - **The runtime job** has a *Language servers* step on every push. It checks the pins offline, fetches all 61 tarballs verified (cached as `lsp-npm-v1-<hash of the lockfile and bundled.json>`), builds the archives and checks the notices. In a commit-back run it rewrites the notices, and the commit-back adds `runtime/language-servers/` and `app/assets/licenses/language-servers.txt`. A `[repin]` commit first runs `language_servers.py lock`, which uses npm to rewrite the lockfile from `package.json`, then rewrites `bundled.json` from the source maps and the registry.
   - **The legs and Test Lab** run `LanguageServerInstallTest` too, copy its `lsp-install-report.txt` (the legs), and require `lsp_install_damaged=damaged`.
+- **W3, the host:**
+  - *Generated code check* covers a fifth Pigeon API (`pigeons/lsp_api.dart`), as do the bootstrap and the three APK builds of the phase gate.
+  - The legs and Test Lab expect `LanguageServerTest`'s 5 tests and require `lsp_crash=signaled:9`.
+  - The quality job's *Kotlin digest* lists the compiler's first 40 errors. They print before a task's `FAILED` line, which the digest showed without them (CI 45016628119).
 
 ## 3. Toolchain pins in CI
 

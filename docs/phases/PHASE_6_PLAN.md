@@ -1,6 +1,6 @@
 # Phase 6 Plan — Language Intelligence
 
-**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 done on 2026-11-22** (phase gate 44977463887: both servers pass the smoke suite on API 26 to 36 and on Test Lab's Pixel 8a; see *As built (W1)* and ADR-0015). **W2 done on 2026-11-22** (CI 44994907490; phase gate 44995822826, with Test Lab's Pixel 8a 39 of 39 in the same run; see *As built (W2)*). **The memory budget decided on 2026-11-22:** (b), a budget of each server's own, 300 MB of PSS (§10, item 3). **W3 under way** · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
+**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 done on 2026-11-22** (phase gate 44977463887: both servers pass the smoke suite on API 26 to 36 and on Test Lab's Pixel 8a; see *As built (W1)* and ADR-0015). **W2 done on 2026-11-22** (CI 44994907490; phase gate 44995822826, with Test Lab's Pixel 8a 39 of 39 in the same run; see *As built (W2)*). **The memory budget decided on 2026-11-22:** (b), a budget of each server's own, 300 MB of PSS (§10, item 3). **W3 done on 2026-11-22** (CI 45020136733, and 45027761446 on the final code; phase gate 45029118568, with Test Lab's Pixel 8a 40 of 40 in the same run; see *As built (W3)*) · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
 
 ---
 
@@ -226,6 +226,46 @@ ROADMAP and LSP_ARCHITECTURE §2 put it first, and every later package builds on
   - **JVM:** the framing (part of a message per read, several per read, the size cap, a bad header, a character split across reads), and `LspHost` against a stub server.
   - **Instrumented, on every runtime leg and the phone:** `LanguageServerTest`. It is W1's smoke suite through `LspHost`, plus the server killed with `SIGKILL`: the exit reported and the tree gone.
 
+**As built (W3):**
+- **G3 met** (CI 45020136733, which committed the counts, and plain CI 45027761446 on the final code; phase gate 45029118568, whole: every emulator group at its first attempt, the cold start at 1,094 ms, no ANR of CodeForge's (2 of Google Play services' at boot); Test Lab's Pixel 8a 40 of 40 in the same run; evidence `9a9c54eb`, `3ec23610` and `28fb037f`). The first gate, 45021556836, failed only its sessions group, on a log line W3 had changed (below).
+- **Decided at W3's start: the launcher's command mode, with stdin open.** No new mode was needed. W1 had already run both servers through the command mode on every target, and `LspHostTest` runs the real launcher, compiled from `native/runtime-core`, against a stub server: messages both ways, the exit's code or signal, the tree ended. ADR-0015 records it.
+- **The framing** (`runtime/LspFraming.kt`): `LspFrameReader` reads LSP's base protocol from bytes and hands over whole messages only, however the server's writes split them.
+  - Header lines end in CR LF, at most 8 KiB each and 16 in all, and `Content-Length` is required.
+  - A message is at most 16 MiB and must be valid UTF-8.
+  - Anything else is a typed `LspFramingException` (`bad_header`, `too_large`, `truncated`, `bad_utf8`) and ends the server as `broken`.
+- **`LspHost` and `LanguageServerProcess`** (`runtime/LspHost.kt`):
+  - **The process.** A server starts through the launcher as a command does: in its own session and process group, under the sessions' limits (no CPU-time limit), with no deadline and stdin open. Its program is the runtime's node running the server's entry, which W2's `LanguageServers` installs on the first start.
+  - **The registry.** A third session kind, `LANGUAGE_SERVER`, so an install ends the servers with the terminals before it touches the prefix.
+  - **The threads.** Each server has a reader, a stderr reader and a writer. The writer's queue holds 32 MiB, past which a send is refused as `queue_full`, so a sender never blocks on a server that has stopped reading. The last 64 KiB of stderr are kept.
+  - **How it ended:** `exited` with its code, `signaled` with the signal, `stopped`, `memory`, `broken` with the framing's reason, or `lost` with why. Each exit carries the stderr tail and what the launcher ended of the tree.
+  - **Limits.** At most 2 servers, one per server id (each language has one server). A second start of the same server is refused as `already_running` with the running one's handle, and a third server as `too_many`.
+  - **The workspace.** A project's name or a copy's id, resolved as a terminal's folder is (E3), never a path.
+  - **The environment** is the runtime's (E2) plus `NODE_OPTIONS=--max-old-space-size=256`, a backstop rather than the budget. No credentials.
+  - **Memory.** Each server's process tree (PSS, RSS, processes) is read from `/proc` every 10 s.
+  - **Low memory.** Android's warnings (`onTrimMemory` at `RUNNING_LOW` and above, except `UI_HIDDEN`, and `onLowMemory`) stop every server first, ended as `memory`, and then trim the hidden terminals' buffers.
+- **The boundary to Dart.** `pigeons/lsp_api.dart` generates `LspApi` (start, send, stop, servers) and `LspEvents` (received, exited). `lsp/LanguageServerHost.kt` serves them over the process's hub. A server belongs to the engine that started it and stops when that engine goes, including one whose start finishes after the engine has gone. Logs name a server by its handle and id, never a message or a path.
+- **Measured** (gate 45029118568), through `LspHost`:
+  - **A second Pyright while one ran** was refused as `already_running`, with the running one's handle, on all five legs and the phone.
+  - **SIGKILL to the server's node** was reported as `signaled` with signal 9 within 3 to 7 ms on the emulators and 226 ms on the phone, and nothing of its group was left.
+  - **The smoke suite:** all four cases exited 0 on every target, 7 to 86 ms after `exit`.
+  - **The phone's completion after an edit, p95:** Pyright 83.3 ms on two files and 111.9 ms on 200, the TypeScript server 33.9 and 59.3 ms. All are within the 300 ms budget, which W6 judges.
+  - **The phone's PSS after the suite:** Pyright 165.2 MB on two files and 195.6 MB on 200, the TypeScript server 238.7 and 254.8 MB. All are under (b)'s 300 MB, which W6 judges.
+  - **Pyright got slower on the phone, for a reason not yet known.** Its completion with no edit took 20.6 ms at p50 on two files and 18.7 ms on 200 (17.9 and 33.0 ms in the first gate), against 8.0 and 5.1 ms in W2's gate. After an edit, its p95 went from 62.4 and 58.0 ms in W2 to 83.3 and 111.9 ms. W1 and W2 had agreed closely.
+    - Message counts were the same as W2's, and the phone's other figures in the same runs barely moved (the terminal's echo p50 went from 3.4 to 4.0 ms).
+    - The emulators show no consistent shift, and the TypeScript server's moved both ways (its two-file case with no edit took 10.4 and 26.5 ms in the two gates, against 19.3).
+    - Locally, with node 22 on x86_64, Pyright's latency was the same with heap caps from none down to 80 MB, so the cap is unlikely to be the cause. The phone runs node 26 on arm64, so W4 measures it there too.
+    - W4 times each stage of a request (the host's queue, the server, the delivery to Dart). W6 judges the budget on the phone through Dart's client.
+- **Differs from the plan:**
+  - **The 10-minute idle stop moves to W4.** It depends on which documents are open, which only Dart knows. The host gives W4 what it needs: `stop` and the list of servers.
+  - **One per server, not per language.** That is the same today, since each language has one server. The TypeScript server's two languages count once.
+  - **A bug the JVM tests caught before the gate.** `send` and `stop` through the host answered `no_such_server` on success, because a Kotlin elvis took the success's null for a missing server. `LspHostTest` caught it on its first run, and CI 45018943282 has the fix.
+  - **A log line the emulator gate reads.** W3 had added the stopped servers to the memory-pressure line in which `emulator_gate.sh` counts the terminals' trimmed buffers. The first gate (45021556836) found no count where 2 buffers were trimmed and failed its sessions group. The line is as it was again, and the servers have a line of their own (4088f6ce). That gate's runtime legs and Test Lab had passed.
+- **Tests:**
+  - `LspFramingTest` (11, JVM).
+  - `LspHostTest` (12, JVM): the real launcher and installer, with a Python stub server that misbehaves on request. It writes messages in bursts and in seven-byte pieces, reports its environment and folder, writes 70 KiB of stderr, exits with a code, is killed with SIGKILL, writes garbage, a 20 MB header and bad UTF-8, starts a child, and stops reading.
+  - `LanguageServerTest` (5, on each runtime leg and the phone): W1's smoke suite now goes through `LspHost`, as the app runs servers. Test e refuses a second Pyright and then kills the running one with SIGKILL. The gates require `lsp_crash=signaled:9`.
+  - Counts: `+1093: All tests passed!` and 225 Kotlin tests (CI 45020136733).
+
 ### W4 — The client in Dart: sessions, document sync, restart (2 sessions) → G4
 
 - **`LspService`** joins `services/contracts.dart`, with its Pigeon implementation in `services/lsp/native/` and a fake for tests.
@@ -256,6 +296,8 @@ ROADMAP and LSP_ARCHITECTURE §2 put it first, and every later package builds on
   - after that the chip offers *Restart*;
   - every open document is opened again in the new server;
   - requests in flight fail as *restarting*, and completion falls back to the editor's word completion meanwhile.
+- **The idle stop** (moved from W3): a server with no open document of its language for 10 minutes is stopped through `LspApi.stop`.
+- **Timing:** each request's stages are timed (the host's queue, the server, the delivery to Dart), and Pyright is measured on the phone with and without the heap cap. W3's gates found it slower there, for a reason not yet known (*As built (W3)*).
 - **The capability model:** a language is *analyzable* while its server is installed, verified and running. The status strip's chip names the server's state: starting, ready, analysing, restarting, or off, with the reason.
 - **Tests,** in Dart against the fake transport:
   - the handshake, and versions in order;
