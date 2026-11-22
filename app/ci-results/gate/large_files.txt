@@ -8,25 +8,25 @@ open: documents.open until the page shows the document (app side, read+decode / 
 page: its own work on the doc.open message / until the next frame was painted;
 typing: input to frame, median / p95 (the budget is on p95).
 file            language    MiB  lines   open ms  app/bridge  page ms      long tasks  scroll slow  typing p50/p95   memory MB  save ms
-large_512kb.js  javascript  0.5  17621   126      69/57       42.9/59.1    5, 443 ms   88.9 % ✗     66.8/139 ms ✗    536.9 ✗    80
-large_1mb.js    plaintext*  1    35107   153      88/65       30.4/40.5    1, 53 ms    90.3 % ✗     27.1/93.4 ms ✗   581.5 ✗    137
-large_1mb.txt   plaintext   1    35107   143      102/41      22.9/62      0, 0 ms     89.7 % ✗     28.2/100.5 ms ✗  562.6 ✗    119
-large_5mb.js    plaintext*  5    174624  549      269/280     199.1/233    1, 262 ms   90 % ✗       35.9/87 ms ✗     620.5 ✗    351
-large_5mb.txt   plaintext   5    174624  591      297/294     128.4/148.6  1, 237 ms   88 % ✗       32.6/132.5 ms ✗  634.3 ✗    326
-large_10mb.js   plaintext*  10   347776  1038     465/573     123.6/141.2  1, 411 ms   89.3 % ✗     32.5/91.2 ms ✗   719 ✗      623
-large_10mb.txt  plaintext   10   347776  902      516/386     118.1/131.9  1, 300 ms   88.9 % ✗     30.7/90.4 ms ✗   784.3 ✗    601
+large_512kb.js  javascript  0.5  17621   188      95/93       76.3/101.7   7, 654 ms   88 % ✗       74.8/173.7 ms ✗  539.3 ✗    334
+large_1mb.js    plaintext*  1    35107   188      98/90       42.1/64.6    1, 69 ms    92.6 % ✗     37.1/111.4 ms ✗  570 ✗      104
+large_1mb.txt   plaintext   1    35107   198      147/51      22.1/46      0, 0 ms     90.5 % ✗     40.3/101.7 ms ✗  586 ✗      196
+large_5mb.js    plaintext*  5    174624  817      330/487     172/197.6    2, 489 ms   88.5 % ✗     39.2/86.5 ms ✗   601.3 ✗    583
+large_5mb.txt   plaintext   5    174624  639      351/288     116.6/164.9  2, 311 ms   88.5 % ✗     38.7/131 ms ✗    650.2 ✗    444
+large_10mb.js   plaintext*  10   347776  1423     731/692     193.3/211.5  1, 558 ms   88.9 % ✗     47.5/114.2 ms ✗  723.2 ✗    781
+large_10mb.txt  plaintext   10   347776  1275     623/652     172.5/189.2  1, 544 ms   88 % ✗       40.8/134.4 ms ✗  801.2 ✗    766
 * plain text by the large-file policy: highlighting, folding and syntax indentation are off
 
-Before the first open: app 415 MB + renderers 94.6 MB = 509.6 MB
+Before the first open: app 414.4 MB + renderers 82.7 MB = 497.1 MB
 
 Session store (ADR-0008), median ms per write, synchronous NORMAL (the app) against FULL:
 size            snapshot NORMAL  snapshot FULL  digest (UI isolate)
-1 MiB           24               28             31
-5 MiB           95               109            57
-10 MiB          166              140            111
-1 change (x20)  0.5              0.9
+1 MiB           35               30             27
+5 MiB           100              132            92
+10 MiB          182              239            129
+1 change (x20)  0.8              1.9
 
-Release build, session restored with large_1mb.js open: app 128.2 MB + renderers 100.6 MB = 228.8 MB ✓
+Release build, session restored with large_1mb.js open: app 142.3 MB + renderers 88.3 MB = 230.6 MB ✓
 
 Notes: the emulator renders in software, which bounds every frame-timed number (ADR-0004);
 compare sizes and languages with each other, not with the budgets. App-side times come from a
