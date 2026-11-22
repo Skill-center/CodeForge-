@@ -11,6 +11,7 @@ import 'package:codeforge/application/editor/editor_providers.dart';
 import 'package:codeforge/application/lsp/lsp_controller.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/application/runtime_controller.dart';
+import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/core/lsp/lsp_models.dart';
 import 'package:codeforge/core/lsp/text_sync.dart';

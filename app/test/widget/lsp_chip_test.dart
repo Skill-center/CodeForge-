@@ -24,6 +24,9 @@ const ValueKey<String> _chipKey = ValueKey('status_lsp');
 CfStatusChip _chip(WidgetTester tester) =>
     tester.widget<CfStatusChip>(find.byKey(_chipKey));
 
+int _starts(ScriptedLspService lsp, LspServerId server) =>
+    lsp.starts.where((start) => start.server == server).length;
+
 DocumentController _documents(WidgetTester tester) => ProviderScope.containerOf(
   tester.element(find.byType(WorkbenchScreen)),
   listen: false,
@@ -91,10 +94,11 @@ void main() {
     expect(_chip(tester).label, 'Pyright: off');
     expect(_chip(tester).icon, CfIcons.restartAlt);
     expect(_chip(tester).tooltip, endsWith('Tap to restart.'));
-    expect(lsp.starts, hasLength(4));
+    // The demo's main.js has its TypeScript server too.
+    expect(_starts(lsp, LspServerId.pyright), 4);
     await tester.tap(find.byKey(_chipKey));
     await tester.pumpAndSettle();
-    expect(lsp.starts, hasLength(5));
+    expect(_starts(lsp, LspServerId.pyright), 5);
     expect(_chip(tester).label, 'Pyright: ready');
     expect(_chip(tester).onTap, isNull);
     await tester.pump(const Duration(milliseconds: 500));
