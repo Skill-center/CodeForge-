@@ -153,7 +153,7 @@ final class LspConnection {
         'jsonrpc': '2.0',
         'id': id,
         'method': method,
-        if (params != null) 'params': params,
+        'params': ?params,
       }),
     );
     return pending.completer.future;
@@ -168,7 +168,7 @@ final class LspConnection {
       _sendNotification(<String, Object?>{
         'jsonrpc': '2.0',
         'method': method,
-        if (params != null) 'params': params,
+        'params': ?params,
       }),
     );
   }

@@ -48,10 +48,7 @@ final class PigeonLspService implements LspService {
   }
 
   @override
-  Future<Result<LspStarted>> start(
-    LspServerId server,
-    LspWorkspace workspace,
-  ) {
+  Future<Result<LspStarted>> start(LspServerId server, LspWorkspace workspace) {
     _hear();
     return _call('start', _slow, () async {
       final started = await _api.start(

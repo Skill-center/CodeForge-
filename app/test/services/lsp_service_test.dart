@@ -75,7 +75,10 @@ void main() {
         const LspWorkspace.project('demo'),
       )).orThrow;
       expect(started.handle, 4);
-      expect(started.root, '/data/data/dev.codeforge.app/files/workspaces/demo');
+      expect(
+        started.root,
+        '/data/data/dev.codeforge.app/files/workspaces/demo',
+      );
       expect(started.bin, '/rt/usr/bin');
       expect(started.serverDirectory, '/rt/codeforge/lsp/pyright');
       expect(asked.single, ['start', 'pyright', 'demo', null]);
@@ -164,39 +167,42 @@ void main() {
       await service.dispose();
     });
 
-    test("hears the host's messages, with when it read them, and its exits", () async {
-      final service = PigeonLspService();
-      final messages = <LspIncoming>[];
-      final exits = <LspExit>[];
-      final hearMessages = service.messages.listen(messages.add);
-      final hearExits = service.exits.listen(exits.add);
-      await notice('received', [4, '{"jsonrpc":"2.0","method":"x"}', 777]);
-      await notice('exited', [
-        LspExitMessage(
-          handle: 4,
-          server: 'pyright',
-          end: 'signaled',
-          signal: 9,
-          stderr: 'the tail',
-          leftovers: 1,
-          remaining: 0,
-        ),
-      ]);
-      expect(messages.single.handle, 4);
-      expect(messages.single.json, '{"jsonrpc":"2.0","method":"x"}');
-      expect(messages.single.readUs, 777);
-      final exit = exits.single;
-      expect(exit.handle, 4);
-      expect(exit.server, 'pyright');
-      expect(exit.end, LspEnd.signaled);
-      expect(exit.signal, 9);
-      expect(exit.exitCode, isNull);
-      expect(exit.stderr, 'the tail');
-      expect(exit.leftovers, 1);
-      await hearMessages.cancel();
-      await hearExits.cancel();
-      await service.dispose();
-    });
+    test(
+      "hears the host's messages, with when it read them, and its exits",
+      () async {
+        final service = PigeonLspService();
+        final messages = <LspIncoming>[];
+        final exits = <LspExit>[];
+        final hearMessages = service.messages.listen(messages.add);
+        final hearExits = service.exits.listen(exits.add);
+        await notice('received', [4, '{"jsonrpc":"2.0","method":"x"}', 777]);
+        await notice('exited', [
+          LspExitMessage(
+            handle: 4,
+            server: 'pyright',
+            end: 'signaled',
+            signal: 9,
+            stderr: 'the tail',
+            leftovers: 1,
+            remaining: 0,
+          ),
+        ]);
+        expect(messages.single.handle, 4);
+        expect(messages.single.json, '{"jsonrpc":"2.0","method":"x"}');
+        expect(messages.single.readUs, 777);
+        final exit = exits.single;
+        expect(exit.handle, 4);
+        expect(exit.server, 'pyright');
+        expect(exit.end, LspEnd.signaled);
+        expect(exit.signal, 9);
+        expect(exit.exitCode, isNull);
+        expect(exit.stderr, 'the tail');
+        expect(exit.leftovers, 1);
+        await hearMessages.cancel();
+        await hearExits.cancel();
+        await service.dispose();
+      },
+    );
 
     test('with no host every call fails as unavailable', () async {
       final service = PigeonLspService();

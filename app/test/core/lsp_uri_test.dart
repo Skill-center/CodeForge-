@@ -44,9 +44,15 @@ void main() {
     test("a project's documents are named under its folder", () {
       final root = LspRoot('$_files/workspaces/demo');
       expect(root.uri, 'file://$_files/workspaces/demo');
-      expect(root.uriOf('src/main.py'), 'file://$_files/workspaces/demo/src/main.py');
+      expect(
+        root.uriOf('src/main.py'),
+        'file://$_files/workspaces/demo/src/main.py',
+      );
       expect(root.uriOf(''), root.uri);
-      expect(root.relativeOf('file://$_files/workspaces/demo/src/main.py'), 'src/main.py');
+      expect(
+        root.relativeOf('file://$_files/workspaces/demo/src/main.py'),
+        'src/main.py',
+      );
       expect(root.relativeOf(root.uri), '');
     });
 
@@ -59,17 +65,34 @@ void main() {
       expect(root.relativeOf('file://$_files/workspaces/demo/a.ts'), isNull);
     });
 
-    test('a trailing slash, dot segments and doubled slashes do not matter', () {
-      final root = LspRoot('$_files/workspaces/demo/');
-      expect(root.path, '$_files/workspaces/demo');
-      expect(root.relativeOf('file://$_files/workspaces/demo/./src//a.py'), 'src/a.py');
-      expect(root.relativeOf('file://$_files/workspaces/demo/src/../b.py'), 'b.py');
-      expect(root.relativeOf('file://$_files/workspaces/demo/../other/b.py'), isNull);
-    });
+    test(
+      'a trailing slash, dot segments and doubled slashes do not matter',
+      () {
+        final root = LspRoot('$_files/workspaces/demo/');
+        expect(root.path, '$_files/workspaces/demo');
+        expect(
+          root.relativeOf('file://$_files/workspaces/demo/./src//a.py'),
+          'src/a.py',
+        );
+        expect(
+          root.relativeOf('file://$_files/workspaces/demo/src/../b.py'),
+          'b.py',
+        );
+        expect(
+          root.relativeOf('file://$_files/workspaces/demo/../other/b.py'),
+          isNull,
+        );
+      },
+    );
 
     test('a URI round-trips through its path, whatever the name', () {
       final root = LspRoot('$_files/workspaces/My Project');
-      for (final path in ['a.py', 'dir with space/b.py', 'ü/😀.ts', '100%.js']) {
+      for (final path in [
+        'a.py',
+        'dir with space/b.py',
+        'ü/😀.ts',
+        '100%.js',
+      ]) {
         expect(root.relativeOf(root.uriOf(path)), path);
       }
     });

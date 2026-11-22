@@ -307,7 +307,9 @@ final class LspPosition {
 
   @override
   bool operator ==(Object other) =>
-      other is LspPosition && other.line == line && other.character == character;
+      other is LspPosition &&
+      other.line == line &&
+      other.character == character;
 
   @override
   int get hashCode => Object.hash(line, character);

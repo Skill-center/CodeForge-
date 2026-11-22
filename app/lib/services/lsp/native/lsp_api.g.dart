@@ -115,7 +115,15 @@ int _deepHash(Object? value) {
 /// 'not_in_apk', 'damaged', 'storage', 'too_many', 'already_running' or
 /// 'launch_failed' (runtime/LspHost.kt).
 class LspStartMessage {
-  LspStartMessage({this.handle, this.failure, this.detail, this.running});
+  LspStartMessage({
+    this.handle,
+    this.failure,
+    this.detail,
+    this.running,
+    this.root,
+    this.bin,
+    this.serverDirectory,
+  });
 
   /// The server's handle, when it started.
   int? handle;
@@ -127,8 +135,26 @@ class LspStartMessage {
   /// For 'already_running': the handle of the server that runs.
   int? running;
 
+  /// When it started: its workspace's folder, absolute and with links
+  /// resolved, as the server sees it (its working directory).
+  String? root;
+
+  /// When it started: the runtime's programs' folder (its python).
+  String? bin;
+
+  /// When it started: the folder the server is installed in.
+  String? serverDirectory;
+
   List<Object?> _toList() {
-    return <Object?>[handle, failure, detail, running];
+    return <Object?>[
+      handle,
+      failure,
+      detail,
+      running,
+      root,
+      bin,
+      serverDirectory,
+    ];
   }
 
   Object encode() {
@@ -142,6 +168,9 @@ class LspStartMessage {
       failure: result[1] as String?,
       detail: result[2] as String?,
       running: result[3] as int?,
+      root: result[4] as String?,
+      bin: result[5] as String?,
+      serverDirectory: result[6] as String?,
     );
   }
 
@@ -157,7 +186,10 @@ class LspStartMessage {
     return _deepEquals(handle, other.handle) &&
         _deepEquals(failure, other.failure) &&
         _deepEquals(detail, other.detail) &&
-        _deepEquals(running, other.running);
+        _deepEquals(running, other.running) &&
+        _deepEquals(root, other.root) &&
+        _deepEquals(bin, other.bin) &&
+        _deepEquals(serverDirectory, other.serverDirectory);
   }
 
   @override
@@ -166,7 +198,58 @@ class LspStartMessage {
 
   @override
   String toString() {
-    return 'LspStartMessage(handle: $handle, failure: $failure, detail: $detail, running: $running)';
+    return 'LspStartMessage(handle: $handle, failure: $failure, detail: $detail, running: $running, root: $root, bin: $bin, serverDirectory: $serverDirectory)';
+  }
+}
+
+/// A message queued and then written to a server's stdin, or why not.
+class LspSendMessage {
+  LspSendMessage({this.failure, this.writtenUs});
+
+  /// Why it was not written: 'no_such_server', 'not_running' (also when the
+  /// server ended before it was written), 'bad_request' (over 16 MiB) or
+  /// 'queue_full'.
+  String? failure;
+
+  /// When it was written and flushed, on the monotonic clock, in µs.
+  int? writtenUs;
+
+  List<Object?> _toList() {
+    return <Object?>[failure, writtenUs];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static LspSendMessage decode(Object result) {
+    result as List<Object?>;
+    return LspSendMessage(
+      failure: result[0] as String?,
+      writtenUs: result[1] as int?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! LspSendMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(failure, other.failure) &&
+        _deepEquals(writtenUs, other.writtenUs);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'LspSendMessage(failure: $failure, writtenUs: $writtenUs)';
   }
 }
 
@@ -392,11 +475,14 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is LspStartMessage) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
-    } else if (value is LspServerMessage) {
+    } else if (value is LspSendMessage) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
-    } else if (value is LspExitMessage) {
+    } else if (value is LspServerMessage) {
       buffer.putUint8(131);
+      writeValue(buffer, value.encode());
+    } else if (value is LspExitMessage) {
+      buffer.putUint8(132);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -409,8 +495,10 @@ class _PigeonCodec extends StandardMessageCodec {
       case 129:
         return LspStartMessage.decode(readValue(buffer)!);
       case 130:
-        return LspServerMessage.decode(readValue(buffer)!);
+        return LspSendMessage.decode(readValue(buffer)!);
       case 131:
+        return LspServerMessage.decode(readValue(buffer)!);
+      case 132:
         return LspExitMessage.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -460,10 +548,9 @@ class LspApi {
     return pigeonVar_replyValue! as LspStartMessage;
   }
 
-  /// Queues [message], one JSON-RPC message, for the server's stdin. Null, or
-  /// why not: 'no_such_server', 'not_running', 'bad_request' (over 16 MiB) or
-  /// 'queue_full'.
-  Future<String?> send(int handle, String message) async {
+  /// Queues [message], one JSON-RPC message, for the server's stdin, and
+  /// answers once it is written there (or why it was not).
+  Future<LspSendMessage> send(int handle, String message) async {
     final pigeonVar_channelName =
         'dev.flutter.pigeon.codeforge.LspApi.send$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -478,9 +565,9 @@ class LspApi {
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
       pigeonVar_replyList,
       pigeonVar_channelName,
-      isNullValid: true,
+      isNullValid: false,
     );
-    return pigeonVar_replyValue as String?;
+    return pigeonVar_replyValue! as LspSendMessage;
   }
 
   /// Stops the server with its whole tree; its exit follows. Null, or why
@@ -529,8 +616,9 @@ class LspApi {
 abstract class LspEvents {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
-  /// One whole message a server wrote.
-  Future<void> received(int handle, String json);
+  /// One whole message a server wrote, and when the host had read it whole,
+  /// on the monotonic clock, in µs.
+  Future<void> received(int handle, String json, int readUs);
 
   /// A server ended; nothing more comes from it.
   Future<void> exited(LspExitMessage exit);
@@ -556,8 +644,9 @@ abstract class LspEvents {
           final List<Object?> args = message! as List<Object?>;
           final int arg_handle = args[0]! as int;
           final String arg_json = args[1]! as String;
+          final int arg_readUs = args[2]! as int;
           try {
-            await api.received(arg_handle, arg_json);
+            await api.received(arg_handle, arg_json, arg_readUs);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

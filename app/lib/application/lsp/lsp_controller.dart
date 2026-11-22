@@ -284,12 +284,7 @@ final class LspController extends Notifier<LspState> {
     }
     final client = _clients[server] ?? _newClient(server, workspace);
     _shown[doc.docId] = (server: server, path: doc.path);
-    client.open(
-      doc.path,
-      language: doc.language,
-      version: version,
-      text: text,
-    );
+    client.open(doc.path, language: doc.language, version: version, text: text);
   }
 
   void _onEditorEvent(EditorHostEvent event) {

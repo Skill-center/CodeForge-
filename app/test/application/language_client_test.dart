@@ -56,7 +56,10 @@ final class _World {
   }
 
   /// A Pyright client with a.py open and the server ready.
-  static Future<_World> ready({String text = 'a = 1\n', int version = 1}) async {
+  static Future<_World> ready({
+    String text = 'a = 1\n',
+    int version = 1,
+  }) async {
     final world = _World()..open('a.py', text: text, version: version);
     await _drain();
     expect(world.client.status.phase, LspPhase.ready);
@@ -187,11 +190,7 @@ void main() {
         'params': {
           'uri': '$copyUri/pkg/a%20b.py',
           'diagnostics': [
-            {
-              'range': _range(0, 0, 0, 1),
-              'message': 'bad',
-              'severity': 2,
-            },
+            {'range': _range(0, 0, 0, 1), 'message': 'bad', 'severity': 2},
           ],
         },
       });
@@ -290,53 +289,56 @@ void main() {
   });
 
   group('documents', () {
-    test('edits go as ranges, last first, with their versions in order', () async {
-      final world = await _World.ready(text: 'alpha\nbeta\n');
-      expect(
-        world.client.applyEdit(
-          'a.py',
-          baseVersion: 1,
-          version: 2,
-          changes: [
-            [1, 'A'],
-            5,
-            [4, 'B'],
-            1,
-          ],
-        ),
-        isTrue,
-      );
-      expect(
-        world.client.applyEdit(
-          'a.py',
-          baseVersion: 2,
-          version: 3,
-          changes: [
-            6,
-            [0, '>'],
-            2,
-          ],
-        ),
-        isTrue,
-      );
-      await _drain();
-      final changes = world.service.paramsOf(
-        world.handle,
-        'textDocument/didChange',
-      );
-      expect(changes.map((c) => _map(c['textDocument'])), [
-        {'uri': '$_rootUri/a.py', 'version': 2},
-        {'uri': '$_rootUri/a.py', 'version': 3},
-      ]);
-      expect(changes.first['contentChanges'], [
-        {'range': _range(1, 0, 1, 4), 'text': 'B'},
-        {'range': _range(0, 0, 0, 1), 'text': 'A'},
-      ]);
-      expect(changes.last['contentChanges'], [
-        {'range': _range(1, 0, 1, 0), 'text': '>'},
-      ]);
-      expect(world.client.versionOf('a.py'), 3);
-    });
+    test(
+      'edits go as ranges, last first, with their versions in order',
+      () async {
+        final world = await _World.ready(text: 'alpha\nbeta\n');
+        expect(
+          world.client.applyEdit(
+            'a.py',
+            baseVersion: 1,
+            version: 2,
+            changes: [
+              [1, 'A'],
+              5,
+              [4, 'B'],
+              1,
+            ],
+          ),
+          isTrue,
+        );
+        expect(
+          world.client.applyEdit(
+            'a.py',
+            baseVersion: 2,
+            version: 3,
+            changes: [
+              6,
+              [0, '>'],
+              2,
+            ],
+          ),
+          isTrue,
+        );
+        await _drain();
+        final changes = world.service.paramsOf(
+          world.handle,
+          'textDocument/didChange',
+        );
+        expect(changes.map((c) => _map(c['textDocument'])), [
+          {'uri': '$_rootUri/a.py', 'version': 2},
+          {'uri': '$_rootUri/a.py', 'version': 3},
+        ]);
+        expect(changes.first['contentChanges'], [
+          {'range': _range(1, 0, 1, 4), 'text': 'B'},
+          {'range': _range(0, 0, 0, 1), 'text': 'A'},
+        ]);
+        expect(changes.last['contentChanges'], [
+          {'range': _range(1, 0, 1, 0), 'text': '>'},
+        ]);
+        expect(world.client.versionOf('a.py'), 3);
+      },
+    );
 
     test('an edit that does not follow is refused, the whole text goes '
         'instead, and versions only grow', () async {
@@ -347,7 +349,10 @@ void main() {
           'a.py',
           baseVersion: 2,
           version: 3,
-          changes: [4, [0, 'x']],
+          changes: [
+            4,
+            [0, 'x'],
+          ],
         ),
         isFalse,
       );
@@ -358,7 +363,10 @@ void main() {
           'a.py',
           baseVersion: 2,
           version: 3,
-          changes: [4, [0, 'x']],
+          changes: [
+            4,
+            [0, 'x'],
+          ],
         ),
         isTrue,
       );
@@ -417,7 +425,10 @@ void main() {
         'a.py',
         baseVersion: 1,
         version: 2,
-        changes: [2, [0, 'b']],
+        changes: [
+          2,
+          [0, 'b'],
+        ],
       );
       world.client.saved('a.py');
       await _drain();
@@ -443,7 +454,10 @@ void main() {
         'a.py',
         baseVersion: 1,
         version: 2,
-        changes: [1, [0, '!']],
+        changes: [
+          1,
+          [0, '!'],
+        ],
       );
       expect(world.methods, ['initialize']);
       world.answerLast({'capabilities': world.service.capabilities});
@@ -464,31 +478,37 @@ void main() {
   });
 
   group('requests', () {
-    test('a request waits until the version the page names has gone out', () async {
-      final world = await _World.ready(text: 'a\n');
-      final asked = world.client.request(
-        'textDocument/hover',
-        {'position': 1},
-        path: 'a.py',
-        atVersion: 2,
-      );
-      await _drain();
-      expect(world.methods, isNot(contains('textDocument/hover')));
-      world.client.applyEdit(
-        'a.py',
-        baseVersion: 1,
-        version: 2,
-        changes: [2, [0, 'b']],
-      );
-      await _drain();
-      final methods = world.methods;
-      expect(methods.sublist(methods.length - 2), [
-        'textDocument/didChange',
-        'textDocument/hover',
-      ]);
-      world.answerLast({'contents': 'doc'});
-      expect((await asked).valueOrNull, {'contents': 'doc'});
-    });
+    test(
+      'a request waits until the version the page names has gone out',
+      () async {
+        final world = await _World.ready(text: 'a\n');
+        final asked = world.client.request(
+          'textDocument/hover',
+          {'position': 1},
+          path: 'a.py',
+          atVersion: 2,
+        );
+        await _drain();
+        expect(world.methods, isNot(contains('textDocument/hover')));
+        world.client.applyEdit(
+          'a.py',
+          baseVersion: 1,
+          version: 2,
+          changes: [
+            2,
+            [0, 'b'],
+          ],
+        );
+        await _drain();
+        final methods = world.methods;
+        expect(methods.sublist(methods.length - 2), [
+          'textDocument/didChange',
+          'textDocument/hover',
+        ]);
+        world.answerLast({'contents': 'doc'});
+        expect((await asked).valueOrNull, {'contents': 'doc'});
+      },
+    );
 
     test('a version that never comes fails in time', () async {
       final world = await _World.ready();
@@ -511,23 +531,29 @@ void main() {
       );
     });
 
-    test('a completion is given up after 2 s, anything else after 10 s', () async {
-      final world = await _World.ready();
-      final completion = world.client.request('textDocument/completion', null);
-      final hover = world.client.request('textDocument/hover', null);
-      await _drain();
-      world.clock.advance(const Duration(seconds: 2));
-      expect(await completion, _fails(LspProblem.timeout));
-      world.clock.advance(const Duration(seconds: 8));
-      expect(await hover, _fails(LspProblem.timeout));
-      await _drain();
-      expect(
-        world.service
-            .paramsOf(world.handle, r'$/cancelRequest')
-            .map((p) => p['id']),
-        hasLength(2),
-      );
-    });
+    test(
+      'a completion is given up after 2 s, anything else after 10 s',
+      () async {
+        final world = await _World.ready();
+        final completion = world.client.request(
+          'textDocument/completion',
+          null,
+        );
+        final hover = world.client.request('textDocument/hover', null);
+        await _drain();
+        world.clock.advance(const Duration(seconds: 2));
+        expect(await completion, _fails(LspProblem.timeout));
+        world.clock.advance(const Duration(seconds: 8));
+        expect(await hover, _fails(LspProblem.timeout));
+        await _drain();
+        expect(
+          world.service
+              .paramsOf(world.handle, r'$/cancelRequest')
+              .map((p) => p['id']),
+          hasLength(2),
+        );
+      },
+    );
 
     test('while it starts or is off, a request fails at once', () async {
       final world = _World();
@@ -570,76 +596,79 @@ void main() {
   });
 
   group("the server's news", () {
-    test('diagnostics are routed by URI to their document, and go with it', () async {
-      final world = await _World.ready();
-      world
-        ..deliver({
+    test(
+      'diagnostics are routed by URI to their document, and go with it',
+      () async {
+        final world = await _World.ready();
+        world
+          ..deliver({
+            'method': 'textDocument/publishDiagnostics',
+            'params': {
+              'uri': '$_rootUri/a.py',
+              'version': 1,
+              'diagnostics': [
+                {
+                  'range': _range(0, 4, 0, 5),
+                  'severity': 1,
+                  'message': '"x" is not defined',
+                  'source': 'Pyright',
+                  'code': 'reportUndefinedVariable',
+                },
+                {'range': 'not a range', 'message': 'dropped'},
+              ],
+            },
+          })
+          ..deliver({
+            'method': 'textDocument/publishDiagnostics',
+            'params': {
+              'uri': 'file:///usr/lib/python3.14/os.py',
+              'diagnostics': [
+                {'range': _range(0, 0, 0, 1), 'message': 'outside'},
+              ],
+            },
+          });
+        await _drain();
+        expect(world.client.diagnostics.keys, ['a.py']);
+        expect(world.client.diagnosticsOutside, 1);
+        final published = world.diagnostics.single;
+        expect(published.server, LspServerId.pyright);
+        expect(published.path, 'a.py');
+        expect(published.version, 1);
+        final diagnostic = published.items.single;
+        expect(diagnostic.severity, LspSeverity.error);
+        expect(diagnostic.message, '"x" is not defined');
+        expect(diagnostic.source, 'Pyright');
+        expect(diagnostic.code, 'reportUndefinedVariable');
+        expect(
+          diagnostic.range,
+          const LspRange(LspPosition(0, 4), LspPosition(0, 5)),
+        );
+        // Cleared by the server: an empty list.
+        world.deliver({
+          'method': 'textDocument/publishDiagnostics',
+          'params': {'uri': '$_rootUri/a.py', 'diagnostics': <Object?>[]},
+        });
+        await _drain();
+        expect(world.client.diagnostics, isEmpty);
+        expect(world.diagnostics.last.items, isEmpty);
+        // And when its tab closes.
+        world.deliver({
           'method': 'textDocument/publishDiagnostics',
           'params': {
             'uri': '$_rootUri/a.py',
-            'version': 1,
             'diagnostics': [
-              {
-                'range': _range(0, 4, 0, 5),
-                'severity': 1,
-                'message': '"x" is not defined',
-                'source': 'Pyright',
-                'code': 'reportUndefinedVariable',
-              },
-              {'range': 'not a range', 'message': 'dropped'},
-            ],
-          },
-        })
-        ..deliver({
-          'method': 'textDocument/publishDiagnostics',
-          'params': {
-            'uri': 'file:///usr/lib/python3.14/os.py',
-            'diagnostics': [
-              {'range': _range(0, 0, 0, 1), 'message': 'outside'},
+              {'range': _range(0, 0, 0, 1), 'message': 'again'},
             ],
           },
         });
-      await _drain();
-      expect(world.client.diagnostics.keys, ['a.py']);
-      expect(world.client.diagnosticsOutside, 1);
-      final published = world.diagnostics.single;
-      expect(published.server, LspServerId.pyright);
-      expect(published.path, 'a.py');
-      expect(published.version, 1);
-      final diagnostic = published.items.single;
-      expect(diagnostic.severity, LspSeverity.error);
-      expect(diagnostic.message, '"x" is not defined');
-      expect(diagnostic.source, 'Pyright');
-      expect(diagnostic.code, 'reportUndefinedVariable');
-      expect(
-        diagnostic.range,
-        const LspRange(LspPosition(0, 4), LspPosition(0, 5)),
-      );
-      // Cleared by the server: an empty list.
-      world.deliver({
-        'method': 'textDocument/publishDiagnostics',
-        'params': {'uri': '$_rootUri/a.py', 'diagnostics': <Object?>[]},
-      });
-      await _drain();
-      expect(world.client.diagnostics, isEmpty);
-      expect(world.diagnostics.last.items, isEmpty);
-      // And when its tab closes.
-      world.deliver({
-        'method': 'textDocument/publishDiagnostics',
-        'params': {
-          'uri': '$_rootUri/a.py',
-          'diagnostics': [
-            {'range': _range(0, 0, 0, 1), 'message': 'again'},
-          ],
-        },
-      });
-      await _drain();
-      world.client.close('a.py');
-      await _drain();
-      expect(world.client.diagnostics, isEmpty);
-      expect(world.diagnostics.last.path, 'a.py');
-      expect(world.diagnostics.last.items, isEmpty);
-    });
+        await _drain();
+        world.client.close('a.py');
+        await _drain();
+        expect(world.client.diagnostics, isEmpty);
+        expect(world.diagnostics.last.path, 'a.py');
+        expect(world.diagnostics.last.items, isEmpty);
+      },
+    );
 
     test('progress makes it analysing until the last one ends', () async {
       final world = await _World.ready();
@@ -755,7 +784,10 @@ void main() {
         'a.py',
         baseVersion: 1,
         version: 2,
-        changes: [2, [0, 'b']],
+        changes: [
+          2,
+          [0, 'b'],
+        ],
       );
       world.clock.advance(const Duration(milliseconds: 999));
       await _drain();
@@ -802,7 +834,11 @@ void main() {
         expect(world.service.starts, hasLength(before), reason: '$seconds s');
         world.clock.advance(const Duration(milliseconds: 1));
         await _drain();
-        expect(world.service.starts, hasLength(before + 1), reason: '$seconds s');
+        expect(
+          world.service.starts,
+          hasLength(before + 1),
+          reason: '$seconds s',
+        );
         expect(world.client.status.phase, LspPhase.ready);
       }
       world.service.crash(world.handle, end: LspEnd.broken, signal: null);
@@ -833,7 +869,11 @@ void main() {
         await _drain();
         world.clock.advance(const Duration(seconds: 1));
         await _drain();
-        expect(world.client.status.phase, LspPhase.ready, reason: 'round $round');
+        expect(
+          world.client.status.phase,
+          LspPhase.ready,
+          reason: 'round $round',
+        );
         world.clock.advance(const Duration(minutes: 5));
       }
       expect(world.service.starts, hasLength(6));
@@ -1018,7 +1058,10 @@ void main() {
       await _drain();
       expect(world.service.stops, [handle]);
       await stopping;
-      expect(world.client.status, const LspStatus(LspPhase.off, reason: 'Asked'));
+      expect(
+        world.client.status,
+        const LspStatus(LspPhase.off, reason: 'Asked'),
+      );
       // Its exit was asked for: not a crash, no restart.
       world.clock.advance(const Duration(minutes: 1));
       await _drain();

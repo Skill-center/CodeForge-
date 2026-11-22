@@ -553,9 +553,7 @@ final class LanguageClient {
             reason: 'The Linux runtime is not ready',
           ),
         );
-      case LspProblem.launchFailed ||
-          LspProblem.timeout ||
-          LspProblem.unknown:
+      case LspProblem.launchFailed || LspProblem.timeout || LspProblem.unknown:
         _crashed(failure.message);
       default:
         // It cannot succeed by itself: no host, damaged, no room, refused.
@@ -811,7 +809,9 @@ final class LanguageClient {
         return LspReply.result(<Object?>[
           if (items is List<Object?>)
             for (final item in items)
-              _configuration(item is Map<String, Object?> ? item['section'] : null),
+              _configuration(
+                item is Map<String, Object?> ? item['section'] : null,
+              ),
         ]);
       case 'client/registerCapability':
         _register(params);
@@ -901,7 +901,10 @@ final class LanguageClient {
     final root = _root!;
     return <String, Object?>{
       'processId': null,
-      'clientInfo': <String, Object?>{'name': 'CodeForge', 'version': appVersion},
+      'clientInfo': <String, Object?>{
+        'name': 'CodeForge',
+        'version': appVersion,
+      },
       'locale': 'en',
       'rootPath': root.path,
       'rootUri': root.uri,
@@ -956,8 +959,7 @@ final class LanguageClient {
           : null;
       _watchers[id] = [
         if (watchers is List<Object?>)
-          for (final watcher in watchers)
-            if (_Watcher.fromJson(watcher) case final parsed?) parsed,
+          for (final watcher in watchers) ?_Watcher.fromJson(watcher),
       ];
     }
   }
@@ -991,7 +993,8 @@ final class LanguageClient {
     };
     for (final watchers in _watchers.values) {
       for (final watcher in watchers) {
-        if (watcher.kinds & bit != 0 && watcher.matches(absolute, change.path)) {
+        if (watcher.kinds & bit != 0 &&
+            watcher.matches(absolute, change.path)) {
           return true;
         }
       }
@@ -1391,6 +1394,10 @@ final class _Watcher {
     final trimmed = base.length > 1 && base.endsWith('/')
         ? base.substring(0, base.length - 1)
         : base;
-    return _Watcher(pattern: globToRegExp(pattern), kinds: kinds, base: trimmed);
+    return _Watcher(
+      pattern: globToRegExp(pattern),
+      kinds: kinds,
+      base: trimmed,
+    );
   }
 }

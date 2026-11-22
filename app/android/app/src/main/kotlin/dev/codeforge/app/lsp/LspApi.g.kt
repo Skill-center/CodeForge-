@@ -208,7 +208,16 @@ data class LspStartMessage (
   val failure: String? = null,
   val detail: String? = null,
   /** For 'already_running': the handle of the server that runs. */
-  val running: Long? = null
+  val running: Long? = null,
+  /**
+   * When it started: its workspace's folder, absolute and with links
+   * resolved, as the server sees it (its working directory).
+   */
+  val root: String? = null,
+  /** When it started: the runtime's programs' folder (its python). */
+  val bin: String? = null,
+  /** When it started: the folder the server is installed in. */
+  val serverDirectory: String? = null
 )
  {
   companion object {
@@ -217,7 +226,10 @@ data class LspStartMessage (
       val failure = pigeonVar_list[1] as String?
       val detail = pigeonVar_list[2] as String?
       val running = pigeonVar_list[3] as Long?
-      return LspStartMessage(handle, failure, detail, running)
+      val root = pigeonVar_list[4] as String?
+      val bin = pigeonVar_list[5] as String?
+      val serverDirectory = pigeonVar_list[6] as String?
+      return LspStartMessage(handle, failure, detail, running, root, bin, serverDirectory)
     }
   }
   fun toList(): List<Any?> {
@@ -226,6 +238,9 @@ data class LspStartMessage (
       failure,
       detail,
       running,
+      root,
+      bin,
+      serverDirectory,
     )
   }
   override fun equals(other: Any?): Boolean {
@@ -236,7 +251,7 @@ data class LspStartMessage (
       return true
     }
     val other = other as LspStartMessage
-    return LspApiPigeonUtils.deepEquals(this.handle, other.handle) && LspApiPigeonUtils.deepEquals(this.failure, other.failure) && LspApiPigeonUtils.deepEquals(this.detail, other.detail) && LspApiPigeonUtils.deepEquals(this.running, other.running)
+    return LspApiPigeonUtils.deepEquals(this.handle, other.handle) && LspApiPigeonUtils.deepEquals(this.failure, other.failure) && LspApiPigeonUtils.deepEquals(this.detail, other.detail) && LspApiPigeonUtils.deepEquals(this.running, other.running) && LspApiPigeonUtils.deepEquals(this.root, other.root) && LspApiPigeonUtils.deepEquals(this.bin, other.bin) && LspApiPigeonUtils.deepEquals(this.serverDirectory, other.serverDirectory)
   }
 
   override fun hashCode(): Int {
@@ -245,10 +260,64 @@ data class LspStartMessage (
     result = 31 * result + LspApiPigeonUtils.deepHash(this.failure)
     result = 31 * result + LspApiPigeonUtils.deepHash(this.detail)
     result = 31 * result + LspApiPigeonUtils.deepHash(this.running)
+    result = 31 * result + LspApiPigeonUtils.deepHash(this.root)
+    result = 31 * result + LspApiPigeonUtils.deepHash(this.bin)
+    result = 31 * result + LspApiPigeonUtils.deepHash(this.serverDirectory)
     return result
   }
   override fun toString(): String {
-    return "LspStartMessage(handle=$handle, failure=$failure, detail=$detail, running=$running)"
+    return "LspStartMessage(handle=$handle, failure=$failure, detail=$detail, running=$running, root=$root, bin=$bin, serverDirectory=$serverDirectory)"
+  }
+}
+
+/**
+ * A message queued and then written to a server's stdin, or why not.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class LspSendMessage (
+  /**
+   * Why it was not written: 'no_such_server', 'not_running' (also when the
+   * server ended before it was written), 'bad_request' (over 16 MiB) or
+   * 'queue_full'.
+   */
+  val failure: String? = null,
+  /** When it was written and flushed, on the monotonic clock, in µs. */
+  val writtenUs: Long? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): LspSendMessage {
+      val failure = pigeonVar_list[0] as String?
+      val writtenUs = pigeonVar_list[1] as Long?
+      return LspSendMessage(failure, writtenUs)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      failure,
+      writtenUs,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as LspSendMessage
+    return LspApiPigeonUtils.deepEquals(this.failure, other.failure) && LspApiPigeonUtils.deepEquals(this.writtenUs, other.writtenUs)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + LspApiPigeonUtils.deepHash(this.failure)
+    result = 31 * result + LspApiPigeonUtils.deepHash(this.writtenUs)
+    return result
+  }
+  override fun toString(): String {
+    return "LspSendMessage(failure=$failure, writtenUs=$writtenUs)"
   }
 }
 
@@ -425,10 +494,15 @@ private open class LspApiPigeonCodec : StandardMessageCodec() {
       }
       130.toByte() -> {
         (readValue(buffer) as? List<Any?>)?.let {
-          LspServerMessage.fromList(it)
+          LspSendMessage.fromList(it)
         }
       }
       131.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          LspServerMessage.fromList(it)
+        }
+      }
+      132.toByte() -> {
         (readValue(buffer) as? List<Any?>)?.let {
           LspExitMessage.fromList(it)
         }
@@ -442,12 +516,16 @@ private open class LspApiPigeonCodec : StandardMessageCodec() {
         stream.write(129)
         writeValue(stream, value.toList())
       }
-      is LspServerMessage -> {
+      is LspSendMessage -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
-      is LspExitMessage -> {
+      is LspServerMessage -> {
         stream.write(131)
+        writeValue(stream, value.toList())
+      }
+      is LspExitMessage -> {
+        stream.write(132)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -465,11 +543,10 @@ interface LspApi {
    */
   fun start(server: String, project: String?, copy: String?, callback: (Result<LspStartMessage>) -> Unit)
   /**
-   * Queues [message], one JSON-RPC message, for the server's stdin. Null, or
-   * why not: 'no_such_server', 'not_running', 'bad_request' (over 16 MiB) or
-   * 'queue_full'.
+   * Queues [message], one JSON-RPC message, for the server's stdin, and
+   * answers once it is written there (or why it was not).
    */
-  fun send(handle: Long, message: String, callback: (Result<String?>) -> Unit)
+  fun send(handle: Long, message: String, callback: (Result<LspSendMessage>) -> Unit)
   /**
    * Stops the server with its whole tree; its exit follows. Null, or why
    * not: 'no_such_server' or 'not_running'.
@@ -516,7 +593,7 @@ interface LspApi {
             val args = message as List<Any?>
             val handleArg = args[0] as Long
             val messageArg = args[1] as String
-            api.send(handleArg, messageArg) { result: Result<String?> ->
+            api.send(handleArg, messageArg) { result: Result<LspSendMessage> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(LspApiPigeonUtils.wrapError(error))
@@ -583,13 +660,16 @@ class LspEvents(private val binaryMessenger: BinaryMessenger, private val messag
       LspApiPigeonCodec()
     }
   }
-  /** One whole message a server wrote. */
-  fun received(handleArg: Long, jsonArg: String, callback: (Result<Unit>) -> Unit)
+  /**
+   * One whole message a server wrote, and when the host had read it whole,
+   * on the monotonic clock, in µs.
+   */
+  fun received(handleArg: Long, jsonArg: String, readUsArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.codeforge.LspEvents.received$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(handleArg, jsonArg)) {
+    channel.send(listOf(handleArg, jsonArg, readUsArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

@@ -120,9 +120,7 @@ void main() {
 
     world.page.typeText('\nprint(1)');
     await _drain();
-    final change = world.lsp
-        .paramsOf(handle, 'textDocument/didChange')
-        .single;
+    final change = world.lsp.paramsOf(handle, 'textDocument/didChange').single;
     final end = LineIndex(text).positionAt(text.length).toJson();
     expect(change['contentChanges'], [
       {
@@ -150,10 +148,7 @@ void main() {
       )['languageId'],
       'javascript',
     );
-    expect(
-      world.state.statusOf(LspServerId.typescript).phase,
-      LspPhase.ready,
-    );
+    expect(world.state.statusOf(LspServerId.typescript).phase, LspPhase.ready);
     expect(world.state.statusOf(LspServerId.pyright), LspStatus.off);
   });
 
@@ -173,49 +168,56 @@ void main() {
     expect(world.lsp.methods(handle).last, 'textDocument/didClose');
   });
 
-  test("the watcher's listings become the files a server asked about", () async {
-    final world = _World();
-    await world.start();
-    await world.documents.open('app.py');
-    await _drain();
-    final handle = world.lsp.latest;
-    world.lsp.deliver(handle, {
-      'jsonrpc': '2.0',
-      'id': 1,
-      'method': 'client/registerCapability',
-      'params': {
-        'registrations': [
-          {
-            'id': 'w',
-            'method': 'workspace/didChangeWatchedFiles',
-            'registerOptions': {
-              'watchers': [
-                {'globPattern': '**/*.py'},
-              ],
+  test(
+    "the watcher's listings become the files a server asked about",
+    () async {
+      final world = _World();
+      await world.start();
+      await world.documents.open('app.py');
+      await _drain();
+      final handle = world.lsp.latest;
+      world.lsp.deliver(handle, {
+        'jsonrpc': '2.0',
+        'id': 1,
+        'method': 'client/registerCapability',
+        'params': {
+          'registrations': [
+            {
+              'id': 'w',
+              'method': 'workspace/didChangeWatchedFiles',
+              'registerOptions': {
+                'watchers': [
+                  {'globPattern': '**/*.py'},
+                ],
+              },
             },
-          },
+          ],
+        },
+      });
+      await _drain();
+      FileEntry file(String name, int size) => FileEntry(
+        path: name,
+        name: name,
+        isDirectory: false,
+        sizeBytes: size,
+      );
+      world.controller
+        // The first listing is only remembered.
+        ..folderListed('', [file('app.py', 10), file('old.py', 3)])
+        ..folderListed('', [file('app.py', 12), file('new.py', 1)]);
+      await _drain();
+      expect(
+        world.lsp
+            .paramsOf(handle, 'workspace/didChangeWatchedFiles')
+            .single['changes'],
+        [
+          {'uri': '$_rootUri/app.py', 'type': 2},
+          {'uri': '$_rootUri/new.py', 'type': 1},
+          {'uri': '$_rootUri/old.py', 'type': 3},
         ],
-      },
-    });
-    await _drain();
-    FileEntry file(String name, int size) =>
-        FileEntry(path: name, name: name, isDirectory: false, sizeBytes: size);
-    world.controller
-      // The first listing is only remembered.
-      ..folderListed('', [file('app.py', 10), file('old.py', 3)])
-      ..folderListed('', [file('app.py', 12), file('new.py', 1)]);
-    await _drain();
-    expect(
-      world.lsp
-          .paramsOf(handle, 'workspace/didChangeWatchedFiles')
-          .single['changes'],
-      [
-        {'uri': '$_rootUri/app.py', 'type': 2},
-        {'uri': '$_rootUri/new.py', 'type': 1},
-        {'uri': '$_rootUri/old.py', 'type': 3},
-      ],
-    );
-  });
+      );
+    },
+  );
 
   test('a server that gave up is offered for Restart, which starts it '
       'again', () async {

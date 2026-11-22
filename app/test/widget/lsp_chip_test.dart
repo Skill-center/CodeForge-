@@ -24,11 +24,10 @@ const ValueKey<String> _chipKey = ValueKey('status_lsp');
 CfStatusChip _chip(WidgetTester tester) =>
     tester.widget<CfStatusChip>(find.byKey(_chipKey));
 
-DocumentController _documents(WidgetTester tester) =>
-    ProviderScope.containerOf(
-      tester.element(find.byType(WorkbenchScreen)),
-      listen: false,
-    ).read(documentControllerProvider.notifier);
+DocumentController _documents(WidgetTester tester) => ProviderScope.containerOf(
+  tester.element(find.byType(WorkbenchScreen)),
+  listen: false,
+).read(documentControllerProvider.notifier);
 
 /// The workbench over a scripted host ([host]) and a ready runtime; with
 /// [runtime] false the runtime's host never answers, so it is never ready.

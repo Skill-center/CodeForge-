@@ -54,15 +54,29 @@ void main() {
 
   group('change sets to ranges', () {
     test('an insertion is an empty range with its text', () {
-      expect(contentChangesFor('hello\nworld', [6, [0, 'big '], 5]), [
-        {'range': _range(1, 0, 1, 0), 'text': 'big '},
-      ]);
+      expect(
+        contentChangesFor('hello\nworld', [
+          6,
+          [0, 'big '],
+          5,
+        ]),
+        [
+          {'range': _range(1, 0, 1, 0), 'text': 'big '},
+        ],
+      );
     });
 
     test('a deletion across lines is a range with no text', () {
-      expect(contentChangesFor('ab\ncd\nef', [1, [5], 2]), [
-        {'range': _range(0, 1, 2, 0), 'text': ''},
-      ]);
+      expect(
+        contentChangesFor('ab\ncd\nef', [
+          1,
+          [5],
+          2,
+        ]),
+        [
+          {'range': _range(0, 1, 2, 0), 'text': ''},
+        ],
+      );
     });
 
     test('lines replaced join with \\n', () {

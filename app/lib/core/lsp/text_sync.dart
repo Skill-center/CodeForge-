@@ -169,7 +169,9 @@ String applyContentChanges(String text, List<Map<String, Object?>> changes) {
     final start = index.offsetAt(range.start);
     final end = index.offsetAt(range.end);
     if (end < start) {
-      throw const ChangeApplyException('a content change ends before it starts');
+      throw const ChangeApplyException(
+        'a content change ends before it starts',
+      );
     }
     current = current.replaceRange(start, end, replacement);
   }

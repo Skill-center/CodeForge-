@@ -33,9 +33,7 @@ final class _Pipe {
       send: (json) async {
         sent.add(jsonDecode(json) as Map<String, Object?>);
         if (refuse) {
-          return const Err(
-            LspFailure('gone', problem: LspProblem.notRunning),
-          );
+          return const Err(LspFailure('gone', problem: LspProblem.notRunning));
         }
         return Ok(LspWritten(writtenUs: clock.monotonicUs + writtenAfterUs));
       },
@@ -47,10 +45,7 @@ final class _Pipe {
             {'a': 1},
           ]),
           'client/registerCapability' => const LspReply.result(null),
-          _ => const LspReply.error(
-            JsonRpcErrors.methodNotFound,
-            'not here',
-          ),
+          _ => const LspReply.error(JsonRpcErrors.methodNotFound, 'not here'),
         };
       },
       onNotification: (method, params) => notifications.add(method),
@@ -81,11 +76,9 @@ final class _Pipe {
 void main() {
   test('requests are numbered, and answers find theirs in any order', () async {
     final pipe = _Pipe();
-    final first = pipe.connection.request(
-      'textDocument/hover',
-      {'x': 1},
-      timeout: const Duration(seconds: 10),
-    );
+    final first = pipe.connection.request('textDocument/hover', {
+      'x': 1,
+    }, timeout: const Duration(seconds: 10));
     final second = pipe.connection.request(
       'textDocument/definition',
       null,
@@ -156,7 +149,10 @@ void main() {
       ),
       _fails(LspProblem.cancelled),
     );
-    expect(pipe.sent.where((m) => m['method'] == 'textDocument/hover'), isEmpty);
+    expect(
+      pipe.sent.where((m) => m['method'] == 'textDocument/hover'),
+      isEmpty,
+    );
   });
 
   test("the server's errors fail the request with their code", () async {
@@ -195,45 +191,51 @@ void main() {
     expect(await cancelled, _fails(LspProblem.cancelled));
   });
 
-  test("the server's own requests are answered; its notifications heard", () async {
-    final pipe = _Pipe();
-    pipe.connection
-      ..receive(
-        jsonEncode({
+  test(
+    "the server's own requests are answered; its notifications heard",
+    () async {
+      final pipe = _Pipe();
+      pipe.connection
+        ..receive(
+          jsonEncode({
+            'jsonrpc': '2.0',
+            'id': 7,
+            'method': 'workspace/configuration',
+            'params': {'items': <Object?>[]},
+          }),
+        )
+        ..receive(
+          jsonEncode({'jsonrpc': '2.0', 'id': 'r8', 'method': 'unknown/thing'}),
+        )
+        ..receive(
+          jsonEncode({
+            'jsonrpc': '2.0',
+            'method': 'window/logMessage',
+            'params': {'type': 3, 'message': 'hi'},
+          }),
+        );
+      await _drain();
+      expect(pipe.requests, ['workspace/configuration', 'unknown/thing']);
+      expect(pipe.notifications, ['window/logMessage']);
+      expect(pipe.sent, [
+        {
           'jsonrpc': '2.0',
           'id': 7,
-          'method': 'workspace/configuration',
-          'params': {'items': <Object?>[]},
-        }),
-      )
-      ..receive(
-        jsonEncode({'jsonrpc': '2.0', 'id': 'r8', 'method': 'unknown/thing'}),
-      )
-      ..receive(
-        jsonEncode({
+          'result': [
+            {'a': 1},
+          ],
+        },
+        {
           'jsonrpc': '2.0',
-          'method': 'window/logMessage',
-          'params': {'type': 3, 'message': 'hi'},
-        }),
-      );
-    await _drain();
-    expect(pipe.requests, ['workspace/configuration', 'unknown/thing']);
-    expect(pipe.notifications, ['window/logMessage']);
-    expect(pipe.sent, [
-      {
-        'jsonrpc': '2.0',
-        'id': 7,
-        'result': [
-          {'a': 1},
-        ],
-      },
-      {
-        'jsonrpc': '2.0',
-        'id': 'r8',
-        'error': {'code': JsonRpcErrors.methodNotFound, 'message': 'not here'},
-      },
-    ]);
-  });
+          'id': 'r8',
+          'error': {
+            'code': JsonRpcErrors.methodNotFound,
+            'message': 'not here',
+          },
+        },
+      ]);
+    },
+  );
 
   test('what is not JSON-RPC is counted and dropped', () {
     final pipe = _Pipe();
