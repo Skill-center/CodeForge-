@@ -230,6 +230,8 @@ object RuntimeHubs {
                     projects = File(app.filesDir, PROJECTS),
                     // ...or in a folder's run copy, likewise (Phase 5 W4).
                     copies = File(app.filesDir, COPIES),
+                    // The language servers the APK carries (Phase 6 W2, W3).
+                    serverSource = AssetPayloadSource(app),
                 )
             },
             commandExecutor = commandThreads,
@@ -238,19 +240,26 @@ object RuntimeHubs {
         // The foreground service runs while any terminal session runs (Phase 5 W5).
         created.addTerminalListener(SessionKeeper(app, created))
         // Under memory pressure, hidden sessions keep less of their output;
-        // nothing is ended to free memory (Phase 5 W5).
+        // no session is ended to free memory (Phase 5 W5). The language
+        // servers are stopped instead (Phase 6 W3, the owner's decision of
+        // 2026-11-22: they are the first thing the app gives up); Dart starts
+        // a server again when it is next needed.
         app.registerComponentCallbacks(
             object : ComponentCallbacks2 {
                 override fun onTrimMemory(level: Int) {
                     if (level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN || level < ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) return
+                    val stopped = created.languageServers()?.stopAll(LspEnd.MEMORY) ?: 0
                     val trimmed = created.terminals()?.trimHidden() ?: 0
-                    if (trimmed > 0) Log.i(TAG, "memory pressure (level $level): $trimmed hidden terminal buffers trimmed")
+                    if (stopped > 0 || trimmed > 0) {
+                        Log.i(TAG, "memory pressure (level $level): $stopped language servers stopped, $trimmed hidden terminal buffers trimmed")
+                    }
                 }
 
                 override fun onConfigurationChanged(newConfig: Configuration) {}
 
                 @Deprecated("Deprecated in Android", ReplaceWith("onTrimMemory"))
                 override fun onLowMemory() {
+                    created.languageServers()?.stopAll(LspEnd.MEMORY)
                     created.terminals()?.trimHidden()
                 }
             },

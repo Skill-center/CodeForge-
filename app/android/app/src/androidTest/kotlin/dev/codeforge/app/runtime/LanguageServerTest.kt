@@ -8,11 +8,8 @@ import android.system.OsConstants
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.codeforge.runtime.core.HarnessConfig
-import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
-import java.io.InputStream
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.LinkedBlockingQueue
@@ -45,18 +42,21 @@ import org.junit.runners.MethodSorters
  *     assets. They are JavaScript: the runtime's node runs them, as Run runs
  *     a user's script, with no new program. LanguageServerInstallTest tests
  *     the install itself.
- *   * A server starts as a command does (the launcher, in its own session and
- *     process group, under the session limits) but keeps its stdin: its
- *     messages go both ways, framed by Content-Length, JSON-RPC 2.0 inside.
- *     W3 keeps this framing for LspHost.
+ *   * Since W3 the servers run through LspHost, as the app runs them: the
+ *     launcher starts each in a project's folder, in its own session and
+ *     process group under the session limits, with its stdin open, and the
+ *     host carries whole messages both ways (LspFrameReader) and says how it
+ *     ended. This test speaks JSON-RPC 2.0 over the host, as Dart will (W4).
  *
  * Tests a and b run the smoke suite on two files: initialize; the error in the
  * diagnostics; completion offering a known member, then 50 times repeated and
  * 50 times after an edit; definition across the two files; rename across both;
  * the error fixed and its diagnostic gone; shutdown and exit, with no process
  * of the server's group left. Tests c and d do the same, without definition,
- * rename and the fix, on a generated project of 200 files. Every figure goes
- * to the device log (RUNTIME_GATE lsp_...) and to
+ * rename and the fix, on a generated project of 200 files. Test e (W3)
+ * refuses a second Pyright while one runs, then kills the running one's node
+ * with SIGKILL: the host reports it as signaled, and nothing of its group is
+ * left. Every figure goes to the device log (RUNTIME_GATE lsp_...) and to
  * files/runtime-gate/lsp-report.txt, which the gate copies out.
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -78,13 +78,12 @@ class LanguageServerTest {
         record("servers", described.flatMap { it.packages }.joinToString(",") { "${it.name}@${it.version}" })
         record("device_sdk", Build.VERSION.SDK_INT)
         record("abi", Build.SUPPORTED_ABIS.firstOrNull())
-        val pyright = install("pyright")
+        install("pyright")
         smoke(
             Case(
                 id = "pyright",
+                server = "pyright",
                 language = "python",
-                script = pyright.entry,
-                arguments = listOf("--stdio"),
                 options = JSONObject(),
                 configuration = { section -> pythonConfiguration(section) },
                 files = mapOf("a.py" to PY_MAIN, "b.py" to PY_OTHER),
@@ -109,9 +108,8 @@ class LanguageServerTest {
         smoke(
             Case(
                 id = "typescript",
+                server = "typescript",
                 language = "typescript",
-                script = server.entry,
-                arguments = server.server.arguments,
                 options = typescriptOptions(File(server.directory, "node_modules/typescript")),
                 configuration = { JSONObject() },
                 files = mapOf("a.ts" to TS_MAIN, "b.ts" to TS_OTHER, "tsconfig.json" to TS_CONFIG),
@@ -132,15 +130,14 @@ class LanguageServerTest {
 
     @Test
     fun c_pyrightOnAGeneratedProject() {
-        val pyright = install("pyright")
+        install("pyright")
         val files = pythonProject()
         record("pyright_project_files", files.size)
         smoke(
             Case(
                 id = "pyright_project",
+                server = "pyright",
                 language = "python",
-                script = pyright.entry,
-                arguments = listOf("--stdio"),
                 options = JSONObject(),
                 configuration = { section -> pythonConfiguration(section) },
                 files = files,
@@ -167,9 +164,8 @@ class LanguageServerTest {
         smoke(
             Case(
                 id = "typescript_project",
+                server = "typescript",
                 language = "typescript",
-                script = server.entry,
-                arguments = server.server.arguments,
                 options = typescriptOptions(File(server.directory, "node_modules/typescript")),
                 configuration = { JSONObject() },
                 files = files,
@@ -190,7 +186,7 @@ class LanguageServerTest {
 
     /** The smoke suite for one server (the class's comment says what each step checks). */
     private fun smoke(case: Case) {
-        val root = File(commands().environment.workspace, "lsp/${case.id}").canonicalFile
+        val root = File(projects(), case.id).canonicalFile
         root.deleteRecursively()
         for ((name, content) in case.files) {
             val file = File(root, name)
@@ -201,9 +197,14 @@ class LanguageServerTest {
         var text = case.files.getValue(case.main)
         var version = 1
         val started = SystemClock.elapsedRealtime()
-        val server = start(case, root)
-        val group = launcherOf(case.script.absolutePath)
-        var exited = false
+        val client = Client(case.id, case.configuration, JSONArray().put(JSONObject().put("uri", uriOf(root)).put("name", root.name)))
+        val launched = host().start(case.server, LspWorkspace(project = case.id), client)
+        assertNull("${case.id}: ${launched.failure?.code} ${launched.detail}", launched.failure)
+        val process = launched.server!!
+        client.attach(host(), process.handle)
+        val server = client
+        val group = awaitGroup(process)
+        var exit: LspExit? = null
         try {
             val initialized = server.request("initialize", initializeParams(case, root), INITIALIZE_TIMEOUT_MS).first
             record("${case.id}_initialize_ms", SystemClock.elapsedRealtime() - started)
@@ -223,7 +224,7 @@ class LanguageServerTest {
             )
             val first = server.awaitDiagnostics(main, DIAGNOSTICS_TIMEOUT_MS) { list -> mentions(list, case.error) }
             record("${case.id}_first_diagnostics_ms", if (first == null) "none" else SystemClock.elapsedRealtime() - opened)
-            assertNotNull("${case.id}: no diagnostic naming ${case.error}; stderr: ${server.stderrTail()}", first)
+            assertNotNull("${case.id}: no diagnostic naming ${case.error}; stderr: ${process.stderrTail().takeLast(2000)}", first)
             val diagnostics = first!!
             record(
                 "${case.id}_diagnostics",
@@ -301,19 +302,22 @@ class LanguageServerTest {
             val ending = SystemClock.elapsedRealtime()
             server.request("shutdown", null, REQUEST_TIMEOUT_MS)
             server.notify("exit", null)
-            exited = server.waitForExit(EXIT_TIMEOUT_MS)
+            exit = server.waitForExit(EXIT_TIMEOUT_MS)
             record(
                 "${case.id}_shutdown",
-                "exited=$exited exit=${server.exitValue()} ms=${SystemClock.elapsedRealtime() - ending} " +
-                    "messages=${server.frames} largest_message=${server.largestFrame} log_messages=${server.logMessages}",
+                "end=${exit?.end?.code} exit=${exit?.exitCode} ms=${SystemClock.elapsedRealtime() - ending} " +
+                    "messages=${process.received.get()} sent=${process.sent.get()} largest_message=${server.largest} " +
+                    "log_messages=${server.logMessages}",
             )
-            assertTrue("${case.id}: the server did not exit after exit", exited)
-            assertEquals("${case.id}: the server's exit code", 0, server.exitValue())
+            assertNotNull("${case.id}: the server did not exit after exit", exit)
+            assertEquals("${case.id}: how it ended", LspEnd.EXITED, exit!!.end)
+            assertEquals("${case.id}: the server's exit code", 0, exit.exitCode)
         } finally {
-            if (!exited) {
-                server.destroy()
+            if (exit == null) {
+                host().stop(process.handle)
                 server.waitForExit(EXIT_TIMEOUT_MS)
             }
+            awaitGone(group)
             val left = group?.let { groupMembers(it) } ?: emptyList()
             record("${case.id}_left", "group_found=${group != null} processes=${left.size}")
         }
@@ -321,24 +325,78 @@ class LanguageServerTest {
         assertEquals("${case.id}: processes of the server's group left", emptyList<Int>(), groupMembers(group!!))
     }
 
-    /** Starts the case's server through the launcher, as CommandRunner starts a command, but with stdin open. */
-    private fun start(case: Case, root: File): Server {
-        val environment = commands().environment
-        environment.prepare()
-        val launcher = File(context.applicationInfo.nativeLibraryDir, RuntimeCommands.LAUNCHER)
-        val status = File(gate, "lsp-${case.id}.status")
-        status.delete()
-        val command = listOf(launcher.absolutePath, "--status", status.absolutePath, "--grace", GRACE_MS.toString()) +
-            SessionLimits.SESSION.arguments() +
-            listOf("--", File(environment.bin, "node").absolutePath, case.script.absolutePath) +
-            case.arguments
-        val builder = ProcessBuilder(command).directory(root)
-        builder.environment().clear()
-        builder.environment().putAll(environment.variables(root))
+    /** The runtime's language servers (LspHost), made with the class's runtime. */
+    private fun host(): LspHost = commands().languageServers ?: throw AssertionError("the runtime has no language servers")
+
+    /** The launcher's process group, once it has written it (it does so at once). */
+    private fun awaitGroup(process: LanguageServerProcess): Int? {
+        val deadline = SystemClock.elapsedRealtime() + FIND_TIMEOUT_MS
+        while (SystemClock.elapsedRealtime() < deadline) {
+            process.group()?.let { return it }
+            SystemClock.sleep(FIND_POLL_MS)
+        }
+        return null
+    }
+
+    /** Waits for [group] to have no process left, at most [EXIT_TIMEOUT_MS]. */
+    private fun awaitGone(group: Int?) {
+        if (group == null) return
+        val deadline = SystemClock.elapsedRealtime() + EXIT_TIMEOUT_MS
+        while (groupMembers(group).isNotEmpty() && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(FIND_POLL_MS)
+    }
+
+    /**
+     * W3: while Pyright runs a second one is refused, with the running one's
+     * handle; then its node is killed with SIGKILL, as the kernel's OOM killer
+     * or a crash would end it. The host reports it as signaled, with the
+     * signal, and nothing of its process group is left.
+     */
+    @Test
+    fun e_aServerKilledWithSigkillIsReportedAndItsTreeIsGone() {
+        val root = File(projects(), "crash").canonicalFile
+        root.deleteRecursively()
+        root.mkdirs()
+        File(root, "a.py").writeText(PY_MAIN)
+        File(root, "b.py").writeText(PY_OTHER)
         val folders = JSONArray().put(JSONObject().put("uri", uriOf(root)).put("name", root.name))
-        val server = Server(case.id, builder.start(), case.configuration, folders)
-        server.start()
-        return server
+        val client = Client("crash", { section -> pythonConfiguration(section) }, folders)
+        val launched = host().start("pyright", LspWorkspace(project = "crash"), client)
+        assertNull("${launched.failure?.code} ${launched.detail}", launched.failure)
+        val process = launched.server!!
+        client.attach(host(), process.handle)
+        val group = awaitGroup(process)
+        assertNotNull("the launcher's group", group)
+        val params = JSONObject()
+            .put("processId", JSONObject.NULL)
+            .put("rootUri", uriOf(root))
+            .put("workspaceFolders", folders)
+            .put("capabilities", JSONObject())
+        client.request("initialize", params, INITIALIZE_TIMEOUT_MS)
+        client.notify("initialized", JSONObject())
+
+        val second = host().start("pyright", LspWorkspace(project = "crash"), Client("second", { JSONObject() }, folders))
+        record("second_pyright", "${second.failure?.code} running=${second.running == process.handle}")
+        assertEquals(LspFailure.ALREADY_RUNNING, second.failure)
+        assertEquals(process.handle, second.running)
+
+        val child = process.child()
+        assertNotNull("the launcher names node's pid", child)
+        val killed = SystemClock.elapsedRealtime()
+        Os.kill(child!!, OsConstants.SIGKILL)
+        val exit = client.waitForExit(EXIT_TIMEOUT_MS)
+        record("crash", "${exit?.end?.code}:${exit?.signal}")
+        record(
+            "crash_detail",
+            "ms=${SystemClock.elapsedRealtime() - killed} stderr_bytes=${exit?.stderr?.length} " +
+                "leftovers=${exit?.leftovers} remaining=${exit?.remaining}",
+        )
+        assertNotNull("no exit after SIGKILL", exit)
+        assertEquals(LspEnd.SIGNALED, exit!!.end)
+        assertEquals(OsConstants.SIGKILL, exit.signal)
+        awaitGone(group)
+        record("crash_left", groupMembers(group!!).size)
+        assertEquals("processes of the killed server's group left", emptyList<Int>(), groupMembers(group))
+        assertNull("the host still lists it", host().get(process.handle))
     }
 
     private fun initializeParams(case: Case, root: File): JSONObject =
@@ -431,20 +489,6 @@ class LanguageServerTest {
 
     private fun kib(line: String): Long = line.substringAfter(':').trim().removeSuffix("kB").trim().toLongOrNull() ?: 0L
 
-    /** The launcher that runs [script]: its pid, which is also its process group's, since it calls setsid. */
-    private fun launcherOf(script: String): Int? {
-        val deadline = SystemClock.elapsedRealtime() + FIND_TIMEOUT_MS
-        while (SystemClock.elapsedRealtime() < deadline) {
-            val found = ownProcesses().firstOrNull { pid ->
-                val arguments = arguments(pid)
-                arguments.firstOrNull()?.endsWith(RuntimeCommands.LAUNCHER) == true && arguments.contains(script)
-            }
-            if (found != null) return found
-            SystemClock.sleep(FIND_POLL_MS)
-        }
-        return null
-    }
-
     private fun groupMembers(group: Int): List<Int> =
         ownProcesses().filter { pid -> stat(pid)?.getOrNull(2)?.toIntOrNull() == group }
 
@@ -485,7 +529,6 @@ class LanguageServerTest {
         private const val TAG = "CodeForgeRuntimeGate"
         private const val REPORT = "lsp-report.txt"
         private const val WARM = 50
-        private const val GRACE_MS = 2_000L
         private const val INITIALIZE_TIMEOUT_MS = 120_000L
         private const val DIAGNOSTICS_TIMEOUT_MS = 240_000L
         private const val REQUEST_TIMEOUT_MS = 60_000L
@@ -712,6 +755,13 @@ class LanguageServerTest {
             "n=${micros.size} p50=${rank(micros, 0.50)} p95=${rank(micros, 0.95)} max=${micros.maxOrNull()}"
 
         private var installed: RuntimeCommands? = null
+        private var projectsDir: File? = null
+
+        /** The class's projects' folder: each case's files are a project the server works in. */
+        fun projects(): File {
+            commands()
+            return projectsDir!!
+        }
 
         /** The payload installed once for the class, in a root of its own, and its command side. */
         @Synchronized
@@ -734,9 +784,13 @@ class LanguageServerTest {
             val runtime = SealedRuntime(AssetPayloadSource(context), config)
             if (runtime.payload() == null) throw AssertionError("this APK carries no payload")
             runtime.install(null)
+            val projectsFolder = File(root, "projects").apply { mkdirs() }
+            projectsDir = projectsFolder
             val created = RuntimeCommands.create(
                 config = config,
                 killGroup = { group -> Os.kill(-group, OsConstants.SIGKILL) },
+                projects = projectsFolder,
+                serverSource = AssetPayloadSource(context),
             )
             installed = created
             return created
@@ -747,8 +801,10 @@ class LanguageServerTest {
         @AfterClass
         fun removeTheRuntime() {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
+            installed?.languageServers?.stopAll()
             File(context.filesDir, "runtime-gate/lsp").deleteRecursively()
             installed = null
+            projectsDir = null
         }
     }
 }
@@ -756,9 +812,9 @@ class LanguageServerTest {
 /** One server's smoke suite: its fixture and where each step looks (null skips a step). */
 private class Case(
     val id: String,
+    /** The server's id in the APK (lsp/servers.json): LspHost starts it with its entry and arguments. */
+    val server: String,
     val language: String,
-    val script: File,
-    val arguments: List<String>,
     val options: JSONObject,
     val configuration: (String?) -> Any,
     val files: Map<String, String>,
@@ -777,42 +833,49 @@ private class Case(
 )
 
 /**
- * A language server's process, spoken to with LSP's base protocol over its
- * pipes: each message a Content-Length header, a blank line, then that many
- * bytes of JSON-RPC 2.0. A reader thread parses the frames: answers go to the
- * request waiting for them, the server's own requests are answered at once,
- * and diagnostics are queued.
+ * JSON-RPC 2.0 over LspHost (Phase 6 W3), as Dart will speak it (W4): the
+ * host carries whole messages; this class numbers requests and waits for
+ * their answers, answers the server's own requests at once, and queues its
+ * diagnostics.
  */
-private class Server(
+private class Client(
     private val id: String,
-    private val process: Process,
     private val configuration: (String?) -> Any,
     private val folders: JSONArray,
-) {
-    private val output = process.outputStream
+) : LspListener {
+    private var host: LspHost? = null
+    private var handle: Long = -1L
     private val nextId = AtomicInteger(1)
     private val waiting = ConcurrentHashMap<Int, LinkedBlockingQueue<JSONObject>>()
     private val diagnostics = LinkedBlockingQueue<JSONObject>()
-    private val stderr = StringBuilder()
+    private val exits = LinkedBlockingQueue<LspExit>()
 
     @Volatile
-    var frames = 0
-        private set
+    private var exited: LspExit? = null
 
+    /** The largest message the server wrote, in bytes. */
     @Volatile
-    var largestFrame = 0
+    var largest = 0
         private set
 
     @Volatile
     var logMessages = 0
         private set
 
-    @Volatile
-    private var readFailure: String? = null
+    fun attach(host: LspHost, handle: Long) {
+        this.host = host
+        this.handle = handle
+    }
 
-    fun start() {
-        Thread({ readMessages() }, "lsp-$id-stdout").apply { isDaemon = true }.start()
-        Thread({ readErrors() }, "lsp-$id-stderr").apply { isDaemon = true }.start()
+    override fun onMessage(handle: Long, message: String) {
+        val bytes = message.toByteArray(Charsets.UTF_8).size
+        if (bytes > largest) largest = bytes
+        dispatch(JSONObject(message))
+    }
+
+    override fun onExit(exit: LspExit) {
+        exited = exit
+        exits.offer(exit)
     }
 
     /** Sends [method] and waits for its answer: the result (JSONObject.NULL for null) and the round trip in µs. */
@@ -831,10 +894,7 @@ private class Server(
         }
         val micros = (System.nanoTime() - started) / 1_000L
         if (answer == null) {
-            throw AssertionError(
-                "$id: no answer to $method in $timeoutMs ms (reader: ${readFailure ?: "open"}, alive: ${process.isAlive}); " +
-                    "stderr: ${stderrTail()}",
-            )
+            throw AssertionError("$id: no answer to $method in $timeoutMs ms (exit: ${exited?.end?.code}); stderr: ${exited?.stderr?.takeLast(STDERR_SHOWN)}")
         }
         val error = answer.optJSONObject("error")
         if (error != null) throw AssertionError("$id: $method failed: $error")
@@ -860,70 +920,23 @@ private class Server(
         }
     }
 
-    fun waitForExit(timeoutMs: Long): Boolean = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
-
-    fun exitValue(): Int? = if (process.isAlive) null else process.exitValue()
-
-    fun destroy() = process.destroy()
-
-    fun stderrTail(): String = synchronized(stderr) { stderr.takeLast(STDERR_SHOWN).toString() }
+    /** The server's exit, or null when it has not exited within [timeoutMs]. */
+    fun waitForExit(timeoutMs: Long): LspExit? = exited ?: exits.poll(timeoutMs, TimeUnit.MILLISECONDS)
 
     private fun send(message: JSONObject) {
-        val body = message.toString().toByteArray(Charsets.UTF_8)
-        synchronized(output) {
-            output.write("Content-Length: ${body.size}\r\n\r\n".toByteArray(Charsets.US_ASCII))
-            output.write(body)
-            output.flush()
-        }
-    }
-
-    private fun readMessages() {
-        val input = BufferedInputStream(process.inputStream)
-        try {
-            while (true) {
-                val body = readFrame(input) ?: break
-                frames += 1
-                if (body.size > largestFrame) largestFrame = body.size
-                dispatch(JSONObject(String(body, Charsets.UTF_8)))
-            }
-        } catch (failure: Exception) {
-            readFailure = failure.toString()
-        }
-    }
-
-    private fun readErrors() {
-        val buffer = ByteArray(4096)
-        val input = process.errorStream
-        try {
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                synchronized(stderr) {
-                    stderr.append(String(buffer, 0, count, Charsets.UTF_8))
-                    if (stderr.length > STDERR_KEPT) stderr.delete(0, stderr.length - STDERR_KEPT)
-                }
-            }
-        } catch (closed: IOException) {
-            // The process has ended.
-        }
+        val target = host ?: throw AssertionError("$id: not attached to a server")
+        val refused = target.send(handle, message.toString())
+        if (refused != null) throw AssertionError("$id: the host refused a message: ${refused.code}")
     }
 
     private fun dispatch(message: JSONObject) {
         val method = message.optString("method", "")
         val hasId = message.has("id") && !message.isNull("id")
         when {
-            method.isEmpty() && hasId -> {
-                waiting[message.optInt("id")]?.offer(message)
-            }
-            method.isNotEmpty() && hasId -> {
-                answer(message, method)
-            }
-            method == "textDocument/publishDiagnostics" -> {
-                message.optJSONObject("params")?.let { diagnostics.offer(it) }
-            }
-            method == "window/logMessage" -> {
-                logMessages += 1
-            }
+            method.isEmpty() && hasId -> waiting[message.optInt("id")]?.offer(message)
+            method.isNotEmpty() && hasId -> answer(message, method)
+            method == "textDocument/publishDiagnostics" -> message.optJSONObject("params")?.let { diagnostics.offer(it) }
+            method == "window/logMessage" -> logMessages += 1
         }
     }
 
@@ -946,10 +959,7 @@ private class Server(
     }
 
     private companion object {
-        const val STDERR_KEPT = 64 * 1024
         const val STDERR_SHOWN = 2_000
-        const val MAX_FRAME = 16 * 1024 * 1024
-        const val MAX_HEADER_LINE = 8 * 1024
 
         fun pathOf(uri: String): String? =
             try {
@@ -957,39 +967,5 @@ private class Server(
             } catch (bad: Exception) {
                 null
             }
-
-        /** One message's body, or null at the end of the stream. */
-        fun readFrame(input: InputStream): ByteArray? {
-            var length = -1
-            while (true) {
-                val line = readHeaderLine(input) ?: return null
-                if (line.isEmpty()) break
-                val colon = line.indexOf(':')
-                if (colon > 0 && line.substring(0, colon).trim().equals("Content-Length", ignoreCase = true)) {
-                    length = line.substring(colon + 1).trim().toInt()
-                }
-            }
-            if (length !in 0..MAX_FRAME) throw IOException("a message of $length bytes")
-            val body = ByteArray(length)
-            var read = 0
-            while (read < length) {
-                val count = input.read(body, read, length - read)
-                if (count < 0) return null
-                read += count
-            }
-            return body
-        }
-
-        /** A header line without its CR LF, or null at the end of the stream. */
-        fun readHeaderLine(input: InputStream): String? {
-            val bytes = ByteArrayOutputStream()
-            while (true) {
-                val next = input.read()
-                if (next < 0) return if (bytes.size() == 0) null else bytes.toString("US-ASCII")
-                if (next == '\n'.code) return bytes.toString("US-ASCII").removeSuffix("\r")
-                bytes.write(next)
-                if (bytes.size() > MAX_HEADER_LINE) throw IOException("a header line over $MAX_HEADER_LINE bytes")
-            }
-        }
     }
 }

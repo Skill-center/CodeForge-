@@ -1,6 +1,6 @@
 # ADR-0015: The language servers: Pyright, and TypeScript 6 with typescript-language-server, under the sealed node
 
-**Status:** Accepted · 2026-11-22 · Phase 6 W1 ([PHASE_6_PLAN.md](../phases/PHASE_6_PLAN.md) W1, which assigns the choice to W1, with numbers) · the languages decided by the owner on 2026-11-22 (§10, item 2: (a), Python and JavaScript/TypeScript); the servers chosen by the agent from W1's measurements · **the memory budget with a server awaits the owner** (§10, item 3; *Consequences*)
+**Status:** Accepted · 2026-11-22 · Phase 6 W1 ([PHASE_6_PLAN.md](../phases/PHASE_6_PLAN.md) W1, which assigns the choice to W1, with numbers) · the languages decided by the owner on 2026-11-22 (§10, item 2: (a), Python and JavaScript/TypeScript); the servers chosen by the agent from W1's measurements · **the memory budget decided by the owner on 2026-11-22:** (b), a budget of each server's own, 300 MB of PSS (§10, item 3; *Consequences*)
 
 ## Context
 - **ROADMAP's Phase 6:** at least one full language server, "Pyright or the TypeScript server under the sealed node", with completion, diagnostics, go to definition and rename, restart on a crash, and completion within 300 ms at the 95th percentile. The compatibility spike comes first ([LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) §2).

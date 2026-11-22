@@ -82,7 +82,8 @@ data class RuntimeStatus(
  *
  * Terminal sessions (Phase 5 W2) start the same way, on [commandExecutor]
  * under the read lock, but outlive the call: the registry holds them, and an
- * install ends them with the rest before it touches the prefix.
+ * install ends them with the rest before it touches the prefix. So do the
+ * language servers (Phase 6 W3), whose first start installs the server.
  */
 class RuntimeHub(
     private val runtimeFactory: () -> SealedRuntime,
@@ -277,6 +278,34 @@ class RuntimeHub(
 
     /** The terminal sessions, once a command, a probe or a terminal has made the command side. */
     fun terminals(): Terminals? = currentCommands()?.terminals
+
+    /**
+     * Starts language server [serverId] in [workspace] (Phase 6 W3), on a
+     * command thread while no install can touch the prefix; its first start
+     * installs it, which may take seconds. Answers with it or why not:
+     * NOT_READY at once unless the runtime is READY or DEGRADED.
+     */
+    fun startLanguageServer(serverId: String, workspace: LspWorkspace, listener: LspListener, answer: (LspStart) -> Unit) {
+        val state = snapshot().state
+        if (!usable(state) || commandsFactory == null) {
+            deliver(Runnable { answer(LspStart.failed(LspFailure.NOT_READY, "the runtime is ${state.code}")) })
+            return
+        }
+        commandExecutor.execute {
+            val started = try {
+                withPrefix { commands ->
+                    commands.languageServers?.start(serverId, workspace, listener)
+                        ?: LspStart.failed(LspFailure.NOT_IN_APK, "this app carries no language servers")
+                } ?: LspStart.failed(LspFailure.NOT_READY, "the runtime is ${snapshot().state.code}")
+            } catch (failure: Exception) {
+                LspStart.failed(LspFailure.LAUNCH_FAILED, failure.toString())
+            }
+            deliver(Runnable { answer(started) })
+        }
+    }
+
+    /** The language servers, once the command side is made. */
+    fun languageServers(): LspHost? = currentCommands()?.languageServers
 
     /**
      * The terminal sessions, making the command side first if need be, on a

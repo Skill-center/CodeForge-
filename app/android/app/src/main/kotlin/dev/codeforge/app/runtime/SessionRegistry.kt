@@ -10,10 +10,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
-/** What a session runs: a one-shot command, or a terminal (Phase 5 W2). */
+/** What a session runs: a one-shot command, a terminal (Phase 5 W2), or a language server (Phase 6 W3). */
 enum class SessionKind {
     COMMAND,
     TERMINAL,
+
+    /** No deadline and no terminal place: LspHost caps the servers itself. */
+    LANGUAGE_SERVER,
 }
 
 /** Why a session was ended before its command exited by itself. */

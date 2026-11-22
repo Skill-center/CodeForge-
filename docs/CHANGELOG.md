@@ -4,6 +4,9 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 6's memory budget decided (2026-11-22)
+- The owner chose (b) (PHASE_6_PLAN §10, item 3): each language server gets a budget of its own, 300 MB of PSS for its process tree on the gate's 200-file project on the phone, beside the app's budgets, which stay as they are. The total is recorded. Servers stop first when Android warns of low memory, at most two run, and an idle one stops after 10 minutes.
+
 ### Added — Phase 6 W2, the language servers in the payload (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
 - **The servers ship in the app:** Pyright (6.06 MB) and the TypeScript server (5.15 MB) as archives beside the userland, built from npm packages pinned with their SHA-512 in `runtime/language-servers/`. The base module is now 158.3 MB, 79.2 % of Play's limit.
 - **Installed when first needed:** a server is extracted into the runtime and verified file by file the first time it is asked for, then reused. On a Pixel 8a, Pyright's first install took 3.65 s and a later start 5 ms. A damaged archive is refused and leaves nothing behind.

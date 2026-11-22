@@ -3,6 +3,8 @@ package dev.codeforge.app
 import android.app.backup.BackupManager
 import android.content.Intent
 import android.content.res.Configuration
+import dev.codeforge.app.lsp.LanguageServerHost
+import dev.codeforge.app.lsp.LspApi
 import dev.codeforge.app.runtime.RuntimeApi
 import dev.codeforge.app.runtime.RuntimeHost
 import dev.codeforge.app.storage.StorageApi
@@ -33,7 +35,9 @@ import io.flutter.plugin.common.MethodChannel
  * [onActivityResult]. The sealed runtime (Phase 4 W3, runtime/RuntimeHost.kt)
  * is behind the typed Pigeon API of pigeons/runtime_api.dart. The terminal
  * page's MessagePort (Phase 5 W6, webview/PagePorts.kt) is a plugin of the
- * app's own, added here: it needs a plugin binding to reach the WebView.
+ * app's own, added here: it needs a plugin binding to reach the WebView. The
+ * language servers (Phase 6 W3, lsp/LanguageServerHost.kt) are behind the
+ * typed Pigeon API of pigeons/lsp_api.dart, and stop with the engine.
  */
 class MainActivity : FlutterActivity() {
     private var keyboardChannel: MethodChannel? = null
@@ -41,6 +45,7 @@ class MainActivity : FlutterActivity() {
     private var runtime: RuntimeHost? = null
     private var search: SearchHost? = null
     private var terminal: TerminalHost? = null
+    private var languageServers: LanguageServerHost? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -91,6 +96,7 @@ class MainActivity : FlutterActivity() {
             search = SearchHost(this, messenger, broker::searchOps).also { SearchApi.setUp(messenger, it) }
         }
         terminal = TerminalHost(this, messenger).also { TerminalApi.setUp(messenger, it) }
+        languageServers = LanguageServerHost(this, messenger).also { LspApi.setUp(messenger, it) }
         flutterEngine.plugins.add(PagePorts())
     }
 
@@ -110,6 +116,9 @@ class MainActivity : FlutterActivity() {
         TerminalApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
         terminal?.close()
         terminal = null
+        LspApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
+        languageServers?.close()
+        languageServers = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 

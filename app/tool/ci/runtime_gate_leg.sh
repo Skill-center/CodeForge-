@@ -49,7 +49,7 @@ EMU_LOG="${RUNNER_TEMP:-/tmp}/runtime-gate-emulator-$API.log"
 CLASSES="dev.codeforge.app.runtime.ExecModelTest,dev.codeforge.app.runtime.RuntimeCommandsTest"
 CLASSES="$CLASSES,dev.codeforge.app.runtime.RuntimeInstallTest,dev.codeforge.app.runtime.SealedShellTest"
 CLASSES="$CLASSES,dev.codeforge.app.runtime.SessionServiceTest,dev.codeforge.app.runtime.TerminalSessionTest"
-# Phase 6: the language servers' install (W2) and their smoke suite (W1).
+# Phase 6: the language servers' install (W2), their smoke suite (W1), and since W3 through LspHost.
 CLASSES="$CLASSES,dev.codeforge.app.runtime.LanguageServerInstallTest,dev.codeforge.app.runtime.LanguageServerTest"
 # The checkout carries the last run's committed evidence for every leg; this
 # leg's artifact must hold its own folder alone (the first run's evidence job
@@ -228,8 +228,9 @@ python3 tool/ci/gate_results.py \
   --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
   --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
   --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
-  --expect dev.codeforge.app.runtime.LanguageServerTest:4 \
+  --expect dev.codeforge.app.runtime.LanguageServerTest:5 \
   --require lsp_install_damaged=damaged \
+  --require lsp_crash=signaled:9 \
   --require exec_model_audit_outside_apk=0 \
   --require audit_outside_apk=0 \
   --require warm_audit_outside_apk=0 \
