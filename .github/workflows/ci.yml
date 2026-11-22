@@ -538,7 +538,8 @@ jobs:
           status=0
           { python3 tool/ci/testlab_device.py --self-test \
               && python3 tool/ci/testlab_diagnose.py --self-test \
-              && python3 tool/ci/gate_results.py --self-test; } \
+              && python3 tool/ci/gate_results.py --self-test \
+              && python3 tool/ci/fetch_language_servers.py --self-test; } \
             > ci-results/testlab-scripts.txt 2>&1 || status=$?
           cat ci-results/testlab-scripts.txt
           exit "$status"
@@ -1267,6 +1268,11 @@ jobs:
         working-directory: app
         run: |
           mkdir -p ../testlab-apk build/testlab
+          # Phase 6 W1: the candidate language servers, for LanguageServerTest.
+          python3 tool/ci/fetch_language_servers.py --pins tool/ci/language_servers.json \
+            --out android/app/src/androidTest/assets/lsp > build/testlab/language-servers.txt 2>&1 \
+            || { cat build/testlab/language-servers.txt; exit 1; }
+          cat build/testlab/language-servers.txt
           entry="$GITHUB_WORKSPACE/app/integration_test/sync_modes_test.dart"
           flutter build apk --profile --target-platform android-arm64 -t "$entry" \
             > build/testlab/build.txt 2>&1 || { tail -n 40 build/testlab/build.txt; exit 1; }
@@ -1411,6 +1417,7 @@ jobs:
             --expect dev.codeforge.app.runtime.RuntimeCommandsTest:7 \
             --expect dev.codeforge.app.runtime.TerminalSessionTest:7 \
             --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
+            --expect dev.codeforge.app.runtime.LanguageServerTest:4 \
             --expect dev.codeforge.app.syncmodes.SyncModesTest:4 \
             --require exec_model_audit_outside_apk=0 \
             --require audit_outside_apk=0 \
@@ -1868,9 +1875,17 @@ jobs:
       # test APK, so one debug key signs both (two runs signed them with two
       # keys in the first run of these gates, 44235180242), which
       # same_signer.sh checks before any leg starts.
+      # Phase 6 W1: the candidate language servers go into the test APK's
+      # assets first (fetch_language_servers.py: each tarball checked against
+      # the registry's SHA-512, refused if it holds native code), for
+      # LanguageServerTest on every leg.
       - name: Build the APKs
         run: |
           mkdir -p build/runtime-gates
+          python3 tool/ci/fetch_language_servers.py --pins tool/ci/language_servers.json \
+            --out android/app/src/androidTest/assets/lsp > build/runtime-gates/language-servers.txt 2>&1 \
+            || { cat build/runtime-gates/language-servers.txt; exit 1; }
+          cat build/runtime-gates/language-servers.txt
           flutter build apk --debug --target-platform android-x64 > build/runtime-gates/build.txt 2>&1 \
             || { tail -n 40 build/runtime-gates/build.txt; exit 1; }
           ( cd android && timeout --kill-after=30s 20m ./gradlew :app:assembleDebug \

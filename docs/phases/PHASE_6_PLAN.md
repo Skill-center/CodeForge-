@@ -1,6 +1,6 @@
 # Phase 6 Plan — Language Intelligence
 
-**Status:** **Proposed on 2026-11-21,** the day Phase 5 was accepted. The owner's decisions it needs are in §10 · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
+**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 under way** · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
 
 ---
 
@@ -353,6 +353,7 @@ LSP_ARCHITECTURE (as built), ADR-0015 (new), SECURITY §2.3, ARCHITECTURE, EDITO
    - **(b) Python only:** Pyright, 5.9 MB.
    - **(c) JavaScript/TypeScript only:** 5.1 MB.
    - **The agent recommends (a).** Run already runs both languages; both servers are JavaScript under the same node; and the second costs a smoke suite, not a second client.
+   - **Decided on 2026-11-22: (a),** the owner's "item a please".
 3. **The memory budget, after W1's numbers,** if a server takes the app past 600 MB with the editor and a terminal:
    - **(a)** keep 600 MB, with the server's heap capped and idle servers stopped;
    - **(b)** give the server a budget of its own, beside the app's.

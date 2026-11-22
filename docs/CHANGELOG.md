@@ -6,6 +6,7 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ### Phase 6 planned (2026-11-21)
 - [PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md): language intelligence in seven work packages. First a compatibility spike: Pyright, and TypeScript 6.0.3 with typescript-language-server, under the sealed node on API 26 to 36 and the Pixel 8a, with their start, latency and memory measured. Then the servers in the payload (pinned with their integrity, JavaScript only, installed the first time their language is needed), the host's server processes with LSP's framing in Kotlin, the client in Dart, completion, diagnostics, definition, rename and hover in the editor, and the language gate on an arm64 phone. The owner decides which languages get a server, and the memory budget once W1 has measured it (§10).
+- **The owner's decision (2026-11-22):** both languages get a server, Python and JavaScript/TypeScript (§10, item 2, option (a)).
 - **Found while planning:** `typescript` 7 is a native port with no Android build, so the JavaScript line, 6.0.3, is the candidate. Test Lab counts its daily tests from midnight Pacific time, not UTC: PHASE_5_REPORT's count is corrected.
 
 ### Phase 5 accepted (2026-11-21)
