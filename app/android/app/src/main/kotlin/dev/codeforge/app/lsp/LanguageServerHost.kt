@@ -81,7 +81,11 @@ class LanguageServerHost(context: Context, messenger: BinaryMessenger) : LspApi 
     override fun start(server: String, project: String?, copy: String?, callback: (Result<LspStartMessage>) -> Unit) {
         hub.startLanguageServer(server, LspWorkspace(project, copy), listener) { started ->
             val process = started.server
-            if (process != null) {
+            if (process != null && closed) {
+                // The engine went while the server started (an install takes seconds): no one would stop it.
+                hub.languageServers()?.stop(process.handle)
+                Log.i(TAG, "language server ${process.handle} (${process.server.id}) stopped: its engine is gone")
+            } else if (process != null) {
                 mine.add(process.handle)
                 Log.i(TAG, "language server ${process.handle} (${process.server.id}) started, install ${process.installMs} ms")
             } else {
