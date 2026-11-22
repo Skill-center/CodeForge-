@@ -126,7 +126,8 @@ class LspHostTest {
     fun aServerAnswersInWholeMessagesWhateverItsWrites() {
         val listener = Recorder()
         val server = start(listener)
-        assertNull(server.send(request(1, "echo", "{\"text\":\"héllo ✓\"}")))
+        // Through the host, as Dart sends: a successful send answers null (not NO_SUCH_SERVER).
+        assertNull(host.send(server.handle, request(1, "echo", "{\"text\":\"héllo ✓\"}")))
         assertTrue(listener.waitForMessage { it.contains("\"id\": 1") }.contains("héllo ✓"))
         // Three messages in one write come as three.
         server.send(request(2, "burst"))

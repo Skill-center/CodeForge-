@@ -238,12 +238,21 @@ class LspHost(
         return LspStart(server, null, null)
     }
 
-    /** Queues [message] for server [handle]'s stdin. Null, or why not. */
-    fun send(handle: Long, message: String): LspFailure? = running[handle]?.send(message) ?: LspFailure.NO_SUCH_SERVER
+    /**
+     * Queues [message] for server [handle]'s stdin. Null, or why not. (Not
+     * `running[handle]?.send(message) ?: NO_SUCH_SERVER`: the elvis would
+     * also take a successful send's null for a missing server.)
+     */
+    fun send(handle: Long, message: String): LspFailure? {
+        val server = running[handle] ?: return LspFailure.NO_SUCH_SERVER
+        return server.send(message)
+    }
 
-    /** Stops server [handle] with its tree. Null, or why not. */
-    fun stop(handle: Long, end: LspEnd = LspEnd.STOPPED): LspFailure? =
-        running[handle]?.stop(end) ?: LspFailure.NO_SUCH_SERVER
+    /** Stops server [handle] with its tree. Null, or why not (as [send]). */
+    fun stop(handle: Long, end: LspEnd = LspEnd.STOPPED): LspFailure? {
+        val server = running[handle] ?: return LspFailure.NO_SUCH_SERVER
+        return server.stop(end)
+    }
 
     /** Stops every server; answers how many were running. */
     fun stopAll(end: LspEnd = LspEnd.STOPPED): Int {
