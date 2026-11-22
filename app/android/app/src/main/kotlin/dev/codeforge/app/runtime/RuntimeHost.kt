@@ -249,10 +249,11 @@ object RuntimeHubs {
                 override fun onTrimMemory(level: Int) {
                     if (level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN || level < ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) return
                     val stopped = created.languageServers()?.stopAll(LspEnd.MEMORY) ?: 0
+                    if (stopped > 0) Log.i(TAG, "memory pressure (level $level): $stopped language servers stopped")
                     val trimmed = created.terminals()?.trimHidden() ?: 0
-                    if (stopped > 0 || trimmed > 0) {
-                        Log.i(TAG, "memory pressure (level $level): $stopped language servers stopped, $trimmed hidden terminal buffers trimmed")
-                    }
+                    // The emulator gate reads this line as it is ("(level N): <n> hidden",
+                    // emulator_gate.sh's sessions_trim): keep its form, and the servers' apart.
+                    if (trimmed > 0) Log.i(TAG, "memory pressure (level $level): $trimmed hidden terminal buffers trimmed")
                 }
 
                 override fun onConfigurationChanged(newConfig: Configuration) {}
