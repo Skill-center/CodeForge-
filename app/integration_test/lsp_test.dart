@@ -34,6 +34,7 @@ import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/files/workspace_location.dart';
 import 'package:codeforge/core/lsp/lsp_models.dart';
 import 'package:codeforge/design_system/components/feedback.dart';
+import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/platform/app_directories.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
 import 'package:codeforge/services/storage/drift_session_store.dart'
@@ -131,7 +132,7 @@ void main() {
       Future<void> write(String path, String text) async {
         final written = await container
             .read(fileServiceProvider)
-            .writeText(path, text);
+            .writeText(path, text, mode: WriteMode.createNew);
         expect(written.isOk, isTrue, reason: '$written');
       }
 
@@ -365,7 +366,7 @@ void main() {
 
       // ── 7. Pyright killed: back with its documents ──────────────────────
       await open('main.py');
-      expect((await host.gotoLine(99)).isOk, isTrue);
+      expect((await host.gotoLine(999, column: 999)).isOk, isTrue);
       expect((await host.insert('\nprint(only_in_the_editor)')).isOk, isTrue);
       await pumpUntil(
         tester,
@@ -417,6 +418,7 @@ void main() {
       expect(chip.onTap, isNotNull);
       // The editor still edits.
       final before = host.textOf(mainId)!;
+      expect((await host.gotoLine(999, column: 999)).isOk, isTrue);
       expect((await host.insert('\n# still editing')).isOk, isTrue);
       await pumpUntil(
         tester,
@@ -458,6 +460,13 @@ void main() {
       final folder = container.read(currentWorkspaceProvider) as FolderLocation;
       await write('lsp_people.py', _folderPeople);
       await write('lsp_main.py', _folderMain);
+      // The copy takes the two files before Pyright starts in it: the
+      // watcher's refresh would too, but in its own time (the copies are
+      // made one at a time per folder, StorageBroker.kt).
+      final synced = await container
+          .read(storageBrokerProvider)
+          .syncCopy(folder.treeUri, folder.id);
+      expect(synced.isOk, isTrue, reason: '$synced');
       // The server runs in the folder's copy, once it is brought up to date.
       await open('lsp_people.py');
       await pumpUntil(
