@@ -12,6 +12,8 @@
 
 **Phase 5 update (2026-11-21, at its exit):** the terminal's four npm packages are **as built and CI-proven**: @xterm/xterm 6.0.0 with addon-fit 0.11.0 and addon-unicode11 0.9.0 since W3, and addon-webgl 0.19.0 since W6, each an exact pin in `editor/package.json` with AGENTS §5's justification (§2), all MIT and without dependencies of their own. The terminal page is 211.0 KiB gzipped against its 256 KiB budget. Phase 5 added no Dart package and no Android library. Its native code is CodeForge's own: the launcher's terminal mode (C, built with the pinned NDK) and the Kotlin host. Hybrid Composition++ (W6) is a setting of the Flutter engine already pinned (`io.flutter.embedding.android.EnableHcpp` in the manifest), not a dependency. Run ids are in [phases/PHASE_5_REPORT.md](phases/PHASE_5_REPORT.md).
 
+**Phase 6 update (2026-11-23, at its exit):** the language servers and the editor page's lint layer are **as built and CI-proven**. Pyright 1.1.414 (MIT), and typescript-language-server 6.1.0 with TypeScript 6.0.3 (Apache-2.0), run under the runtime's node (§3). They are pinned with their SHA-512 in `runtime/language-servers/`'s npm lockfile, with the 58 npm packages bundled inside their JavaScript (`bundled.json`), and ship in the APK as archives verified when they install (ADR-0015). @codemirror/lint 6.9.8 (MIT) is an exact pin in `editor/package.json` (below). Phase 6 added no Dart package, no Android library and no native code: the host is Kotlin, and the servers are JavaScript. The editor page is 309.6 KiB gzipped against its 1.5 MiB budget. Run ids are in [phases/PHASE_6_REPORT.md](phases/PHASE_6_REPORT.md).
+
 ---
 
 ## 1. Core stack (locked by spec + audit)
@@ -81,7 +83,7 @@ From t1 @ `0e26d7a`, the audited sealed payload, rebuilt by CodeForge from pinne
 | Perl / Ruby | 5.44.0-1 / 4.0.9 | P1, runs (already in the core set) |
 | ripgrep | 15.2.0 (+pcre2 10.49) | search across files in projects since Phase 4 W6 |
 | clang/cmake/make | Termux current | P1, on-demand pack (PFD / full variant) |
-| Pyright / the TypeScript language server | Pyright 1.1.414; typescript-language-server 6.1.0 with TypeScript 6.0.3 | Phase 6: chosen in W1 (ADR-0015), in the APK since W2, installed into the runtime when first needed; pinned in `runtime/language-servers/` |
+| Pyright / the TypeScript language server | Pyright 1.1.414; typescript-language-server 6.1.0 with TypeScript 6.0.3 | Phase 6: chosen in W1 (ADR-0015), in the APK since W2, installed into the runtime when first needed, run by `LspHost` since W3; pinned in `runtime/language-servers/`, with the 58 packages bundled inside them (THIRD_PARTY_NOTICES §6) |
 
 **Rule:** no runtime binary is downloaded or replaced without re-running the payload pipeline + exec gates. No second copy of any runtime ever ships.
 

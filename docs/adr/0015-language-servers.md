@@ -1,6 +1,6 @@
 # ADR-0015: The language servers: Pyright, and TypeScript 6 with typescript-language-server, under the sealed node
 
-**Status:** Accepted · 2026-11-22 · Phase 6 W1 ([PHASE_6_PLAN.md](../phases/PHASE_6_PLAN.md) W1, which assigns the choice to W1, with numbers) · the languages decided by the owner on 2026-11-22 (§10, item 2: (a), Python and JavaScript/TypeScript); the servers chosen by the agent from W1's measurements · **the memory budget decided by the owner on 2026-11-22:** (b), a budget of each server's own, 300 MB of PSS (§10, item 3; *Consequences*)
+**Status:** Accepted · 2026-11-22 · Phase 6 W1 ([PHASE_6_PLAN.md](../phases/PHASE_6_PLAN.md) W1, which assigns the choice to W1, with numbers) · the languages decided by the owner on 2026-11-22 (§10, item 2: (a), Python and JavaScript/TypeScript); the servers chosen by the agent from W1's measurements · **the memory budget decided by the owner on 2026-11-22:** (b), a budget of each server's own, 300 MB of PSS (§10, item 3; *Consequences*) · **as built at Phase 6's end** (2026-11-23): the *As built* sections below, newest first; the decision held, and W6 judged its budgets on the phone
 
 ## Context
 - **ROADMAP's Phase 6:** at least one full language server, "Pyright or the TypeScript server under the sealed node", with completion, diagnostics, go to definition and rename, restart on a crash, and completion within 300 ms at the 95th percentile. The compatibility spike comes first ([LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) §2).
@@ -86,6 +86,20 @@ MB here is KiB / 1024, as Phase 5's memory figures were.
 - **Size:** about 11.0 MB per device, which W2 measures in the bundle.
 - **TypeScript 6.0.3 is the last JavaScript TypeScript.** It checks JavaScript and TypeScript today. Moving to TypeScript 7 means shipping its native binary among the APK's programs.
 - **The first install** would grow by Pyright's 5,423 files. W2 installs each language's server only when that language is first needed.
+
+## As built (W7)
+
+- **A silent server is restarted** (CI 45204541929), as PHASE_6_PLAN §9's risk table promised and W4's per-request timeouts did not yet do. Once a server is asked something, `LspConnection` watches its silence: each message it writes moves the watch on, and an answer that leaves nothing waiting ends it. A server silent for 30 s is hung unless it reports progress, and is then ended through the host and restarted as a crash is, counted against the backoff.
+- **The total with a terminal open is recorded** in the language gate's phone test since W7 (PHASE_6_PLAN §1, objective 3), never judged. PHASE_6_REPORT §7 has the exit gate's figure.
+- **The decision held to the end:** both servers, as W1 chose them, under the same pins; the client in Dart; the host on the launcher's command mode; the heap cap kept. The size came in under the plan's estimate: the base module is 158.5 MB on arm64, 79.2 % of Play's 200 MB (the bundle-size evidence `134fd8f8`, the same since), against 148.0 MB at Phase 5's exit.
+
+## As built (W6)
+
+- **The budgets were judged on the phone** (CI 45180564110; phase gate 45182761593, Test Lab's Pixel 8a, a profile build), in the real app with the real page, on the 200-file projects:
+  - completion after an edit, from the page's request to the list drawn: p95 139.0 ms (Pyright) and 64.5 ms (TypeScript), against 300 ms;
+  - diagnostics after a save: p95 476.9 and 657.7 ms, against 1 s;
+  - each server's tree: 169.9 and 246.5 MB of PSS, against (b)'s 300 MB.
+- **The total, recorded as (b) asked:** the app with the editor open and its renderer held 511.4 MB, and 927.7 MB with both servers running side by side. One server beside the app comes to 681 to 758 MB, as the *Consequences* above foresaw (665 to 753 MB).
 
 ## As built (W5)
 

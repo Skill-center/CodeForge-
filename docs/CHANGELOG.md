@@ -4,6 +4,12 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 6 W7, the docs and the phase exit (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md); report: [phases/PHASE_6_REPORT.md](phases/PHASE_6_REPORT.md))
+- **A language server that goes silent comes back:** one that says nothing for 30 s after it is asked something is stopped and started again with its files, as a crashed one is, unless it is busy with a long analysis it reports. Repeated failures still end with the status strip offering *Restart*.
+- **The language gate records the total with a terminal open** beside the editor and both servers, without judging it.
+- **The documents, as built:** LSP_ARCHITECTURE grown from its seed into how the servers work today, ADR-0015's last *As built* sections, SECURITY §2.3's twelve threats with their proofs, the Phase 6 report, and a phone checklist: completion with Gboard, the long press for hover and definition, a rename, the Problems sheet.
+- Verified by: CI 45204541929 (`+1291: All tests passed!`, the silent server's tests among them; 228 Kotlin tests); the exit gate on the documents' commit, recorded in the report.
+
 ### Added — Phase 6 W6, the language gate on a phone (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
 - **The language budgets are met on a real phone** (Test Lab's Pixel 8a, in the app, on a 200-file project in each language): completion lists appear 139.0 ms (Python) and 64.5 ms (TypeScript) after they are asked for, at the 95th percentile, against 300 ms; problems show 476.9 and 657.7 ms after a save, against 1 s; each language server takes 169.9 and 246.5 MB, against its own 300 MB.
 - **The editor times its own completion lists,** from the request to the frame that draws them, for these measurements.

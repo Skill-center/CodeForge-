@@ -1,6 +1,6 @@
 # Play preparation (Phase 4 W7)
 
-> **Drafts, 2026-11-18,** updated at Phase 5's end (2026-11-21) for the terminal and *Run*. Written by the agent from t1's `store/` templates (m-cyber12/t1 at `d9789a2`, ADR-0010), checked against what the app does today. Nothing here is submitted. The owner submits it, and checks each answer against Play Console's form on the day, because Google changes the forms.
+> **Drafts, 2026-11-18,** updated at Phase 5's end (2026-11-21) for the terminal and *Run*, and at Phase 6's end (2026-11-23) for the language servers, which add no permission and send nothing. Written by the agent from t1's `store/` templates (m-cyber12/t1 at `d9789a2`, ADR-0010), checked against what the app does today. Nothing here is submitted. The owner submits it, and checks each answer against Play Console's form on the day, because Google changes the forms.
 
 | File | What it is |
 |---|---|
@@ -43,4 +43,4 @@
 
 - **The date:** the Monday after the last of these is done. Phase 5 W1 landed on 2026-11-18, so the agent's rows wait only for the graphics, which the agent produces once the owner's rows are under way. If the account, the keys and the licence review are done by early December, the test could start on **Monday 2026-12-07** and meet the 14 days on 2026-12-21.
 - **At Phase 5's end** (2026-11-21) the owner's rows are as on 2026-11-18, as far as the agent knows. Since then the build has the terminal and *Run* too, so the closed test can try them from its first build.
-- **What testers try:** the editor, projects and folders, search, Settings → Linux runtime, the first install on their phone (its time is on the Runtime page), and since Phase 5 the terminal (Gboard in it, the extra keys, nano), *Run* on the demo's `main.js` and `app.py`, and a long session in the background with its notification. Feedback goes through Play's private feedback and the repository's issues.
+- **What testers try:** the editor, projects and folders, search, Settings → Linux runtime, the first install on their phone (its time is on the Runtime page), and since Phase 5 the terminal (Gboard in it, the extra keys, nano), *Run* on the demo's `main.js` and `app.py`, and a long session in the background with its notification; since Phase 6, completion, problems, go to definition and rename in the demo's Python and JavaScript, with their own keyboard. Feedback goes through Play's private feedback and the repository's issues.

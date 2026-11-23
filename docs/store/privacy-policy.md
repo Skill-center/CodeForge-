@@ -1,6 +1,6 @@
 # CodeForge privacy policy
 
-> **Draft, 2026-11-18,** from t1's `store/privacy-policy.md`; **revised in Phase 5 W1** (2026-11-18) for internet access, which the owner decided that day, and **in Phase 5 W5** (2026-11-20) for the terminal sessions' foreground service and notification. For the owner to complete (the three bracketed items) and publish at a public URL before the closed test. Everything below the line is the policy itself.
+> **Draft, 2026-11-18,** from t1's `store/privacy-policy.md`; **revised in Phase 5 W1** (2026-11-18) for internet access, which the owner decided that day, and **in Phase 5 W5** (2026-11-20) for the terminal sessions' foreground service and notification; **reviewed at Phase 6's end** (2026-11-23) for the language servers, which collect and send nothing. For the owner to complete (the three bracketed items) and publish at a public URL before the closed test. Everything below the line is the policy itself.
 
 ---
 
@@ -20,7 +20,7 @@ CodeForge is a code editor for Android, published by [the developer's name, as o
 
 **What the app keeps on your device:** the files you edit, your open tabs and unsaved text, your settings, and logs of what the app did, with secrets removed. The logs stay on the device and are never backed up; you can read them in Settings → About → Recent logs.
 
-**The Linux tools** (Node, Python, Git and others) are part of the app and run on your device; the app downloads none of them.
+**The Linux tools** (Node, Python, Git and others) are part of the app and run on your device; the app downloads none of them. So are the language servers that offer completion and show problems in your code: they read your project on your device and send nothing anywhere.
 
 **Android backup** is off until you turn it on in Settings → Privacy. When it is on, Android's backup service copies your projects, your session (open tabs and unsaved text) and your settings to your own Google account, so a new phone can restore them. This copy is handled by Android and Google under your Google account. We never receive it. On Android 9 and later, with a screen lock, Android encrypts it with your device's PIN, pattern or password. You can turn backup off at any time, and delete the copy in your Google account's backup settings.
 

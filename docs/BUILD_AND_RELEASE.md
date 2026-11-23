@@ -177,9 +177,12 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - *Generated code check* covers a fifth Pigeon API (`pigeons/lsp_api.dart`), as do the bootstrap and the three APK builds of the phase gate.
   - The legs and Test Lab expect `LanguageServerTest`'s 5 tests and require `lsp_crash=signaled:9`.
   - The quality job's *Kotlin digest* lists the compiler's first 40 errors. They print before a task's `FAILED` line, which the digest showed without them (CI 45016628119).
+- **W4, the client:** the quality job's *Analyze digest* puts the analyzer's first 40 issues in an annotation when analysis fails, since only a `[bootstrap]` run commits `analyze.txt`. The legs and Test Lab expect `LanguageServerTest`'s 6 tests.
+- **W5, the language features:** the phase gate's emulator job runs a new group, `lsp` (`integration_test/lsp_test.dart`, in the build with the x86_64 payload), the only one that turns the servers on. folder_driver answers its folder picker. It records its `LSP_GATE` lines in `lsp.txt` and its verdict in `attempts.txt`, and is run again only after an infrastructure failure.
 - **W6, the language gate:**
   - **Test Lab's judge** expects `SyncModesTest:5`, requires the six `lsp_phone_*_under_budget=1` figures (each server's completion, diagnostics after a save and memory) and the `CODEFORGE_LSP_JSON` document, and keeps `CodeForgeLsp` and the `LSP_GATE` lines in `logcat-runtime.txt`.
   - **The phase gate's `lsp` group** runs `integration_test/phone_lsp_test.dart` once `lsp_test.dart` passes, and records its lines and its exit (`lsp_budget_exit`) in `lsp.txt`, never judged.
+- **W7:** no change to the workflows. `phone_lsp_test.dart` records the total with a terminal open as well (`lsp_phone_terminal_*` and a `memory_terminal` line), which Test Lab's judge keeps in `logcat-runtime.txt` without requiring it, and the `lsp` group in `lsp.txt`.
 
 ## 3. Toolchain pins in CI
 

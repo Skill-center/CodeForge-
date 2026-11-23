@@ -1,6 +1,6 @@
 # Performance
 
-**Status:** Budgets accepted Phase 0 from audited measurements · Benchmark suite built incrementally (spec §9: measure, never assume) · the runtime's figures as at Phase 4's end (2026-11-18; PHASE_4_REPORT.md) · the terminal's as at Phase 5's end (2026-11-21; PHASE_5_REPORT.md §7)
+**Status:** Budgets accepted Phase 0 from audited measurements · Benchmark suite built incrementally (spec §9: measure, never assume) · the runtime's figures as at Phase 4's end (2026-11-18; PHASE_4_REPORT.md) · the terminal's as at Phase 5's end (2026-11-21; PHASE_5_REPORT.md §7) · the language servers' as at Phase 6's end (2026-11-23; PHASE_6_REPORT.md §7)
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Metric | Baseline (t1 measured) | CodeForge budget | Gate |
 |---|---|---|---|
-| Sealed base AAB per device (arm64) | 136.0 MB | ≤ 180 MB incl. Flutter engine + editor assets (Play cap 200) · **Phase 4 W3: 147.3 MB** (phase gate 43808489945) | `check-bundle-size.py` every release build; in the phase gate since Phase 4 W3 |
+| Sealed base AAB per device (arm64) | 136.0 MB | ≤ 180 MB incl. Flutter engine + editor assets (Play cap 200) · **Phase 4 W3: 147.3 MB** (phase gate 43808489945) · **Phase 5's exit:** 148.0 MB · **Phase 6:** 158.3 MB with the language servers (W2, phase gate 44995822826), 158.5 MB since W5, 79.2 % of Play's cap (the bundle-size evidence `134fd8f8`) | `check-bundle-size.py` every release build; in the phase gate since Phase 4 W3 |
 | GitHub "full" APK (core + build-tools) | ~250 MB est. (136 + ~110 pack compressed) | ≤ 300 MB; measured at Phase 4 · **W3, without build-tools:** 164.2 MB (arm64, the phone's profile build), 149.4 MB (release x86_64) · **Phase 4's end:** 149.5 MB release x86_64 (149,476,001 B). The userland's zip (98.0 MB) and 259 native libraries (48.7 MB compressed, 121.6 MB once Android extracts them) make up nearly all of it (CI 44300179086; the same in 44292608356). The build-tools pack is not built yet | release gate |
 | Installed core userland | 360–380 MB on-device | unchanged (reuse, no duplication) · **Phase 4 W3, emulator:** the prefix holds 274.8 MB in 13,894 files, each counted once; its folder takes 397.3 MB on disk (`du -sk`), beside 140.0 MB of libraries Android extracted | RuntimeService size report (Settings → Runtime) |
 | Editor bundle (gz) | — | ≤ 1.5 MB | editor build gate |
@@ -69,7 +69,12 @@ As built in Phase 4 W6, search adds two timed runs:
 As built in Phase 5 W6, the terminal's budgets are measured in two places, with the same code (`app/integration_test/terminal_measure.dart`, the page's `probe.ts`):
 - **The gate's `terminal` group** (`app/integration_test/terminal_test.dart`) records echo, the 10 MiB flood (Flutter's frames and the page's, the UI isolate's time on the output) and memory, with each renderer, in `app/ci-results/gate/terminal_measure.json`, and the page's JavaScript heap before and after a collection DevTools forces. On the emulator's software GPU the page draws with the DOM renderer.
 - **Test Lab's phone** (`app/integration_test/phone_terminal_test.dart`, in the Test Lab job's entrypoint) measures the same in a profile build and holds the figures to the budgets (`RUNTIME_GATE page_*`, `gate_results.py --require`). Since W6 the Test Lab job's app is a profile build, so the store's and search's phone figures are too (search: the first result in 38 ms, all in 133 ms).
-- **A forward risk:** with the editor open and a terminal after a flood, the app and its renderer held 627 MB of PSS on the Pixel 8a (profile build), before any language server; §2's budget for the editor, a terminal and an LSP is 600 MB of the app's RSS. After W6's memory work, 555 MB of PSS (CI 44889362793), then 539 MB (CI 44893095694) and 583 MB in Phase 5's exit gate (CI 44900930980): a flood's settled growth varies by run, and the margin is small. Whether a language server fits beside it is Phase 6's to measure.
+- **A forward risk:** with the editor open and a terminal after a flood, the app and its renderer held 627 MB of PSS on the Pixel 8a (profile build), before any language server; §2's budget for the editor, a terminal and an LSP is 600 MB of the app's RSS. After W6's memory work, 555 MB of PSS (CI 44889362793), then 539 MB (CI 44893095694) and 583 MB in Phase 5's exit gate (CI 44900930980): a flood's settled growth varies by run, and the margin is small. Whether a language server fits beside it was Phase 6's to measure: it does not fit in 600 MB, so the owner gave each server a budget of its own (§2), and the totals are recorded below.
+
+As built in Phase 6 W6, the language budgets are measured in two places, with the same test (`app/integration_test/phone_lsp_test.dart`), in the real app with the real servers and the real page, on a project with 200 modules in each of Python and TypeScript:
+- **Test Lab's phone** (the Test Lab job's entrypoint, a profile build) holds the figures to the budgets (`RUNTIME_GATE lsp_phone_*`, `gate_results.py --require`): completion after an edit, 50 times after 5, timed in the page from the request to the frame that draws the list (`editor/src/editor/timings.ts`, read with `probe.read`); diagnostics after a save, 20 times after 4, to the page's taking the new set; each server's process tree as `LspHost` reads it every 10 s; the app's and its renderers' PSS. In phase gate 45182761593: completion p95 139.0 and 64.5 ms, diagnostics p95 476.9 and 657.7 ms, PSS 169.9 and 246.5 MB; the app and its renderer 511.4 MB, 927.7 MB with both servers.
+- **The gate's `lsp` group** runs the same test on the emulator once `lsp_test.dart` passes, and records its `LSP_GATE budget` lines in `lsp.txt`, never judged.
+- **Since W7** the test then opens a terminal beside the editor, at the panel's half stop, lets it settle for 15 s and reads the app's memory again: the total with the editor, a terminal and both servers, recorded and never judged (`lsp_phone_terminal_*`). PHASE_6_REPORT §7 has the exit gate's figure.
 
 ## 5. Regression policy
 

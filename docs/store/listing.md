@@ -1,6 +1,6 @@
 # Play Store listing (draft)
 
-> **Draft, 2026-11-18,** from t1's `store/listing.md`; **revised at Phase 5's end** (2026-11-21) for what Phase 5 built: the terminal, *Run*, and sessions that keep running with a notification. The release build asks for internet access (Phase 5 W1) and for the foreground service's permissions (W5). **Before each upload, check it against the build:** a listing that claims more than the app does is a policy problem. A build from before Phase 5 has no terminal, and its listing must not claim one.
+> **Draft, 2026-11-18,** from t1's `store/listing.md`; **revised at Phase 5's end** (2026-11-21) for what Phase 5 built: the terminal, *Run*, and sessions that keep running with a notification; **and at Phase 6's end** (2026-11-23) for the language servers: completion, problems, definition, rename and hover for Python, JavaScript and TypeScript, offline. They need no permission and send nothing. The release build asks for internet access (Phase 5 W1) and for the foreground service's permissions (W5). **Before each upload, check it against the build:** a listing that claims more than the app does is a policy problem. A build from before Phase 5 has no terminal, and its listing must not claim one; a build from before Phase 6 has no language servers.
 
 ## App identity
 
@@ -34,6 +34,12 @@ EDIT
   for the characters code needs
 • Hardware keyboard shortcuts
 • Unsaved text survives the app being closed by Android
+
+UNDERSTANDS YOUR CODE, OFFLINE
+• Completion as you type, problems underlined and listed, go to definition,
+  rename across files with undo, and what a name is on a long press
+• For Python (Pyright) and for JavaScript and TypeScript (the TypeScript
+  language server), running inside the app: no account, no cloud
 
 PROJECTS AND FOLDERS
 • Projects live in the app's own storage
@@ -83,7 +89,7 @@ offered with every release.
 |---|---|---|
 | App icon | 512 × 512 PNG, 32-bit with alpha | **to produce**, from the launcher icon (`@mipmap/ic_launcher`) |
 | Feature graphic | 1024 × 500, JPEG or 24-bit PNG | **to produce:** the workbench with code, legible as a thumbnail; no third-party marks |
-| Phone screenshots | 2 to 8, JPEG or 24-bit PNG; each side 320 to 3,840 px, the long side at most twice the short | **to capture:** (1) the workbench with a file open, (2) the terminal with a session and the extra-keys row, (3) a run's output in the terminal with the Run panel, (4) Home with projects and folders, (5) the explorer, (6) search results, (7) Settings → Linux runtime with the versions, (8) the editor's find and replace |
+| Phone screenshots | 2 to 8, JPEG or 24-bit PNG; each side 320 to 3,840 px, the long side at most twice the short | **to capture:** (1) the workbench with a file open and a completion list, (2) the terminal with a session and the extra-keys row, (3) a run's output in the terminal with the Run panel, (4) Home with projects and folders, (5) the explorer, (6) search results, (7) the *Problems* sheet, or a long press's symbol menu, (8) Settings → Linux runtime with the versions and the language servers |
 | Tablet screenshots (7- and 10-inch) | optional | the workbench's wide layout |
 
 The screenshots show the demo project only: no real project names, keys or personal files.
@@ -123,5 +129,7 @@ First test build. Edit real files in projects and folders, search across a
 project, and run your code: a terminal with bash and the bundled Linux tools
 (Node, Python, Git, Perl, Ruby, ripgrep), and Run for the open file or an npm
 script. Sessions keep running in the background, with a notification to end
-them. Works offline, except for the commands you run that use the network.
+them. Completion, problems, go to definition and rename for Python,
+JavaScript and TypeScript, from language servers inside the app. Works
+offline, except for the commands you run that use the network.
 ```

@@ -63,7 +63,7 @@ Flutter (Dart)                      WebView (bundled assets only)
 │  tabs, dirty, saves  │  messages   │ CM6 EditorState per doc     │
 │ EditorHost: shadows  │             │ one EditorView, swapped     │
 │  journal (W5)        │             │ mobile extensions:          │
-│  LSP routing (Ph. 6) │             │  symbol toolbar hooks,      │
+│  LspFeatures (Ph. 6) │             │  symbol toolbar hooks,      │
 └──────────┬───────────┘             │  indent/fold/brackets,      │
            │ Dart calls              │  search panel, completions  │
 ┌──────────▼───────────┐             └─────────────────────────────┘

@@ -2,13 +2,19 @@
 
 **A premium, mobile-first Android development environment.** A real IDE in your pocket: professional editing, a genuine local Linux toolchain (Node 26 · Python · Git · bash · Perl · Ruby), terminal, language intelligence, and version control — offline-first, built for touch, designed like a precision instrument.
 
-> **Status: Phase 5, the terminal and running code, was accepted on 2026-11-21 ([report](docs/phases/PHASE_5_REPORT.md)), and Phase 6, language intelligence, is planned ([plan](docs/phases/PHASE_6_PLAN.md)). Phase 4, runtime integration, was accepted on 2026-11-18 ([report](docs/phases/PHASE_4_REPORT.md)), Phase 3, workspace and files, on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
+> **Status: Phase 6, language intelligence, is built and waits for the owner's acceptance ([report](docs/phases/PHASE_6_REPORT.md)). Phase 5, the terminal and running code, was accepted on 2026-11-21 ([report](docs/phases/PHASE_5_REPORT.md)). Phase 4, runtime integration, was accepted on 2026-11-18 ([report](docs/phases/PHASE_4_REPORT.md)), Phase 3, workspace and files, on 2026-11-12 ([report](docs/phases/PHASE_3_REPORT.md)), and Phase 2, the workbench and code editor, on 2026-11-10 ([report](docs/phases/PHASE_2_REPORT.md)).** CodeForge edits real files, in projects and in folders on the device:
 > - Projects live in the app's own storage, and folders open through Android's own picker, with no storage permission.
 > - Home lists the recent projects and folders with their status, and each keeps its tabs, unsaved text and explorer view.
 > - The explorer creates, renames, moves, copies and deletes, and Go to File finds a file by name.
 > - Files changed by other apps show as it happens, and unsaved text is never overwritten.
 > - CodeMirror 6 runs in a hardened Android System WebView, with many tabs, find and replace, a symbol toolbar and hardware shortcuts. Unsaved text survives the app being killed.
 > - Android backup is the user's choice, off by default.
+>
+> Phase 6 ([plan](docs/phases/PHASE_6_PLAN.md), [report](docs/phases/PHASE_6_REPORT.md)) understands your code, offline:
+> - **Language servers inside the app:** Pyright for Python, and TypeScript 6.0.3 with typescript-language-server for JavaScript and TypeScript, under the runtime's own node. They ship in the APK, pinned and verified, and install the first time a file of their language opens.
+> - **In the editor:** completion as you type, problems underlined and listed in a *Problems* sheet, go to definition, rename across files (all files or none, with undo), and what the server knows about a name on a long press. Folders from shared storage get all of it through their copy.
+> - **Within budget on a Pixel 8a,** on 200-file projects: completion lists drawn within 139.0 ms (Python) and 64.5 ms (TypeScript) at the 95th percentile (the budget is 300 ms), problems shown within 476.9 and 657.7 ms of a save (1 s), and each server within 169.9 and 246.5 MB of its own 300 MB.
+> - **Never a broken editor:** a server that crashes or goes silent comes back with its files, and after repeated failures the status strip offers *Restart* while the editor goes on editing.
 >
 > Phase 5 ([plan](docs/phases/PHASE_5_PLAN.md), [report](docs/phases/PHASE_5_REPORT.md)) runs your code:
 > - **A terminal:** bash on a pseudo-terminal CodeForge writes itself, drawn by xterm.js, with tabs, a row of extra keys, copy and paste, and up to 8 sessions. On a Pixel 8a a keystroke's echo is drawn in 37.2 ms at the 95th percentile (the budget is 50 ms), and 10 MiB of output arrives whole in 3.3 s, with none of the app's frames taking over 32 ms to draw.
@@ -18,7 +24,7 @@
 >
 > The runtime arrived in Phase 4 ([plan](docs/phases/PHASE_4_PLAN.md), [report](docs/phases/PHASE_4_REPORT.md)): t1's sealed Linux userland in the APK, verified as it installs and checked at every start, its seven tools at their pinned versions, search across files, and the real-device gates on Android 8.0 to 16 emulators and a physical Pixel 8a in Firebase Test Lab.
 >
-> Every claim is backed by a CI run: see the **[Phase 5 Report](docs/phases/PHASE_5_REPORT.md)** and the **[Phase 4 Report](docs/phases/PHASE_4_REPORT.md)**.
+> Every claim is backed by a CI run: see the **[Phase 6 Report](docs/phases/PHASE_6_REPORT.md)**, the **[Phase 5 Report](docs/phases/PHASE_5_REPORT.md)** and the **[Phase 4 Report](docs/phases/PHASE_4_REPORT.md)**.
 
 ---
 
@@ -26,7 +32,10 @@
 
 | Document | What it answers |
 |---|---|
-| **[Phase 5 Report](docs/phases/PHASE_5_REPORT.md)** | What Phase 5 built (the release workflow, the PTY and sessions, the terminal, Run, sessions that last, the terminal's budgets on a phone), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
+| **[Phase 6 Report](docs/phases/PHASE_6_REPORT.md)** | What Phase 6 built (the servers in the APK, their host, the client in Dart, completion, diagnostics, definition, rename and hover in the editor, the language budgets on a phone), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
+| [Phase 6 phone checklist](docs/phases/PHASE_6_PHONE_CHECKLIST.md) | The language servers on your phone: completion with Gboard, the long press for hover and definition, a rename, the Problems sheet, in about 20 minutes |
+| [LSP Architecture](docs/LSP_ARCHITECTURE.md) · [ADR-0015](docs/adr/0015-language-servers.md) | How the language servers work as built, and why these servers |
+| [Phase 5 Report](docs/phases/PHASE_5_REPORT.md) | What Phase 5 built (the release workflow, the PTY and sessions, the terminal, Run, sessions that last, the terminal's budgets on a phone), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
 | [Phase 5 phone checklist](docs/phases/PHASE_5_PHONE_CHECKLIST.md) | The terminal on your phone: Gboard and the extra keys, taps and typing in the terminal and the editor, nano across a turn, a run, a long session in the background, the tombstones, in about 35 minutes |
 | [Phase 4 Report](docs/phases/PHASE_4_REPORT.md) | What Phase 4 built (the toolchain, the sealed runtime in the app, its tools, the real-device gates, search, the notices and Play's drafts), gate-by-gate evidence, the measurements, what is not met, and what the owner decides |
 | [Phase 4 phone checklist](docs/phases/PHASE_4_PHONE_CHECKLIST.md) | The runtime on your phone: the install time, the audit, the tools' versions, search, in about 20 minutes |

@@ -82,7 +82,7 @@ CodeForge-/
 │   │                             #   (the budgets, shared by both; W6). Phase 6: lsp_test
 │   │                             #   (the gate's lsp group, W5), phone_lsp_test (the
 │   │                             #   language budgets: Test Lab, and recorded in the lsp
-│   │                             #   group; W6)
+│   │                             #   group; W6; and the total with a terminal open, W7)
 │   ├── ci-results/               # CI's evidence, committed back by its runs: the build's
 │   │                             #   diagnostics; editor/, gate/ (the phase gate),
 │   │                             #   runtime-gates/ (API 26 to 36), testlab/ (the phone)
