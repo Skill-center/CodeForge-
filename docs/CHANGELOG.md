@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 7 planned (2026-11-23)
+- [PHASE_7_PLAN.md](phases/PHASE_7_PLAN.md): Git and source control in seven work packages. First a spike on API 26 to 36 and the Pixel 8a: local work, a remote with a password on the device through Git's credential helper, HTTPS to a real host, SSH as a probe, and a repository of 10,000 files timed. Then the Git host and the real service, remotes with credentials kept in the Keystore, the *Source control* panel, diffs in the editor with `@codemirror/merge`, and the Git gate on an arm64 phone. The owner decides what Git does with folders from shared storage, the credentials (tokens, SSH keys, GitHub's sign-in) and, with W1's numbers, the Git budgets.
+- **Found while planning:** the runtime already carries Git's network (libcurl 8.23.0, the certificates, openssh 10.6p2), but no test has used it. *Import as project* copies a repository's `.git`, and would leave out a pack file over 64 MB: the plan fixes that.
+
+### Phase 6 accepted (2026-11-23)
+- The owner said "continue", then "green start next phase", before the exit gate; the exit gate passed whole (45225412011), so Phase 6 is accepted ([PHASE_6_REPORT.md](phases/PHASE_6_REPORT.md)). The phone session, on the exit gate's APK, the first release and Play's owner actions stay open and non-blocking.
+
 ### Added — Phase 6 W7, the docs and the phase exit (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md); report: [phases/PHASE_6_REPORT.md](phases/PHASE_6_REPORT.md))
 - **A language server that goes silent comes back:** one that says nothing for 30 s after it is asked something is stopped and started again with its files, as a crashed one is, unless it is busy with a long analysis it reports. Repeated failures still end with the status strip offering *Restart*.
 - **The language gate records the total with a terminal open** beside the editor and both servers, without judging it.

@@ -1,6 +1,6 @@
 # Phase 6 Report — Language Intelligence
 
-**Status:** **Built, for the owner's acceptance** (2026-11-23): all seven gates are met (§4), and the exit gate, 45225412011, passed whole on this report's commit (§4). The phone session (§8) and the owner's release and Play actions (§10) are still open, and non-blocking · **Date:** 2026-11-23 · **Branch:** `arena/f57c33ee-codeforge`
+**Status:** **Accepted by the owner on 2026-11-23** (the owner's "continue", then "green start next phase", said before the exit gate, which passed whole: 45225412011, §4): all seven gates are met. The phone session (§8) and the owner's release and Play actions (§10) are still open, and non-blocking · **Date:** 2026-11-23 · **Branch:** `arena/f57c33ee-codeforge`
 **Plan:** [PHASE_6_PLAN.md](PHASE_6_PLAN.md) · **Spec:** §8 Phase 6, §6.5 (the capability model), §6.6 (never a broken editor), §9 · **Rule:** every claim below cites a CI run, a phase gate or an evidence commit. Where something was not measured or not met, this report says so.
 
 ---
@@ -248,7 +248,7 @@ Phase 5's exit gate: 1,130 ms. Phase 6: W1 1,169 ms; W2 873 ms; W3 1,094 ms; W4 
 - the credential store is Phase 7's (ARCHITECTURE §4): no credential exists in the app yet, and the runtime's environment carries none.
 
 **For the owner:**
-1. **Accept Phase 6,** or ask for changes.
+1. ~~**Accept Phase 6,** or ask for changes.~~ **Accepted on 2026-11-23:** the owner's "continue", then "green start next phase", before the exit gate, which passed (§4).
 2. **The phone session:** PHASE_6_PHONE_CHECKLIST (about 20 minutes) with the Phase 3, 4 and 5 checklists, on the exit gate's APK (§6).
 3. **The first release** (BUILD_AND_RELEASE §5):
    - the upload key and the release key, as eight repository secrets;
@@ -263,4 +263,4 @@ Phase 5's exit gate: 1,130 ms. Phase 6: W1 1,169 ms; W2 873 ms; W3 1,094 ms; W4 
    - Play's rule on downloaded executable code (PHASE_5_REPORT §9.2). The servers add nothing to it: they are JavaScript inside the APK.
 5. **Later:** what runs the arm64 tests after Test Lab, before 2027-09-30; TypeScript 7's native server, when TypeScript 6 falls behind; more servers (JSON, HTML, CSS, YAML, shell, and clangd with the build-tools pack), each a phase's choice.
 
-Phase 7's plan follows the acceptance.
+Phase 7's plan: [PHASE_7_PLAN.md](PHASE_7_PLAN.md).
