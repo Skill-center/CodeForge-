@@ -1,6 +1,6 @@
 # Phase 6 Report — Language Intelligence
 
-**Status:** **Built, for the owner's acceptance** (2026-11-23): all seven gates are met (§4), and the exit gate runs on this report's commit (§4, *The exit gate*). The phone session (§8) and the owner's release and Play actions (§10) are still open, and non-blocking · **Date:** 2026-11-23 · **Branch:** `arena/f57c33ee-codeforge`
+**Status:** **Built, for the owner's acceptance** (2026-11-23): all seven gates are met (§4), and the exit gate, 45225412011, passed whole on this report's commit (§4). The phone session (§8) and the owner's release and Play actions (§10) are still open, and non-blocking · **Date:** 2026-11-23 · **Branch:** `arena/f57c33ee-codeforge`
 **Plan:** [PHASE_6_PLAN.md](PHASE_6_PLAN.md) · **Spec:** §8 Phase 6, §6.5 (the capability model), §6.6 (never a broken editor), §9 · **Rule:** every claim below cites a CI run, a phase gate or an evidence commit. Where something was not measured or not met, this report says so.
 
 ---
@@ -28,7 +28,7 @@ Phase 6 gives CodeForge language intelligence, offline, on the sealed runtime Ph
 - **Real targets:** every phase gate ran emulators with Android 8.0, 8.1, 9, 14 and 16, and Test Lab's physical Pixel 8a in the same run.
 
 **All seven gates are met** (§4). Not met, and why:
-- **PERFORMANCE's 600 MB for the editor, a terminal and one language server.** A server alone takes 169.9 or 246.5 MB of PSS, and the app with the editor and its renderer 511.4 MB (phase gate 45182761593). The owner decided on 2026-11-22 to give each server a budget of its own, judged in W6, and to record the total: 927.7 MB with both servers. The exit gate records it with a terminal open too (§7.1).
+- **PERFORMANCE's 600 MB for the editor, a terminal and one language server.** A server alone takes 169.9 or 246.5 MB of PSS, and the app with the editor and its renderer 511.4 MB (phase gate 45182761593). The owner decided on 2026-11-22 to give each server a budget of its own, judged in W6, and to record the total: 927.7 MB with both servers. With a terminal open too, the exit gate measured 917.0 MB, and 682.2 or 747.3 MB with one server (§7.1).
 - **No phone checks by a person yet** (§8): Gboard against the completion list, the long press, a rename and the Problems sheet by hand. The phone's budget test never focused the editor, so no input method took part.
 - **No binary release yet** (ADR-0010). It waits for the owner's keys and the licence review, which the servers' notices join.
 - **The last pass found two promises the plan made and no work package had kept** (§9.1). §9's risk table promised that a server answering nothing for 30 s would be restarted, which W4's per-request timeouts did not do. Objective 3 promised memory measured with the editor and a terminal open, which W6 measured without the terminal. W7 built both.
@@ -44,7 +44,7 @@ Phase 6 gives CodeForge language intelligence, offline, on the sealed runtime Ph
 | W4 The client | 2026-11-22 | 45063872382 ✗, 45065692542 (`+1179`); 45101263354 (the docs) | **45067383709** ✓ (its emulator job run again) | in the gate: 41 of 41 |
 | W5 The language features | 2026-11-23 | 45115097753 ✗, 45131313756 (`+1281`), 45133675713; 45142647447 (the docs) | **45135282059** ✓ | in the gate: 41 of 41 |
 | W6 The language gate | 2026-11-23 | 45180564110 (`+1286`); 45193031036 (the docs) | **45182761593** ✓ | in the gate: 42 of 42 |
-| W7 The docs and the phase exit | 2026-11-23 | 45204541929 (`+1291`; the code: the silent server, the total with a terminal) | the exit gate (§4) | in the exit gate |
+| W7 The docs and the phase exit | 2026-11-23 | 45204541929 (`+1291`; the code: the silent server, the total with a terminal) | **45225412011** ✓ (the exit gate, `d266bd16`) | in the gate: 42 of 42 |
 
 Every ✗ is explained in §9.3. A `[phase-gate]` push gives one run whose verdict covers CI, the emulator, the five runtime legs and, with `[testlab]`, the Pixel 8a. The gates' evidence is committed back to `app/ci-results/gate/` and `app/ci-results/runtime-gates/`, Test Lab's to `app/ci-results/testlab/`, and the runtime job's to `runtime/ci-results/`. Test Lab's plan allows five physical-device tests a day, and Firebase counts the day from midnight Pacific time (08:00 UTC).
 
@@ -86,7 +86,10 @@ Every ✗ is explained in §9.3. A `[phase-gate]` push gives one run whose verdi
 | **G6 Language budgets** | **Met, with the memory budget the owner decided.** On the Pixel 8a, in the app on the 200-file projects: completion p95 139.0 ms (Pyright) and 64.5 ms (TypeScript), within 300 ms; diagnostics after a save p95 476.9 and 657.7 ms, within 1 s; PSS 169.9 and 246.5 MB, within 300 MB each. Every list drawn (`undrawn=0`). The total recorded: 927.7 MB with both servers. On the emulator the same figures recorded, never judged (§7.1) | CI 45180564110 (`+1286`); phase gate 45182761593 (Test Lab 42 of 42: six `lsp_phone_*_under_budget=1`) |
 | **G7 Docs** | **Met.** LSP_ARCHITECTURE as built, ADR-0015's *As built* through W7, SECURITY §2.3 with L1 to L12, and the docs PHASE_6_PLAN §7 lists synced. This report and [PHASE_6_PHONE_CHECKLIST.md](PHASE_6_PHONE_CHECKLIST.md) are written | PHASE_6_PLAN *As built (W7)*; CI 45204541929 for W7's code |
 
-**The exit gate** runs on this report's commit: an empty `[phase-gate] [testlab]` commit once its plain CI has passed, as Phase 5's did. Its result, its evidence commits and the phone's figures with a terminal open go here and in §7, with the artifact for the phone checklist in §6.
+**The exit gate, 45225412011, passed every group on its first attempt** (`gate_result=pass`; each of its 27 test runs at `attempt=1`), on this report's commit `73a67dc0` (the empty `d266bd16`, after CI 45209636475 had passed on it): the Phase 3 to 5 groups, the `lsp` group and its budgets' second run, and the cold start, 1,185 ms (Skia 1,111). No ANR or crash of CodeForge's (2 of Google Play services', at boot). All five runtime legs passed, 37 of 37 tests each, and Test Lab's Pixel 8a 42 of 42, in the same run. Evidence `397fe0ae`, `20c21863` and `0f771df5`. What it showed again:
+- **The language budgets on the Pixel 8a,** all six met: completion p95 137.9 ms (Pyright) and 76.3 ms (TypeScript); diagnostics after a save p95 469.7 and 598.4 ms; PSS 169.7 and 234.8 MB.
+- **The total with a terminal open,** W7's new step, recorded: with the editor and a terminal, the app held 429.7 MB and its renderer 82.8 MB, 19.8 MB more than without the terminal, and **917.0 MB with both servers** (§7.1).
+- **The emulator's `lsp` group:** Pyright's first error 5,283 ms after the files were written (its install included), cleared in 543 ms; a killed server back in 2,692 ms; *Restart* offered at the fourth end; the rename across three files; the folder through its copy.
 
 ## 5. Tests
 
@@ -106,7 +109,7 @@ TESTING.md §1.6 describes each Phase 6 suite.
 ## 6. Build artifacts
 
 - **Every CI run:** `codeforge-debug-apk` (every ABI, no runtime; 85,069,700 B in CI 45204541929), kept 90 days. The release x86_64 APK with its runtime and the servers is built and checked, but not uploaded.
-- **Every phase gate:** `codeforge-phone-profile-arm64`, the phone build: profile mode, arm64, with the runtime and the servers (176,142,351 B in phase gate 45182761593). **For the owner's phone checks:** the exit gate's artifact, whose link goes here once the gate has run.
+- **Every phase gate:** `codeforge-phone-profile-arm64`, the phone build: profile mode, arm64, with the runtime and the servers. **For the owner's phone checks:** [the exit gate's artifact](https://github.com/Skill-center/CodeForge-/actions/runs/45225412011/artifacts/14849775819) (run 45225412011, commit `d266bd16`, kept until 2026-12-23). It is a zip holding one APK (176,149,659 B).
 - **No release:** nothing is published before the owner's keys exist and the licence review is done (ADR-0010; §10).
 
 ## 7. Performance
@@ -123,7 +126,9 @@ TESTING.md §1.6 describes each Phase 6 suite.
 | The app with the editor, and its renderer | 428.3 + 83.1 = 511.4 MB | 424.9 + 114.1 = 539.0 MB | recorded (§2's own budgets) |
 | With both servers | **927.7 MB** | 940.2 MB | recorded |
 
-Pyright's lists held 26 items (the median) and TypeScript's 3. Every list was drawn, and no frame was waited for in vain (`undrawn=0`, `throttled=0`). The saves themselves took 29.1 ms (Pyright's file) and 28.3 ms (TypeScript's) at p50. PERFORMANCE §4 and PHASE_6_PLAN *As built (W6)* have the method: the page times each list to the end of the frame that draws it, and each save to the page's taking the new set with the expected count. **With a terminal open,** W7's step of the same test records the total in the exit gate (§4).
+Pyright's lists held 26 items (the median) and TypeScript's 3. Every list was drawn, and no frame was waited for in vain (`undrawn=0`, `throttled=0`). The saves themselves took 29.1 ms (Pyright's file) and 28.3 ms (TypeScript's) at p50. PERFORMANCE §4 and PHASE_6_PLAN *As built (W6)* have the method: the page times each list to the end of the frame that draws it, and each save to the page's taking the new set with the expected count. **The exit gate measured them again** (45225412011): completion p95 137.9 and 76.3 ms, diagnostics p95 469.7 and 598.4 ms, PSS 169.7 and 234.8 MB; the app 421.3 MB and its renderer 71.4 MB, 897.2 MB with both servers.
+
+**With a terminal open** (W7's step, in the exit gate), one terminal idle at its prompt at the panel's half stop, read after 15 s: the app 429.7 MB and its renderer 82.8 MB, 19.8 MB more than just before, and **917.0 MB with both servers**. With one server beside the editor and a terminal, that is 682.2 MB (Pyright) or 747.3 MB (the TypeScript server), the sums of the figures above, against PERFORMANCE's 600 MB for the editor, a terminal and one server. On the emulator, in a debug build: 25.7 MB more, 969.0 MB in all. Recorded, never judged, as the owner decided.
 
 ### 7.2 The servers through the runtime suite (`LanguageServerTest`, recorded)
 
@@ -158,7 +163,7 @@ Completion after an edit, p95, on two files and on 200, and PSS after the suite,
 
 ### 7.5 Cold start (release build, emulator, median of 10; budget 1,500 ms)
 
-Phase 5's exit gate: 1,130 ms. Phase 6: W1 1,169 ms; W2 873 ms; W3 1,094 ms; W4 1,302 ms (recorded only, in the job run again after the black screen at boot); W5 886 ms; W6 1,030 ms (Skia 1,015). The servers start with the first file of their language, never with the app, so they add nothing to it.
+Phase 5's exit gate: 1,130 ms. Phase 6: W1 1,169 ms; W2 873 ms; W3 1,094 ms; W4 1,302 ms (recorded only, in the job run again after the black screen at boot); W5 886 ms; W6 1,030 ms (Skia 1,015); **the exit gate 1,185 ms** (Skia 1,111). The servers start with the first file of their language, never with the app, so they add nothing to it.
 
 ## 8. The phone checks
 
@@ -202,7 +207,7 @@ Phase 5's exit gate: 1,130 ms. Phase 6: W1 1,169 ms; W2 873 ms; W3 1,094 ms; W4 
   - **No input method took part:** the test does not focus the editor. Gboard with the list is the phone checklist's first check.
 - **W7:**
   - **A silent server.** §9's risk table promised that a server answering nothing for 30 s while requests wait would be restarted, counted against the backoff. W4 built a timeout per request and cancellation, but nothing that restarted a server that stayed silent. W7 built it, with three refinements: any message the server writes counts as speaking, so a server that logs but never answers is not restarted (its requests time out one by one); a server reporting progress is busy, not hung, so a long first analysis is not cut short; and a request given up still counts, since a server must answer even those.
-  - **The memory with a terminal open.** Objective 3 asked for memory measured with the editor and a terminal open. W6 measured the editor and both servers. W7's step of the phone test opens a terminal after the budgets and records the total, never judged; the exit gate measures it.
+  - **The memory with a terminal open.** Objective 3 asked for memory measured with the editor and a terminal open. W6 measured the editor and both servers. W7's step of the phone test opens a terminal after the budgets and records the total, never judged: 917.0 MB in the exit gate (§7.1).
 
 ### 9.2 Known limitations, carried forward
 

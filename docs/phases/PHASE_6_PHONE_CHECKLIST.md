@@ -11,7 +11,7 @@ The language servers have passed on five emulators (Android 8.0 to 16) and on Te
 
 - An arm64 Android phone with Android 8.0 or newer and about 800 MB free.
 - Gboard, or your usual keyboard (say which).
-- **The APK:** the exit gate's `codeforge-phone-profile-arm64` artifact, the profile build with the arm64 runtime and both language servers. PHASE_6_REPORT §6 gives its link, its run and the date until which GitHub keeps it, once the exit gate has run. It is a zip holding one APK. Unzip it, open the APK on the phone, and allow "install unknown apps" for your browser or file manager when asked. With adb: `adb install codeforge-phone-profile-arm64.apk`.
+- **The APK:** on GitHub, signed in, [the artifact](https://github.com/Skill-center/CodeForge-/actions/runs/45225412011/artifacts/14849775819) downloads directly (otherwise **Actions →** run 45225412011 **→ Artifacts → `codeforge-phone-profile-arm64`**; kept until 2026-12-23). It is a zip holding one APK, the profile build with the arm64 runtime and both language servers, 176 MB. Unzip it, open the APK on the phone, and allow "install unknown apps" for your browser or file manager when asked. With adb: `adb install codeforge-phone-profile-arm64.apk`.
 - Uninstall any earlier CodeForge build first: every CI build is signed with its own throwaway key, so Android refuses to install over another one.
 
 ## 1. Install, and the first server (4 minutes)

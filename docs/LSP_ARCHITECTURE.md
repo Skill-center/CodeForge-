@@ -106,7 +106,7 @@ EditorHost (Dart) ──► LspFeatures · rename (application/lsp/lsp_features.
   - diagnostics p95 476.9 and 657.7 ms after a save;
   - PSS 169.9 and 246.5 MB.
 
-  The app and its renderer held 511.4 MB, 927.7 MB with both servers. PHASE_6_REPORT §7 has the exit gate's figures, with a terminal open too.
+  The app and its renderer held 511.4 MB, 927.7 MB with both servers. With a terminal open too, the exit gate (45225412011) measured 917.0 MB (PHASE_6_REPORT §7.1).
 
 ## 7. Security
 

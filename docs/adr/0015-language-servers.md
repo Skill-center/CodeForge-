@@ -90,7 +90,7 @@ MB here is KiB / 1024, as Phase 5's memory figures were.
 ## As built (W7)
 
 - **A silent server is restarted** (CI 45204541929), as PHASE_6_PLAN §9's risk table promised and W4's per-request timeouts did not yet do. Once a server is asked something, `LspConnection` watches its silence: each message it writes moves the watch on, and an answer that leaves nothing waiting ends it. A server silent for 30 s is hung unless it reports progress, and is then ended through the host and restarted as a crash is, counted against the backoff.
-- **The total with a terminal open is recorded** in the language gate's phone test since W7 (PHASE_6_PLAN §1, objective 3), never judged. PHASE_6_REPORT §7 has the exit gate's figure.
+- **The total with a terminal open is recorded** in the language gate's phone test since W7 (PHASE_6_PLAN §1, objective 3), never judged. In the exit gate (45225412011) the Pixel 8a held 917.0 MB with the editor, a terminal and both servers, 19.8 MB more than without the terminal (PHASE_6_REPORT §7.1).
 - **The decision held to the end:** both servers, as W1 chose them, under the same pins; the client in Dart; the host on the launcher's command mode; the heap cap kept. The size came in under the plan's estimate: the base module is 158.5 MB on arm64, 79.2 % of Play's 200 MB (the bundle-size evidence `134fd8f8`, the same since), against 148.0 MB at Phase 5's exit.
 
 ## As built (W6)
