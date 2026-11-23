@@ -121,7 +121,10 @@ void main() {
       expect(sha256.convert(bytes), expected, reason: sample.name);
     }
 
-    // Again: the files are replaced, not refused.
+    // Again, once the snackbar no longer covers the tile (Settings has
+    // grown, Phase 7 W2): the files are replaced, not refused.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
     await tester.tap(tile);
     await tester.pumpAndSettle();
     expect(harness.files.writes, hasLength(14));
