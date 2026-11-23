@@ -270,7 +270,8 @@ jobs:
               && dart run pigeon --input pigeons/runtime_api.dart \
               && dart run pigeon --input pigeons/search_api.dart \
               && dart run pigeon --input pigeons/terminal_api.dart \
-              && dart run pigeon --input pigeons/lsp_api.dart
+              && dart run pigeon --input pigeons/lsp_api.dart \
+              && dart run pigeon --input pigeons/git_api.dart
           } > ci-results/codegen-bootstrap.txt 2>&1 || status=$?
           tail -40 ci-results/codegen-bootstrap.txt
           exit "$status"
@@ -366,6 +367,7 @@ jobs:
               && dart run pigeon --input pigeons/search_api.dart \
               && dart run pigeon --input pigeons/terminal_api.dart \
               && dart run pigeon --input pigeons/lsp_api.dart \
+              && dart run pigeon --input pigeons/git_api.dart \
               && dart format $(find lib -name '*.g.dart' -o -name '*.steps.dart') \
                 test/drift/app/generated
           } > ci-results/codegen.txt 2>&1 || status=$?
@@ -1205,7 +1207,9 @@ jobs:
   #   at p95, and each server's process tree within 300 MB of PSS, the
   #   app's total with the servers recorded (the owner's decision of
   #   2026-11-22). The runtime's LanguageServerInstallTest and
-  #   LanguageServerTest (Phase 6 W2 to W4) run before it.
+  #   LanguageServerTest (Phase 6 W2 to W4) run before it, and since Phase 7
+  #   runtime.GitTest (W1, the Git spike) and git.GitHostTest (W2, the Git
+  #   host's runner with the runtime's own git).
   # One matrix on one phone: 1 of the Spark plan's 5 free physical-device
   # tests a day. The JUnit report and the device log come back from Test
   # Lab's results bucket, app/tool/ci/gate_results.py judges them (every
@@ -1305,6 +1309,7 @@ jobs:
           dart run pigeon --input pigeons/search_api.dart
           dart run pigeon --input pigeons/terminal_api.dart
           dart run pigeon --input pigeons/lsp_api.dart
+          dart run pigeon --input pigeons/git_api.dart
 
       - name: Restore the Gradle distribution
         if: steps.asked.outputs.asked == 'true'
@@ -1487,6 +1492,7 @@ jobs:
             --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
             --expect dev.codeforge.app.runtime.LanguageServerTest:6 \
             --expect dev.codeforge.app.runtime.GitTest:7 \
+            --expect dev.codeforge.app.git.GitHostTest:6 \
             --expect dev.codeforge.app.syncmodes.SyncModesTest:5 \
             --require lsp_install_damaged=damaged \
             --require lsp_crash=signaled:9 \
@@ -1645,6 +1651,7 @@ jobs:
           dart run pigeon --input pigeons/search_api.dart
           dart run pigeon --input pigeons/terminal_api.dart
           dart run pigeon --input pigeons/lsp_api.dart
+          dart run pigeon --input pigeons/git_api.dart
 
       # The Gradle distribution: cached between runs, and fetched with
       # retries when the cache has none, because services.gradle.org stalls
@@ -1933,6 +1940,7 @@ jobs:
           dart run pigeon --input pigeons/search_api.dart
           dart run pigeon --input pigeons/terminal_api.dart
           dart run pigeon --input pigeons/lsp_api.dart
+          dart run pigeon --input pigeons/git_api.dart
 
       - name: Restore the Gradle distribution
         uses: actions/cache/restore@v6

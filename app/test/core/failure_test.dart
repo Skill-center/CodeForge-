@@ -25,6 +25,19 @@ void main() {
       expect(const RuntimeFailure('x').kind, 'runtime');
       expect(const ProcessFailure('x', exitCode: 137).kind, 'process');
       expect(const UnexpectedFailure('x').kind, 'unexpected');
+      expect(
+        const GitFailure('x', problem: GitProblem.locked).kind,
+        'git',
+      );
+    });
+
+    test('GitProblem reads the host codes, and an unknown one as unknown', () {
+      for (final problem in GitProblem.values) {
+        expect(GitProblem.fromCode(problem.code), problem);
+      }
+      expect(GitProblem.fromCode('no_such_project'), GitProblem.noSuchProject);
+      expect(GitProblem.fromCode('somewhere_new'), GitProblem.unknown);
+      expect(GitProblem.fromCode(null), GitProblem.unknown);
     });
 
     test('ProcessFailure preserves exit code for diagnostics', () {

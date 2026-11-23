@@ -150,6 +150,98 @@ class CommandRunnerTest {
     }
 
     @Test
+    fun aCommandGetsItsOwnVariablesAndCannotReplaceTheRuntimes() {
+        val given = runner.run(
+            CommandRequest("sh", listOf("-c", "echo \"\$GIT_TERMINAL_PROMPT|\$HOME\""), variables = mapOf("GIT_TERMINAL_PROMPT" to "0")),
+        )
+        assertNull(given.detail, given.failure)
+        assertEquals("0|${environment.home.absolutePath}", given.stdout.text.trim())
+        for (variables in listOf(mapOf("HOME" to "/tmp"), mapOf("PATH" to "/bin"), mapOf("A=B" to "c"), mapOf("" to "c"), mapOf("A" to "b\u0000c"))) {
+            val refused = runner.run(CommandRequest("sh", listOf("-c", "true"), variables = variables))
+            assertEquals(variables.keys.toString(), CommandFailure.BAD_REQUEST, refused.failure)
+        }
+    }
+
+    @Test
+    fun streamedRecordsMayEndAtANulByteOrOnlyAtTheEnd() {
+        val records = mutableListOf<String>()
+        val sink = object : LineSink {
+            override fun line(text: String): Boolean = records.add(text)
+        }
+        // git's -z: a record may hold a newline; an empty record is still one.
+        val nul = runner.stream(
+            CommandRequest("sh", listOf("-c", "printf 'a\\000b\\nc\\000\\000d'"), timeoutMs = 20_000L),
+            sink,
+            separator = CommandRunner.NUL_SEPARATOR,
+        )
+        assertNull(nul.detail, nul.failure)
+        assertEquals(listOf("a", "b\nc", "", "d"), records)
+
+        records.clear()
+        val whole = runner.stream(
+            CommandRequest("sh", listOf("-c", "printf 'one\\ntwo\\000three\\n'"), timeoutMs = 20_000L),
+            sink,
+            separator = CommandRunner.NO_SEPARATOR,
+        )
+        assertNull(whole.detail, whole.failure)
+        assertEquals(listOf("one\ntwo\u0000three\n"), records)
+
+        records.clear()
+        val empty = runner.stream(CommandRequest("sh", listOf("-c", "true"), timeoutMs = 20_000L), sink, separator = CommandRunner.NO_SEPARATOR)
+        assertEquals(0, empty.exitCode)
+        assertEquals("no output, no record", emptyList<String>(), records)
+    }
+
+    @Test
+    fun aWholeOutputOverTheLimitIsDroppedAndSaidSo() {
+        val records = mutableListOf<String>()
+        var overlong = 0
+        val result = runner.stream(
+            CommandRequest("sh", listOf("-c", "i=0; while [ \$i -lt 300 ]; do printf xxxxxxxxxx; i=\$((i + 1)); done"), timeoutMs = 20_000L),
+            object : LineSink {
+                override fun line(text: String): Boolean = records.add(text)
+
+                override fun overlong() {
+                    overlong += 1
+                }
+            },
+            maxLineBytes = 1000,
+            separator = CommandRunner.NO_SEPARATOR,
+        )
+        assertNull(result.detail, result.failure)
+        assertEquals(emptyList<String>(), records)
+        assertEquals(1, overlong)
+        assertEquals(3000L, result.stdout.bytes)
+    }
+
+    @Test
+    fun progressGoesToItsSinkAndTheOtherLinesAreKept() {
+        val progress = mutableListOf<Pair<String, Boolean>>()
+        val script = "printf 'Updating files:  10%% (1/10)\\rUpdating files: 100%% (10/10), done.\\n' >&2; " +
+            "printf 'Switched to a new branch\\n' >&2; printf 'Counting: 1\\rfatal: it broke\\n' >&2"
+        val result = runner.stream(
+            CommandRequest("sh", listOf("-c", script), timeoutMs = 20_000L),
+            object : LineSink {
+                override fun line(text: String): Boolean = true
+            },
+            progress = { text, closing -> progress.add(text to closing) },
+        )
+        assertNull(result.detail, result.failure)
+        assertEquals(
+            listOf(
+                "Updating files:  10% (1/10)" to false,
+                "Updating files: 100% (10/10), done." to true,
+                "Counting: 1" to false,
+                "fatal: it broke" to true,
+            ),
+            progress,
+        )
+        // git's own closing line is left out of the text; an error after a redrawn line is kept.
+        assertEquals("Switched to a new branch\nfatal: it broke\n", result.stderr.text)
+        assertFalse(result.stderr.truncated)
+    }
+
+    @Test
     fun itRunsInTheHomeWithTheRuntimesVariablesOnly() {
         val result = sh("pwd; echo \"\$HOME|\$TMPDIR|\$CODEFORGE_CANARY_TOKEN|\$ANDROID_ROOT\"")
         val lines = result.stdout.text.trim().lines()

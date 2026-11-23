@@ -19,6 +19,7 @@ import 'package:codeforge/design_system/tokens/geometry.dart';
 import 'package:codeforge/features/settings/about_screen.dart';
 import 'package:codeforge/features/settings/appearance_screen.dart';
 import 'package:codeforge/features/settings/developer/log_viewer_screen.dart';
+import 'package:codeforge/features/settings/source_control_settings_screen.dart';
 import 'package:codeforge/features/workbench/panels/editor_pane.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -138,6 +139,8 @@ typedef _SettingsPage = ({String title, Type screen});
 const List<_SettingsPage> _settingsPages = [
   (title: 'Appearance', screen: AppearanceScreen),
   (title: 'About CodeForge', screen: AboutScreen),
+  // Settings → Source control (Phase 7 W2).
+  (title: 'Source control', screen: SourceControlSettingsScreen),
   // Settings → Developer (Phase 3 W6).
   (title: 'Log viewer', screen: LogViewerScreen),
 ];

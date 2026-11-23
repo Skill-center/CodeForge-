@@ -17,6 +17,7 @@ import '../../application/documents/document_controller.dart';
 import '../../application/editor/editor_providers.dart';
 import '../../application/editor/find_controller.dart';
 import '../../application/file_watch_controller.dart';
+import '../../application/git/git_controller.dart';
 import '../../application/lsp/lsp_controller.dart';
 import '../../application/lsp/lsp_features.dart';
 import '../../application/run/run_controller.dart';
@@ -164,11 +165,14 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         state == AppLifecycleState.hidden) {
       // Flush layout memory before Android may kill the process (G5).
       ref.read(shellControllerProvider.notifier).flush();
-      // Outside changes wait until the app comes back (Phase 3 W5).
+      // Outside changes wait until the app comes back (Phase 3 W5), and so
+      // does the repository's status (Phase 7 W2).
       ref.read(fileWatchProvider.notifier).paused();
+      ref.read(gitControllerProvider.notifier).paused();
     } else if (state == AppLifecycleState.resumed) {
       // What changed meanwhile, notices or not, shows now.
       unawaited(ref.read(fileWatchProvider.notifier).resumed());
+      unawaited(ref.read(gitControllerProvider.notifier).resumed());
     }
   }
 
@@ -742,6 +746,34 @@ class _WorkbenchTopBar extends ConsumerWidget {
   }
 }
 
+/// The branch the open project's work tree is on, with a `*` when it has
+/// changes (Phase 7 W2). Nothing shows until a status has read the
+/// repository, nor in a project that is not one, nor in a folder from
+/// shared storage. Phase 7 W4's panel opens from it.
+class _BranchChip extends ConsumerWidget {
+  const _BranchChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final git = ref.watch(gitControllerProvider);
+    final status = git.status;
+    if (status == null ||
+        (git.kind != GitRepoKind.repository &&
+            git.kind != GitRepoKind.failed)) {
+      return const SizedBox.shrink();
+    }
+    final colors = CfColors.of(context);
+    final warn = status.conflicted.isNotEmpty || git.kind == GitRepoKind.failed;
+    return CfStatusChip(
+      key: const ValueKey('status_branch'),
+      icon: CfIcons.forkRight,
+      label: '${status.branch.label}${status.clean ? '' : '*'}',
+      color: warn ? colors.warning : null,
+      tooltip: gitBranchTooltip(git),
+    );
+  }
+}
+
 class _StatusStripRow extends ConsumerWidget {
   const _StatusStripRow({required this.onRunChip});
 
@@ -789,12 +821,8 @@ class _StatusStripRow extends ConsumerWidget {
           );
     return CfStatusStrip(
       children: [
-        const CfStatusChip(
-          key: ValueKey('status_branch'),
-          icon: CfIcons.forkRight,
-          label: 'main',
-          tooltip: 'Git arrives in Phase 7',
-        ),
+        // The open project's branch, once it is a repository (Phase 7 W2).
+        const _BranchChip(),
         // The document's chips scroll rather than overflow on a narrow
         // phone at a large text scale.
         Expanded(

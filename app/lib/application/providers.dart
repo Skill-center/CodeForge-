@@ -11,12 +11,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/editor/journal.dart';
 import '../core/files/workspace_location.dart';
 import '../services/contracts.dart';
-import '../services/fakes.dart';
 import '../services/files/local_file_service.dart';
 import '../services/files/native/pigeon_storage_broker.dart';
 import '../services/files/project_storage.dart';
 import '../services/files/saf_file_service.dart';
 import '../services/files/storage_broker.dart';
+import '../services/git/host_git_service.dart';
+import '../services/git/native/pigeon_git_host.dart';
 import '../services/lsp/library_files.dart';
 import '../services/lsp/native/pigeon_lsp_service.dart';
 import '../services/platform/app_directories.dart';
@@ -171,8 +172,20 @@ final runtimeServiceProvider = Provider<RuntimeService>((ref) {
   return service;
 });
 
+/// The runtime's git (Phase 7 W2, docs/GIT_ARCHITECTURE.md), through the
+/// Kotlin host (android/…/git/GitHost.kt). Without a host (`flutter test`)
+/// every run fails as unavailable; tests override [gitServiceProvider].
+final gitHostProvider = Provider<GitHost>((ref) {
+  ref.keepAlive();
+  final host = PigeonGitHost();
+  ref.onDispose(() => unawaited(host.dispose()));
+  return host;
+});
+
+/// Git for the app over [gitHostProvider]. Tests override this with the
+/// honest fake (services/fakes.dart) or a scripted repository.
 final gitServiceProvider = Provider<GitService>((ref) {
-  return FakeGitService();
+  return HostGitService(ref.watch(gitHostProvider));
 });
 
 /// Search across files (Phase 4 W6), through the Kotlin search host

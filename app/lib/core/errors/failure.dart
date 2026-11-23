@@ -288,6 +288,137 @@ final class LspFailure extends Failure {
   String get kind => 'lsp';
 }
 
+/// Why a git command failed (Phase 7 W2, docs/GIT_ARCHITECTURE.md): the Git
+/// host's codes (git/GitHost.kt, pigeons/git_api.dart), then what git said
+/// (core/git/git_errors.dart), then the client's own.
+enum GitProblem {
+  /// The runtime is not ready, or is being installed.
+  notReady('not_ready'),
+
+  /// A request the host could not take: a bad project name, a path out of
+  /// the project, a value of the wrong kind.
+  badRequest('bad_request'),
+
+  /// An operation or an option the host does not run.
+  refused('refused'),
+
+  /// The project's folder is not there.
+  noSuchProject('no_such_project'),
+
+  /// Another command changes this repository, or too many run.
+  busy('busy'),
+
+  /// The runtime's launcher could not start git.
+  launchFailed('launch_failed'),
+
+  /// git ran past its time.
+  timedOut('timed_out'),
+
+  /// Stopped on request.
+  stopped('stopped'),
+
+  /// git was killed by a signal.
+  signaled('signaled'),
+
+  /// A whole output (a file's text) over its limit.
+  tooLarge('too_large'),
+
+  /// The project is not a repository.
+  notARepository('not_a_repository'),
+
+  /// Another git holds `.git/index.lock`.
+  locked('locked'),
+
+  /// No `user.name` or `user.email`.
+  noIdentity('no_identity'),
+
+  /// A merge stopped on conflicts.
+  conflict('conflict'),
+
+  /// A switch or a merge would overwrite local changes.
+  localChanges('local_changes'),
+
+  /// A merge waits to be concluded.
+  mergeInProgress('merge_in_progress'),
+
+  /// No merge to abort.
+  noMerge('no_merge'),
+
+  /// Nothing staged to commit.
+  nothingToCommit('nothing_to_commit'),
+
+  /// No commit yet.
+  noCommits('no_commits'),
+
+  /// A branch of that name exists.
+  branchExists('branch_exists'),
+
+  /// Not a valid branch name.
+  invalidName('invalid_name'),
+
+  /// A branch with unmerged commits, deleted without force.
+  notFullyMerged('not_fully_merged'),
+
+  /// The branch checked out, deleted.
+  currentBranch('current_branch'),
+
+  /// No such branch.
+  noSuchBranch('no_such_branch'),
+
+  /// git failed in a way not listed above: [GitFailure.stderr] says how.
+  gitError('git_error'),
+
+  /// No host here (`flutter test`), or the host did not answer.
+  unavailable('unavailable'),
+
+  unknown('unknown');
+
+  const GitProblem(this.code);
+
+  final String code;
+
+  static GitProblem fromCode(String? code) {
+    for (final problem in values) {
+      if (problem.code == code) {
+        return problem;
+      }
+    }
+    return unknown;
+  }
+}
+
+/// A git command that failed (Phase 7 W2).
+final class GitFailure extends Failure {
+  const GitFailure(
+    super.message, {
+    required this.problem,
+    this.operation,
+    this.exitCode,
+    this.stderr = '',
+    this.detail,
+    super.cause,
+  });
+
+  final GitProblem problem;
+
+  /// The operation (`commit`), for logs.
+  final String? operation;
+
+  /// git's exit code, when it ran to one.
+  final int? exitCode;
+
+  /// The host's words for a refusal or an end it caused; never a path or
+  /// an argument.
+  final String? detail;
+
+  /// What git said, up to the host's limit (its progress left out): shown
+  /// as the details, never logged, since it may name files.
+  final String stderr;
+
+  @override
+  String get kind => 'git';
+}
+
 /// A child process failed to start, misbehaved, or exited unexpectedly.
 final class ProcessFailure extends Failure {
   const ProcessFailure(super.message, {this.exitCode, super.cause});

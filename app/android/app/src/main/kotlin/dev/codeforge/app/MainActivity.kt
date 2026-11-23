@@ -3,6 +3,8 @@ package dev.codeforge.app
 import android.app.backup.BackupManager
 import android.content.Intent
 import android.content.res.Configuration
+import dev.codeforge.app.git.GitApi
+import dev.codeforge.app.git.GitHost
 import dev.codeforge.app.lsp.LanguageServerHost
 import dev.codeforge.app.lsp.LspApi
 import dev.codeforge.app.runtime.RuntimeApi
@@ -37,7 +39,8 @@ import io.flutter.plugin.common.MethodChannel
  * page's MessagePort (Phase 5 W6, webview/PagePorts.kt) is a plugin of the
  * app's own, added here: it needs a plugin binding to reach the WebView. The
  * language servers (Phase 6 W3, lsp/LanguageServerHost.kt) are behind the
- * typed Pigeon API of pigeons/lsp_api.dart, and stop with the engine.
+ * typed Pigeon API of pigeons/lsp_api.dart, and stop with the engine; so is
+ * the runtime's git (Phase 7 W2, git/GitHost.kt, pigeons/git_api.dart).
  */
 class MainActivity : FlutterActivity() {
     private var keyboardChannel: MethodChannel? = null
@@ -46,6 +49,7 @@ class MainActivity : FlutterActivity() {
     private var search: SearchHost? = null
     private var terminal: TerminalHost? = null
     private var languageServers: LanguageServerHost? = null
+    private var git: GitHost? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -97,6 +101,7 @@ class MainActivity : FlutterActivity() {
         }
         terminal = TerminalHost(this, messenger).also { TerminalApi.setUp(messenger, it) }
         languageServers = LanguageServerHost(this, messenger).also { LspApi.setUp(messenger, it) }
+        git = GitHost(this, messenger).also { GitApi.setUp(messenger, it) }
         flutterEngine.plugins.add(PagePorts())
     }
 
@@ -119,6 +124,9 @@ class MainActivity : FlutterActivity() {
         LspApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
         languageServers?.close()
         languageServers = null
+        GitApi.setUp(flutterEngine.dartExecutor.binaryMessenger, null)
+        git?.close()
+        git = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 

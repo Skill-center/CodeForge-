@@ -51,8 +51,8 @@ CLASSES="$CLASSES,dev.codeforge.app.runtime.RuntimeInstallTest,dev.codeforge.app
 CLASSES="$CLASSES,dev.codeforge.app.runtime.SessionServiceTest,dev.codeforge.app.runtime.TerminalSessionTest"
 # Phase 6: the language servers' install (W2), their smoke suite (W1), and since W3 through LspHost.
 CLASSES="$CLASSES,dev.codeforge.app.runtime.LanguageServerInstallTest,dev.codeforge.app.runtime.LanguageServerTest"
-# Phase 7 W1: the Git spike (PHASE_7_PLAN §3).
-CLASSES="$CLASSES,dev.codeforge.app.runtime.GitTest"
+# Phase 7 W1: the Git spike (PHASE_7_PLAN §3); W2: the Git host's runner (G2).
+CLASSES="$CLASSES,dev.codeforge.app.runtime.GitTest,dev.codeforge.app.git.GitHostTest"
 # The checkout carries the last run's committed evidence for every leg; this
 # leg's artifact must hold its own folder alone (the first run's evidence job
 # merged five artifacts that each held all five, stale ones included).
@@ -207,7 +207,7 @@ timeout --kill-after=30s 30m "$ADB" shell am instrument -w -r -e class "$CLASSES
   > "$RESULTS/instrumented.txt" 2>&1
 echo "am_instrument_exit=$?" >> "$RESULTS/readiness.txt"
 for report in report commands-report exec-model-report sealed-shell-report session-service-report terminal-report \
-  lsp-report lsp-install-report git-report; do
+  lsp-report lsp-install-report git-report githost-report; do
   "$ADB" shell run-as "$APP_ID" cat "files/runtime-gate/$report.txt" < /dev/null \
     > "$RESULTS/$report.txt" 2>&1 || true
 done
@@ -223,7 +223,7 @@ python3 tool/ci/gate_results.py \
   --figures "$RESULTS/exec-model-report.txt" --figures "$RESULTS/sealed-shell-report.txt" \
   --figures "$RESULTS/terminal-report.txt" --figures "$RESULTS/session-service-report.txt" \
   --figures "$RESULTS/lsp-report.txt" --figures "$RESULTS/lsp-install-report.txt" \
-  --figures "$RESULTS/git-report.txt" \
+  --figures "$RESULTS/git-report.txt" --figures "$RESULTS/githost-report.txt" \
   --expect dev.codeforge.app.runtime.ExecModelTest:1 \
   --expect dev.codeforge.app.runtime.SealedShellTest:2 \
   --expect dev.codeforge.app.runtime.RuntimeInstallTest:7 \
@@ -233,6 +233,7 @@ python3 tool/ci/gate_results.py \
   --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
   --expect dev.codeforge.app.runtime.LanguageServerTest:6 \
   --expect dev.codeforge.app.runtime.GitTest:7 \
+  --expect dev.codeforge.app.git.GitHostTest:6 \
   --require lsp_install_damaged=damaged \
   --require lsp_crash=signaled:9 \
   --require exec_model_audit_outside_apk=0 \

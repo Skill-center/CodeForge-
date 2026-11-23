@@ -237,17 +237,30 @@ class RuntimeHub(
      * Runs [request] on the calling thread with its stdout going to [lines]
      * (Phase 4 W6: a project's search through ripgrep; CommandRunner.stream),
      * while no install can touch the prefix. Null at once unless the runtime
-     * is READY or DEGRADED and no install holds the prefix.
+     * is READY or DEGRADED and no install holds the prefix. Phase 7 W2's git
+     * reads NUL-separated records, or a file's text whole ([separator],
+     * [maxLineBytes]), and its progress from stderr ([progress]).
      */
     fun stream(
         request: CommandRequest,
         lines: LineSink,
         started: (SessionRegistry.Session) -> Unit,
         extraRoots: List<File> = emptyList(),
+        maxLineBytes: Int = CommandRunner.DEFAULT_MAX_LINE_BYTES,
+        separator: Int = CommandRunner.NEWLINE_SEPARATOR,
+        progress: ProgressSink? = null,
     ): CommandResult? {
         if (!usable(snapshot().state) || commandsFactory == null) return null
         return withPrefix { commands ->
-            commands.runner.stream(request, lines, started = started, extraRoots = extraRoots)
+            commands.runner.stream(
+                request,
+                lines,
+                maxLineBytes = maxLineBytes,
+                started = started,
+                extraRoots = extraRoots,
+                separator = separator,
+                progress = progress,
+            )
         }
     }
 

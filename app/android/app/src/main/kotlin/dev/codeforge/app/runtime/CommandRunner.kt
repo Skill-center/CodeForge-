@@ -16,6 +16,13 @@ data class CommandRequest(
     val timeoutMs: Long = CommandRunner.DEFAULT_TIMEOUT_MS,
     /** Bytes kept of each of stdout and stderr; the rest is counted and dropped. */
     val outputLimit: Int = CommandRunner.DEFAULT_OUTPUT_LIMIT,
+    /**
+     * Variables a host in Kotlin adds for this command (Phase 7 W2: git's
+     * settings, never Dart's): names of letters, digits and underscores that
+     * the runtime's own environment does not set, since they may only add to
+     * it, never replace it.
+     */
+    val variables: Map<String, String> = emptyMap(),
 )
 
 /** Why a command has no ordinary result. Each code travels to Dart. */
@@ -67,6 +74,15 @@ interface LineSink {
 
     /** A line longer than the limit was dropped unread. */
     fun overlong() {}
+}
+
+/**
+ * Receives a streamed command's progress from its stderr (Phase 7 W2: git's
+ * `--progress`), on the stderr reader's thread: each line git redraws with
+ * a carriage return, then the line that closes them ([closing]: `..., done.`).
+ */
+fun interface ProgressSink {
+    fun progress(text: String, closing: Boolean)
 }
 
 /** What became of a command. [failure] is null when it ran and exited, whatever its exit code. */
@@ -129,6 +145,11 @@ class CommandRunner(
      * [extraRoots] are folders the command may also run in, besides the
      * runtime's home and workspace: a project's search runs in the project, as
      * ripgrep reads its globs from the folder it runs in (Phase 4 W6).
+     * [separator] ends a line: a newline by default; [NUL_SEPARATOR] for
+     * git's `-z` output, whose records may hold newlines (Phase 7 W2); and
+     * [NO_SEPARATOR] for the whole output as one line, up to [maxLineBytes].
+     * With [progress], stderr's progress goes there instead of into the
+     * result's stderr, which keeps the other lines ([ProgressReader]).
      */
     fun stream(
         request: CommandRequest,
@@ -136,9 +157,11 @@ class CommandRunner(
         maxLineBytes: Int = DEFAULT_MAX_LINE_BYTES,
         started: (SessionRegistry.Session) -> Unit = {},
         extraRoots: List<File> = emptyList(),
-    ): CommandResult = execute(request, LineStream(lines, maxLineBytes), started, extraRoots)
+        separator: Int = NEWLINE_SEPARATOR,
+        progress: ProgressSink? = null,
+    ): CommandResult = execute(request, LineStream(lines, maxLineBytes, separator, progress), started, extraRoots)
 
-    private class LineStream(val sink: LineSink, val maxLineBytes: Int)
+    private class LineStream(val sink: LineSink, val maxLineBytes: Int, val separator: Int, val progress: ProgressSink?)
 
     private fun execute(
         request: CommandRequest,
@@ -155,6 +178,11 @@ class CommandRunner(
         }
         if (request.arguments.any { it.contains('\u0000') }) {
             return CommandResult.failed(CommandFailure.BAD_REQUEST, "an argument holds a NUL byte")
+        }
+        for ((name, value) in request.variables) {
+            if (!VARIABLE_NAME.matches(name) || value.contains('\u0000')) {
+                return CommandResult.failed(CommandFailure.BAD_REQUEST, "not a variable a command can be given: \"$name\"")
+            }
         }
         val executable = File(environment.bin, program)
         if (!executable.exists()) {
@@ -186,9 +214,16 @@ class CommandRunner(
             "--grace", sessions.graceMs.toString(),
             "--", executable.absolutePath,
         ) + request.arguments
+        val variables = environment.variables(directory)
+        val replaced = request.variables.keys.firstOrNull { it in variables }
+        if (replaced != null) {
+            statusFile.delete()
+            return CommandResult.failed(CommandFailure.BAD_REQUEST, "$replaced is the runtime's own variable")
+        }
         val builder = ProcessBuilder(command).directory(directory)
         builder.environment().clear()
-        builder.environment().putAll(environment.variables(directory))
+        builder.environment().putAll(variables)
+        builder.environment().putAll(request.variables)
 
         val process = try {
             builder.start()
@@ -206,11 +241,16 @@ class CommandRunner(
             val stdout: OutputReader = if (streaming == null) {
                 CappedReader(process.inputStream, limit)
             } else {
-                LineReader(process.inputStream, streaming.maxLineBytes, streaming.sink) {
+                LineReader(process.inputStream, streaming.maxLineBytes, streaming.sink, streaming.separator) {
                     sessions.end(session, EndReason.ENDED)
                 }
             }
-            val stderr = CappedReader(process.errorStream, limit)
+            val progress = streaming?.progress
+            val stderr: OutputReader = if (progress == null) {
+                CappedReader(process.errorStream, limit)
+            } else {
+                ProgressReader(process.errorStream, limit, progress)
+            }
             started?.invoke(session)
             val readers = listOf(
                 Thread(stdout, "codeforge-stdout-${session.id}"),
@@ -328,6 +368,14 @@ class CommandRunner(
         /** The longest stdout line [stream] passes on. */
         const val DEFAULT_MAX_LINE_BYTES = 8 * 1024 * 1024
 
+        /** [stream]'s separators: a newline, a NUL byte (git's `-z`), or none, the whole output as one line. */
+        const val NEWLINE_SEPARATOR = 10
+        const val NUL_SEPARATOR = 0
+        const val NO_SEPARATOR = -1
+
+        /** A variable's name that [CommandRequest.variables] may add. */
+        private val VARIABLE_NAME = Regex("[A-Za-z_][A-Za-z0-9_]*")
+
         private const val ENOENT = 2
 
         /** Linux's numbers, the same on arm64 and x86_64. */
@@ -408,16 +456,126 @@ internal class CappedReader(private val stream: InputStream, private val limit: 
 }
 
 /**
+ * Reads stderr to its end like [CappedReader], keeping its first [limit]
+ * bytes of lines, while progress goes to [sink] and is not kept (Phase 7
+ * W2). A segment that ends in a carriage return is progress, as git redraws
+ * its progress line with one, and so is the newline-ended line that closes
+ * such a run (`Receiving objects: 100% (10/10), done.`), which is also kept
+ * unless it ends in `done.`, since an error can follow a redrawn line. Every
+ * other line is kept, so git's error stays in the text however long the
+ * progress ran. A segment over [limit] bytes keeps its beginning.
+ */
+internal class ProgressReader(
+    private val stream: InputStream,
+    private val limit: Int,
+    private val sink: ProgressSink,
+) : OutputReader {
+    private val kept = ByteArrayOutputStream(minOf(limit, 8192))
+    private val segment = ByteArrayOutputStream()
+
+    @Volatile
+    private var total = 0L
+
+    @Volatile
+    private var dropped = false
+
+    /** The last segment ended in a carriage return: a newline now closes a run of progress. */
+    private var redrawing = false
+
+    override fun run() {
+        val buffer = ByteArray(8192)
+        try {
+            while (true) {
+                val count = stream.read(buffer)
+                if (count < 0) break
+                total += count
+                take(buffer, count)
+            }
+            if (segment.size() > 0) keep(withNewline = false)
+        } catch (closed: IOException) {
+            // Cut off (CommandRunner closes a stream that outlives its command).
+        } finally {
+            try {
+                stream.close()
+            } catch (ignored: IOException) {
+                // Done either way.
+            }
+        }
+    }
+
+    private fun take(buffer: ByteArray, count: Int) {
+        var start = 0
+        for (i in 0 until count) {
+            val byte = buffer[i]
+            if (byte == RETURN || byte == NEWLINE) {
+                append(buffer, start, i - start)
+                end(byte)
+                start = i + 1
+            }
+        }
+        if (start < count) append(buffer, start, count - start)
+    }
+
+    private fun append(buffer: ByteArray, offset: Int, length: Int) {
+        val room = limit - segment.size()
+        if (length > room) dropped = true
+        if (room > 0) segment.write(buffer, offset, minOf(room, length))
+    }
+
+    private fun end(byte: Byte) {
+        when {
+            byte == RETURN -> {
+                if (segment.size() > 0) sink.progress(String(segment.toByteArray(), Charsets.UTF_8), false)
+                redrawing = true
+                segment.reset()
+            }
+            redrawing -> {
+                redrawing = false
+                val text = String(segment.toByteArray(), Charsets.UTF_8)
+                if (text.isNotEmpty()) sink.progress(text, true)
+                // An error that follows a redrawn line also comes here: only git's own closing line is left out.
+                if (text.isNotEmpty() && !text.trimEnd().endsWith("done.")) keep(withNewline = true) else segment.reset()
+            }
+            else -> keep(withNewline = true)
+        }
+    }
+
+    private fun keep(withNewline: Boolean) {
+        synchronized(kept) {
+            val bytes = segment.toByteArray()
+            val room = limit - kept.size()
+            val wanted = bytes.size + if (withNewline) 1 else 0
+            if (wanted > room) dropped = true
+            if (room > 0) kept.write(bytes, 0, minOf(room, bytes.size))
+            if (withNewline && kept.size() < limit) kept.write(NEWLINE.toInt())
+        }
+        segment.reset()
+    }
+
+    override fun output(): CommandOutput = synchronized(kept) {
+        CommandOutput(String(kept.toByteArray(), Charsets.UTF_8), total, dropped)
+    }
+
+    private companion object {
+        const val RETURN: Byte = 13
+        const val NEWLINE: Byte = 10
+    }
+}
+
+/**
  * Reads a stream to its end and hands each line to [sink] as it completes
  * (Phase 4 W6). A line over [maxLine] bytes is dropped as it streams by, and
  * the sink hears of it. When the sink answers false, [stop] runs once and the
  * rest is read and dropped, so the command never blocks on a full pipe while
- * it is ended. Every byte is counted.
+ * it is ended. Every byte is counted. A line ends at [separator], a byte
+ * (Phase 7 W2: a NUL for git's `-z`), or only at the end when it is
+ * negative.
  */
 internal class LineReader(
     private val stream: InputStream,
     private val maxLine: Int,
     private val sink: LineSink,
+    private val separator: Int = CommandRunner.NEWLINE_SEPARATOR,
     private val stop: () -> Unit,
 ) : OutputReader {
     @Volatile
@@ -449,10 +607,15 @@ internal class LineReader(
     }
 
     private fun take(buffer: ByteArray, count: Int) {
+        if (separator < 0) {
+            append(buffer, 0, count)
+            return
+        }
+        val end = separator.toByte()
         var start = 0
         var i = 0
         while (i < count && !stopped) {
-            if (buffer[i] == NEWLINE) {
+            if (buffer[i] == end) {
                 append(buffer, start, i - start)
                 finishLine()
                 start = i + 1
@@ -484,8 +647,4 @@ internal class LineReader(
     }
 
     override fun output(): CommandOutput = CommandOutput("", total, total > 0)
-
-    private companion object {
-        const val NEWLINE: Byte = 10
-    }
 }

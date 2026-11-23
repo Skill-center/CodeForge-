@@ -62,6 +62,7 @@ final class TestHarness {
     TerminalService? terminal,
     LspService? lsp,
     LibraryFiles? libraryFiles,
+    GitService? git,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -75,6 +76,7 @@ final class TestHarness {
        search = search ?? FakeSearchService(),
        terminal = terminal ?? FakeTerminalService(),
        lsp = lsp ?? FakeLspService(),
+       git = git ?? FakeGitService(),
        libraryFiles = libraryFiles ?? MemoryLibraryFiles() {
     // A folder imported as a project lands in the project storage, as
     // Kotlin's import lands in the projects' folder (Phase 5 W4).
@@ -129,6 +131,10 @@ final class TestHarness {
   /// The language servers' own files (Phase 6 W5).
   final LibraryFiles libraryFiles;
 
+  /// Git (Phase 7 W2): the honest fake, unavailable, so the status strip
+  /// shows no branch chip, unless a test passes a scripted repository.
+  final GitService git;
+
   /// Every scripted terminal page created through this harness, newest last.
   final List<FakeTerminalSurface> terminalSurfaces = [];
 
@@ -166,6 +172,7 @@ final class TestHarness {
     searchServiceProvider.overrideWithValue(search),
     terminalServiceProvider.overrideWithValue(terminal),
     lspServiceProvider.overrideWithValue(lsp),
+    gitServiceProvider.overrideWithValue(git),
     libraryFilesProvider.overrideWithValue(libraryFiles),
     // Where a device keeps the app's files: terminal links name files by
     // their absolute paths (Phase 5 W4).

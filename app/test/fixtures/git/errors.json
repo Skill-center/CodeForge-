@@ -1,0 +1,114 @@
+{
+  "git": "git version 2.39.5",
+  "note": "What git says when an operation fails, each with the problem it should be read as.",
+  "command": "various",
+  "cases": [
+    {
+      "problem": "not_a_repository",
+      "operation": "status",
+      "note": "",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: not a git repository (or any of the parent directories): .git\n"
+    },
+    {
+      "problem": "no_commits",
+      "operation": "log",
+      "note": "log before the first commit",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: your current branch 'main' does not have any commits yet\n"
+    },
+    {
+      "problem": "nothing_to_commit",
+      "operation": "commit",
+      "note": "",
+      "exitCode": 1,
+      "records": [
+        "On branch main",
+        "nothing to commit, working tree clean"
+      ],
+      "stderr": ""
+    },
+    {
+      "problem": "branch_exists",
+      "operation": "branch",
+      "note": "",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: a branch named 'main' already exists\n"
+    },
+    {
+      "problem": "invalid_name",
+      "operation": "branch",
+      "note": "",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: 'bad..name' is not a valid branch name\n"
+    },
+    {
+      "problem": "no_such_branch",
+      "operation": "switch",
+      "note": "",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: invalid reference: missing\n"
+    },
+    {
+      "problem": "no_such_branch",
+      "operation": "branch",
+      "note": "delete a branch that is not there",
+      "exitCode": 1,
+      "records": [],
+      "stderr": "error: branch 'missing' not found.\n"
+    },
+    {
+      "problem": "not_fully_merged",
+      "operation": "branch",
+      "note": "",
+      "exitCode": 1,
+      "records": [],
+      "stderr": "error: The branch 'topic' is not fully merged.\nIf you are sure you want to delete it, run 'git branch -D topic'.\n"
+    },
+    {
+      "problem": "current_branch",
+      "operation": "branch",
+      "note": "delete the branch checked out",
+      "exitCode": 1,
+      "records": [],
+      "stderr": "error: Cannot delete branch 'main' checked out at '/data/user/0/dev.codeforge.app/files/workspaces/errors'\n"
+    },
+    {
+      "problem": "local_changes",
+      "operation": "switch",
+      "note": "a switch that would overwrite a local change",
+      "exitCode": 1,
+      "records": [],
+      "stderr": "error: Your local changes to the following files would be overwritten by checkout:\n\ta.txt\nPlease commit your changes or stash them before you switch branches.\nAborting\n"
+    },
+    {
+      "problem": "locked",
+      "operation": "add",
+      "note": "another git holds the index",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: Unable to create '/data/user/0/dev.codeforge.app/files/workspaces/errors/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository, e.g.\nan editor opened by 'git commit'. Please make sure all processes\nare terminated then try again. If it still fails, a git process\nmay have crashed in this repository earlier:\nremove the file manually to continue.\n"
+    },
+    {
+      "problem": "no_merge",
+      "operation": "merge",
+      "note": "no merge to abort",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: There is no merge to abort (MERGE_HEAD missing).\n"
+    },
+    {
+      "problem": "no_identity",
+      "operation": "commit",
+      "note": "no name or email (user.useConfigOnly forces git's own refusal here)",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Author identity unknown\n\n*** Please tell me who you are.\n\nRun\n\n  git config --global user.email \"you@example.com\"\n  git config --global user.name \"Your Name\"\n\nto set your account's default identity.\nOmit --global to set the identity only in this repository.\n\nfatal: no email was given and auto-detection is disabled\n"
+    }
+  ]
+}

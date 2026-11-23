@@ -20,6 +20,7 @@ import '../features/settings/developer/log_viewer_screen.dart';
 import '../features/settings/editor_settings_screen.dart';
 import '../features/settings/runtime_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/settings/source_control_settings_screen.dart';
 import '../features/workbench/workbench_screen.dart';
 import 'shell_controller.dart';
 
@@ -63,6 +64,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'editor',
             pageBuilder: (context, state) =>
                 _page(state, const EditorSettingsScreen()),
+          ),
+          // Phase 7 W2: the identity commits are made with.
+          GoRoute(
+            path: 'source-control',
+            pageBuilder: (context, state) =>
+                _page(state, const SourceControlSettingsScreen()),
           ),
           if (kDebugMode)
             GoRoute(

@@ -40,6 +40,7 @@ import '../services/contracts.dart';
 import 'documents/document_controller.dart';
 import 'explorer_view_controller.dart';
 import 'file_index.dart';
+import 'git/git_controller.dart';
 import 'lsp/lsp_controller.dart';
 import 'providers.dart';
 import 'workspace_controller.dart';
@@ -309,6 +310,11 @@ final class FileWatchController extends Notifier<List<String>> {
     _changed.clear();
     final generation = _generation;
     appLogger.debug('watch', 'batch', fields: {'folders': folders.length});
+    // The repository's status follows files changed outside the app (Phase
+    // 7 W2), once the status strip has it.
+    if (ref.exists(gitControllerProvider)) {
+      ref.read(gitControllerProvider.notifier).changed();
+    }
     for (final folder in folders) {
       await _relist(folder);
       // Gone to the background meanwhile: the rest waits for the app to come

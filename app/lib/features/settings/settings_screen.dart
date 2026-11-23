@@ -92,6 +92,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: const Icon(CfIcons.chevronRight, size: 18),
                 onTap: () => context.go('/settings/editor'),
               ),
+              // Phase 7 W2: who commits, here and in the terminal.
+              CfSettingsTile(
+                key: const ValueKey('settings_source_control'),
+                leading: const Icon(CfIcons.commit),
+                title: 'Source control',
+                subtitle: 'Your name and email for commits',
+                trailing: const Icon(CfIcons.chevronRight, size: 18),
+                onTap: () => context.go('/settings/source-control'),
+              ),
               CfSettingsTile(
                 key: const ValueKey('settings_reduced_motion'),
                 leading: const Icon(CfIcons.motionPhotosOff),

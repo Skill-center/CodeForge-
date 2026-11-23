@@ -13,6 +13,7 @@ import 'dart:typed_data';
 import '../core/errors/failure.dart';
 import '../core/files/file_stamp.dart';
 import '../core/files/text_codec.dart';
+import '../core/git/git_models.dart';
 import '../core/lsp/lsp_models.dart';
 import '../core/terminal/terminal_models.dart';
 
@@ -298,14 +299,194 @@ abstract interface class LspService {
   Future<Result<List<LspServerInfo>>> servers();
 }
 
-/// Git status for the status strip. Phase 6 provides the real impl.
-final class GitSummary {
-  const GitSummary({required this.branch, this.dirtyCount = 0});
+/// One git command for the Git host (Phase 7 W2, pigeons/git_api.dart): an
+/// operation of the host's fixed set (android/…/git/GitCommands.kt) with its
+/// arguments, in a project named by its folder, or with no [project] in the
+/// runtime's home (the identity, `config --global`).
+final class GitInvocation {
+  const GitInvocation(
+    this.operation,
+    this.arguments, {
+    this.project,
+    this.maxRecords,
+  });
 
-  final String branch;
-  final int dirtyCount;
+  final String operation;
+  final List<String> arguments;
+  final String? project;
+
+  /// Records passed on before the host ends the command, truncated.
+  final int? maxRecords;
 }
 
+/// A git command that ran to its end: git's exit code, or none when the
+/// host ended it at its cap ([truncated]).
+final class GitOutcome {
+  const GitOutcome({
+    required this.operation,
+    this.exitCode,
+    this.stderr = '',
+    this.records = const [],
+    this.recordCount = 0,
+    this.chars = 0,
+    this.truncated = false,
+    this.elapsedMs = 0,
+  });
+
+  final String operation;
+
+  /// Null only when the host ended it at its cap.
+  final int? exitCode;
+
+  /// What git said on stderr, its progress left out, up to 64 KiB.
+  final String stderr;
+
+  /// Its stdout's records, when no listener took them as they came.
+  final List<String> records;
+
+  /// Records passed on, and their characters.
+  final int recordCount;
+  final int chars;
+
+  /// Ended at a cap: [records] are a beginning.
+  final bool truncated;
+
+  final int elapsedMs;
+
+  /// git succeeded, or was ended at the cap while it went well.
+  bool get ok => exitCode == 0 || (exitCode == null && truncated);
+}
+
+/// The runtime's git, run by the Kotlin host (Phase 7 W2,
+/// docs/GIT_ARCHITECTURE.md): a supervised runner, which refuses what it
+/// does not list. [GitService] gives the commands their meaning.
+abstract interface class GitHost {
+  /// Whether a host runs git here: false under `flutter test`.
+  bool get available;
+
+  /// Runs [invocation] to its end. [onRecords] hears its stdout's records
+  /// in batches as they come; without it, the outcome keeps them all.
+  /// [onProgress] hears git's progress lines. Completing [stop] stops it.
+  ///
+  /// An error is a [GitFailure]: the host refused the command, could not
+  /// run it, or ended it (timed out, stopped, too large). A command that
+  /// ran is an [Ok], whatever its exit code.
+  Future<Result<GitOutcome>> run(
+    GitInvocation invocation, {
+    void Function(List<String> records)? onRecords,
+    void Function(String text, bool closing)? onProgress,
+    Future<void>? stop,
+  });
+}
+
+/// Git for the app (Phase 7 W2, PHASE_7_PLAN W2): a project's repository,
+/// named by the project's folder, and the identity it commits as. Every
+/// error is a [GitFailure] whose [GitProblem] says what went wrong.
+/// Paths are relative to the project, '/'-separated.
 abstract interface class GitService {
-  Future<Result<GitSummary>> summary();
+  /// Whether git runs here: false without the Linux runtime's host.
+  bool get available;
+
+  /// The repository's branch and changed files; [maxFiles] at most, then
+  /// truncated.
+  Future<Result<GitStatus>> status(String project, {int? maxFiles});
+
+  /// Stages [paths] as they are in the work tree: changes, new files and
+  /// deletions.
+  Future<Result<void>> stage(String project, List<String> paths);
+
+  /// Stages every change.
+  Future<Result<void>> stageAll(String project);
+
+  /// Takes [paths] out of what is staged; their files stay as they are.
+  Future<Result<void>> unstage(String project, List<String> paths);
+
+  /// Puts [paths]' files back as they are staged: their unstaged changes
+  /// are lost.
+  Future<Result<void>> discard(String project, List<String> paths);
+
+  /// Deletes [paths], new files git does not track.
+  Future<Result<void>> deleteUntracked(String project, List<String> paths);
+
+  /// Commits what is staged with [message]. [amend] replaces the last
+  /// commit; with an empty [message] it keeps that commit's message.
+  Future<Result<void>> commit(
+    String project,
+    String message, {
+    bool amend = false,
+  });
+
+  /// The newest [max] commits after [skip], of [path] only when given;
+  /// none before the first commit.
+  Future<Result<List<GitCommit>>> log(
+    String project, {
+    int max = 100,
+    int skip = 0,
+    String? path,
+  });
+
+  /// The files [commit] changed against [parent], or against its first
+  /// parent (everything, for a root commit).
+  Future<Result<List<GitCommitFile>>> commitFiles(
+    String project,
+    String commit, {
+    String? parent,
+  });
+
+  /// [path]'s text at [revision] (`HEAD`, a commit), or as staged when
+  /// [revision] is null. Over 4 MiB it fails as [GitProblem.tooLarge].
+  Future<Result<String>> fileAt(
+    String project,
+    String path, {
+    String? revision,
+  });
+
+  /// Local branches and remotes' branches.
+  Future<Result<List<GitBranch>>> branches(String project);
+
+  /// A branch [name] at [from] (HEAD when null); [switchTo] checks it out.
+  Future<Result<void>> createBranch(
+    String project,
+    String name, {
+    String? from,
+    bool switchTo = true,
+  });
+
+  /// Checks out branch [name], reporting progress to [onProgress].
+  Future<Result<void>> switchBranch(
+    String project,
+    String name, {
+    void Function(GitProgress progress)? onProgress,
+  });
+
+  /// Deletes branch [name]; unless [force], only when it is merged.
+  Future<Result<void>> deleteBranch(
+    String project,
+    String name, {
+    bool force = false,
+  });
+
+  /// Merges [branch] into the branch checked out. Conflicts fail as
+  /// [GitProblem.conflict], with the merge left to resolve or abort.
+  Future<Result<void>> merge(
+    String project,
+    String branch, {
+    void Function(GitProgress progress)? onProgress,
+  });
+
+  /// Abandons a merge that stopped on conflicts.
+  Future<Result<void>> abortMerge(String project);
+
+  /// Makes the project a repository, on branch [initialBranch].
+  Future<Result<void>> init(String project, {String initialBranch = 'main'});
+
+  /// The name and email commits are made with, from the runtime home's
+  /// `.gitconfig`, which the terminal's git shares.
+  Future<Result<GitIdentity>> identity();
+
+  /// Sets the identity; an empty or null part is removed.
+  Future<Result<void>> setIdentity(GitIdentity identity);
+
+  /// Whether [name] may name a branch (`git check-ref-format --branch`).
+  Future<Result<bool>> isValidBranchName(String name);
 }

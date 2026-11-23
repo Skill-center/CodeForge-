@@ -4,13 +4,15 @@
 /// W4 (services/files/local_file_service.dart), the runtime in Phase 4 W3
 /// (services/runtime/runtime_service.dart), search in Phase 4 W6
 /// (services/search/search_service.dart), the terminal in Phase 5 W3
-/// (services/terminal/native/pigeon_terminal_service.dart), and the language
-/// servers' host in Phase 6 W4 (services/lsp/native/pigeon_lsp_service.dart).
+/// (services/terminal/native/pigeon_terminal_service.dart), the language
+/// servers' host in Phase 6 W4 (services/lsp/native/pigeon_lsp_service.dart),
+/// and git in Phase 7 W2 (services/git/host_git_service.dart).
 library;
 
 import 'dart:typed_data';
 
 import '../core/errors/failure.dart';
+import '../core/git/git_models.dart';
 import '../core/lsp/lsp_models.dart';
 import '../core/terminal/terminal_models.dart';
 import 'contracts.dart';
@@ -115,8 +117,127 @@ final class FakeTerminalService implements TerminalService {
   Future<Result<void>> remove(int id) async => const Err<void>(_unavailable);
 }
 
+/// No Git host: nothing runs, every call fails as unavailable, and the
+/// status strip shows no branch chip. Widget tests that do not exercise
+/// git use this; HostGitService over the Pigeon host (services/git/,
+/// Phase 7 W2) is the real one, and test/support/scripted_git_service.dart
+/// scripts a repository.
 final class FakeGitService implements GitService {
+  static const GitFailure _unavailable = GitFailure(
+    'Git runs on the Linux runtime, on Android.',
+    problem: GitProblem.unavailable,
+  );
+
   @override
-  Future<Result<GitSummary>> summary() async =>
-      const Ok(GitSummary(branch: 'main'));
+  bool get available => false;
+
+  @override
+  Future<Result<GitStatus>> status(String project, {int? maxFiles}) async =>
+      const Err<GitStatus>(_unavailable);
+
+  @override
+  Future<Result<void>> stage(String project, List<String> paths) async =>
+      const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> stageAll(String project) async =>
+      const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> unstage(String project, List<String> paths) async =>
+      const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> discard(String project, List<String> paths) async =>
+      const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> deleteUntracked(
+    String project,
+    List<String> paths,
+  ) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> commit(
+    String project,
+    String message, {
+    bool amend = false,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<List<GitCommit>>> log(
+    String project, {
+    int max = 100,
+    int skip = 0,
+    String? path,
+  }) async => const Err<List<GitCommit>>(_unavailable);
+
+  @override
+  Future<Result<List<GitCommitFile>>> commitFiles(
+    String project,
+    String commit, {
+    String? parent,
+  }) async => const Err<List<GitCommitFile>>(_unavailable);
+
+  @override
+  Future<Result<String>> fileAt(
+    String project,
+    String path, {
+    String? revision,
+  }) async => const Err<String>(_unavailable);
+
+  @override
+  Future<Result<List<GitBranch>>> branches(String project) async =>
+      const Err<List<GitBranch>>(_unavailable);
+
+  @override
+  Future<Result<void>> createBranch(
+    String project,
+    String name, {
+    String? from,
+    bool switchTo = true,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> switchBranch(
+    String project,
+    String name, {
+    void Function(GitProgress progress)? onProgress,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> deleteBranch(
+    String project,
+    String name, {
+    bool force = false,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> merge(
+    String project,
+    String branch, {
+    void Function(GitProgress progress)? onProgress,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> abortMerge(String project) async =>
+      const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> init(
+    String project, {
+    String initialBranch = 'main',
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<GitIdentity>> identity() async =>
+      const Err<GitIdentity>(_unavailable);
+
+  @override
+  Future<Result<void>> setIdentity(GitIdentity identity) async =>
+      const Err<void>(_unavailable);
+
+  @override
+  Future<Result<bool>> isValidBranchName(String name) async =>
+      const Err<bool>(_unavailable);
 }

@@ -11,9 +11,16 @@ void main() {
       expect(terminal.unavailableReason, contains('on Android'));
     });
 
-    test('git summary is a labeled demo branch', () async {
+    test('git reports unavailable, and runs nothing', () async {
       final git = FakeGitService();
-      expect((await git.summary()).orThrow.branch, 'main');
+      expect(git.available, isFalse);
+      final status = await git.status('demo');
+      expect(status.isOk, isFalse);
+      expect(
+        (status.failureOrNull! as GitFailure).problem,
+        GitProblem.unavailable,
+      );
+      expect(status.failureOrNull!.message, contains('on Android'));
     });
   });
 }
