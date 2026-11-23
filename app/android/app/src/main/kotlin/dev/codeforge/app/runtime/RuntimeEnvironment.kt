@@ -122,6 +122,16 @@ class RuntimeEnvironment(
         if (certificates.isFile) variables["SSL_CERT_FILE"] = certificates.absolutePath
         val certificateDirectory = File(prefix, "etc/tls/certs")
         if (certificateDirectory.isDirectory) variables["SSL_CERT_DIR"] = certificateDirectory.absolutePath
+        // Git finds its own programs (git-remote-https, git-http-backend) and
+        // the templates `init` and `clone` copy under Termux's official
+        // prefix. The preload translates what git executes, opens and lists
+        // there, but not what it stats, so Phase 7 W1 found `git init` failing
+        // on every target and the HTTPS helper never found (phase gate
+        // 45244989137): both are named in the prefix instead.
+        val gitPrograms = File(prefix, "libexec/git-core")
+        if (gitPrograms.isDirectory) variables["GIT_EXEC_PATH"] = gitPrograms.absolutePath
+        val gitTemplates = File(prefix, "share/git-core/templates")
+        if (gitTemplates.isDirectory) variables["GIT_TEMPLATE_DIR"] = gitTemplates.absolutePath
         variables.putAll(interpreters())
         return variables
     }

@@ -94,7 +94,8 @@ class RuntimeCommandsTest {
         for (name in listOf("HOME", "TMPDIR", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME")) {
             assertTrue("$name=${seen[name]}", seen[name]!!.startsWith(root))
         }
-        for (name in listOf("PYTHONHOME", "GEM_HOME", "NODE_PATH")) {
+        // Phase 7 W1: git's programs and templates, named in the prefix.
+        for (name in listOf("PYTHONHOME", "GEM_HOME", "NODE_PATH", "GIT_EXEC_PATH", "GIT_TEMPLATE_DIR")) {
             val value = seen[name]
             record(name.lowercase(), value)
             assertNotNull("$name is not set", value)

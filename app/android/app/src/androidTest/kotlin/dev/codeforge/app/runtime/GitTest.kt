@@ -384,10 +384,14 @@ class GitTest {
             "bash",
             listOf(
                 "-c",
-                "exec \"\$PREFIX/bin/sshd\" -D -e -f /dev/null -p $port -o ListenAddress=127.0.0.1 " +
+                // sshd checks its session programs by path, which the preload does not translate.
+                "auth=; [ -x \"\$PREFIX/libexec/sshd-auth\" ] && auth=\"-o SshdAuthPath=\$PREFIX/libexec/sshd-auth\"; " +
+                    "exec \"\$PREFIX/bin/sshd\" -D -e -f /dev/null -p $port -o ListenAddress=127.0.0.1 " +
+                    "-o SshdSessionPath=\$PREFIX/libexec/sshd-session \$auth " +
                     "-o HostKey=${hostKey.path} -o AuthorizedKeysFile=${authorized.path} -o PidFile=none " +
                     "-o StrictModes=no -o PasswordAuthentication=no " +
-                    "-o \"SetEnv=PATH=\$PATH LD_LIBRARY_PATH=\$LD_LIBRARY_PATH LD_PRELOAD=\$LD_PRELOAD PREFIX=\$PREFIX HOME=\$HOME\"",
+                    "-o \"SetEnv=PATH=\$PATH LD_LIBRARY_PATH=\$LD_LIBRARY_PATH LD_PRELOAD=\$LD_PRELOAD PREFIX=\$PREFIX HOME=\$HOME " +
+                    "GIT_EXEC_PATH=\$GIT_EXEC_PATH GIT_TEMPLATE_DIR=\$GIT_TEMPLATE_DIR\"",
             ),
             3 * 60_000L,
         )

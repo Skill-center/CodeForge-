@@ -131,9 +131,20 @@ class RuntimeEnvironmentTest {
     fun aPayloadWithoutInterpretersSetsNoneOfTheirVariables() {
         val environment = environment()
         val variables = environment.variables(environment.home)
-        for (name in listOf("PYTHONHOME", "NODE_PATH", "NPM_CONFIG_UPDATE_NOTIFIER", "GEM_HOME", "RUBYLIB", "PERL5LIB", "SSL_CERT_FILE")) {
+        for (name in listOf("PYTHONHOME", "NODE_PATH", "NPM_CONFIG_UPDATE_NOTIFIER", "GEM_HOME", "RUBYLIB", "PERL5LIB", "SSL_CERT_FILE", "GIT_EXEC_PATH", "GIT_TEMPLATE_DIR")) {
             assertNull(name, variables[name])
         }
+    }
+
+    @Test
+    fun gitFindsItsProgramsAndTemplatesInThePrefix() {
+        val environment = environment()
+        File(environment.prefix, "libexec/git-core").mkdirs()
+        File(environment.prefix, "share/git-core/templates").mkdirs()
+        val variables = environment.variables(environment.home)
+        assertEquals(File(environment.prefix, "libexec/git-core").absolutePath, variables["GIT_EXEC_PATH"])
+        assertEquals(File(environment.prefix, "share/git-core/templates").absolutePath, variables["GIT_TEMPLATE_DIR"])
+        assertEquals("a terminal's git finds them too", variables["GIT_EXEC_PATH"], environment.variables(environment.home, terminal = true)["GIT_EXEC_PATH"])
     }
 
     @Test
