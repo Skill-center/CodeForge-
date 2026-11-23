@@ -79,7 +79,10 @@ CodeForge-/
 │   ├── integration_test/         # device/emulator workflow tests; Phase 5: terminal_test,
 │   │                             #   run_test, sessions_a/b_test (the gate's groups),
 │   │                             #   phone_terminal_test (Test Lab), terminal_measure.dart
-│   │                             #   (the budgets, shared by both; W6)
+│   │                             #   (the budgets, shared by both; W6). Phase 6: lsp_test
+│   │                             #   (the gate's lsp group, W5), phone_lsp_test (the
+│   │                             #   language budgets: Test Lab, and recorded in the lsp
+│   │                             #   group; W6)
 │   ├── ci-results/               # CI's evidence, committed back by its runs: the build's
 │   │                             #   diagnostics; editor/, gate/ (the phase gate),
 │   │                             #   runtime-gates/ (API 26 to 36), testlab/ (the phone)
@@ -89,7 +92,8 @@ CodeForge-/
 │   │                             #   and the terminal page (Phase 5 W3)
 │   ├── src/
 │   │   ├── protocol/             # v1 message catalogue, strict validator, change-set reference
-│   │   ├── editor/               # CM6 controller, change batcher, languages, theme, palette
+│   │   ├── editor/               # CM6 controller, change batcher, languages, theme, palette;
+│   │   │                         #   lsp.ts, requests.ts, markdown.ts (Ph. 6 W5), timings.ts (W6)
 │   │   ├── terminal/             # terminal protocol v1 + validator, xterm.js controller,
 │   │   │                         #   keys, touch, bridge, entry point, page template;
 │   │   │                         #   ime.ts (the input method's text), links.ts (W4),

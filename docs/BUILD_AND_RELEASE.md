@@ -177,6 +177,9 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - *Generated code check* covers a fifth Pigeon API (`pigeons/lsp_api.dart`), as do the bootstrap and the three APK builds of the phase gate.
   - The legs and Test Lab expect `LanguageServerTest`'s 5 tests and require `lsp_crash=signaled:9`.
   - The quality job's *Kotlin digest* lists the compiler's first 40 errors. They print before a task's `FAILED` line, which the digest showed without them (CI 45016628119).
+- **W6, the language gate:**
+  - **Test Lab's judge** expects `SyncModesTest:5`, requires the six `lsp_phone_*_under_budget=1` figures (each server's completion, diagnostics after a save and memory) and the `CODEFORGE_LSP_JSON` document, and keeps `CodeForgeLsp` and the `LSP_GATE` lines in `logcat-runtime.txt`.
+  - **The phase gate's `lsp` group** runs `integration_test/phone_lsp_test.dart` once `lsp_test.dart` passes, and records its lines and its exit (`lsp_budget_exit`) in `lsp.txt`, never judged.
 
 ## 3. Toolchain pins in CI
 
@@ -215,7 +218,7 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - **The job** is `ci.yml`'s `testlab` job, run by a pushed commit with `[testlab]` in its subject line. The tag only in the message's body stops the job at its first step, so a message that mentions it spends no test:
     - **Since Phase 4 W5 it is the runtime's arm64 gate** (G6, with G3's and G4's arm64 figures and ADR-0008's phone measurement):
       - It builds the arm64 APK, which carries the arm64 payload, with `integration_test/sync_modes_test.dart` as its Dart entrypoint: a profile build since Phase 5 W6 (the app's Dart compiled ahead of time, as it ships, for the terminal's budgets; Flutter's profile type keeps debug's signing), a debug build before. One Gradle run builds it and its test APK (`-Pcodeforge.testBuildType=profile`), and `tool/ci/same_signer.sh` checks that one key signed both.
-      - It runs the test APK's `dev.codeforge.app` package on one phone: the runtime's four instrumented classes, then `SyncModesTest`. Since Phase 4 W6 the same Dart entrypoint also runs search on the phone (`integration_test/phone_search_test.dart`), so `SyncModesTest` runs two Dart tests, and the job requires the `CODEFORGE_SEARCH_JSON` document beside `CODEFORGE_SYNC_JSON`.
+      - It runs the test APK's `dev.codeforge.app` package on one phone: the runtime's four instrumented classes, then `SyncModesTest`. Since Phase 4 W6 the same Dart entrypoint also runs search on the phone (`integration_test/phone_search_test.dart`), so `SyncModesTest` runs two Dart tests, and the job requires the `CODEFORGE_SEARCH_JSON` document beside `CODEFORGE_SYNC_JSON`. It runs five since Phase 6 W6: the terminal's and the copy's (Phase 5 W6), then the language budgets' (`CODEFORGE_LSP_JSON`).
       - It fetches the JUnit report and the device log from Test Lab's results bucket, judges them with `tool/ci/gate_results.py`, and commits `ci-results/testlab/` back.
       - `tool/ci/testlab_device.py --runtime` chooses the phone. It must run Android 14 or later. A mid-range one with high or medium capacity comes first (Pixel a, Galaxy A, moto g, Redmi Note, Nord), then the order below.
     - Until W5 it ran one Robo crawl of the run's debug APK, the connection check below. `tool/ci/testlab_device.py` without `--runtime` chooses as it did then: the most spare capacity first, then the newest Android version from API 26 to 36, then a Pixel.

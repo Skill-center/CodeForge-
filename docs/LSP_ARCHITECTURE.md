@@ -47,7 +47,7 @@ CM6 (WebView) ──bridge──► EditorService (Dart) ──► LspService (D
 
 - Incremental `didChange` (CM6 change sets → LSP ranges) with version numbers; debounce 200 ms; diagnostics pushed to editor gutter + Problems panel (Phase 9).
 - One server per language per workspace; idle shutdown after 10 min unused; restart-on-crash with backoff (max 3, then offer manual restart); memory cap monitored via runtime tools.
-- Budgets: completion p95 ≤ 300 ms warm; diagnostics ≤ 1 s after save; server RSS tracked in PERF suite.
+- Budgets: completion p95 ≤ 300 ms warm; diagnostics ≤ 1 s after save; each server's process tree ≤ 300 MB of PSS on the gate's 200-file project (the owner's decision of 2026-11-22). **Judged in Phase 6 W6** on Test Lab's Pixel 8a (phase gate 45182761593), in the app on the 200-file projects: completion p95 139.0 ms (Pyright) and 64.5 ms (TypeScript), from the page's request to the list drawn; diagnostics p95 476.9 and 657.7 ms after a save; PSS 169.9 and 246.5 MB (PERFORMANCE §2).
 
 ## 4. Security
 

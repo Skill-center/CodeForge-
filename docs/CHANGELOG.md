@@ -4,6 +4,11 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 6 W6, the language gate on a phone (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
+- **The language budgets are met on a real phone** (Test Lab's Pixel 8a, in the app, on a 200-file project in each language): completion lists appear 139.0 ms (Python) and 64.5 ms (TypeScript) after they are asked for, at the 95th percentile, against 300 ms; problems show 476.9 and 657.7 ms after a save, against 1 s; each language server takes 169.9 and 246.5 MB, against its own 300 MB.
+- **The editor times its own completion lists,** from the request to the frame that draws them, for these measurements.
+- Verified by: CI 45180564110 (`+1286: All tests passed!`, 228 Kotlin tests); phase gate 45182761593: Test Lab's Pixel 8a 42 of 42 in the same run with every budget met, every emulator group with the budgets' figures recorded, and `LanguageServerTest` 6 of 6 on each runtime leg.
+
 ### Added — Phase 6 W5, the language features in the editor (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
 - **Completion from the language server** as you type a name or after a `.`: each item with its kind's icon and its documentation when selected, imports added with it. While the server starts or restarts, the editor completes the file's own words.
 - **Problems underlined as you type,** with marks in the gutter; a tap on an underline shows the message. The status strip counts the file's problems, and the *Problems* sheet lists every open file's (Ctrl+Shift+M); a tap goes to the line.
