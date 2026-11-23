@@ -20,7 +20,10 @@
 ///   again after 1 s, 2 s, then 4 s, at most three times in five minutes;
 ///   after that the client gives up, and the status offers *Restart*.
 ///   Requests in flight fail as restarting, and every open document is
-///   opened again in the new server.
+///   opened again in the new server. A server that says nothing for 30 s
+///   after it is asked something is hung, unless it reports progress (a
+///   long first analysis): it is ended and restarts the same way (Phase 6
+///   W7, PHASE_6_PLAN §9).
 /// - **The idle stop:** a server with no open document for ten minutes is
 ///   asked to shut down and exit, and stopped through the host if it does
 ///   not.
@@ -55,6 +58,7 @@ final class LspClientSettings {
     this.restartWindow = const Duration(minutes: 5),
     this.idleStop = const Duration(minutes: 10),
     this.shutdownGrace = const Duration(seconds: 2),
+    this.hangTimeout = const Duration(seconds: 30),
     this.timingsKept = 500,
     this.logLinesPerMinute = 20,
   });
@@ -76,6 +80,11 @@ final class LspClientSettings {
   /// How long `shutdown` may take, and then how long the process may take
   /// to exit before the host stops it.
   final Duration shutdownGrace;
+
+  /// How long a server may say nothing after it is asked something before
+  /// it counts as hung: ended, and restarted as a crash is, unless it
+  /// reports progress (PHASE_6_PLAN §9).
+  final Duration hangTimeout;
 
   /// How many requests' timings are kept (the newest).
   final int timingsKept;
@@ -599,9 +608,45 @@ final class LanguageClient {
       onRequest: _answer,
       onNotification: _notified,
       onTiming: _record,
+      silenceLimit: settings.hangTimeout,
+      onSilent: () => _silent(started.handle),
     );
     _connection = connection;
     unawaited(_initialize(connection, generation));
+  }
+
+  /// The server has said nothing for [LspClientSettings.hangTimeout] since
+  /// it was asked something. While it reports progress it is busy (a long
+  /// first analysis), and its requests time out one by one; otherwise it is
+  /// hung: ended through the host, and restarted as a crash is, counted
+  /// against the backoff. Answers whether it was ended.
+  bool _silent(int handle) {
+    if (_disposed || handle != _handle) {
+      return false;
+    }
+    final waiting = _connection?.waiting ?? 0;
+    if (_progress.isNotEmpty) {
+      appLogger.info(
+        'lsp',
+        'server_busy',
+        fields: {'server': server.id, 'waiting': waiting},
+      );
+      return false;
+    }
+    appLogger.warn(
+      'lsp',
+      'server_hung',
+      fields: {
+        'server': server.id,
+        'waiting': waiting,
+        'silentMs': settings.hangTimeout.inMilliseconds,
+      },
+    );
+    _abandonServer(
+      '${server.title} did not answer for '
+      '${settings.hangTimeout.inSeconds} s',
+    );
+    return true;
   }
 
   Future<void> _initialize(LspConnection connection, int generation) async {

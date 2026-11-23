@@ -18,7 +18,9 @@
 ///   item 3): each server's process tree within 300 MB of PSS, as the
 ///   host reads it every 10 s (LspHost.kt); the app's and its renderers'
 ///   PSS (`dumpsys meminfo`, through the gate: folder_gate.dart) and the
-///   total recorded.
+///   total recorded. Since Phase 6 W7 the total is recorded again with a
+///   terminal open beside the editor (PHASE_6_PLAN §1, objective 3), never
+///   judged.
 ///
 /// Firebase Test Lab runs it on its arm64 phone in the same entrypoint as
 /// the store, search and the terminal (sync_modes_test.dart calls
@@ -40,11 +42,16 @@ import 'package:codeforge/application/lsp/lsp_controller.dart';
 import 'package:codeforge/application/lsp/lsp_features.dart';
 import 'package:codeforge/application/providers.dart';
 import 'package:codeforge/application/runtime_controller.dart';
+import 'package:codeforge/application/shell_controller.dart';
+import 'package:codeforge/application/terminal/terminal_controller.dart';
+import 'package:codeforge/application/terminal/terminal_view.dart'
+    show TerminalViewPhase;
 import 'package:codeforge/application/workspace_switcher.dart';
 import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/lsp/lsp_models.dart';
 import 'package:codeforge/services/platform/app_directories.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
+import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,7 +61,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'folder_gate.dart';
 import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 import 'terminal_measure.dart'
-    show buildMode, memoryFrom, percentile, printReport;
+    show
+        MemorySample,
+        buildMode,
+        memoryFrom,
+        percentile,
+        printReport,
+        settleTime;
 
 /// PERFORMANCE §2: completion within 300 ms at the 95th percentile, warm.
 const double completionBudgetMs = 300;
@@ -392,6 +405,55 @@ final class _Figures {
   };
 }
 
+/// The app with a terminal open beside the editor (PHASE_6_PLAN §1,
+/// objective 3; Phase 6 W7): the panel at its half stop, where it usually
+/// sits, one terminal idle at its prompt, the memory read once it settled
+/// as the terminal's own budget is (terminal_measure.dart), then the
+/// terminal closed. Recorded, never judged: the owner's decision gives each
+/// server a budget of its own and records the total (§10, item 3). So
+/// nothing here fails the test; a terminal that does not come up is said
+/// instead ([note]).
+Future<({MemorySample? sample, String note})> _withTerminal(
+  WidgetTester tester,
+  ProviderContainer container,
+  Future<MemorySample> Function(String label) memory,
+) async {
+  try {
+    container
+        .read(shellControllerProvider.notifier)
+        .setTerminalStop(TerminalStop.half);
+    await tester.pump(const Duration(milliseconds: 500));
+    final terminals = container.read(terminalControllerProvider.notifier);
+    await terminals.newSession().timeout(const Duration(seconds: 60));
+    final watch = Stopwatch()..start();
+    while (true) {
+      final panel = container.read(terminalControllerProvider);
+      if ((panel.active?.running ?? false) &&
+          panel.viewPhase == TerminalViewPhase.ready) {
+        break;
+      }
+      if (panel.message != null ||
+          panel.viewPhase == TerminalViewPhase.failed) {
+        return (sample: null, note: 'not_started');
+      }
+      if (watch.elapsed > const Duration(seconds: 60)) {
+        return (sample: null, note: 'timed_out');
+      }
+      await tester.pump(const Duration(milliseconds: 250));
+    }
+    final id = container.read(terminalControllerProvider).activeId;
+    await Future<void>.delayed(settleTime);
+    final sample = await memory('lsp-terminal');
+    if (id != null) {
+      await terminals.close(id);
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    return (sample: sample, note: 'measured');
+  } on Object catch (error) {
+    return (sample: null, note: 'failed_${error.runtimeType}');
+  }
+}
+
 void phoneLspTests() {
   testWidgets(
     'lsp: the budgets on a 200-file project, Pyright and TypeScript (G6)',
@@ -623,6 +685,7 @@ void phoneLspTests() {
         }
       }
       final app = await memory('lsp');
+      final terminal = await _withTerminal(tester, container, memory);
       gate.done();
       for (final figures in measured) {
         figures.reportMemory();
@@ -641,6 +704,32 @@ void phoneLspTests() {
         'servers_mb=${app.megabytes(serversKb)} '
         'total_mb=${app.megabytes(totalKb)} build=$buildMode',
       );
+      // With a terminal open too: the servers as read above (idle since).
+      final withTerminal = terminal.sample;
+      final withTerminalKb = withTerminal == null
+          ? null
+          : withTerminal.totalKb + serversKb;
+      _figure('terminal_note', terminal.note);
+      if (withTerminal != null && withTerminalKb != null) {
+        final appMb = withTerminal.megabytes(withTerminal.appKb);
+        final rendererMb = withTerminal.megabytes(withTerminal.rendererKb);
+        final deltaMb = withTerminal.megabytes(
+          withTerminal.totalKb - app.totalKb,
+        );
+        final totalMb = withTerminal.megabytes(withTerminalKb);
+        _figure('terminal_app_mb', appMb);
+        _figure('terminal_renderer_mb', rendererMb);
+        _figure('terminal_renderers', withTerminal.renderers);
+        _figure('terminal_delta_mb', deltaMb);
+        _figure('terminal_total_mb', totalMb);
+        _line(
+          'memory_terminal app_mb=$appMb renderer_mb=$rendererMb '
+          'renderers=${withTerminal.renderers} delta_mb=$deltaMb '
+          'total_mb=$totalMb',
+        );
+      } else {
+        _line('memory_terminal note=${terminal.note}');
+      }
       await printReport('CODEFORGE_LSP_JSON', {
         'test': 'phone_lsp',
         'build': buildMode,
@@ -654,6 +743,16 @@ void phoneLspTests() {
           ...app.toJson(),
           'serversMb': app.megabytes(serversKb),
           'withServersMb': app.megabytes(totalKb),
+          'withTerminal': {
+            'note': terminal.note,
+            if (withTerminal != null && withTerminalKb != null) ...{
+              ...withTerminal.toJson(),
+              'deltaMb': withTerminal.megabytes(
+                withTerminal.totalKb - app.totalKb,
+              ),
+              'withServersMb': withTerminal.megabytes(withTerminalKb),
+            },
+          },
         },
       });
       for (final figures in measured) {

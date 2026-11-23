@@ -4,7 +4,8 @@
 /// time out, or fail while the server restarts; the server's own requests;
 /// file watchers; diagnostics routed by URI, in projects and in copies;
 /// progress; the restart backoff and its cap; the idle stop; and the
-/// stages of each request's time.
+/// stages of each request's time. Since Phase 6 W7, a server silent for
+/// 30 s after it is asked something: hung, unless it reports progress.
 library;
 
 import 'package:codeforge/application/lsp/language_client.dart';
@@ -995,6 +996,81 @@ void main() {
       world.clock.advance(const Duration(seconds: 2));
       await _drain();
       expect(world.client.status.phase, LspPhase.ready);
+    });
+
+    test('a server that says nothing for 30 s after it is asked is ended '
+        'and restarted, counted against the backoff', () async {
+      final world = await _World.ready(text: 'a\n');
+      final first = world.handle;
+      final hover = world.client.request('textDocument/hover', null);
+      await _drain();
+      world.clock.advance(const Duration(seconds: 10));
+      expect(await hover, _fails(LspProblem.timeout));
+      world.clock.advance(const Duration(milliseconds: 19999));
+      await _drain();
+      expect(world.service.stops, isEmpty);
+      world.clock.advance(const Duration(milliseconds: 1));
+      await _drain();
+      expect(world.service.stops, [first]);
+      expect(
+        world.client.status,
+        const LspStatus(
+          LspPhase.restarting,
+          reason: 'Pyright did not answer for 30 s',
+        ),
+      );
+      world.clock.advance(const Duration(seconds: 1));
+      await _drain();
+      expect(world.service.starts, hasLength(2));
+      expect(world.client.status.phase, LspPhase.ready);
+      expect(world.methods, [
+        'initialize',
+        'initialized',
+        'textDocument/didOpen',
+      ]);
+      // The hang counted: the next end waits 2 s.
+      world.service.crash(world.handle);
+      await _drain();
+      world.clock.advance(const Duration(milliseconds: 1999));
+      await _drain();
+      expect(world.service.starts, hasLength(2));
+      world.clock.advance(const Duration(milliseconds: 1));
+      await _drain();
+      expect(world.service.starts, hasLength(3));
+    });
+
+    test('a server that reports progress is busy, not hung; silent once '
+        'its progress ends, it is', () async {
+      final world = await _World.ready();
+      final first = world.handle;
+      void progress(String kind) => world.deliver({
+        'method': r'$/progress',
+        'params': {
+          'token': 'load',
+          'value': {'kind': kind, 'title': 'Loading'},
+        },
+      });
+      progress('begin');
+      await _drain();
+      final asked = world.client.request(
+        'textDocument/definition',
+        null,
+        timeout: const Duration(minutes: 5),
+      );
+      await _drain();
+      world.clock.advance(const Duration(minutes: 2));
+      await _drain();
+      expect(world.service.stops, isEmpty);
+      expect(world.client.status.phase, LspPhase.analysing);
+      progress('end');
+      await _drain();
+      world.clock.advance(const Duration(milliseconds: 29999));
+      await _drain();
+      expect(world.service.stops, isEmpty);
+      world.clock.advance(const Duration(milliseconds: 1));
+      await _drain();
+      expect(world.service.stops, [first]);
+      expect(await asked, _fails(LspProblem.restarting));
     });
   });
 

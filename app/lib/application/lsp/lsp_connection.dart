@@ -6,7 +6,9 @@
 /// out of time, and the server's own requests answered. Answers that come
 /// after their request was given up are dropped. Each request's time is
 /// split into its stages when the host says when it wrote the request and
-/// when it read the answer (LspTiming).
+/// when it read the answer (LspTiming). A server that says nothing for a
+/// while after it is asked something is reported (`onSilent`; Phase 6 W7,
+/// PHASE_6_PLAN §9), and its client decides whether it is hung.
 library;
 
 import 'dart:async';
@@ -81,11 +83,15 @@ final class LspConnection {
     required LspRequestHandler onRequest,
     required LspNotificationHandler onNotification,
     void Function(LspTiming timing)? onTiming,
+    Duration? silenceLimit,
+    bool Function()? onSilent,
   }) : _send = send,
        _clock = clock,
        _onRequest = onRequest,
        _onNotification = onNotification,
-       _onTiming = onTiming;
+       _onTiming = onTiming,
+       _silenceLimit = silenceLimit,
+       _onSilent = onSilent;
 
   final LspServerId server;
   final LspSend _send;
@@ -93,6 +99,22 @@ final class LspConnection {
   final LspRequestHandler _onRequest;
   final LspNotificationHandler _onNotification;
   final void Function(LspTiming timing)? _onTiming;
+
+  /// How long the server may say nothing after it is asked something before
+  /// [_onSilent] hears of it; no watch when either is null.
+  final Duration? _silenceLimit;
+
+  /// Answers whether it dealt with the silence (the server is ended). If
+  /// not, the silence is watched for another [_silenceLimit].
+  final bool Function()? _onSilent;
+
+  /// Since when (nowMs) the server has said nothing while it was asked
+  /// something: set by a request sent while it is not set; moved on by each
+  /// message the server writes while requests still wait; cleared by one
+  /// that leaves none waiting. A request given up (its timeout, or called
+  /// off) still counts, since a server answers even those.
+  int? _silentSinceMs;
+  Timer? _silenceTimer;
 
   final Map<int, _Pending> _pending = {};
   int _nextId = 1;
@@ -137,6 +159,7 @@ final class LspConnection {
     final id = _nextId++;
     final pending = _Pending(id, method, _clock.monotonicUs);
     _pending[id] = pending;
+    _watchSilence();
     pending.timer = _clock.timer(
       timeout,
       () => _abandon(
@@ -179,6 +202,11 @@ final class LspConnection {
     if (_closed) {
       return;
     }
+    _take(json, readUs);
+    _heard();
+  }
+
+  void _take(String json, int? readUs) {
     final Object? decoded;
     try {
       decoded = jsonDecode(json);
@@ -251,6 +279,7 @@ final class LspConnection {
       return;
     }
     _closed = true;
+    _endSilenceWatch();
     final abandoned = _pending.values.toList();
     _pending.clear();
     for (final pending in abandoned) {
@@ -372,6 +401,67 @@ final class LspConnection {
         deliveryUs: readUs == null ? null : _positive(end - readUs),
       ),
     );
+  }
+
+  /// A request went out: the server's silence is watched from now, unless
+  /// it is watched already.
+  void _watchSilence() {
+    final limit = _silenceLimit;
+    if (limit == null || _onSilent == null || _silentSinceMs != null) {
+      return;
+    }
+    _silentSinceMs = _clock.nowMs;
+    _armSilence(limit);
+  }
+
+  void _armSilence(Duration after) {
+    _silenceTimer?.cancel();
+    _silenceTimer = _clock.timer(after, _silenceDue);
+  }
+
+  void _silenceDue() {
+    _silenceTimer = null;
+    final limit = _silenceLimit;
+    final since = _silentSinceMs;
+    if (_closed || limit == null || since == null) {
+      return;
+    }
+    final left = limit.inMilliseconds - (_clock.nowMs - since);
+    if (left > 0) {
+      // The server spoke since this was set: watch the rest.
+      _armSilence(Duration(milliseconds: left));
+      return;
+    }
+    if (_onSilent?.call() ?? false) {
+      return;
+    }
+    if (!_closed) {
+      _silentSinceMs = _clock.nowMs;
+      _armSilence(limit);
+    }
+  }
+
+  /// The server spoke, so it is not silent: counted again from now while
+  /// requests still wait, and not at all once none does.
+  void _heard() {
+    if (_closed || _silentSinceMs == null) {
+      return;
+    }
+    if (_pending.isEmpty) {
+      _endSilenceWatch();
+      return;
+    }
+    _silentSinceMs = _clock.nowMs;
+    final limit = _silenceLimit;
+    if (_silenceTimer == null && limit != null) {
+      _armSilence(limit);
+    }
+  }
+
+  void _endSilenceWatch() {
+    _silenceTimer?.cancel();
+    _silenceTimer = null;
+    _silentSinceMs = null;
   }
 
   void _malformed(String what) {

@@ -1,7 +1,8 @@
 /// JSON-RPC over one server's messages (Phase 6 W4, gate G4): ids and
 /// answers matched in any order, timeouts and cancellation with
 /// `$/cancelRequest`, the server's errors, its own requests answered, and
-/// each request's stages timed from the host's stamps.
+/// each request's stages timed from the host's stamps. Since Phase 6 W7, a
+/// server that says nothing after it is asked something is reported.
 library;
 
 import 'dart:convert';
@@ -27,7 +28,7 @@ Matcher _fails(LspProblem problem) => isA<Err<Object?>>().having(
 
 /// A connection over a recorded pipe.
 final class _Pipe {
-  _Pipe({this.writtenAfterUs = 100}) {
+  _Pipe({this.writtenAfterUs = 100, Duration? silenceLimit}) {
     connection = LspConnection(
       server: LspServerId.pyright,
       send: (json) async {
@@ -50,6 +51,11 @@ final class _Pipe {
       },
       onNotification: (method, params) => notifications.add(method),
       onTiming: timings.add,
+      silenceLimit: silenceLimit,
+      onSilent: () {
+        silences += 1;
+        return false;
+      },
     );
   }
 
@@ -61,6 +67,9 @@ final class _Pipe {
   final List<LspTiming> timings = [];
   bool refuse = false;
   late final LspConnection connection;
+
+  /// How often the connection reported the server silent.
+  int silences = 0;
 
   void answer(Object id, Object? result, {int? readUs}) => connection.receive(
     jsonEncode({'jsonrpc': '2.0', 'id': id, 'result': result}),
@@ -338,5 +347,83 @@ void main() {
     expect(await asked, _fails(LspProblem.cancelled));
     await _drain();
     expect(pipe.cancels(), hasLength(1));
+  });
+
+  test('a server that says nothing for the limit after it is asked is '
+      'reported, and again each limit while it stays so; what it says moves '
+      'the limit on, and an answer that leaves nothing waiting ends the '
+      'watch', () async {
+    final pipe = _Pipe(silenceLimit: const Duration(seconds: 30));
+    pipe.clock.advance(const Duration(minutes: 1));
+    expect(pipe.clock.pending, 0, reason: 'nothing asked, nothing watched');
+
+    final answered = pipe.connection.request(
+      'textDocument/hover',
+      null,
+      timeout: const Duration(seconds: 10),
+    );
+    await _drain();
+    pipe.clock.advance(const Duration(seconds: 5));
+    pipe.answer(1, null);
+    expect(await answered, isA<Ok<Object?>>());
+    expect(pipe.clock.pending, 0, reason: 'answered: the watch ends');
+
+    final waiting = pipe.connection.request(
+      'textDocument/definition',
+      null,
+      timeout: const Duration(minutes: 5),
+    );
+    await _drain();
+    pipe.clock.advance(const Duration(seconds: 20));
+    pipe.connection.receive(
+      jsonEncode({
+        'jsonrpc': '2.0',
+        'method': r'$/progress',
+        'params': <String, Object?>{},
+      }),
+    );
+    pipe.clock.advance(const Duration(milliseconds: 29999));
+    expect(pipe.silences, 0);
+    pipe.clock.advance(const Duration(milliseconds: 1));
+    expect(pipe.silences, 1);
+    pipe.clock.advance(const Duration(seconds: 30));
+    expect(pipe.silences, 2, reason: 'not dealt with: watched again');
+    pipe.connection.close(LspProblem.restarting, 'hung');
+    expect(await waiting, _fails(LspProblem.restarting));
+    expect(pipe.clock.pending, 0);
+  });
+
+  test('a request given up still counts, since a server answers even '
+      'those', () async {
+    final pipe = _Pipe(silenceLimit: const Duration(seconds: 30));
+    final asked = pipe.connection.request(
+      'textDocument/completion',
+      null,
+      timeout: const Duration(seconds: 2),
+    );
+    await _drain();
+    pipe.clock.advance(const Duration(seconds: 2));
+    expect(await asked, _fails(LspProblem.timeout));
+    pipe.clock.advance(const Duration(milliseconds: 27999));
+    expect(pipe.silences, 0);
+    pipe.clock.advance(const Duration(milliseconds: 1));
+    expect(pipe.silences, 1);
+    // Its late answer is news: the watch ends.
+    pipe.answer(1, null);
+    expect(pipe.clock.pending, 0);
+  });
+
+  test('without a limit nothing is watched', () async {
+    final pipe = _Pipe();
+    final asked = pipe.connection.request(
+      'textDocument/hover',
+      null,
+      timeout: const Duration(minutes: 5),
+    );
+    await _drain();
+    expect(pipe.clock.pending, 1, reason: 'only its timeout');
+    pipe.clock.advance(const Duration(minutes: 5));
+    expect(await asked, _fails(LspProblem.timeout));
+    expect(pipe.silences, 0);
   });
 }
