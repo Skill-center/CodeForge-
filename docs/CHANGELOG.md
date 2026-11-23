@@ -4,6 +4,13 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Fixed — git in the runtime (Phase 7 W1)
+- **`git init`, `git clone` and HTTPS remotes work in the terminal.** They had failed since the runtime arrived in Phase 4, unnoticed: git looked for its templates and its helper programs where Termux keeps them, a place the app's runtime does not have. The runtime now tells git where they are.
+
+### Added — Phase 7 W1, the Git spike (plan: [phases/PHASE_7_PLAN.md](phases/PHASE_7_PLAN.md))
+- **Git proven on every target before the app builds on it** ([ADR-0016](adr/0016-git.md)): local work, a conflict, a password-protected remote served on the device, HTTPS to GitHub and SSH's handshake, on Android 8.0 to 16 and a Pixel 8a. The password reaches git only through Git's own credential helper protocol, never an argument, the environment or a file. On the phone, the status of a 10,000-file repository took 134 ms at the 95th percentile, and of a 50,000-file one 262 ms.
+- Verified by: CI 45242102178 and 45248146169; phase gate 45250655049, whole: `GitTest` 7 of 7 on each runtime leg and on Test Lab's Pixel 8a in the same run, every emulator group at its first attempt.
+
 ### Phase 7 planned (2026-11-23)
 - [PHASE_7_PLAN.md](phases/PHASE_7_PLAN.md): Git and source control in seven work packages. First a spike on API 26 to 36 and the Pixel 8a: local work, a remote with a password on the device through Git's credential helper, HTTPS to a real host, SSH as a probe, and a repository of 10,000 files timed. Then the Git host and the real service, remotes with credentials kept in the Keystore, the *Source control* panel, diffs in the editor with `@codemirror/merge`, and the Git gate on an arm64 phone. The owner decides what Git does with folders from shared storage, the credentials (tokens, SSH keys, GitHub's sign-in) and, with W1's numbers, the Git budgets.
 - **Found while planning:** the runtime already carries Git's network (libcurl 8.23.0, the certificates, openssh 10.6p2), but no test has used it. *Import as project* copies a repository's `.git`, and would leave out a pack file over 64 MB: the plan fixes that.

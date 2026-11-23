@@ -184,6 +184,10 @@ The authoring sandbox cannot reach GitHub's log and artifact download hosts, so 
   - **The phase gate's `lsp` group** runs `integration_test/phone_lsp_test.dart` once `lsp_test.dart` passes, and records its lines and its exit (`lsp_budget_exit`) in `lsp.txt`, never judged.
 - **W7:** no change to the workflows. `phone_lsp_test.dart` records the total with a terminal open as well (`lsp_phone_terminal_*` and a `memory_terminal` line), which Test Lab's judge keeps in `logcat-runtime.txt` without requiring it, and the `lsp` group in `lsp.txt`.
 
+### 2.7 Added in Phase 7
+
+- **W1, the Git spike:** the legs run `GitTest`, copy its `git-report.txt` and expect its 7 tests, as does Test Lab's judge. A phase gate cancelled before its Test Lab job submits spends no Test Lab run, but its jobs still commit back what they have: the cancelled gate 45244989137 left the Test Lab and gate evidence folders nearly empty (`bb540e4d`, `0bd8f2d3`) until the next gate's (`e5c38722`, `c1c0cb4d`).
+
 ## 3. Toolchain pins in CI
 
 - Flutter: `.flutter-version` (**3.50.0** since Phase 4 W1; 3.47.9 before). Both workflows read the file and pass the version to `subosito/flutter-action`; the next step records the Flutter installed (`ci-results/flutter.txt`, and a notice on the run) and fails if it is another.

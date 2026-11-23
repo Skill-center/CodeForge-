@@ -1,6 +1,6 @@
 # Phase 7 Plan — Git & Source Control
 
-**Status:** **In progress.** Proposed on 2026-11-23, the day Phase 6 was accepted, and started the same day on the owner's "green start next phase" (CI 45236523396 on the plan). **W1 under way.** The owner's decisions in §10 wait for W1's numbers · **Spec reference:** §8 Phase 7 (Git and source control), §7 (security), §9 (performance: measure, never assume) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §4 (the credential store), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) (Git on folders from shared storage), [SECURITY.md](../SECURITY.md) §1, §2 and §4, [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0012](../adr/0012-backup-opt-in.md) (backup), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy) · **Builds on:** Phase 6 ([report](PHASE_6_REPORT.md)), and the sealed runtime's Git since Phase 4
+**Status:** **In progress.** Proposed on 2026-11-23, the day Phase 6 was accepted, and started the same day on the owner's "green start next phase" (CI 45236523396 on the plan). **W1 done on 2026-11-23** (phase gate 45250655049: `GitTest` 7 of 7 on API 26 to 36 and on Test Lab's Pixel 8a, after the first gate had found git's paths broken in the runtime and the fix had gone in; see *As built (W1)* and [ADR-0016](../adr/0016-git.md)). **The owner's decisions in §10, items 2 to 4,** now have W1's numbers · **Spec reference:** §8 Phase 7 (Git and source control), §7 (security), §9 (performance: measure, never assume) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §4 (the credential store), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) (Git on folders from shared storage), [SECURITY.md](../SECURITY.md) §1, §2 and §4, [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0012](../adr/0012-backup-opt-in.md) (backup), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy) · **Builds on:** Phase 6 ([report](PHASE_6_REPORT.md)), and the sealed runtime's Git since Phase 4
 
 ---
 
@@ -107,6 +107,26 @@ Every later package builds on its answers: HTTPS through libcurl, a credential h
 - **The outcome:**
   - ADR-0016 (Git) records the choices with these numbers: the sealed CLI through a host; the helper's transport; HTTPS settings.
   - W1's report brings the owner the numbers for §10's items 2, 3 and 4, with a recommendation for each.
+
+**As built (W1):**
+- **G1 met** (CI 45242102178 on the test, and 45248146169 on the fix below; phase gate 45250655049, whole: `GitTest` 7 of 7 on every runtime leg, API 26, 27, 28, 34 and 36, and on Test Lab's Pixel 8a with Android 14, 49 of 49 tests there in the same run; every emulator group at its first attempt, the cold start at 1,365 ms, no ANR or crash of CodeForge's (3 of the system's at boot); evidence `02a0eab8`, `e5c38722` and `c1c0cb4d`). ADR-0016 records the choices with the numbers.
+- **Found and fixed: git could do nothing beyond its builtins in the runtime.** The first gate, 45244989137, failed on all five legs:
+  - `git init` and `git clone` stopped at "cannot stat template '/data/data/com.termux/files/usr/share/git-core/templates/description'";
+  - HTTPS failed within 13 to 65 ms with "remote helper 'https' aborted session", with or without `http.sslCAInfo`.
+
+  Git's compiled-in paths are Termux's official prefix. The preload translates what git executes, opens and lists there, but not what it stats, and git finds its templates and helper programs by `stat`. `RuntimeEnvironment` now names both in the prefix for every command and terminal (`GIT_EXEC_PATH`, `GIT_TEMPLATE_DIR`; fc9df410), so **the terminal's `git init`, `git clone` and HTTPS remotes work too**: they had failed since Phase 4, unnoticed. That gate was cancelled before its Test Lab job submitted, so it spent no Test Lab run.
+- **Measured** (gate 45250655049; ADR-0016's table has every figure):
+  - **Local work:** `status --porcelain=v2 -z` byte for byte after each step, the diff, the log, branches and a fast-forward merge; a conflict listed with its three stages, resolved with two parents. `status` of the small repository took 45 ms at p50 on the phone, 8 to 17 ms on the emulators: the cost of starting git.
+  - **A remote with a password, on the device:** clone, push and pull through `git http-backend` took 421, 405 and 338 ms on the phone, the password reaching git only through the credential helper. A wrong one was refused and erased, no answer failed in 190 ms without a prompt, and the password was in no file of the runtime's home.
+  - **HTTPS to github.com** works with the payload's certificates as they are: a shallow clone in 408 ms on the phone.
+  - **SSH as a client:** a key with a passphrase made and read back, and GitHub's handshake refused at the unknown key, with GitHub's published Ed25519 host key, on every target.
+  - **10,000 files** as a new project, on the phone: untracked status 56 ms (160,000 bytes), `add -A` 1,166 ms, `commit` 160 ms; then `status` 85 ms at p50 and 134 ms at p95.
+  - **50,000 files** as a clone leaves them: checked out in 3,586 ms; `status` 183 ms at p50 and 262 ms at p95, and 187 and 579 ms without the index's optional lock.
+- **Differs from the plan:**
+  - **The helper's transport:** only the bash script over two FIFOs was built, and it worked on every target, so no native helper is needed.
+  - **No clone over SSH:** the runtime's `sshd`, a test fixture, refused the app's user as invalid before authentication. GitHub's handshake proves the client; W3 or the owner's phone proves an authenticated clone, if SSH is decided.
+  - **HTTPS** needed no `http.sslCAInfo`.
+- **Tests:** `GitTest` (7) on the legs and Test Lab; `RuntimeEnvironmentTest` 1 more; `RuntimeCommandsTest` b checks git's two folders on every target (`commands_git_exec_path`, `commands_git_template_dir`).
 
 ### W2 — The Git host and the real service (2 sessions) → G2
 
