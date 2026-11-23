@@ -17,6 +17,7 @@ import '../features/settings/dev_gallery_screen.dart';
 import '../features/settings/developer/editor_benchmark_screen.dart';
 import '../features/settings/developer/frame_timing_screen.dart';
 import '../features/settings/developer/log_viewer_screen.dart';
+import '../features/settings/editor_settings_screen.dart';
 import '../features/settings/runtime_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/workbench/workbench_screen.dart';
@@ -56,6 +57,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'runtime',
             pageBuilder: (context, state) =>
                 _page(state, const RuntimeScreen()),
+          ),
+          // Phase 6 W5: the language servers, on or off.
+          GoRoute(
+            path: 'editor',
+            pageBuilder: (context, state) =>
+                _page(state, const EditorSettingsScreen()),
           ),
           if (kDebugMode)
             GoRoute(

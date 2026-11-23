@@ -184,6 +184,23 @@ final class LanguageClient {
   /// The version of [path] the server holds (LSP's, strictly growing).
   int? versionOf(String path) => _documents[path]?.version;
 
+  /// Where the server's own files are, once it has started: its install
+  /// folder, and the runtime's programs (the folder above `bin`, with
+  /// Python's packages). A definition there opens read-only (Phase 6 W5).
+  List<String> get libraryRoots {
+    final started = _started;
+    if (started == null) {
+      return const [];
+    }
+    final directory = started.serverDirectory;
+    final bin = started.bin;
+    return [
+      ?directory,
+      if (bin != null && bin.endsWith('/bin') && bin.length > 4)
+        bin.substring(0, bin.length - 4),
+    ];
+  }
+
   // -------------------------------------------------------------- documents
 
   /// Shows [path] to the server: `didOpen` with its whole [text] at the

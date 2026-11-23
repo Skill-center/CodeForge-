@@ -112,7 +112,7 @@ Two pages are built from `editor/`: the editor (CodeMirror 6 and its language pa
 | @codemirror/lang-markdown | 6.5.2 | MIT |
 | @codemirror/lang-python | 6.2.1 | MIT |
 | @codemirror/language | 6.13.1 | MIT |
-| @codemirror/lint | 6.9.7 | MIT |
+| @codemirror/lint | 6.9.8 | MIT |
 | @codemirror/search | 6.7.2 | MIT |
 | @codemirror/state | 6.7.6 | MIT |
 | @codemirror/streamparser | 6.0.0 | MIT |

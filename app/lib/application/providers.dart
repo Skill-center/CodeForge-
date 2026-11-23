@@ -17,6 +17,7 @@ import '../services/files/native/pigeon_storage_broker.dart';
 import '../services/files/project_storage.dart';
 import '../services/files/saf_file_service.dart';
 import '../services/files/storage_broker.dart';
+import '../services/lsp/library_files.dart';
 import '../services/lsp/native/pigeon_lsp_service.dart';
 import '../services/platform/app_directories.dart';
 import '../services/platform/backup_channel.dart';
@@ -153,6 +154,12 @@ final lspServiceProvider = Provider<LspService>((ref) {
   ref.onDispose(() => unawaited(service.dispose()));
   return service;
 });
+
+/// The language servers' own files (Phase 6 W5): a definition in Python's
+/// stubs or TypeScript's `lib.d.ts` opens read-only. Tests override this.
+final libraryFilesProvider = Provider<LibraryFiles>(
+  (ref) => const IoLibraryFiles(),
+);
 
 /// The sealed runtime, through the Kotlin runtime host (Phase 4 W3,
 /// docs/RUNTIME_INTEGRATION.md §3). Without a host (`flutter test`) every

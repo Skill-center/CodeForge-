@@ -25,7 +25,12 @@ declare global {
 const channel = window.CodeForgeBridge;
 const bridge = new Bridge((raw) => channel?.postMessage(raw));
 const parent = document.getElementById('editor') ?? document.body;
-const controller = new EditorController({ parent, emit: (type, payload) => bridge.emit(type, payload) });
+const controller = new EditorController({
+  parent,
+  emit: (type, payload) => bridge.emit(type, payload),
+  // Phase 6 W5: the language features ask the host through the bridge.
+  requests: bridge,
+});
 bridge.attach(controller);
 
 window.codeforge = Object.freeze({ receive: (raw: unknown) => bridge.receive(raw) });

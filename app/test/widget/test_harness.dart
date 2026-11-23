@@ -22,6 +22,7 @@ import 'package:codeforge/core/editor/journal.dart';
 import 'package:codeforge/design_system/theme/theme.dart';
 import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/fakes.dart';
+import 'package:codeforge/services/lsp/library_files.dart';
 import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
@@ -41,6 +42,7 @@ import '../support/fake_search_service.dart';
 import '../support/fake_storage_broker.dart';
 import '../support/fake_terminal_surface.dart';
 import '../support/memory_file_service.dart';
+import '../support/memory_library_files.dart';
 import '../support/memory_project_storage.dart';
 
 final class TestHarness {
@@ -59,6 +61,7 @@ final class TestHarness {
     FakeSearchService? search,
     TerminalService? terminal,
     LspService? lsp,
+    LibraryFiles? libraryFiles,
   }) : settingsStore = InMemorySettingsStore(
          settings ?? const AppSettings(welcomeSeen: true),
        ),
@@ -71,7 +74,8 @@ final class TestHarness {
        runtime = runtime ?? FakeRuntimeService(),
        search = search ?? FakeSearchService(),
        terminal = terminal ?? FakeTerminalService(),
-       lsp = lsp ?? FakeLspService() {
+       lsp = lsp ?? FakeLspService(),
+       libraryFiles = libraryFiles ?? MemoryLibraryFiles() {
     // A folder imported as a project lands in the project storage, as
     // Kotlin's import lands in the projects' folder (Phase 5 W4).
     broker?.onImport ??= (name, files) =>
@@ -122,6 +126,9 @@ final class TestHarness {
   /// scripted one.
   final LspService lsp;
 
+  /// The language servers' own files (Phase 6 W5).
+  final LibraryFiles libraryFiles;
+
   /// Every scripted terminal page created through this harness, newest last.
   final List<FakeTerminalSurface> terminalSurfaces = [];
 
@@ -159,6 +166,7 @@ final class TestHarness {
     searchServiceProvider.overrideWithValue(search),
     terminalServiceProvider.overrideWithValue(terminal),
     lspServiceProvider.overrideWithValue(lsp),
+    libraryFilesProvider.overrideWithValue(libraryFiles),
     // Where a device keeps the app's files: terminal links name files by
     // their absolute paths (Phase 5 W4).
     appFilesPathProvider.overrideWithValue(() async => filesPath),

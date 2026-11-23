@@ -43,6 +43,11 @@ export class ChangeBatcher {
     return this.pending.has(docId);
   }
 
+  /** [docId]'s edits not sent yet, composed; undefined when there are none. */
+  pendingChanges(docId: string): ChangeSet | undefined {
+    return this.pending.get(docId);
+  }
+
   flush(docId: string): void {
     const changes = this.pending.get(docId);
     if (changes === undefined) return;

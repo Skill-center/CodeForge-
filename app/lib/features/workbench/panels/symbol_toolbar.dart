@@ -14,8 +14,10 @@ import '../../../application/documents/document_controller.dart';
 import '../../../application/editor/editor_providers.dart';
 import '../../../application/editor/editor_status.dart';
 import '../../../application/keyboard_state.dart';
+import '../../../application/lsp/lsp_controller.dart';
 import '../../../application/settings_controller.dart';
 import '../../../core/editor/toolbar_keys.dart';
+import '../../../core/lsp/lsp_models.dart';
 import '../../../design_system/components/workbench_chrome.dart';
 import '../../../design_system/tokens/icons.dart';
 import '../../../services/settings/settings_model.dart';
@@ -31,11 +33,21 @@ class EditorSymbolToolbar extends ConsumerWidget {
     final keyboardUp = ref.watch(softKeyboardVisibleProvider);
     final docId = active?.docId;
     final live = docId != null && status.focused;
+    // The document's language server is on (Phase 6 W5).
+    final server = active == null
+        ? null
+        : LspServerId.forLanguage(active.language);
+    final serverOn = ref.watch(
+      lspControllerProvider.select(
+        (s) => server != null && s.available && s.isOn(server),
+      ),
+    );
 
     bool enabled(ToolbarKey key) => switch (key.kind) {
       ToolbarKeyKind.undo => live && status.canUndo(docId),
       ToolbarKeyKind.redo => live && status.canRedo(docId),
       ToolbarKeyKind.hideKeyboard => keyboardUp || status.focused,
+      ToolbarKeyKind.definition => live && serverOn,
       _ => live,
     };
 
@@ -94,4 +106,5 @@ IconData? _iconFor(ToolbarKeyKind kind) => switch (kind) {
   ToolbarKeyKind.down => CfIcons.keyboardArrowDown,
   ToolbarKeyKind.right => CfIcons.keyboardArrowRight,
   ToolbarKeyKind.hideKeyboard => CfIcons.keyboardHide,
+  ToolbarKeyKind.definition => CfIcons.code,
 };

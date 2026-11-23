@@ -18,6 +18,7 @@ import '../../application/editor/editor_providers.dart';
 import '../../application/editor/find_controller.dart';
 import '../../application/file_watch_controller.dart';
 import '../../application/lsp/lsp_controller.dart';
+import '../../application/lsp/lsp_features.dart';
 import '../../application/run/run_controller.dart';
 import '../../application/runtime_controller.dart';
 import '../../application/shell_controller.dart';
@@ -42,12 +43,15 @@ import '../../services/shell/shell_state.dart';
 import '../palette/command_palette.dart';
 import 'editor_actions.dart';
 import 'file_actions.dart';
+import 'library_file_sheet.dart';
 import 'panels/editor_pane.dart';
 import 'panels/explorer_panel.dart';
 import 'panels/placeholder_panels.dart';
 import 'panels/run_panel.dart';
 import 'panels/search_panel.dart';
 import 'panels/terminal_pane.dart';
+import 'problems_sheet.dart';
+import 'rename_dialog.dart';
 
 const List<CfActivity> _activities = [
   CfActivity(id: 'explorer', icon: CfIcons.folder, label: 'Files'),
@@ -81,6 +85,11 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     with WidgetsBindingObserver {
   StreamSubscription<WorkbenchIntent>? _intents;
 
+  /// The language features (Phase 6 W5) while the workbench is shown: the
+  /// page's requests are answered, diagnostics shown, and the renames and
+  /// read-only definitions they ask for appear here.
+  final List<ProviderSubscription<Object?>> _languageFeatures = [];
+
   /// Rotating swaps the portrait layout for the docked one. With this key
   /// the editor pane moves across instead of being rebuilt, so the page
   /// keeps every document's undo history and does not reload. Owned by
@@ -98,6 +107,19 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     // Shortcuts forwarded by the editor page and palette commands arrive
     // as intents; this screen can show the dialogs they need.
     _intents = ref.read(workbenchIntentsProvider).stream.listen(_onIntent);
+    _languageFeatures.addAll([
+      ref.listenManual(lspFeaturesProvider, (_, _) {}),
+      ref.listenManual(pendingRenameProvider, (_, next) {
+        if (next != null) {
+          _askRename();
+        }
+      }),
+      ref.listenManual(libraryViewProvider, (_, next) {
+        if (next != null) {
+          _showLibrary();
+        }
+      }),
+    ]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(shellControllerProvider.notifier).setLastRoute('/workspace');
       _ensureWorkspace();
@@ -110,8 +132,30 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
   @override
   void dispose() {
     unawaited(_intents?.cancel());
+    for (final subscription in _languageFeatures) {
+      subscription.close();
+    }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// The rename the page asked for (Phase 6 W5): its new name, then the
+  /// rename across files.
+  void _askRename() {
+    final request = ref.read(pendingRenameProvider.notifier).take();
+    if (request == null || !mounted) {
+      return;
+    }
+    unawaited(renameSymbol(context, ref, request));
+  }
+
+  /// A definition in a server's own files, read-only (Phase 6 W5).
+  void _showLibrary() {
+    final view = ref.read(libraryViewProvider.notifier).take();
+    if (view == null || !mounted) {
+      return;
+    }
+    unawaited(showLibraryFile(context, view));
   }
 
   @override
@@ -225,6 +269,21 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         unawaited(_runProject());
       case WorkbenchIntent.stopRun:
         unawaited(ref.read(runControllerProvider.notifier).stopLatest());
+      case WorkbenchIntent.problems:
+        unawaited(showProblemsSheet(context));
+      case WorkbenchIntent.goToDefinition:
+      case WorkbenchIntent.renameSymbol:
+      case WorkbenchIntent.showHover:
+        // The page asks the server at its cursor (Phase 6 W5).
+        if (active != null) {
+          unawaited(
+            ref.read(editorHostProvider).exec(switch (intent) {
+              WorkbenchIntent.goToDefinition => 'goToDefinition',
+              WorkbenchIntent.renameSymbol => 'renameSymbol',
+              _ => 'showHover',
+            }),
+          );
+        }
     }
   }
 
@@ -704,7 +763,9 @@ class _StatusStripRow extends ConsumerWidget {
         : LspServerId.forLanguage(activeDoc.language);
     final serverStatus = ref.watch(
       lspControllerProvider.select(
-        (s) => server == null || !s.available ? null : s.statusOf(server),
+        (s) => server == null || !s.available || !s.isOn(server)
+            ? null
+            : s.statusOf(server),
       ),
     );
     // What the runtime can do with the document's language (Phase 4 W4):
@@ -746,8 +807,10 @@ class _StatusStripRow extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _RunChip(onTap: onRunChip),
-                  if (server != null && serverStatus != null)
+                  if (server != null && serverStatus != null) ...[
+                    if (activeDoc != null) _ProblemsChip(path: activeDoc.path),
                     _LanguageServerChip(server: server, status: serverStatus),
+                  ],
                   if (activeDoc != null) ...[
                     CfStatusChip(
                       key: const ValueKey('status_language'),
@@ -838,6 +901,42 @@ class _LanguageServerChip extends ConsumerWidget {
     );
   }
 }
+
+/// The active file's problems (Phase 6 W5): how many its server found, the
+/// worst first; a tap opens the Problems sheet.
+class _ProblemsChip extends ConsumerWidget {
+  const _ProblemsChip({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = CfColors.of(context);
+    final counts = ref.watch(
+      lspFeaturesProvider.select((s) => s.countsOf(path)),
+    );
+    final (icon, color) = counts.errors > 0
+        ? (CfIcons.error, colors.danger)
+        : counts.warnings > 0
+        ? (CfIcons.warning, colors.warning)
+        : counts.others > 0
+        ? (CfIcons.info, null)
+        : (CfIcons.check, null);
+    return CfStatusChip(
+      key: const ValueKey('status_problems'),
+      icon: icon,
+      label: '${counts.total}',
+      color: color,
+      tooltip: problemsTooltip(counts),
+      onTap: () => unawaited(showProblemsSheet(context)),
+    );
+  }
+}
+
+/// What the problems chip's tooltip says.
+String problemsTooltip(ProblemCounts counts) => counts.total == 0
+    ? 'No problems in this file. Tap for the open files\u2019 problems.'
+    : '${describeCounts(counts)} in this file. Tap to see the problems.';
 
 /// What the language server chip's tooltip says.
 String languageServerTooltip(LspServerId server, LspStatus status) {

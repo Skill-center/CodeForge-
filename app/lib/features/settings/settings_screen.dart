@@ -83,6 +83,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: const Icon(CfIcons.chevronRight, size: 18),
                 onTap: () => context.go('/settings/appearance'),
               ),
+              // Phase 6 W5: the language servers.
+              CfSettingsTile(
+                key: const ValueKey('settings_editor'),
+                leading: const Icon(CfIcons.code),
+                title: 'Editor',
+                subtitle: 'Language servers: completion, problems, rename',
+                trailing: const Icon(CfIcons.chevronRight, size: 18),
+                onTap: () => context.go('/settings/editor'),
+              ),
               CfSettingsTile(
                 key: const ValueKey('settings_reduced_motion'),
                 leading: const Icon(CfIcons.motionPhotosOff),

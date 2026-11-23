@@ -1,4 +1,4 @@
-import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import { acceptCompletion, closeBrackets, closeBracketsKeymap, startCompletion } from '@codemirror/autocomplete';
 import {
   cursorCharLeft,
   cursorCharRight,
@@ -11,6 +11,7 @@ import {
   historyKeymap,
   indentLess,
   indentMore,
+  isolateHistory,
   redo,
   redoDepth,
   selectAll,
@@ -31,6 +32,7 @@ import {
   selectSelectionMatches,
   setSearchQuery,
 } from '@codemirror/search';
+import { setDiagnostics } from '@codemirror/lint';
 import {
   type ChangeSet,
   Compartment,
@@ -39,6 +41,7 @@ import {
   type Extension,
   Facet,
   type StateEffect,
+  Transaction,
 } from '@codemirror/state';
 import {
   drawSelection,
@@ -57,7 +60,9 @@ import type {
   AppShortcut,
   ChangeSetJson,
   ConfigurePayload,
+  DiagnosticItem,
   DocOpenPayload,
+  DocumentEdits,
   EditorCommand,
   EditorMessageType,
   EditorToHost,
@@ -74,6 +79,8 @@ import { cursorLineHighlight } from './active_line';
 import { browserScheduler, ChangeBatcher, type Scheduler } from './batcher';
 import { insertIndent } from './indent';
 import { languageExtension } from './languages';
+import { type LanguageHost, LanguageLayer, toLintDiagnostic } from './lsp';
+import type { PageRequester } from './requests';
 import {
   countMatches,
   isSearchOpen,
@@ -107,7 +114,12 @@ export interface ControllerOptions {
   viewStateDelayMs?: number;
   /** Search counts are recomputed at most once per window. */
   searchStateDelayMs?: number;
+  /** The page's own requests to the host (Phase 6 W5: language features). */
+  requests?: PageRequester | null;
 }
+
+/** How many sent batches a document remembers, to map diagnostics from (W5). */
+const RECENT_BATCHES = 32;
 
 interface Config {
   palette: Palette;
@@ -128,13 +140,15 @@ interface DocEntry {
   /** Scroll position requested by doc.open, applied on first activation. */
   pendingScrollTop: number | null;
   history: { canUndo: boolean; canRedo: boolean } | null;
+  /** The newest batches sent, by the version each made (`diag.set` maps from them). */
+  recent: Array<{ version: number; changes: ChangeSet }>;
 }
 
 /** Tags each document's state with its id, so updates can be attributed. */
 const docIdFacet = Facet.define<string, string>({ combine: (values) => values[0] ?? '' });
 
-/** Opening and closing the search session needs the controller. */
-type ViewCommand = Exclude<EditorCommand, 'openSearch' | 'closeSearch'>;
+/** Opening and closing the search session, and the language features, need the controller. */
+type ViewCommand = Exclude<EditorCommand, 'openSearch' | 'closeSearch' | 'goToDefinition' | 'renameSymbol' | 'showHover'>;
 
 const COMMANDS: Record<ViewCommand, (view: EditorView) => boolean> = {
   undo,
@@ -155,6 +169,8 @@ const COMMANDS: Record<ViewCommand, (view: EditorView) => boolean> = {
   findPrevious: withValidQuery(findPrevious),
   replaceNext: withValidQuery(replaceNext),
   replaceAll: withValidQuery(replaceAll),
+  startCompletion,
+  acceptCompletion,
   focus: (view) => {
     view.focus();
     return true;
@@ -190,15 +206,17 @@ function editableExtension(readOnly: boolean): Extension {
  * document's undo history, selection and scroll position, and avoids one
  * WebView per tab.
  */
-export class EditorController {
+export class EditorController implements LanguageHost {
   readonly view: EditorView;
+  readonly scheduler: Scheduler;
+  readonly requests: PageRequester | null;
 
   private readonly docs = new Map<string, DocEntry>();
   private activeId: string | null = null;
   private config: Config = { palette: DEFAULT_PALETTE, fontSize: 14, lineWrapping: false, tabSize: 4 };
   private configGen = 0;
   private readonly batcher: ChangeBatcher;
-  private readonly scheduler: Scheduler;
+  private readonly language: LanguageLayer;
   private readonly viewStateDelayMs: number;
   private viewStateTimer: unknown = null;
   private composing = false;
@@ -215,10 +233,13 @@ export class EditorController {
   private readonly wrapSlot = new Compartment();
   private readonly tabSlot = new Compartment();
   private readonly languageSlot = new Compartment();
+  private readonly featuresSlot = new Compartment();
   private readonly editableSlot = new Compartment();
 
   constructor(private readonly options: ControllerOptions) {
     this.scheduler = options.scheduler ?? browserScheduler;
+    this.requests = options.requests ?? null;
+    this.language = new LanguageLayer(this);
     this.viewStateDelayMs = options.viewStateDelayMs ?? 400;
     this.searchStateDelayMs = options.searchStateDelayMs ?? 100;
     this.batcher = new ChangeBatcher(
@@ -236,6 +257,20 @@ export class EditorController {
 
   hasDoc(docId: string): boolean {
     return this.docs.has(docId);
+  }
+
+  // ------------------------------------------------ LanguageHost (Phase 6 W5)
+
+  docIdOf(state: EditorState): string {
+    return state.facet(docIdFacet);
+  }
+
+  /** Sends [docId]'s pending edits, so the host has the text a request is about. */
+  syncedVersion(docId: string): number | null {
+    const entry = this.docs.get(docId);
+    if (!entry) return null;
+    this.batcher.flush(docId);
+    return entry.version;
   }
 
   /** Routes one validated host message; the return value becomes the response result. */
@@ -273,6 +308,15 @@ export class EditorController {
       }
       case 'search.set':
         return this.setSearch(payload as SearchPayload);
+      case 'diag.set': {
+        const p = payload as HostToEditor['diag.set'];
+        return this.setDiagnostics(p.docId, p.version, p.items);
+      }
+      case 'doc.applyEdits':
+        return this.applyEdits((payload as HostToEditor['doc.applyEdits']).documents);
+      case 'response':
+        // The bridge takes answers to the page's requests before this.
+        throw new EditorError('bad_payload', 'a response is not a command');
       default: {
         const unreachable: never = type;
         throw new EditorError('unknown_type', `unhandled type ${String(unreachable)}`);
@@ -310,6 +354,7 @@ export class EditorController {
       scroll: null,
       pendingScrollTop: p.scrollTop ?? null,
       history: null,
+      recent: [],
     };
     entry.state = EditorState.create({
       doc: p.text,
@@ -374,6 +419,7 @@ export class EditorController {
     const { anchor, head } = current.selection.main;
     entry.version = version;
     entry.history = null;
+    entry.recent = [];
     entry.configGen = this.configGen;
     entry.state = EditorState.create({
       doc: text,
@@ -397,7 +443,10 @@ export class EditorController {
     const entry = this.require(docId);
     if (entry.language === language) return;
     entry.language = language;
-    const effects = this.languageSlot.reconfigure(languageExtension(language));
+    const effects = [
+      this.languageSlot.reconfigure(languageExtension(language)),
+      this.featuresSlot.reconfigure(this.language.extensions(language)),
+    ];
     if (this.activeId === docId) {
       this.view.dispatch({ effects });
     } else {
@@ -445,9 +494,95 @@ export class EditorController {
 
   exec(command: EditorCommand): boolean {
     this.requireActive();
-    if (command === 'openSearch') return this.openSearch();
-    if (command === 'closeSearch') return this.closeSearch();
-    return COMMANDS[command](this.view);
+    const head = this.view.state.selection.main.head;
+    switch (command) {
+      case 'openSearch':
+        return this.openSearch();
+      case 'closeSearch':
+        return this.closeSearch();
+      case 'goToDefinition':
+        return this.language.goToDefinition(this.view, head);
+      case 'renameSymbol':
+        return this.language.renameSymbol(this.view, head);
+      case 'showHover':
+        return this.language.openMenuAt(this.view, head);
+      default:
+        return COMMANDS[command](this.view);
+    }
+  }
+
+  /**
+   * Shows [items], the host's diagnostics for [docId] at [version], in place
+   * of the ones before (Phase 6 W5). They are mapped through the edits made
+   * since: those sent after [version], and those not sent yet. A version the
+   * document can no longer map from is refused (`stale`); the host's next
+   * set, for a newer version, follows.
+   */
+  setDiagnostics(docId: string, version: number, items: DiagnosticItem[]): void {
+    const entry = this.require(docId);
+    const since = this.changesSince(entry, version);
+    if (since === undefined) {
+      throw new EditorError('stale', `document ${docId} cannot map diagnostics from version ${version}`);
+    }
+    const isActive = this.activeId === docId;
+    const state = isActive ? this.view.state : entry.state;
+    const baseLength = since ? since.length : state.doc.length;
+    const clamp = (n: number) => Math.min(n, baseLength);
+    const diagnostics = items.map((item) => {
+      const from = since ? since.mapPos(clamp(item.from), 1) : clamp(item.from);
+      const to = since ? since.mapPos(clamp(item.to), -1) : clamp(item.to);
+      return toLintDiagnostic(item, from, Math.max(from, to));
+    });
+    const spec = setDiagnostics(state, diagnostics);
+    if (isActive) {
+      this.view.dispatch(spec);
+    } else {
+      entry.state = entry.state.update(spec).state;
+    }
+  }
+
+  /**
+   * Applies edits to open documents (Phase 6 W5: a rename), each document's
+   * as one undoable change. All or nothing: every document must still be at
+   * its base version with no edits waiting, and every edit inside it, or
+   * nothing changes. The changes go to the host (`doc.changed`) before the
+   * answer, so the host has them when it hears the rename is done.
+   */
+  applyEdits(documents: DocumentEdits[]): void {
+    const seen = new Set<string>();
+    for (const d of documents) {
+      const entry = this.require(d.docId);
+      if (seen.has(d.docId)) throw new EditorError('bad_payload', `document ${d.docId} is listed twice`);
+      seen.add(d.docId);
+      if (entry.version !== d.baseVersion || this.batcher.hasPending(d.docId)) {
+        throw new EditorError('stale', `document ${d.docId} is at version ${entry.version}, not ${d.baseVersion}`);
+      }
+      if (entry.readOnly) throw new EditorError('bad_payload', `document ${d.docId} is read-only`);
+      const length = (this.activeId === d.docId ? this.view.state : entry.state).doc.length;
+      let end = 0;
+      for (const edit of d.edits) {
+        if (edit.from < end || edit.to < edit.from || edit.to > length) {
+          throw new EditorError('bad_payload', `document ${d.docId}: edits must be sorted, apart and inside the text`);
+        }
+        end = edit.to;
+      }
+    }
+    for (const d of documents) {
+      if (d.edits.length === 0) continue;
+      const entry = this.require(d.docId);
+      const spec = {
+        changes: d.edits.map((edit) => ({ from: edit.from, to: edit.to, insert: edit.insert })),
+        annotations: [isolateHistory.of('full'), Transaction.userEvent.of('edit.rename')],
+      };
+      if (this.activeId === d.docId) {
+        this.view.dispatch(spec);
+      } else {
+        const tr = entry.state.update(spec);
+        entry.state = tr.state;
+        this.batcher.add(d.docId, tr.changes);
+      }
+      this.batcher.flush(d.docId);
+    }
   }
 
   gotoLine(line: number, column?: number): { line: number; position: number } {
@@ -490,6 +625,24 @@ export class EditorController {
   }
 
   // ---------------------------------------------------------------- internals
+
+  /**
+   * The edits since [version]: the batches sent after it and those not sent
+   * yet; null when there are none, undefined when [version] is too old to
+   * map from (or newer than the document).
+   */
+  private changesSince(entry: DocEntry, version: number): ChangeSet | null | undefined {
+    if (version > entry.version) return undefined;
+    let since: ChangeSet | null = null;
+    if (version < entry.version) {
+      const first = entry.recent.findIndex((batch) => batch.version === version + 1);
+      if (first < 0) return undefined;
+      for (const batch of entry.recent.slice(first)) since = since ? since.compose(batch.changes) : batch.changes;
+    }
+    const pending = this.batcher.pendingChanges(entry.id);
+    if (pending) since = since ? since.compose(pending) : pending;
+    return since;
+  }
 
   private active(): DocEntry | null {
     return this.activeId === null ? null : (this.docs.get(this.activeId) ?? null);
@@ -577,6 +730,8 @@ export class EditorController {
         { key: 'Tab', run: insertIndent, shift: indentLess },
       ]),
       this.languageSlot.of(languageExtension(entry.language)),
+      // Phase 6 W5: completion, diagnostics, the symbol menu.
+      this.featuresSlot.of(this.language.extensions(entry.language)),
       this.editableSlot.of(editableExtension(entry.readOnly)),
       ...this.configExtensions(),
       // Code is not prose: keep the IME from autocorrecting or capitalising.
@@ -621,6 +776,8 @@ export class EditorController {
       { key: 'Mod-g', run: fire('gotoLine'), preventDefault: true },
       // The app's Go to File (Phase 3 W4).
       { key: 'Mod-p', run: fire('goToFile'), preventDefault: true },
+      // The Problems sheet (Phase 6 W5), with VS Code's key.
+      { key: 'Mod-Shift-m', run: fire('problems'), preventDefault: true },
     ];
   }
 
@@ -666,6 +823,8 @@ export class EditorController {
     if (!entry) return;
     const baseVersion = entry.version;
     entry.version += 1;
+    entry.recent.push({ version: entry.version, changes });
+    if (entry.recent.length > RECENT_BATCHES) entry.recent.shift();
     this.options.emit('doc.changed', {
       docId,
       baseVersion,

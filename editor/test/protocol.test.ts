@@ -3,8 +3,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { type Direction, MAX_MESSAGE_CHARS, PROTOCOL_VERSION } from '../src/protocol/types';
-import { parseMessage, validateMessage } from '../src/protocol/validate';
+import { type Direction, MAX_MESSAGE_CHARS, PAGE_REQUEST_TYPES, type PageRequestType, PROTOCOL_VERSION } from '../src/protocol/types';
+import { PAGE_RESULTS, parseMessage, validateMessage, validateResult } from '../src/protocol/validate';
 import { FIXTURES, readFixtures } from './helpers';
 
 /**
@@ -23,15 +23,21 @@ function appTypes(direction: Direction): string[] {
 
 interface Valid {
   description: string;
+  /** The page request a `response` answers: its result is checked too (Phase 6 W5). */
+  answers?: PageRequestType;
   message: unknown;
 }
 interface Invalid {
   description: string;
   direction: Direction;
+  /** The envelope is valid; the result for this request is not. */
+  answers?: PageRequestType;
   raw?: string;
   message?: unknown;
   error: string;
 }
+
+const resultOf = (message: unknown): unknown => (message as { payload: { result?: unknown } }).payload.result;
 
 describe('protocol fixtures (shared with the Dart validator)', () => {
   const groups: Array<[string, Direction]> = [
@@ -43,6 +49,7 @@ describe('protocol fixtures (shared with the Dart validator)', () => {
       it(`accepts ${direction} ${name}: ${data.description}`, () => {
         const result = parseMessage(JSON.stringify(data.message), direction);
         expect(result).toMatchObject({ ok: true });
+        if (data.answers !== undefined) expect(validateResult(data.answers, resultOf(data.message))).toBeNull();
       });
     }
   }
@@ -51,6 +58,13 @@ describe('protocol fixtures (shared with the Dart validator)', () => {
     it(`rejects ${name} with ${data.error}: ${data.description}`, () => {
       const raw = data.raw ?? JSON.stringify(data.message);
       const result = parseMessage(raw, data.direction);
+      if (data.answers !== undefined) {
+        // The envelope passes; the page refuses the result as bad_payload.
+        expect(result.ok).toBe(true);
+        expect(data.error).toBe('bad_payload');
+        expect(validateResult(data.answers, resultOf(data.message))).not.toBeNull();
+        return;
+      }
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.code).toBe(data.error);
     });
@@ -76,6 +90,36 @@ describe('protocol fixtures (shared with the Dart validator)', () => {
       expect(answer('no.such')).toBe('unknown_type');
     });
   }
+});
+
+describe('page requests (Phase 6 W5)', () => {
+  it('every page request has a result check, and every check a request', () => {
+    expect(Object.keys(PAGE_RESULTS).sort()).toEqual([...PAGE_REQUEST_TYPES].sort());
+  });
+
+  it('every page request and every result check has a fixture', () => {
+    const sent = new Set(
+      readFixtures<Valid>('protocol/valid/editor_to_host').map((f) => (f.data.message as { type: string }).type),
+    );
+    const answered = new Set(readFixtures<Valid>('protocol/valid/host_to_editor').map((f) => f.data.answers));
+    for (const type of PAGE_REQUEST_TYPES) {
+      expect(sent.has(type), type).toBe(true);
+      expect(answered.has(type), type).toBe(true);
+    }
+  });
+
+  it('caps a completion answer at 200 items', () => {
+    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ label: `item${i}` }));
+    expect(validateResult('lsp.complete', { resultId: 'c1', incomplete: true, items: items(200) })).toBeNull();
+    expect(validateResult('lsp.complete', { resultId: 'c1', incomplete: true, items: items(201) })).toContain('too many');
+  });
+
+  it('caps a document at 1000 diagnostics', () => {
+    const items = (n: number) => Array.from({ length: n }, () => ({ from: 0, to: 1, severity: 'error', message: 'x' }));
+    const msg = (n: number) => ({ v: 1, id: 'h1', type: 'diag.set', payload: { docId: 'd1', version: 1, items: items(n) } });
+    expect(validateMessage(msg(1000), 'host-to-editor').ok).toBe(true);
+    expect(validateMessage(msg(1001), 'host-to-editor')).toMatchObject({ ok: false, code: 'bad_payload' });
+  });
 });
 
 describe('protocol details', () => {

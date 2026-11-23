@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/logging/logger.dart';
+import '../core/lsp/lsp_models.dart';
 import '../services/settings/settings_model.dart';
 import 'providers.dart';
 
@@ -64,6 +65,13 @@ final class SettingsController extends Notifier<AppSettings> {
 
   Future<void> setSaveBeforeRun(bool value) =>
       _persist(state.copyWith(saveBeforeRun: value));
+
+  /// Turns [server]'s language server on or off (Phase 6 W5).
+  Future<void> setLanguageServer(LspServerId server, bool on) =>
+      _persist(switch (server) {
+        LspServerId.pyright => state.copyWith(pythonServer: on),
+        LspServerId.typescript => state.copyWith(typescriptServer: on),
+      });
 }
 
 final settingsControllerProvider =

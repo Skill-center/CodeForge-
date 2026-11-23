@@ -118,6 +118,21 @@ final class FakeEditorSurface implements EditorSurface {
 
   /// Documents whose text the host replaced whole (`doc.replace`).
   int replaces = 0;
+
+  /// Each document's diagnostics as the host last set them (`diag.set`,
+  /// Phase 6 W5), with the version they were sent for.
+  final Map<String, ({int version, List<Map<String, Object?>> items})>
+  diagnostics = {};
+
+  /// Each document's rename edits, one entry per `doc.applyEdits` that
+  /// changed it: what an undo would take back (Phase 6 W5).
+  final Map<String, List<String>> undoStack = {};
+
+  /// The page's own requests waiting for the host's answer (Phase 6 W5).
+  final Map<String, Completer<Map<String, Object?>>> _asked = {};
+
+  /// The id of the newest request the page sent ([request]).
+  String? lastRequestId;
   String? loadedHtml;
   int loads = 0;
   int reloads = 0;
@@ -153,6 +168,8 @@ final class FakeEditorSurface implements EditorSurface {
 
   void _startPage() {
     documents.clear();
+    diagnostics.clear();
+    undoStack.clear();
     activeDocId = null;
     configuration = null;
     searchSpec = null;
@@ -284,6 +301,28 @@ final class FakeEditorSurface implements EditorSurface {
         _gotoLine(id, payload);
       case 'search.set':
         _setSearch(id, payload);
+      case 'diag.set':
+        _withDocument(id, payload, (docId, doc) {
+          final version = payload.integer('version');
+          if (version > doc.version) {
+            _error(id, 'stale', 'document $docId is at ${doc.version}');
+            return;
+          }
+          diagnostics[docId] = (
+            version: version,
+            items: [
+              for (final item in payload.list('items'))
+                item! as Map<String, Object?>,
+            ],
+          );
+          _changed();
+          _ok(id);
+        });
+      case 'doc.applyEdits':
+        _applyEdits(id, payload);
+      case 'response':
+        // The host's answer to one of this page's requests.
+        _asked.remove(payload.string('re'))?.complete(payload);
       default:
         // doc.flush: edits are never held back here.
         _ok(id);
@@ -553,6 +592,110 @@ final class FakeEditorSurface implements EditorSurface {
       ..head = caret;
     _ok(id, {'inserted': true});
   }
+
+  /// Like the real page (Phase 6 W5): every document must be at its base
+  /// version, every edit inside it; then each changes as one undo step,
+  /// and its `doc.changed` goes out before the answer.
+  void _applyEdits(String id, Map<String, Object?> payload) {
+    final documentsEdits = [
+      for (final entry in payload.list('documents'))
+        entry! as Map<String, Object?>,
+    ];
+    for (final entry in documentsEdits) {
+      final docId = entry.string('docId');
+      final doc = documents[docId];
+      if (doc == null) {
+        _error(id, 'unknown_doc', 'no document $docId');
+        return;
+      }
+      if (doc.version != entry.integer('baseVersion')) {
+        _error(id, 'stale', 'document $docId is at version ${doc.version}');
+        return;
+      }
+      var end = 0;
+      for (final edit in entry.list('edits')) {
+        final e = edit! as Map<String, Object?>;
+        if (e.integer('from') < end ||
+            e.integer('to') < e.integer('from') ||
+            e.integer('to') > doc.text.length) {
+          _error(id, 'bad_payload', 'edits out of order');
+          return;
+        }
+        end = e.integer('to');
+      }
+    }
+    for (final entry in documentsEdits) {
+      final docId = entry.string('docId');
+      final doc = documents[docId]!;
+      final before = doc.text;
+      final edits = [
+        for (final edit in entry.list('edits')) edit! as Map<String, Object?>,
+      ];
+      if (edits.isEmpty) {
+        continue;
+      }
+      final out = StringBuffer();
+      final changes = <Object?>[];
+      var at = 0;
+      for (final e in edits) {
+        final from = e.integer('from');
+        final to = e.integer('to');
+        final insert = e.string('insert');
+        if (from > at) {
+          changes.add(from - at);
+        }
+        changes.add([to - from, ...insert.split('\n')]);
+        out
+          ..write(before.substring(at, from))
+          ..write(insert);
+        at = to;
+      }
+      if (before.length > at) {
+        changes.add(before.length - at);
+      }
+      out.write(before.substring(at));
+      doc.text = out.toString();
+      (undoStack[docId] ??= []).add(before);
+      final baseVersion = doc.version;
+      doc.version += 1;
+      emit('doc.changed', {
+        'docId': docId,
+        'baseVersion': baseVersion,
+        'version': doc.version,
+        'lengthBefore': before.length,
+        'lengthAfter': doc.text.length,
+        'changes': changes,
+      });
+    }
+    _changed();
+    _ok(id);
+  }
+
+  /// Undoes [docId]'s last rename edit, as the page's undo does: the whole
+  /// change at once, sent as `doc.changed`.
+  void undoRename(String docId) {
+    final doc = documents[docId]!;
+    final previous = undoStack[docId]!.removeLast();
+    _change(docId, at: 0, delete: doc.text.length, insert: previous);
+  }
+
+  /// Sends one of the page's requests (Phase 6 W5: `lsp.*`) and completes
+  /// with the host's answer: the `response` payload.
+  Future<Map<String, Object?>> request(
+    String type,
+    Map<String, Object?> payload,
+  ) {
+    _nextId += 1;
+    final id = 'e$_nextId';
+    lastRequestId = id;
+    final answer = Completer<Map<String, Object?>>();
+    _asked[id] = answer;
+    emitRaw(BridgeMessage(id: id, type: type, payload: payload).encode());
+    return answer.future;
+  }
+
+  /// The page gives up on request [id] (`lsp.cancel`).
+  void cancelRequest(String id) => emit('lsp.cancel', {'re': id});
 
   // ------------------------------------------------------------ test controls
 

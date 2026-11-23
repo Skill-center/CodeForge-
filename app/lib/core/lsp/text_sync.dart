@@ -57,6 +57,22 @@ final class LineIndex {
     return (start + position.character).clamp(start, end);
   }
 
+  /// The UTF-16 offset of [position] when it lies in the text, or null: a
+  /// line past the end, or a character past its line's end (Phase 6 W5: a
+  /// rename's edits must fit the text exactly, or the text changed since the
+  /// server read it).
+  int? exactOffsetAt(LspPosition position) {
+    if (position.line >= _starts.length) {
+      return null;
+    }
+    final start = _starts[position.line];
+    final end = position.line + 1 < _starts.length
+        ? _contentEnd(_starts[position.line + 1])
+        : text.length;
+    final offset = start + position.character;
+    return offset <= end ? offset : null;
+  }
+
   /// Where the line that ends just before [nextStart] ends, its break left
   /// out.
   int _contentEnd(int nextStart) {

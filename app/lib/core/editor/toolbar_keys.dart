@@ -4,6 +4,8 @@
 /// §9).
 library;
 
+import '../lsp/lsp_models.dart';
+
 /// What a key does when it is tapped or long-pressed.
 sealed class ToolbarAction {
   const ToolbarAction();
@@ -73,6 +75,9 @@ enum ToolbarKeyKind {
   down,
   right,
   hideKeyboard,
+
+  /// Go to definition (Phase 6 W5): for a language a server analyses.
+  definition,
 }
 
 /// One key of the toolbar.
@@ -226,6 +231,16 @@ const ToolbarKey redoKey = ToolbarKey(
   semanticLabel: 'Redo',
   action: RunCommand('redo'),
   kind: ToolbarKeyKind.redo,
+);
+
+/// Go to definition at the cursor (Phase 6 W5, PHASE_6_PLAN W5: from the
+/// symbol toolbar, as from F12 and the long-press menu).
+const ToolbarKey definitionKey = ToolbarKey(
+  id: 'definition',
+  label: 'Definition',
+  semanticLabel: 'Go to definition',
+  action: RunCommand('goToDefinition'),
+  kind: ToolbarKeyKind.definition,
 );
 
 const List<ToolbarKey> arrowKeys = [
@@ -442,6 +457,13 @@ List<ToolbarKey> toolbarKeysFor({
     indentKey,
     if (!compact) outdentKey,
     for (final token in shown) symbolKey(token),
-    if (!compact) ...[undoKey, redoKey, ...arrowKeys],
+    if (!compact) ...[
+      undoKey,
+      redoKey,
+      // A language a server analyses (Phase 6 W5).
+      if (language != null && LspServerId.forLanguage(language) != null)
+        definitionKey,
+      ...arrowKeys,
+    ],
   ];
 }

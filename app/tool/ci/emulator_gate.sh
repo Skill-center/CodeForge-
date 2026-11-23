@@ -2061,6 +2061,56 @@ cat "$RESULTS/run.txt" >> "$RESULTS/attempts.txt"
 [ "$run_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
+echo "::group::Language servers (Phase 6 W5, G5: diagnostics underlined, listed and cleared; completion, hover and definition through the page; a rename across files with undo; TypeScript; a killed server back with its documents; three restarts, then Restart; a folder through its copy)"
+# integration_test/lsp_test.dart, in the build with the x86_64 payload,
+# which carries the language servers (native/runtime-core/build.gradle.kts):
+# the editor's language features in the real app on the sealed runtime,
+# with the real servers and the real page. Only this group turns the
+# servers on (pumpRealApp(languageServers: true)); the others measure what
+# they measured before. Pyright and TypeScript each: errors underlined,
+# listed and cleared, completion taken through the page, hover, definition
+# into another file, a rename across three files through the dialog with
+# one undo per open file; Pyright killed with SIGKILL through the runtime,
+# back with its documents; killed again until it gives up and Restart is
+# offered, the editor still editing; then the gate folder, picked in
+# Android's picker (folder_driver answers it), analysed through its copy.
+# The LSP_GATE lines are the evidence; their times are recorded, never
+# judged here (W6 judges the budgets).
+lsp_group() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  folder_fixture_push lsp_fixture.txt || return 1
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=30m ITEST_ATTEMPTS=1 run_itest lsp_itest integration_test/lsp_test.dart || return 1
+}
+FOLDER_UI="$RESULTS/lsp_ui.xml" folder_driver > "$RESULTS/lsp_driver.txt" 2>&1 &
+lsp_driver_pid=$!
+lsp_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if lsp_group; then
+    lsp_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "lsp attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+kill "$lsp_driver_pid" 2>/dev/null || true
+wait "$lsp_driver_pid" 2>/dev/null || true
+"$ADB" logcat -d -s CodeForgeLsp:I CodeForgeStorage:I < /dev/null > "$RESULTS/lsp_logcat.txt" 2>&1 || true
+{
+  echo "lsp_group=$([ "$lsp_ok" = "1" ] && echo pass || echo fail)"
+  echo "lsp_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/lsp_driver.txt")"
+  grep -oE 'LSP_GATE .*' "$RESULTS/lsp_itest.txt" 2>/dev/null | sed 's/^LSP_GATE /lsp: /'
+} | tee "$RESULTS/lsp.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/lsp.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no gate folders, and no app.
+"$ADB" shell rm -rf "$FOLDER_ROOT/$GATE_FOLDER" "$FOLDER_ROOT/$GATE_OUTSIDE" < /dev/null
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$lsp_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
 echo "::group::Sessions (Phase 5 W5, G5: the service with the first session and not after the last, memory pressure, 5 minutes in the background, process death, tombstones)"
 # integration_test/sessions_a_test.dart and sessions_b_test.dart, in the
 # build with the x86_64 payload (still selected from the runtime group).

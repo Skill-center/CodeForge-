@@ -2,8 +2,10 @@
 /// controller, the scripted editor page and the scripted host, a document of
 /// a server's languages is shown to it once activated, its typing follows as
 /// ranges, its save and its close too; the watcher's listings become
-/// `didChangeWatchedFiles`; nothing starts without the runtime or in a
-/// folder; and the status, Restart included, is the controller's.
+/// `didChangeWatchedFiles`; nothing starts without the runtime; and the
+/// status, Restart included, is the controller's. Since Phase 6 W5 a folder
+/// is analysed through its copy, brought up to date first, and a server
+/// turned off in Settings → Editor never starts.
 library;
 
 import 'package:codeforge/application/documents/document_controller.dart';
@@ -18,6 +20,7 @@ import 'package:codeforge/core/lsp/text_sync.dart';
 import 'package:codeforge/services/contracts.dart';
 import 'package:codeforge/services/files/demo_workspace.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
+import 'package:codeforge/services/settings/settings_model.dart';
 import 'package:codeforge/services/settings/settings_store.dart';
 import 'package:codeforge/services/shell/shell_state.dart';
 import 'package:codeforge/services/storage/session_store.dart';
@@ -27,6 +30,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/fake_editor_surface.dart';
 import '../support/fake_lsp_clock.dart';
 import '../support/fake_runtime_service.dart';
+import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';
 import '../support/scripted_lsp_service.dart';
 
@@ -41,10 +45,18 @@ Future<void> _drain() async {
 Map<String, Object?> _map(Object? value) => value! as Map<String, Object?>;
 
 final class _World {
-  _World({bool runtimeReady = true, ShellState? shell}) {
+  _World({
+    bool runtimeReady = true,
+    ShellState? shell,
+    FakeStorageBroker? broker,
+    AppSettings? settings,
+  }) : broker = broker ?? FakeStorageBroker() {
     container = ProviderContainer.test(
       overrides: [
-        settingsStoreProvider.overrideWithValue(InMemorySettingsStore()),
+        settingsStoreProvider.overrideWithValue(
+          InMemorySettingsStore(settings),
+        ),
+        storageBrokerProvider.overrideWithValue(this.broker),
         shellStateStoreProvider.overrideWithValue(
           InMemoryShellStateStore(shell),
         ),
@@ -63,6 +75,7 @@ final class _World {
   }
 
   final MemoryFileService files = MemoryFileService();
+  final FakeStorageBroker broker;
   final FakeLspClock clock = FakeLspClock();
   late final ScriptedLspService lsp = ScriptedLspService(clock: clock);
   final List<FakeEditorSurface> pages = [];
@@ -255,16 +268,58 @@ void main() {
     );
   });
 
-  test('a folder from shared storage gets no server yet', () async {
+  test('a folder from shared storage is analysed through its copy, brought '
+      'up to date first (Phase 6 W5)', () async {
+    const folder = FolderLocation(treeUri: 'content://tree/x', name: 'X');
+    final broker = FakeStorageBroker()
+      ..addTree(folder.treeUri, 'X', files: {'app.py': 'print(1)\n'});
     final world = _World(
-      shell: const ShellState(
-        workspace: FolderLocation(treeUri: 'content://tree/x', name: 'X'),
-      ),
+      shell: const ShellState(workspace: folder),
+      broker: broker,
     );
+    await world.start();
+    expect(broker.synced, [folder.id]);
+    expect(world.state.offReason, isNull);
+    await world.documents.open('app.py');
+    await _drain();
+    expect(world.lsp.starts.single.workspace, LspWorkspace.copy(folder.id));
+    final open = world.lsp.sent[world.lsp.latest]!.firstWhere(
+      (m) => m['method'] == 'textDocument/didOpen',
+    );
+    expect(
+      _map(_map(open['params'])['textDocument'])['uri'],
+      'file://$scriptedFilesRoot/copies/${folder.id}/app.py',
+    );
+  });
+
+  test('a folder whose copy fails gets no server, and says why', () async {
+    const folder = FolderLocation(treeUri: 'content://tree/gone', name: 'G');
+    final world = _World(shell: const ShellState(workspace: folder));
     await world.start();
     await world.documents.open('app.py');
     await _drain();
     expect(world.lsp.starts, isEmpty);
-    expect(world.state.offReason, 'Not yet for folders from shared storage');
+    expect(
+      world.state.offReason,
+      startsWith('The folder could not be copied for analysis'),
+    );
+  });
+
+  test('a server turned off in Settings → Editor never starts '
+      '(Phase 6 W5)', () async {
+    final world = _World(settings: const AppSettings(pythonServer: false));
+    await world.start();
+    await world.documents.open('app.py');
+    await _drain();
+    expect(
+      world.lsp.starts.where((s) => s.server == LspServerId.pyright),
+      isEmpty,
+    );
+    expect(world.state.isOn(LspServerId.pyright), isFalse);
+    expect(
+      world.state.statusOf(LspServerId.pyright).reason,
+      'Turned off in Settings → Editor',
+    );
+    expect(world.state.isOn(LspServerId.typescript), isTrue);
   });
 }

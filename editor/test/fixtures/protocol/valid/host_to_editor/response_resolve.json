@@ -1,0 +1,27 @@
+{
+  "description": "A completion's documentation and the import that comes with it",
+  "answers": "lsp.resolve",
+  "message": {
+    "v": 1,
+    "id": "h25",
+    "type": "response",
+    "payload": {
+      "re": "e42",
+      "ok": true,
+      "result": {
+        "detail": "function greet(name: string): string",
+        "documentation": {
+          "kind": "markdown",
+          "value": "Says hello.\n\n```ts\ngreet('you')\n```"
+        },
+        "additionalEdits": [
+          {
+            "from": 0,
+            "to": 0,
+            "insert": "import { greet } from './people';\n"
+          }
+        ]
+      }
+    }
+  }
+}

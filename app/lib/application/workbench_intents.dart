@@ -29,6 +29,11 @@ enum WorkbenchIntent {
   runFile,
   runProject,
   stopRun,
+  // Language features (Phase 6 W5).
+  problems,
+  goToDefinition,
+  renameSymbol,
+  showHover,
 }
 
 /// Shortcut names the page forwards (protocol `appShortcuts`) → intents.
@@ -44,6 +49,7 @@ const Map<String, WorkbenchIntent> intentForShortcut = {
   'replace': WorkbenchIntent.replace,
   'gotoLine': WorkbenchIntent.gotoLine,
   'goToFile': WorkbenchIntent.goToFile,
+  'problems': WorkbenchIntent.problems,
 };
 
 /// A broadcast of intents. Nobody listening (the workbench is not on

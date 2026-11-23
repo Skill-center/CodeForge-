@@ -1,0 +1,56 @@
+{
+  "description": "The host's answer to lsp.complete",
+  "answers": "lsp.complete",
+  "message": {
+    "v": 1,
+    "id": "h23",
+    "type": "response",
+    "payload": {
+      "re": "e40",
+      "ok": true,
+      "result": {
+        "resultId": "c3",
+        "incomplete": false,
+        "triggerCharacters": [
+          ".",
+          "[",
+          "\"",
+          "'"
+        ],
+        "items": [
+          {
+            "label": "greet",
+            "kind": "function",
+            "detail": "(name: str) -> str",
+            "sortText": "09.9999.greet",
+            "edit": {
+              "from": 12,
+              "to": 14,
+              "insert": "greet"
+            },
+            "resolvable": true
+          },
+          {
+            "label": "Greeter",
+            "kind": "class",
+            "insert": "Greeter",
+            "additionalEdits": [
+              {
+                "from": 0,
+                "to": 0,
+                "insert": "from people import Greeter\n"
+              }
+            ]
+          },
+          {
+            "label": "@property",
+            "filterText": "property",
+            "kind": "keyword",
+            "deprecated": true,
+            "preselect": true
+          }
+        ]
+      }
+    }
+  }
+}

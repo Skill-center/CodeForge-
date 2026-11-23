@@ -45,13 +45,19 @@
 
 | Component | Choice | Verified version | Notes |
 |---|---|---|---|
-| Editor engine | **CodeMirror 6** (chosen: ADR-0004 Accepted 2026-11-06) | @codemirror/view **6.43.15**, state **6.7.6**, commands 6.11.1, language 6.13.1, search 6.7.2, autocomplete 6.20.4, @lezer/highlight 1.2.5, and the language packages for JavaScript 6.2.5, Python 6.2.1, JSON 6.0.2, HTML 6.4.12, CSS 6.3.1 and Markdown 6.5.2 | Mobile-native selection and IME, modular. As built, the shipped page with all of it is 285.1 KiB gzipped (budget 1.5 MB). It was chosen over Monaco on the emulator gate and the owner's low-end phone (PHASE_2_REPORT §7.1) |
+| Editor engine | **CodeMirror 6** (chosen: ADR-0004 Accepted 2026-11-06) | @codemirror/view **6.43.15**, state **6.7.6**, commands 6.11.1, language 6.13.1, search 6.7.2, autocomplete 6.20.4, lint **6.9.8** (since Phase 6 W5), @lezer/highlight 1.2.5, and the language packages for JavaScript 6.2.5, Python 6.2.1, JSON 6.0.2, HTML 6.4.12, CSS 6.3.1 and Markdown 6.5.2 | Mobile-native selection and IME, modular. As built, the shipped page with all of it is 285.1 KiB gzipped (budget 1.5 MB). It was chosen over Monaco on the emulator gate and the owner's low-end phone (PHASE_2_REPORT §7.1) |
 | Editor challenger | Monaco | 0.57.0 | Benchmarked in the Phase 2 gate; upstream states mobile browsers unsupported — uphill battle, evidence required to overturn CM6. As built (W3): an exact-pinned **dev** dependency of `editor/`, used only for the benchmark page (no web workers, in-process fallback); never part of the shipped editor page. Its bundled third-party notices (marked, DOMPurify) ship with the benchmark page |
 | Terminal frontend | **@xterm/xterm** | **6.0.0** + @xterm/addon-fit **0.11.0** + @xterm/addon-unicode11 **0.9.0** + @xterm/addon-webgl **0.19.0** (since Phase 5 W6) — exact pins, re-verified on npm (each is `latest`) | **Chosen 2026-11-12** by ADR-0006's rule: the licence is permissive (Apache-2.0, ADR-0011). The terminal page (TERMINAL_ARCHITECTURE §2.1) is 174.2 KiB gzipped at W3 and 210.7 KiB at W6 (budget 256 KiB). WebGL draws where the GPU is real, chosen with W6's numbers (§2.2); addon-search and addon-web-links are not used |
 | ~~Terminal frontend (primary candidate)~~ | ~~vendored **terminal-view** (native)~~ | — | **Not used** (2026-11-12): Termux-derived, conservatively GPLv3, which the Apache-2.0 app does not ship (ADR-0011) |
 | JS build | **esbuild** | 0.28.2 | Single-file bundle, deterministic, fast CI; no webpack |
 | JS language | TypeScript | **5.9.3** — as built (exact pin). npm `latest` is the 7.x Go-based rewrite; Phase 2 stayed on 5.9, and moving is a separate upgrade | Type-safe bridge protocol |
 | JS tests | **vitest** + happy-dom | 5.1.0 + 21.0.4 — as built | The page's unit and contract tests (187 at the Phase 2 exit) and the bundle verifier's DOM |
+
+### The editor page's language features (Phase 6 W5)
+
+With AGENTS §5's paragraph; an exact pin in `editor/package.json`, installed with `npm ci` from the lockfile and checked by `tool/check_licenses.mjs`.
+
+- **@codemirror/lint 6.9.8.** Draws the language servers' diagnostics: underlines, gutter marks and their messages (EDITOR_ARCHITECTURE, LSP_ARCHITECTURE). It was already in the tree as 6.9.7, a dependency of @codemirror/lang-javascript, so pinning it directly adds no package; 6.9.8 is npm's `latest`. *Android and ARM64:* plain JavaScript and DOM in the System WebView, nothing native. *Licence:* MIT. *Maintenance:* part of CodeMirror 6, released by its author with the rest of the editor (6.9.8 on 2026-11-13). *Offline:* bundled into the page, which makes no request. *Size:* 98 KB unpacked; with W5's own code (completion, the symbol menu, the documentation's Markdown) the editor page went from 285.2 to 308.9 KiB gzipped, within its 1.5 MiB budget. Its dependencies, @codemirror/state, @codemirror/view and crelt, were in the page already.
 
 ### The terminal page's dependencies (Phase 5 W3)
 

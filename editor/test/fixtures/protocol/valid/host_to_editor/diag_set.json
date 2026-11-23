@@ -1,0 +1,55 @@
+{
+  "description": "A document's diagnostics, one of each severity, with tags, source and code",
+  "message": {
+    "v": 1,
+    "id": "h20",
+    "type": "diag.set",
+    "payload": {
+      "docId": "d1",
+      "version": 4,
+      "items": [
+        {
+          "from": 0,
+          "to": 5,
+          "severity": "error",
+          "message": "\"greet\" is not defined",
+          "source": "Pyright",
+          "code": "reportUndefinedVariable"
+        },
+        {
+          "from": 6,
+          "to": 6,
+          "severity": "warning",
+          "message": "Import \"os\" is not accessed"
+        },
+        {
+          "from": 10,
+          "to": 14,
+          "severity": "info",
+          "message": "Variable is unused"
+        },
+        {
+          "from": 20,
+          "to": 23,
+          "severity": "hint",
+          "message": "\"x\" is not accessed",
+          "source": "Pyright",
+          "tags": [
+            "unnecessary"
+          ]
+        },
+        {
+          "from": 30,
+          "to": 35,
+          "severity": "hint",
+          "message": "'substr' is deprecated.",
+          "source": "ts",
+          "code": "6385",
+          "tags": [
+            "deprecated"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,4 +1,6 @@
-/// Persisted user settings (schema v1).
+/// Persisted user settings (schema v1). Fields added later decode with
+/// their defaults from settings stored before them (Phase 6 W5: the
+/// language servers' switches), so no migration is needed.
 library;
 
 import 'package:material_ui/material_ui.dart';
@@ -20,6 +22,8 @@ final class AppSettings {
     this.welcomeSeen = false,
     this.showHiddenFiles = false,
     this.saveBeforeRun = true,
+    this.pythonServer = true,
+    this.typescriptServer = true,
   });
 
   final ThemeMode themeMode;
@@ -36,6 +40,13 @@ final class AppSettings {
   /// Run saves unsaved changes first (Phase 5 W4).
   final bool saveBeforeRun;
 
+  /// Python's language server, Pyright, runs (Phase 6 W5: Settings →
+  /// Editor).
+  final bool pythonServer;
+
+  /// JavaScript's and TypeScript's language server runs (Phase 6 W5).
+  final bool typescriptServer;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     double? editorFontSize,
@@ -45,6 +56,8 @@ final class AppSettings {
     bool? welcomeSeen,
     bool? showHiddenFiles,
     bool? saveBeforeRun,
+    bool? pythonServer,
+    bool? typescriptServer,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -55,6 +68,8 @@ final class AppSettings {
       welcomeSeen: welcomeSeen ?? this.welcomeSeen,
       showHiddenFiles: showHiddenFiles ?? this.showHiddenFiles,
       saveBeforeRun: saveBeforeRun ?? this.saveBeforeRun,
+      pythonServer: pythonServer ?? this.pythonServer,
+      typescriptServer: typescriptServer ?? this.typescriptServer,
     );
   }
 
@@ -67,6 +82,8 @@ final class AppSettings {
     'welcomeSeen': welcomeSeen,
     'showHiddenFiles': showHiddenFiles,
     'saveBeforeRun': saveBeforeRun,
+    'pythonServer': pythonServer,
+    'typescriptServer': typescriptServer,
   };
 
   /// Tolerant decode: unknown/invalid values fall back to defaults instead
@@ -104,6 +121,12 @@ final class AppSettings {
       saveBeforeRun: json['saveBeforeRun'] is bool
           ? json['saveBeforeRun']! as bool
           : defaults.saveBeforeRun,
+      pythonServer: json['pythonServer'] is bool
+          ? json['pythonServer']! as bool
+          : defaults.pythonServer,
+      typescriptServer: json['typescriptServer'] is bool
+          ? json['typescriptServer']! as bool
+          : defaults.typescriptServer,
     );
   }
 
@@ -117,7 +140,9 @@ final class AppSettings {
       other.toolbarKeys == toolbarKeys &&
       other.welcomeSeen == welcomeSeen &&
       other.showHiddenFiles == showHiddenFiles &&
-      other.saveBeforeRun == saveBeforeRun;
+      other.saveBeforeRun == saveBeforeRun &&
+      other.pythonServer == pythonServer &&
+      other.typescriptServer == typescriptServer;
 
   @override
   int get hashCode => Object.hash(
@@ -129,5 +154,7 @@ final class AppSettings {
     welcomeSeen,
     showHiddenFiles,
     saveBeforeRun,
+    pythonServer,
+    typescriptServer,
   );
 }

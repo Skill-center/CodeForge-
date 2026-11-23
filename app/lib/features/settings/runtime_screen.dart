@@ -22,6 +22,7 @@ import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
 import '../../design_system/tokens/icons.dart';
 import '../../services/runtime/runtime_service.dart';
+import 'language_servers_section.dart';
 
 /// The runtime's state in a few words (Settings and this page's first row).
 String runtimeStatusLine(RuntimeStatus status) {
@@ -459,6 +460,8 @@ class _RuntimeScreenState extends ConsumerState<RuntimeScreen> {
               title: 'Packages that build native code',
               subtitle: runtimeNativeAddonsText,
             ),
+            // Phase 6 W5: the language servers, their memory, Restart.
+            const LanguageServersSection(),
             const CfSectionHeader('Storage'),
             _SizeTile(size: _size, onMeasure: status.usable ? _measure : null),
             const CfSectionHeader('Program check'),

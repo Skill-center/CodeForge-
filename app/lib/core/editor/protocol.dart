@@ -62,6 +62,14 @@ const List<String> editorCommands = [
   'replaceAll',
   'focus',
   'blur',
+  // Language features (Phase 6 W5), at the main cursor: the page asks the
+  // host, as F12, F2 and a long press do.
+  'goToDefinition',
+  'renameSymbol',
+  'showHover',
+  // The completion list at the cursor, and its selected item taken.
+  'startCompletion',
+  'acceptCompletion',
 ];
 
 /// App shortcuts the page forwards: while the WebView has keyboard focus,
@@ -78,6 +86,8 @@ const List<String> appShortcuts = [
   'replace',
   'gotoLine',
   'goToFile',
+  // The Problems sheet (Phase 6 W5).
+  'problems',
 ];
 
 /// Levels of `editor.log` messages.
@@ -96,6 +106,76 @@ const List<String> protocolErrorCodes = [
   'no_active_doc',
   'stale',
   'internal',
+  // A language request (Phase 6 W5) no server can answer now: none runs for
+  // the document, or it is starting, restarting or gave up. Completion falls
+  // back to the words of the document.
+  'unavailable',
+  'timeout',
+  'cancelled',
+  // The server failed the request, or refused it (nothing to rename there).
+  'server_error',
+];
+
+// ------------------------------------------------- language features (W5)
+//
+// Phase 6 W5: the host sends a document's diagnostics (`diag.set`) and a
+// rename's edits (`doc.applyEdits`); the page asks for completion, its
+// documentation, hover, definition and rename (`lsp.*`), and the host
+// answers each through `response`. Positions are offsets into the document
+// at the request's version.
+
+/// What `@codemirror/lint` draws.
+const List<String> diagnosticSeverities = ['error', 'warning', 'info', 'hint'];
+
+/// LSP's diagnostic tags: faded (unused) and struck through (deprecated).
+const List<String> diagnosticTags = ['unnecessary', 'deprecated'];
+
+/// CodeMirror's completion icons, which the host maps LSP's kinds onto.
+const List<String> completionKinds = [
+  'class',
+  'constant',
+  'enum',
+  'function',
+  'interface',
+  'keyword',
+  'method',
+  'namespace',
+  'property',
+  'text',
+  'type',
+  'variable',
+];
+
+/// LSP's CompletionTriggerKind, by name.
+const List<String> completionTriggers = ['invoked', 'character', 'incomplete'];
+
+const List<String> markupKinds = ['markdown', 'plaintext'];
+
+/// The bridge's caps, checked against what the servers gave in W1-W4: the
+/// largest completion list had 26 items and the most diagnostics were
+/// TypeScript's 199 in the 200-file project (the runtime legs'
+/// lsp-report.txt).
+///
+/// The most diagnostics one document shows.
+const int maxDiagnostics = 1000;
+
+/// The most completion items one answer carries, which is also the most the
+/// list draws (PHASE_6_PLAN W5: at most 200 shown, trimmed in Dart).
+const int maxCompletionItems = 200;
+
+/// The most documents one `doc.applyEdits` changes.
+const int maxEditedDocuments = 64;
+
+/// The most edits one document takes in one `doc.applyEdits`.
+const int maxDocumentEdits = 10000;
+
+/// The page's requests, each answered by the host through `response`.
+const List<String> pageRequestTypes = [
+  'lsp.complete',
+  'lsp.resolve',
+  'lsp.hover',
+  'lsp.definition',
+  'lsp.prepareRename',
 ];
 
 /// Which way a message travels; each direction has its own type table.
@@ -393,6 +473,57 @@ final _Check _palette = _obj({
   }),
 });
 
+// Language features (Phase 6 W5).
+final _Check _requestId = _str(pattern: _idPattern);
+final _Check _textEdit = _obj({
+  'from': _length,
+  'to': _length,
+  'insert': _str(lfOnly: true, max: 1000000),
+});
+final _Check _markup = _obj({
+  'kind': _oneOf(markupKinds),
+  'value': _str(max: 100000),
+});
+final _Check _diagnostic = _obj(
+  {
+    'from': _length,
+    'to': _length,
+    'severity': _oneOf(diagnosticSeverities),
+    'message': _str(max: 4000),
+  },
+  {
+    'source': _str(max: 100),
+    'code': _str(max: 100),
+    'tags': _arrayOf(_oneOf(diagnosticTags), max: 2),
+  },
+);
+final _Check _documentEdits = _obj({
+  'docId': _docId,
+  'baseVersion': _version,
+  'edits': _arrayOf(_textEdit, max: maxDocumentEdits),
+});
+final _Check _positionRequest = _obj({
+  'docId': _docId,
+  'version': _version,
+  'pos': _length,
+});
+final _Check _triggerCharacter = _str(min: 1, max: 1);
+final _Check _completionItem = _obj(
+  {'label': _str(min: 1, max: 500)},
+  {
+    'kind': _oneOf(completionKinds),
+    'detail': _str(max: 500),
+    'sortText': _str(max: 200),
+    'filterText': _str(max: 500),
+    'edit': _textEdit,
+    'insert': _str(lfOnly: true, max: 100000),
+    'additionalEdits': _arrayOf(_textEdit, max: 100),
+    'resolvable': _bool,
+    'deprecated': _bool,
+    'preselect': _bool,
+  },
+);
+
 final Map<String, _Check> _hostToEditor = {
   'editor.configure': _obj({}, {
     'palette': _palette,
@@ -443,6 +574,20 @@ final Map<String, _Check> _hostToEditor = {
       'replace': _str(max: 10000),
     },
   ),
+  // Phase 6 W5. diag.set: a document's diagnostics at a version, replacing
+  // the ones before; the page maps them through its edits since.
+  'diag.set': _obj({
+    'docId': _docId,
+    'version': _version,
+    'items': _arrayOf(_diagnostic, max: maxDiagnostics),
+  }),
+  // A rename's edits to open documents, all or nothing, each document's as
+  // one undoable change.
+  'doc.applyEdits': _obj({
+    'documents': _arrayOf(_documentEdits, max: maxEditedDocuments),
+  }),
+  // The host's answer to one of the page's requests (lsp.*).
+  'response': _responsePayload,
 };
 
 final _Check _responseOk = _obj(
@@ -509,7 +654,71 @@ final Map<String, _Check> _editorToHost = {
     'message': _str(max: 4000),
   }),
   'response': _responsePayload,
+  'lsp.complete': _obj(
+    {
+      'docId': _docId,
+      'version': _version,
+      'pos': _length,
+      'trigger': _oneOf(completionTriggers),
+    },
+    {'character': _triggerCharacter},
+  ),
+  'lsp.resolve': _obj({
+    'docId': _docId,
+    'resultId': _requestId,
+    'index': _int(min: 0, max: maxCompletionItems - 1),
+  }),
+  'lsp.hover': _positionRequest,
+  'lsp.definition': _positionRequest,
+  'lsp.prepareRename': _positionRequest,
+  // The page no longer wants the answer to request `re`; nothing answers it.
+  'lsp.cancel': _obj({'re': _requestId}),
 };
+
+/// What each of the page's requests answers: the `result` of an ok
+/// `response` from the host (editor/src/protocol/validate.ts,
+/// PAGE_RESULTS). The page checks the results it gets; the host asserts the
+/// ones it sends.
+final Map<String, _Check> _pageResults = {
+  'lsp.complete': _obj(
+    {
+      'resultId': _requestId,
+      'items': _arrayOf(_completionItem, max: maxCompletionItems),
+      'incomplete': _bool,
+    },
+    {'triggerCharacters': _arrayOf(_triggerCharacter, max: 32)},
+  ),
+  'lsp.resolve': _obj({}, {
+    'detail': _str(max: 2000),
+    'documentation': _markup,
+    'additionalEdits': _arrayOf(_textEdit, max: 100),
+  }),
+  'lsp.hover': _obj({}, {
+    'contents': _markup,
+    'from': _length,
+    'to': _length,
+  }),
+  'lsp.definition': _obj({'found': _length}),
+  'lsp.prepareRename': _obj({
+    'from': _length,
+    'to': _length,
+    'placeholder': _str(max: 500),
+  }),
+};
+
+/// Checks [result], the answer to a page request of [type]: null when it
+/// is valid, otherwise a reason naming the bad path.
+String? validatePageResult(String type, Object? result) {
+  final check = _pageResults[type];
+  if (check == null) {
+    return 'no result check for $type';
+  }
+  return check(result, 'result');
+}
+
+/// The page requests that have a result check (the contract test holds
+/// them equal to [pageRequestTypes] and to the page's PAGE_RESULTS).
+Set<String> get pageResultTypes => _pageResults.keys.toSet();
 
 /// The message types accepted travelling in [direction]: the validator's
 /// table, which the contract test holds equal to the page's

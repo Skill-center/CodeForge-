@@ -61,6 +61,17 @@ export const EDITOR_COMMANDS = [
   'replaceAll',
   'focus',
   'blur',
+  /**
+   * Language features (Phase 6 W5), at the main cursor: the page asks the
+   * host (`lsp.definition`, `lsp.prepareRename`, `lsp.hover`) as F12, F2 and
+   * a long press do.
+   */
+  'goToDefinition',
+  'renameSymbol',
+  'showHover',
+  /** Opens the completion list at the cursor, and takes its selected item. */
+  'startCompletion',
+  'acceptCompletion',
 ] as const;
 export type EditorCommand = (typeof EDITOR_COMMANDS)[number];
 
@@ -80,6 +91,8 @@ export const APP_SHORTCUTS = [
   'replace',
   'gotoLine',
   'goToFile',
+  /** The Problems sheet (Phase 6 W5). */
+  'problems',
 ] as const;
 export type AppShortcut = (typeof APP_SHORTCUTS)[number];
 
@@ -98,6 +111,16 @@ export const ERROR_CODES = [
   'no_active_doc',
   'stale',
   'internal',
+  /**
+   * A language request (Phase 6 W5) no server can answer now: none runs for
+   * the document, or it is starting, restarting or gave up. Completion falls
+   * back to the words of the document.
+   */
+  'unavailable',
+  'timeout',
+  'cancelled',
+  /** The server failed the request, or refused it (nothing to rename there). */
+  'server_error',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
@@ -139,6 +162,160 @@ export interface Palette {
  * joined by "\n".
  */
 export type ChangeSetJson = Array<number | [number, ...string[]]>;
+
+// ------------------------------------------------- language features (W5)
+//
+// Phase 6 W5 (PHASE_6_PLAN): the language servers run behind the host
+// (app/lib/application/lsp/), never in the page. The host sends a
+// document's diagnostics (`diag.set`) and edits from a rename
+// (`doc.applyEdits`); the page asks for completion, its documentation,
+// hover, definition and rename (`lsp.*`), each answered through `response`.
+// Positions are offsets into the document at the request's `version`, which
+// the page sends only after the edits before it.
+
+export const DIAGNOSTIC_SEVERITIES = ['error', 'warning', 'info', 'hint'] as const;
+export type DiagnosticSeverity = (typeof DIAGNOSTIC_SEVERITIES)[number];
+
+/** LSP's diagnostic tags: faded (unused) and struck through (deprecated). */
+export const DIAGNOSTIC_TAGS = ['unnecessary', 'deprecated'] as const;
+export type DiagnosticTag = (typeof DIAGNOSTIC_TAGS)[number];
+
+/** CodeMirror's completion icons, which the host maps LSP's kinds onto. */
+export const COMPLETION_KINDS = [
+  'class',
+  'constant',
+  'enum',
+  'function',
+  'interface',
+  'keyword',
+  'method',
+  'namespace',
+  'property',
+  'text',
+  'type',
+  'variable',
+] as const;
+export type CompletionKind = (typeof COMPLETION_KINDS)[number];
+
+/** LSP's CompletionTriggerKind, by name. */
+export const COMPLETION_TRIGGERS = ['invoked', 'character', 'incomplete'] as const;
+export type CompletionTrigger = (typeof COMPLETION_TRIGGERS)[number];
+
+export const MARKUP_KINDS = ['markdown', 'plaintext'] as const;
+export type MarkupKind = (typeof MARKUP_KINDS)[number];
+
+/**
+ * The bridge's caps, checked against what the servers gave in W1-W4
+ * (PHASE_6_PLAN W5; the runtime legs' lsp-report.txt): the largest
+ * completion list had 26 items (Pyright, the 200-file project) and the most
+ * diagnostics were TypeScript's 199 in that project, its largest message
+ * 37,991 bytes.
+ *
+ * The most diagnostics one document shows.
+ */
+export const MAX_DIAGNOSTICS = 1000;
+
+/**
+ * The most completion items one answer carries, which is also the most the
+ * list draws (PHASE_6_PLAN W5: at most 200 shown, trimmed in Dart). The host
+ * keeps the items that match the typed word, in the server's order, and marks
+ * a trimmed answer incomplete, so the page asks again as the word grows.
+ */
+export const MAX_COMPLETION_ITEMS = 200;
+
+/** The most documents one `doc.applyEdits` changes. */
+export const MAX_EDITED_DOCUMENTS = 64;
+
+/** The most edits one document takes in one `doc.applyEdits`. */
+export const MAX_DOCUMENT_EDITS = 10000;
+
+export interface DiagnosticItem {
+  from: number;
+  to: number;
+  severity: DiagnosticSeverity;
+  message: string;
+  source?: string;
+  code?: string;
+  tags?: DiagnosticTag[];
+}
+
+/** Replaces `from`..`to` with `insert`. */
+export interface TextEditJson {
+  from: number;
+  to: number;
+  insert: string;
+}
+
+export interface MarkupJson {
+  kind: MarkupKind;
+  value: string;
+}
+
+export interface DocumentEdits {
+  docId: string;
+  /** Refused (`stale`) unless the document is still at this version. */
+  baseVersion: number;
+  /** Sorted, not overlapping, at `baseVersion`. */
+  edits: TextEditJson[];
+}
+
+export interface PositionRequest {
+  docId: string;
+  version: number;
+  pos: number;
+}
+
+export interface CompletionItemJson {
+  label: string;
+  kind?: CompletionKind;
+  detail?: string;
+  sortText?: string;
+  filterText?: string;
+  /** The server's text edit, at the request's version. */
+  edit?: TextEditJson;
+  /** Inserted over the typed word when there is no `edit`. */
+  insert?: string;
+  /** Applied with it (an import added at the top). */
+  additionalEdits?: TextEditJson[];
+  /** `lsp.resolve` has more: documentation, detail, edits. */
+  resolvable?: boolean;
+  deprecated?: boolean;
+  preselect?: boolean;
+}
+
+/** The page's requests and what each answers. */
+export interface PageRequests {
+  'lsp.complete': PositionRequest & { trigger: CompletionTrigger; character?: string };
+  'lsp.resolve': { docId: string; resultId: string; index: number };
+  'lsp.hover': PositionRequest;
+  /** The host opens the definition itself. */
+  'lsp.definition': PositionRequest;
+  /** The host asks for the new name itself, then renames. */
+  'lsp.prepareRename': PositionRequest;
+}
+
+export interface PageResults {
+  'lsp.complete': {
+    resultId: string;
+    items: CompletionItemJson[];
+    incomplete: boolean;
+    triggerCharacters?: string[];
+  };
+  'lsp.resolve': { detail?: string; documentation?: MarkupJson; additionalEdits?: TextEditJson[] };
+  'lsp.hover': { contents?: MarkupJson; from?: number; to?: number };
+  'lsp.definition': { found: number };
+  'lsp.prepareRename': { from: number; to: number; placeholder: string };
+}
+
+export type PageRequestType = keyof PageRequests;
+
+export const PAGE_REQUEST_TYPES: readonly PageRequestType[] = [
+  'lsp.complete',
+  'lsp.resolve',
+  'lsp.hover',
+  'lsp.definition',
+  'lsp.prepareRename',
+];
 
 // ---------------------------------------------------------------- host → editor
 
@@ -206,6 +383,20 @@ export interface HostToEditor {
   'cmd.exec': { command: EditorCommand };
   'cmd.gotoLine': { line: number; column?: number };
   'search.set': SearchPayload;
+  /**
+   * A document's diagnostics at `version` (Phase 6 W5), replacing the ones
+   * before; an empty list clears them. The page maps them through its edits
+   * since, and refuses (`stale`) a version it can no longer map.
+   */
+  'diag.set': { docId: string; version: number; items: DiagnosticItem[] };
+  /**
+   * Edits to open documents (Phase 6 W5, a rename), each document's as one
+   * undoable change. All or nothing: refused (`stale`) if any document moved
+   * past its base version or has edits not sent yet.
+   */
+  'doc.applyEdits': { documents: DocumentEdits[] };
+  /** The answer to one of the page's requests (`lsp.*`). */
+  response: ResponsePayload;
 }
 
 // ---------------------------------------------------------------- editor → host
@@ -248,6 +439,13 @@ export interface EditorToHost {
   'search.state': SearchStatePayload;
   'editor.log': { level: LogLevel; message: string };
   response: ResponsePayload;
+  'lsp.complete': PageRequests['lsp.complete'];
+  'lsp.resolve': PageRequests['lsp.resolve'];
+  'lsp.hover': PageRequests['lsp.hover'];
+  'lsp.definition': PageRequests['lsp.definition'];
+  'lsp.prepareRename': PageRequests['lsp.prepareRename'];
+  /** The page no longer wants the answer to request `re`; nothing answers this. */
+  'lsp.cancel': { re: string };
 }
 
 export type HostMessageType = keyof HostToEditor;

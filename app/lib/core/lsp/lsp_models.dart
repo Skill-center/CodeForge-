@@ -9,24 +9,52 @@ library;
 /// ADR-0015), by the host's id for it.
 enum LspServerId {
   /// Pyright, for Python.
-  pyright('pyright', 'Pyright', {'python'}),
+  pyright(
+    'pyright',
+    'Pyright',
+    {'python'},
+    language: 'Python',
+    packages: {'pyright': '1.1.414'},
+  ),
 
   /// typescript-language-server over TypeScript's tsserver, for JavaScript
   /// and TypeScript.
-  typescript('typescript', 'TypeScript', {
-    'javascript',
-    'jsx',
+  typescript(
     'typescript',
-    'tsx',
-  });
+    'TypeScript',
+    {'javascript', 'jsx', 'typescript', 'tsx'},
+    language: 'JavaScript and TypeScript',
+    packages: {'typescript': '6.0.3', 'typescript-language-server': '6.1.0'},
+  );
 
-  const LspServerId(this.id, this.title, this.languages);
+  const LspServerId(
+    this.id,
+    this.title,
+    this.languages, {
+    required this.language,
+    required this.packages,
+  });
 
   /// The host's name for it.
   final String id;
 
   /// What the user reads.
   final String title;
+
+  /// The languages it analyses, as Settings → Editor names them (Phase 6
+  /// W5).
+  final String language;
+
+  /// The npm packages it is made of, with their versions: those pinned in
+  /// runtime/language-servers/package.json (a test holds them equal).
+  final Map<String, String> packages;
+
+  /// "pyright 1.1.414", or "typescript 6.0.3, typescript-language-server
+  /// 6.1.0": what runs, by its packages' names, for Settings.
+  String get versions => [
+    for (final MapEntry(key: name, value: version) in packages.entries)
+      '$name $version',
+  ].join(', ');
 
   /// The editor's languages it analyses (core/editor/languages.dart).
   final Set<String> languages;
@@ -377,6 +405,25 @@ enum LspSeverity {
   }
 }
 
+/// LSP's DiagnosticTag (Phase 6 W5): drawn faded or struck through.
+enum LspDiagnosticTag {
+  unnecessary(1),
+  deprecated(2);
+
+  const LspDiagnosticTag(this.value);
+
+  final int value;
+
+  static LspDiagnosticTag? fromValue(Object? value) {
+    for (final tag in values) {
+      if (tag.value == value) {
+        return tag;
+      }
+    }
+    return null;
+  }
+}
+
 /// One problem a server found.
 final class LspDiagnostic {
   const LspDiagnostic({
@@ -385,6 +432,7 @@ final class LspDiagnostic {
     required this.message,
     this.source,
     this.code,
+    this.tags = const [],
   });
 
   final LspRange range;
@@ -396,6 +444,9 @@ final class LspDiagnostic {
 
   /// The server's code for it, as text.
   final String? code;
+
+  /// Unused code, deprecated names (Phase 6 W5).
+  final List<LspDiagnosticTag> tags;
 
   /// The diagnostic in a server's JSON, or null when it is not one.
   static LspDiagnostic? fromJson(Object? json) {
@@ -409,12 +460,17 @@ final class LspDiagnostic {
     }
     final source = json['source'];
     final code = json['code'];
+    final tags = json['tags'];
     return LspDiagnostic(
       range: range,
       severity: LspSeverity.fromValue(json['severity']),
       message: message,
       source: source is String ? source : null,
       code: code is String || code is int ? '$code' : null,
+      tags: [
+        if (tags is List<Object?>)
+          for (final tag in tags) ?LspDiagnosticTag.fromValue(tag),
+      ],
     );
   }
 }

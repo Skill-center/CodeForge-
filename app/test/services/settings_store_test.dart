@@ -18,9 +18,23 @@ void main() {
         welcomeSeen: true,
         showHiddenFiles: true,
         saveBeforeRun: false,
+        pythonServer: false,
+        typescriptServer: false,
       );
       final decoded = decodeSettings(encodeSettings(settings));
       expect(decoded, settings);
+    });
+
+    test('the language servers stay on unless the user turned one off, in '
+        'settings stored before they existed too (Phase 6 W5)', () {
+      const before = '{"schemaVersion":1,"data":{"saveBeforeRun":false}}';
+      expect(decodeSettings(before).pythonServer, isTrue);
+      expect(decodeSettings(before).typescriptServer, isTrue);
+      const off = '{"schemaVersion":1,"data":{"pythonServer":false}}';
+      expect(decodeSettings(off).pythonServer, isFalse);
+      expect(decodeSettings(off).typescriptServer, isTrue);
+      const wrong = '{"schemaVersion":1,"data":{"typescriptServer":0}}';
+      expect(decodeSettings(wrong).typescriptServer, isTrue);
     });
 
     test('Run saves first unless the user turned it off', () {

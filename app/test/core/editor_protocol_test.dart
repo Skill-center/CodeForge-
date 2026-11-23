@@ -30,15 +30,21 @@ List<(String, Map<String, Object?>)> _fixtures(String dir) {
   ];
 }
 
+/// The `result` of a `response` fixture's payload.
+Object? _resultOf(Object? message) =>
+    ((message! as Map<String, Object?>)['payload']!
+        as Map<String, Object?>)['result'];
+
 String _describe(ParseResult result) => switch (result) {
   ParsedMessage(:final message) => 'accepted ${message.type}',
   RejectedMessage(:final code, :final reason) => 'rejected $code: $reason',
 };
 
-/// The string items of `export const <name> = [...]` in types.ts.
+/// The string items of `export const <name> = [...]` in types.ts (a type
+/// annotation before the `=` is allowed).
 List<String> _tsList(String source, String name) {
   final match = RegExp(
-    'export const $name = \\[([^\\]]*)\\]',
+    'export const $name(?:: [^=]+)? = \\[([^\\]]*)\\]',
   ).firstMatch(source);
   if (match == null) {
     throw StateError('$name not found in types.ts');
@@ -83,6 +89,15 @@ void main() {
             isA<ParsedMessage>(),
             reason: reencoded,
           );
+          // An answer to a page request (Phase 6 W5): its result too.
+          final answers = fixture['answers'];
+          if (answers is String) {
+            expect(
+              validatePageResult(answers, _resultOf(message)),
+              isNull,
+              reason: name,
+            );
+          }
         });
       }
     }
@@ -100,6 +115,17 @@ void main() {
         final result = raw is String
             ? parseMessage(raw, direction)
             : validateMessage(fixture['message'], direction);
+        final answers = fixture['answers'];
+        if (answers is String) {
+          // The envelope passes; the result for that request does not.
+          expect(result, isA<ParsedMessage>(), reason: _describe(result));
+          expect(fixture['error'], 'bad_payload');
+          expect(
+            validatePageResult(answers, _resultOf(fixture['message'])),
+            isNotNull,
+          );
+          return;
+        }
         expect(result, isA<RejectedMessage>(), reason: _describe(result));
         expect((result as RejectedMessage).code, fixture['error']);
       });
@@ -156,6 +182,54 @@ void main() {
     }
   });
 
+  group('page requests mirror validate.ts (Phase 6 W5)', () {
+    final validate = File(
+      '$_editorRoot/src/protocol/validate.ts',
+    ).readAsStringSync();
+    final types = File('$_editorRoot/src/protocol/types.ts').readAsStringSync();
+
+    test('both sides check the same results', () {
+      expect(pageResultTypes, _tsTypes(validate, 'PAGE_RESULTS'));
+      expect(pageResultTypes, pageRequestTypes.toSet());
+      expect(pageRequestTypes, _tsList(types, 'PAGE_REQUEST_TYPES'));
+    });
+
+    test('every page request is sent and answered in a fixture', () {
+      final sent = {
+        for (final (_, fixture) in _fixtures('protocol/valid/editor_to_host'))
+          (fixture['message']! as Map<String, Object?>)['type'],
+      };
+      final answered = {
+        for (final (_, fixture) in _fixtures('protocol/valid/host_to_editor'))
+          fixture['answers'],
+      };
+      for (final type in pageRequestTypes) {
+        expect(sent, contains(type));
+        expect(answered, contains(type));
+      }
+    });
+
+    test('caps: 200 completion items, 1000 diagnostics', () {
+      expect(types, contains('MAX_COMPLETION_ITEMS = $maxCompletionItems;'));
+      expect(types, contains('MAX_DIAGNOSTICS = $maxDiagnostics;'));
+      expect(
+        types,
+        contains('MAX_EDITED_DOCUMENTS = $maxEditedDocuments;'),
+      );
+      expect(types, contains('MAX_DOCUMENT_EDITS = $maxDocumentEdits;'));
+      List<Map<String, Object?>> items(int n) => [
+        for (var i = 0; i < n; i++) {'label': 'item$i'},
+      ];
+      Map<String, Object?> answer(int n) => {
+        'resultId': 'c1',
+        'incomplete': true,
+        'items': items(n),
+      };
+      expect(validatePageResult('lsp.complete', answer(200)), isNull);
+      expect(validatePageResult('lsp.complete', answer(201)), isNotNull);
+    });
+  });
+
   group('constants mirror editor/src/protocol/types.ts', () {
     final source = File(
       '$_editorRoot/src/protocol/types.ts',
@@ -173,6 +247,12 @@ void main() {
       expect(appShortcuts, _tsList(source, 'APP_SHORTCUTS'));
       expect(editorLogLevels, _tsList(source, 'LOG_LEVELS'));
       expect(protocolErrorCodes, _tsList(source, 'ERROR_CODES'));
+      // Phase 6 W5.
+      expect(diagnosticSeverities, _tsList(source, 'DIAGNOSTIC_SEVERITIES'));
+      expect(diagnosticTags, _tsList(source, 'DIAGNOSTIC_TAGS'));
+      expect(completionKinds, _tsList(source, 'COMPLETION_KINDS'));
+      expect(completionTriggers, _tsList(source, 'COMPLETION_TRIGGERS'));
+      expect(markupKinds, _tsList(source, 'MARKUP_KINDS'));
     });
   });
 

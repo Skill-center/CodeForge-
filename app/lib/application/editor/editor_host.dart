@@ -9,6 +9,11 @@
 /// the page (re)announces itself with `editor.ready`, the host sends the
 /// configuration and reopens every document from its shadow, so a page
 /// restart loses nothing that reached the host.
+///
+/// Since Phase 6 W5 the page asks too: its language requests (`lsp.*`) go
+/// to the [pageRequestHandler] (application/lsp/lsp_features.dart), and each
+/// is answered with one `response`. The host shows a document's diagnostics
+/// ([setDiagnostics]) and applies a rename's edits ([applyEdits]).
 library;
 
 import 'dart:async';
@@ -50,6 +55,75 @@ final class EditorHostStatus {
 sealed class EditorHostEvent {
   const EditorHostEvent();
 }
+
+/// A started page has every document again (Phase 6 W5): what the page
+/// alone held, such as diagnostics, must be sent again.
+final class PageSynced extends EditorHostEvent {
+  const PageSynced();
+}
+
+/// One of the page's requests (Phase 6 W5): `lsp.complete`, `lsp.resolve`,
+/// `lsp.hover`, `lsp.definition` or `lsp.prepareRename`, with its validated
+/// [payload].
+final class PageRequest {
+  PageRequest(this.id, this.type, this.payload);
+
+  /// The page's envelope id, which the answer names.
+  final String id;
+  final String type;
+  final Map<String, Object?> payload;
+  bool _cancelled = false;
+  final List<void Function()> _listeners = [];
+
+  /// The page gave up on it (`lsp.cancel`), or went away.
+  bool get isCancelled => _cancelled;
+
+  /// Calls [listener] once the request is cancelled (now, if it is).
+  void onCancel(void Function() listener) {
+    if (_cancelled) {
+      listener();
+    } else {
+      _listeners.add(listener);
+    }
+  }
+
+  void _cancel() {
+    if (_cancelled) {
+      return;
+    }
+    _cancelled = true;
+    final listeners = [..._listeners];
+    _listeners.clear();
+    for (final listener in listeners) {
+      listener();
+    }
+  }
+}
+
+/// Answers one of the page's requests: the result the page checks against
+/// its request ([validatePageResult]), or a failure, whose kind becomes the
+/// answer's error code ([pageErrorCode]).
+typedef PageRequestHandler = Future<Result<Object?>> Function(PageRequest);
+
+/// One document's edits for [EditorHost.applyEdits]: offsets into its text
+/// at [baseVersion], sorted and apart.
+typedef DocumentEditsSpec = ({
+  String docId,
+  int baseVersion,
+  List<({int from, int to, String insert})> edits,
+});
+
+/// The error code a page request's [failure] is answered with: whether a
+/// server could answer at all, the time it took, or what it said.
+String pageErrorCode(Failure failure) => switch (failure) {
+  LspFailure(:final problem) => switch (problem) {
+    LspProblem.timeout => 'timeout',
+    LspProblem.cancelled => 'cancelled',
+    LspProblem.serverError => 'server_error',
+    _ => 'unavailable',
+  },
+  _ => 'internal',
+};
 
 /// A document's text changed: an edit, or a resync from the editor.
 final class DocumentEdited extends EditorHostEvent {
@@ -197,6 +271,22 @@ final class EditorHost {
   final Map<String, ShadowDocument> _documents = {};
   final Map<String, _PendingRequest> _pending = {};
 
+  /// The page's requests not answered yet, by their ids (Phase 6 W5).
+  final Map<String, PageRequest> _pageRequests = {};
+
+  /// Who answers the page's requests; without one they are answered as
+  /// unavailable, and completion falls back to the document's words.
+  PageRequestHandler? pageRequestHandler;
+
+  /// How many diagnostics the page took for each document, in the last set
+  /// it accepted (Phase 6 W5: what it underlines).
+  final Map<String, int> _diagnosticsShown = {};
+
+  /// The page's requests answered with a result, by type, and the newest
+  /// result of each (Phase 6 W5).
+  final Map<String, int> _pageAnswers = {};
+  final Map<String, Object?> _lastPageResults = {};
+
   EditorHostStatus _status = EditorHostStatus.idle;
   String? _activeDocId;
   Map<String, Object?>? _configuration;
@@ -232,6 +322,15 @@ final class EditorHost {
   String? get activeDocId => _activeDocId;
   List<String> get documentIds => List.unmodifiable(_documents.keys);
   String? textOf(String docId) => _documents[docId]?.text;
+
+  /// How many diagnostics the page shows for [docId]: the last set it
+  /// accepted (Phase 6 W5); null before any.
+  int? diagnosticsShown(String docId) => _diagnosticsShown[docId];
+
+  /// How many of the page's requests of [type] were answered with a result
+  /// (Phase 6 W5), and the newest result.
+  int pageAnswers(String type) => _pageAnswers[type] ?? 0;
+  Object? lastPageResult(String type) => _lastPageResults[type];
   int? versionOf(String docId) => _documents[docId]?.version;
 
   /// The selection and scroll offset the page last reported for [docId]
@@ -309,6 +408,7 @@ final class EditorHost {
       fields: {'documents': _documents.length},
     );
     _failPending('The editor page is reloading.');
+    _cancelPageRequests();
     _setStatus(const EditorHostStatus(EditorHostPhase.loading));
     _armReadyTimer();
     try {
@@ -334,6 +434,7 @@ final class EditorHost {
     _disposed = true;
     _readyTimer?.cancel();
     _failPending('The editor is closed.');
+    _cancelPageRequests();
     unawaited(_messageSubscription.cancel());
     unawaited(_eventSubscription.cancel());
     unawaited(_statusController.close());
@@ -419,6 +520,7 @@ final class EditorHost {
   }
 
   Future<Result<void>> closeDocument(String docId) async {
+    _diagnosticsShown.remove(docId);
     if (_documents.remove(docId) == null) {
       return Err(BridgeFailure('Document $docId is not open.'));
     }
@@ -685,6 +787,171 @@ final class EditorHost {
     );
   }
 
+  // ------------------------------------------------- language features (W5)
+
+  /// Shows [items] as [docId]'s diagnostics at the shadow's [version]
+  /// (`diag.set`), in place of the ones before; an empty list clears them.
+  /// The page maps them through any edits made since. Without a page there
+  /// is nothing to show them in: [PageSynced] says when to send them again.
+  Future<Result<void>> setDiagnostics(
+    String docId,
+    int version,
+    List<Map<String, Object?>> items,
+  ) async {
+    if (!_documents.containsKey(docId)) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    if (!_ready || (_syncing != null && !await _afterSync())) {
+      return const Ok(null);
+    }
+    final shown = _done(
+      await _request('diag.set', {
+        'docId': docId,
+        'version': version,
+        'items': items,
+      }),
+    );
+    if (shown.isOk && _documents.containsKey(docId)) {
+      _diagnosticsShown[docId] = items.length;
+    }
+    return shown;
+  }
+
+  /// Applies a rename's edits to open documents (`doc.applyEdits`), each
+  /// document's as one undoable change, all or nothing. Refused (`stale`)
+  /// when any document is no longer at its base version; nothing changes
+  /// then. On success the edits have already come back as `doc.changed`:
+  /// the shadows hold the new text, and [DocumentEdited] went out.
+  Future<Result<void>> applyEdits(List<DocumentEditsSpec> documents) async {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
+      return const Err(BridgeFailure('The editor is not ready.'));
+    }
+    var chars = 0;
+    for (final document in documents) {
+      final doc = _documents[document.docId];
+      if (doc == null) {
+        return Err(BridgeFailure('Document ${document.docId} is not open.'));
+      }
+      if (doc.version != document.baseVersion) {
+        return Err(
+          BridgeFailure(
+            'Document ${document.docId} is at version ${doc.version}, '
+            'not ${document.baseVersion}.',
+            cause: 'stale',
+          ),
+        );
+      }
+      chars += doc.text.length;
+    }
+    return _done(
+      await _request('doc.applyEdits', {
+        'documents': [
+          for (final document in documents)
+            {
+              'docId': document.docId,
+              'baseVersion': document.baseVersion,
+              'edits': [
+                for (final edit in document.edits)
+                  {'from': edit.from, 'to': edit.to, 'insert': edit.insert},
+              ],
+            },
+        ],
+      }, timeout: _timeoutFor(chars)),
+    );
+  }
+
+  void _onPageRequest(BridgeMessage message) {
+    final request = PageRequest(message.id, message.type, message.payload);
+    _pageRequests[message.id] = request;
+    final handler = pageRequestHandler;
+    final answer = handler == null
+        ? Future<Result<Object?>>.value(
+            const Err<Object?>(
+              LspFailure(
+                'Language features are off.',
+                problem: LspProblem.stopped,
+              ),
+            ),
+          )
+        : handler(request);
+    unawaited(
+      answer.then(
+        (result) => _answerPage(request, result),
+        onError: (Object error) => _answerPage(
+          request,
+          Err(BridgeFailure('${request.type} failed: $error')),
+        ),
+      ),
+    );
+  }
+
+  void _answerPage(PageRequest request, Result<Object?> result) {
+    if (!identical(_pageRequests[request.id], request)) {
+      // Cancelled, or the page restarted: it waits for nothing.
+      return;
+    }
+    _pageRequests.remove(request.id);
+    if (_disposed) {
+      return;
+    }
+    final Map<String, Object?> payload;
+    switch (result) {
+      case Ok<Object?>(:final value):
+        assert(
+          validatePageResult(request.type, value) == null,
+          'the host answered ${request.type} with a result the page '
+          'refuses: ${validatePageResult(request.type, value)}',
+        );
+        payload = {'re': request.id, 'ok': true, 'result': value};
+        _pageAnswers[request.type] = pageAnswers(request.type) + 1;
+        _lastPageResults[request.type] = value;
+      case Err<Object?>(:final failure):
+        final message = failure.message;
+        payload = {
+          're': request.id,
+          'ok': false,
+          'error': {
+            'code': pageErrorCode(failure),
+            'message': message.length > 2000
+                ? '${message.substring(0, 1999)}…'
+                : message,
+          },
+        };
+    }
+    _nextRequestId += 1;
+    final encoded = BridgeMessage(
+      id: 'h$_nextRequestId',
+      type: 'response',
+      payload: payload,
+    ).encode();
+    assert(
+      parseMessage(encoded, MessageDirection.hostToEditor) is ParsedMessage,
+      'the host built a response the protocol rejects',
+    );
+    unawaited(_post(encoded, request.type));
+  }
+
+  /// Sends a message nothing answers (an answer of the host's own).
+  Future<void> _post(String encoded, String about) async {
+    try {
+      await _surface.deliver(encoded);
+    } on Object catch (error) {
+      appLogger.warn(
+        _tag,
+        'answer_undelivered',
+        fields: {'type': about, 'error': '$error'},
+      );
+    }
+  }
+
+  void _cancelPageRequests() {
+    final requests = _pageRequests.values.toList();
+    _pageRequests.clear();
+    for (final request in requests) {
+      request._cancel();
+    }
+  }
+
   // -------------------------------------------------------------- requests
 
   Future<Result<Object?>> _request(
@@ -867,6 +1134,15 @@ final class EditorHost {
             capped: payload.flag('capped'),
           ),
         );
+      case 'lsp.complete' ||
+          'lsp.resolve' ||
+          'lsp.hover' ||
+          'lsp.definition' ||
+          'lsp.prepareRename':
+        _onPageRequest(message);
+      case 'lsp.cancel':
+        final request = _pageRequests.remove(payload.string('re'));
+        request?._cancel();
       case 'editor.log':
         appLogger.log(
           LogLevel.values.byName(payload.string('level')),
@@ -1007,6 +1283,7 @@ final class EditorHost {
         'page_synced',
         fields: {'documents': _documents.length, 'starts': _pageStarts},
       );
+      _emit(const PageSynced());
     }
   }
 

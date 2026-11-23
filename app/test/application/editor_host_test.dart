@@ -517,4 +517,154 @@ void main() {
     expect(page.rejected, isEmpty);
     await host.dispose();
   });
+
+  // ------------------------------------------------- language features (W5)
+
+  testWidgets("the page's requests go to the handler, and each is answered "
+      'once (Phase 6 W5)', (tester) async {
+    await createHost(tester);
+    await host.openDocument(docId: 'd1', text: 'print(x)', language: 'python');
+    await settle(tester);
+    final asked = <PageRequest>[];
+    host.pageRequestHandler = (request) async {
+      asked.add(request);
+      return const Ok({'found': 1});
+    };
+    final answer = page.request('lsp.definition', {
+      'docId': 'd1',
+      'version': 0,
+      'pos': 6,
+    });
+    await settle(tester);
+    expect((await answer)['result'], {'found': 1});
+    expect(asked.single.type, 'lsp.definition');
+    expect(asked.single.payload['pos'], 6);
+    // The host's answers are never answered back.
+    expect(page.rejected, isEmpty);
+    await host.dispose();
+  });
+
+  testWidgets('without a handler, or with no server, the page hears '
+      '"unavailable" (Phase 6 W5)', (tester) async {
+    await createHost(tester);
+    await host.openDocument(docId: 'd1', text: 'x', language: 'python');
+    await settle(tester);
+    final none = page.request('lsp.hover', {
+      'docId': 'd1',
+      'version': 0,
+      'pos': 0,
+    });
+    await settle(tester);
+    expect(((await none)['error']! as Map<String, Object?>)['code'],
+        'unavailable');
+    host.pageRequestHandler = (_) async => const Err(
+      LspFailure('Pyright is restarting.', problem: LspProblem.restarting),
+    );
+    final restarting = page.request('lsp.complete', {
+      'docId': 'd1',
+      'version': 0,
+      'pos': 0,
+      'trigger': 'invoked',
+    });
+    await settle(tester);
+    expect((await restarting)['error'], {
+      'code': 'unavailable',
+      'message': 'Pyright is restarting.',
+    });
+    host.pageRequestHandler = (_) async => const Err(
+      LspFailure('Too slow.', problem: LspProblem.timeout),
+    );
+    final slow = page.request('lsp.hover', {
+      'docId': 'd1',
+      'version': 0,
+      'pos': 0,
+    });
+    await settle(tester);
+    expect(((await slow)['error']! as Map<String, Object?>)['code'], 'timeout');
+    await host.dispose();
+  });
+
+  testWidgets('the page cancels a request: the handler hears it, and nothing '
+      'is answered (Phase 6 W5)', (tester) async {
+    await createHost(tester);
+    await host.openDocument(docId: 'd1', text: 'x', language: 'python');
+    await settle(tester);
+    final done = Completer<Result<Object?>>();
+    var cancelled = false;
+    host.pageRequestHandler = (request) {
+      request.onCancel(() => cancelled = true);
+      return done.future;
+    };
+    unawaited(
+      page.request('lsp.complete', {
+        'docId': 'd1',
+        'version': 0,
+        'pos': 0,
+        'trigger': 'invoked',
+      }),
+    );
+    await settle(tester);
+    expect(page.receivedTypes, isNot(contains('response')));
+    page.cancelRequest(page.lastRequestId!);
+    await settle(tester);
+    expect(cancelled, isTrue);
+    done.complete(
+      const Ok({'resultId': 'c1', 'items': <Object?>[], 'incomplete': false}),
+    );
+    await settle(tester);
+    expect(page.receivedTypes, isNot(contains('response')));
+    await host.dispose();
+  });
+
+  testWidgets('a page restart cancels what it asked (Phase 6 W5)', (
+    tester,
+  ) async {
+    await createHost(tester);
+    await host.openDocument(docId: 'd1', text: 'x', language: 'python');
+    await settle(tester);
+    var cancelled = false;
+    host.pageRequestHandler = (request) {
+      request.onCancel(() => cancelled = true);
+      return Completer<Result<Object?>>().future;
+    };
+    unawaited(page.request('lsp.hover', {'docId': 'd1', 'version': 0, 'pos': 0}));
+    await settle(tester);
+    unawaited(host.reloadPage());
+    await settle(tester);
+    expect(cancelled, isTrue);
+    await host.dispose();
+  });
+
+  testWidgets("diagnostics and a rename's edits reach the page; a stale "
+      'rename is refused (Phase 6 W5)', (tester) async {
+    await createHost(tester);
+    await host.openDocument(docId: 'd1', text: 'greet()\ngreet()\n', language: 'python');
+    await settle(tester);
+    expect(
+      (await host.setDiagnostics('d1', 0, [
+        {'from': 0, 'to': 5, 'severity': 'error', 'message': 'x'},
+      ])).isOk,
+      isTrue,
+    );
+    expect(page.diagnostics['d1']!.items.single['message'], 'x');
+    final applied = await host.applyEdits([
+      (
+        docId: 'd1',
+        baseVersion: 0,
+        edits: [
+          (from: 0, to: 5, insert: 'hello'),
+          (from: 8, to: 13, insert: 'hello'),
+        ],
+      ),
+    ]);
+    await settle(tester);
+    expect(applied.isOk, isTrue);
+    expect(host.textOf('d1'), 'hello()\nhello()\n');
+    expect(host.versionOf('d1'), 1);
+    final stale = await host.applyEdits([
+      (docId: 'd1', baseVersion: 0, edits: [(from: 0, to: 5, insert: 'x')]),
+    ]);
+    expect(causeOf(stale), 'stale');
+    await host.dispose();
+  });
 }

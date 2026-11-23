@@ -163,6 +163,39 @@ final class ScriptedLspService implements LspService {
       ),
   ]);
 
+  /// What a server offering W5's features says it can do (Phase 6 W5):
+  /// completion with resolve and trigger characters, hover, definition,
+  /// and rename with prepareRename.
+  static const Map<String, Object?> featureCapabilities = {
+    'textDocumentSync': {
+      'openClose': true,
+      'change': 2,
+      'save': {'includeText': false},
+    },
+    'completionProvider': {
+      'resolveProvider': true,
+      'triggerCharacters': ['.', '['],
+    },
+    'hoverProvider': true,
+    'definitionProvider': true,
+    'renameProvider': {'prepareProvider': true},
+  };
+
+  /// Answers each method in [answers] with the result it gives for the
+  /// request's params; anything else as [defaultAnswer] does.
+  void answerWith(Map<String, Object? Function(Object? params)> answers) {
+    respond = (handle, method, params) {
+      final answer = answers[method];
+      return answer == null
+          ? defaultAnswer(handle, method, params)
+          : {'result': answer(params)};
+    };
+  }
+
+  /// The handle of [server]'s newest start.
+  int handleOf(LspServerId server) =>
+      starts.lastIndexWhere((start) => start.server == server) + 1;
+
   /// The default server: `initialize` answers [capabilities], `shutdown`
   /// null; anything else waits for the test.
   Map<String, Object?>? defaultAnswer(

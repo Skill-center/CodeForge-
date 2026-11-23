@@ -139,6 +139,12 @@ String? _percentDecoded(String text) {
 
 final RegExp _hexPair = RegExp(r'^[0-9A-Fa-f]{2}$');
 
+/// [path], absolute, with `.` and `..` resolved and repeated slashes
+/// folded; null when it is not absolute or climbs above `/` (Phase 6 W5:
+/// where a library file may be read).
+String? normalizedAbsolutePath(String path) =>
+    path.startsWith('/') ? _normalized(path) : null;
+
 /// [path] with `.` and `..` resolved and repeated slashes folded; null when
 /// it climbs above `/`.
 String? _normalized(String path) {

@@ -107,6 +107,16 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
     ('run.file', 'Run Current File', 'Run', WorkbenchIntent.runFile),
     ('run.project', 'Run Project…', 'Run', WorkbenchIntent.runProject),
     ('run.stop', 'Stop the Last Run', 'Run', WorkbenchIntent.stopRun),
+    // Language features (Phase 6 W5).
+    (
+      'edit.goToDefinition',
+      'Go to Definition',
+      'Edit',
+      WorkbenchIntent.goToDefinition,
+    ),
+    ('edit.renameSymbol', 'Rename Symbol…', 'Edit', WorkbenchIntent.renameSymbol),
+    ('edit.showHover', 'Show Symbol Info', 'Edit', WorkbenchIntent.showHover),
+    ('view.problems', 'Show Problems', 'View', WorkbenchIntent.problems),
   ]) {
     registry.register(
       CfCommand(

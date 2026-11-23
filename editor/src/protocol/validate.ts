@@ -5,6 +5,10 @@
  */
 import {
   APP_SHORTCUTS,
+  COMPLETION_KINDS,
+  COMPLETION_TRIGGERS,
+  DIAGNOSTIC_SEVERITIES,
+  DIAGNOSTIC_TAGS,
   type Direction,
   EDITOR_COMMANDS,
   type Envelope,
@@ -12,7 +16,13 @@ import {
   type ErrorCode,
   LANGUAGE_IDS,
   LOG_LEVELS,
+  MARKUP_KINDS,
+  MAX_COMPLETION_ITEMS,
+  MAX_DIAGNOSTICS,
+  MAX_DOCUMENT_EDITS,
+  MAX_EDITED_DOCUMENTS,
   MAX_MESSAGE_CHARS,
+  type PageRequestType,
   PROTOCOL_VERSION,
 } from './types';
 
@@ -153,6 +163,47 @@ const palette = obj({
   }),
 });
 
+// Language features (Phase 6 W5).
+const requestId = str({ pattern: ID_PATTERN });
+const textEdit = obj({ from: length, to: length, insert: str({ lfOnly: true, max: 1_000_000 }) });
+const markup = obj({ kind: oneOf(MARKUP_KINDS), value: str({ max: 100_000 }) });
+const diagnostic = obj(
+  { from: length, to: length, severity: oneOf(DIAGNOSTIC_SEVERITIES), message: str({ max: 4000 }) },
+  { source: str({ max: 100 }), code: str({ max: 100 }), tags: arrayOf(oneOf(DIAGNOSTIC_TAGS), { max: 2 }) },
+);
+const documentEdits = obj({ docId, baseVersion: version, edits: arrayOf(textEdit, { max: MAX_DOCUMENT_EDITS }) });
+const positionRequest = obj({ docId, version, pos: length });
+const triggerCharacter = str({ min: 1, max: 1 });
+const completionItem = obj(
+  { label: str({ min: 1, max: 500 }) },
+  {
+    kind: oneOf(COMPLETION_KINDS),
+    detail: str({ max: 500 }),
+    sortText: str({ max: 200 }),
+    filterText: str({ max: 500 }),
+    edit: textEdit,
+    insert: str({ lfOnly: true, max: 100_000 }),
+    additionalEdits: arrayOf(textEdit, { max: 100 }),
+    resolvable: bool,
+    deprecated: bool,
+    preselect: bool,
+  },
+);
+
+/** An answer, either way: the page's to the host's requests, and since W5 the host's to the page's. */
+const responsePayload: Check = (v, path) => {
+  if (!isObject(v)) return `${path} must be an object`;
+  if (v.ok === true) return obj({ re: str({ pattern: ID_PATTERN }), ok: bool }, { result: anyValue })(v, path);
+  if (v.ok === false) {
+    return obj({
+      re: str({ pattern: ID_PATTERN }),
+      ok: bool,
+      error: obj({ code: oneOf(ERROR_CODES), message: str({ max: 2000 }) }),
+    })(v, path);
+  }
+  return `${path}.ok must be a boolean`;
+};
+
 const HOST_TO_EDITOR: Record<string, Check> = {
   'editor.configure': obj(
     {},
@@ -175,19 +226,9 @@ const HOST_TO_EDITOR: Record<string, Check> = {
     { query: str({ max: 10000 }) },
     { caseSensitive: bool, regexp: bool, wholeWord: bool, replace: str({ max: 10000 }) },
   ),
-};
-
-const responsePayload: Check = (v, path) => {
-  if (!isObject(v)) return `${path} must be an object`;
-  if (v.ok === true) return obj({ re: str({ pattern: ID_PATTERN }), ok: bool }, { result: anyValue })(v, path);
-  if (v.ok === false) {
-    return obj({
-      re: str({ pattern: ID_PATTERN }),
-      ok: bool,
-      error: obj({ code: oneOf(ERROR_CODES), message: str({ max: 2000 }) }),
-    })(v, path);
-  }
-  return `${path}.ok must be a boolean`;
+  'diag.set': obj({ docId, version, items: arrayOf(diagnostic, { max: MAX_DIAGNOSTICS }) }),
+  'doc.applyEdits': obj({ documents: arrayOf(documentEdits, { max: MAX_EDITED_DOCUMENTS }) }),
+  response: responsePayload,
 };
 
 const EDITOR_TO_HOST: Record<string, Check> = {
@@ -206,7 +247,42 @@ const EDITOR_TO_HOST: Record<string, Check> = {
   'search.state': obj({ docId, open: bool, valid: bool, matches: length, current: length, capped: bool }),
   'editor.log': obj({ level: oneOf(LOG_LEVELS), message: str({ max: 4000 }) }),
   response: responsePayload,
+  'lsp.complete': obj(
+    { docId, version, pos: length, trigger: oneOf(COMPLETION_TRIGGERS) },
+    { character: triggerCharacter },
+  ),
+  'lsp.resolve': obj({ docId, resultId: requestId, index: int({ min: 0, max: MAX_COMPLETION_ITEMS - 1 }) }),
+  'lsp.hover': positionRequest,
+  'lsp.definition': positionRequest,
+  'lsp.prepareRename': positionRequest,
+  'lsp.cancel': obj({ re: requestId }),
 };
+
+/**
+ * What each of the page's requests answers: the `result` of an ok
+ * `response` from the host. The page checks it against the request it sent
+ * (the envelope alone cannot tell), and the host asserts its own answers.
+ */
+export const PAGE_RESULTS: Record<string, Check> = {
+  'lsp.complete': obj(
+    { resultId: requestId, items: arrayOf(completionItem, { max: MAX_COMPLETION_ITEMS }), incomplete: bool },
+    { triggerCharacters: arrayOf(triggerCharacter, { max: 32 }) },
+  ),
+  'lsp.resolve': obj(
+    {},
+    { detail: str({ max: 2000 }), documentation: markup, additionalEdits: arrayOf(textEdit, { max: 100 }) },
+  ),
+  'lsp.hover': obj({}, { contents: markup, from: length, to: length }),
+  'lsp.definition': obj({ found: length }),
+  'lsp.prepareRename': obj({ from: length, to: length, placeholder: str({ max: 500 }) }),
+};
+
+/** Checks the result an ok `response` carries for a page request of [type]. */
+export function validateResult(type: PageRequestType, result: unknown): string | null {
+  const check = PAGE_RESULTS[type];
+  if (check === undefined) return `no result check for ${type}`;
+  return check(result, 'result');
+}
 
 export type ParseResult =
   | { ok: true; message: Envelope }
