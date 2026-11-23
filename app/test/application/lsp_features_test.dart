@@ -418,6 +418,27 @@ void main() {
       await world.start();
       await world.open('people.py');
       await world.open('main.py');
+      // Like Pyright, the server watches its files: those a rename writes
+      // reach it (W4's client sends changes only to a server that asked).
+      world.lsp.deliver(world.lsp.latest, {
+        'jsonrpc': '2.0',
+        'id': 99,
+        'method': 'client/registerCapability',
+        'params': {
+          'registrations': [
+            {
+              'id': 'w1',
+              'method': 'workspace/didChangeWatchedFiles',
+              'registerOptions': {
+                'watchers': [
+                  {'globPattern': '**/*.py'},
+                ],
+              },
+            },
+          ],
+        },
+      });
+      await _drain();
       return world;
     }
 

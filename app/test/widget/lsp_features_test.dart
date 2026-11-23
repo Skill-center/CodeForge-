@@ -228,18 +228,21 @@ void main() {
       tester.element(find.byType(WorkbenchScreen)),
     ).go('/settings/editor');
     await tester.pumpAndSettle();
-    expect(find.text('pyright 1.1.414'), findsOneWidget);
+    // Pyright runs for use.py, and says so.
+    expect(find.text('pyright 1.1.414 · running'), findsOneWidget);
     expect(
-      find.text('typescript 6.0.3, typescript-language-server 6.1.0'),
+      find.textContaining('typescript 6.0.3, typescript-language-server 6.1.0'),
       findsOneWidget,
     );
     await tester.tap(find.byKey(const ValueKey('settings_server_pyright')));
     await tester.pumpAndSettle();
     expect(harness.settingsStore.load().pythonServer, isFalse);
     expect(harness.settingsStore.load().typescriptServer, isTrue);
+    // Stopped now, not when the editor shows again.
     expect(
       lsp.running.where((h) => h == lsp.handleOf(LspServerId.pyright)),
       isEmpty,
     );
+    expect(find.text('pyright 1.1.414'), findsOneWidget);
   });
 }

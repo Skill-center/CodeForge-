@@ -81,6 +81,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(HomeScreen), findsOneWidget);
       for (final target in taps) {
+        if (target.evaluate().isEmpty) {
+          // A long list builds its far rows only once scrolled near them
+          // (Settings grew an Editor entry in Phase 6 W5); a scroll is not
+          // a tap.
+          await tester.scrollUntilVisible(
+            target,
+            200,
+            scrollable: find.byType(Scrollable).first,
+          );
+        }
         await tester.ensureVisible(target);
         await tester.pumpAndSettle();
         await tester.tap(target);

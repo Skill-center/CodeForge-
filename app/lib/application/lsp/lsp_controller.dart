@@ -184,23 +184,21 @@ final class LspController extends Notifier<LspState> {
     _copyRunning = false;
     _enabledServers = enabledServers;
     _folder = location is FolderLocation ? location : null;
-    _workspace = switch (location) {
+    final workspace = switch (location) {
       ProjectLocation(:final folder) => LspWorkspace.project(folder),
       FolderLocation(:final id) => LspWorkspace.copy(id),
-      _ => null,
     };
+    _workspace = workspace;
     _service = service;
     _clock = clock;
     _settings = settings;
     final copyFirst = _folder != null;
     final offReason = !runtimeReady
         ? 'The Linux runtime is not ready'
-        : _workspace == null
-        ? 'No workspace is open'
         : copyFirst
         ? 'Copying the folder for analysis'
         : null;
-    final listening = available && runtimeReady && _workspace != null;
+    final listening = available && runtimeReady;
     _enabled = listening && !copyFirst;
     ref.onDispose(() {
       // Whatever this build scheduled finds itself stale.

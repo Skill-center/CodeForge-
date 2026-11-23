@@ -40,7 +40,11 @@ void main() {
       rateLimiter: rateLimiter,
     );
     events = [];
-    final subscription = host.events.listen(events.add);
+    // Each page start ends with PageSynced (Phase 6 W5); the tests below
+    // count the rest, and one checks it on its own.
+    final subscription = host.events
+        .where((event) => event is! PageSynced)
+        .listen(events.add);
     addTearDown(subscription.cancel);
     if (start) {
       await host.start();
@@ -614,6 +618,26 @@ void main() {
     );
     await settle(tester);
     expect(page.receivedTypes, isNot(contains('response')));
+    await host.dispose();
+  });
+
+  testWidgets('each page start ends with PageSynced, once its documents are '
+      'open again (Phase 6 W5)', (tester) async {
+    await createHost(tester, start: false);
+    final synced = <int>[];
+    final subscription = host.events.listen((event) {
+      if (event is PageSynced) {
+        synced.add(page.documents.length);
+      }
+    });
+    addTearDown(subscription.cancel);
+    await host.openDocument(docId: 'd1', text: 'x', language: 'python');
+    await host.start();
+    await settle(tester);
+    expect(synced, [1]);
+    page.restartPage();
+    await settle(tester);
+    expect(synced, [1, 1]);
     await host.dispose();
   });
 

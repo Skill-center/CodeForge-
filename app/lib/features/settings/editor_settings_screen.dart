@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../application/lsp/lsp_controller.dart';
 import '../../application/settings_controller.dart';
 import '../../core/lsp/lsp_models.dart';
 import '../../design_system/components/buttons.dart';
@@ -23,6 +24,9 @@ class EditorSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsControllerProvider);
     final notifier = ref.read(settingsControllerProvider.notifier);
+    // Listened here, so a server turned off stops now: Riverpod pauses a
+    // provider nobody listens to, and the editor is not on screen.
+    final servers = ref.watch(lspControllerProvider);
     final colors = CfColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     bool isOn(LspServerId server) => switch (server) {
@@ -65,7 +69,9 @@ class EditorSettingsScreen extends ConsumerWidget {
                 key: ValueKey('settings_server_${server.id}'),
                 leading: const Icon(CfIcons.code),
                 title: server.language,
-                subtitle: server.versions,
+                subtitle: servers.statuses[server]?.running ?? false
+                    ? '${server.versions} · running'
+                    : server.versions,
                 trailing: Switch(
                   value: isOn(server),
                   onChanged: (value) =>
