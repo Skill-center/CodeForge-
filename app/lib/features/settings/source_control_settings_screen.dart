@@ -55,9 +55,7 @@ class _SourceControlSettingsScreenState
       // The identity is read once the runtime is ready: now, or when it
       // has started.
       ref.listenManual<bool>(
-        runtimeControllerProvider.select(
-          (s) => s.state == RuntimeState.ready,
-        ),
+        runtimeControllerProvider.select((s) => s.state == RuntimeState.ready),
         (previous, ready) => _loadWhenReady(ready: ready),
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -263,8 +261,7 @@ class _SourceControlSettingsScreenState
                   child: CfButton(
                     key: const ValueKey('git_identity_save'),
                     label: _saving ? 'Saving…' : 'Save',
-                    onPressed:
-                        editable && _changed && emailProblem == null
+                    onPressed: editable && _changed && emailProblem == null
                         ? () => unawaited(_save())
                         : null,
                   ),
@@ -272,9 +269,7 @@ class _SourceControlSettingsScreenState
               ),
               if (!_loaded && error != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CfSpacing.lg,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: CfSpacing.lg),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: CfButton(

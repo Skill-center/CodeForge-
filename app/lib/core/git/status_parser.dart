@@ -93,7 +93,9 @@ GitStatus parseStatus(List<String> records, {bool truncated = false}) {
             kind: GitEntryKind.tracked,
             index: xy.$1,
             workTree: xy.$2,
-            originalPath: original == null || original.isEmpty ? null : original,
+            originalPath: original == null || original.isEmpty
+                ? null
+                : original,
             score: scoreField.length > 1
                 ? int.tryParse(scoreField.substring(1))
                 : null,

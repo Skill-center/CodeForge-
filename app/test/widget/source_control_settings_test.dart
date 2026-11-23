@@ -76,7 +76,10 @@ void main() {
     final git = ScriptedGitService();
     await _openSourceControl(
       tester,
-      TestHarness(shell: const ShellState(lastRoute: '/settings'), git: git),
+      TestHarness(
+        shell: const ShellState(lastRoute: '/settings'),
+        git: git,
+      ),
     );
     await tester.enterText(_key('git_identity_name'), 'Ada');
     await tester.enterText(_key('git_identity_email'), 'not-an-email');
@@ -92,7 +95,10 @@ void main() {
       TestHarness(shell: const ShellState(lastRoute: '/settings')),
     );
     expect(_key('git_identity_unavailable'), findsOneWidget);
-    expect(find.text('Git runs on the Linux runtime, on Android.'), findsOneWidget);
+    expect(
+      find.text('Git runs on the Linux runtime, on Android.'),
+      findsOneWidget,
+    );
     expect(_key('git_identity_name'), findsNothing);
   });
 }

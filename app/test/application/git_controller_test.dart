@@ -101,7 +101,9 @@ GitStatus _changed(String branch, List<String> untracked) => GitStatus(
 
 void main() {
   test("a project's status is read once the runtime is ready", () async {
-    final world = _World(git: ScriptedGitService(status: _changed('dev', ['a'])));
+    final world = _World(
+      git: ScriptedGitService(status: _changed('dev', ['a'])),
+    );
     await world.start();
     expect(world.git.statusCalls, ['demo']);
     expect(world.state.kind, GitRepoKind.repository);
@@ -166,31 +168,33 @@ void main() {
     expect(world.git.statusCalls, ['demo']);
   });
 
-  test('one status at a time, and a change during it runs one more after',
-      () async {
-    final world = _World();
-    await world.start();
-    world.git.statusCalls.clear();
-    final hold = world.git.holdStatus = Completer<void>();
-    final first = world.controller.refresh();
-    await _drain();
-    expect(world.state.refreshing, isTrue);
-    // Asked for while the first runs: they wait, and become one.
-    final second = world.controller.refresh();
-    final third = world.controller.refresh();
-    await _drain();
-    expect(world.git.statusCalls, hasLength(1));
-    world.git.statusResult = Ok(_changed('main', ['new.txt']));
-    world.git.holdStatus = null;
-    hold.complete();
-    await Future.wait([first, second, third]);
-    await _drain();
-    expect(world.git.statusCalls, hasLength(2));
-    expect(world.git.mostStatusesAtOnce, 1);
-    // The newest status is the one that stays.
-    expect(world.state.status!.files.single.path, 'new.txt');
-    expect(world.state.refreshing, isFalse);
-  });
+  test(
+    'one status at a time, and a change during it runs one more after',
+    () async {
+      final world = _World();
+      await world.start();
+      world.git.statusCalls.clear();
+      final hold = world.git.holdStatus = Completer<void>();
+      final first = world.controller.refresh();
+      await _drain();
+      expect(world.state.refreshing, isTrue);
+      // Asked for while the first runs: they wait, and become one.
+      final second = world.controller.refresh();
+      final third = world.controller.refresh();
+      await _drain();
+      expect(world.git.statusCalls, hasLength(1));
+      world.git.statusResult = Ok(_changed('main', ['new.txt']));
+      world.git.holdStatus = null;
+      hold.complete();
+      await Future.wait([first, second, third]);
+      await _drain();
+      expect(world.git.statusCalls, hasLength(2));
+      expect(world.git.mostStatusesAtOnce, 1);
+      // The newest status is the one that stays.
+      expect(world.state.status!.files.single.path, 'new.txt');
+      expect(world.state.refreshing, isFalse);
+    },
+  );
 
   test('operations queue, each refreshing before it answers', () async {
     final world = _World();
@@ -232,9 +236,9 @@ void main() {
   test('a save refreshes the status; typing does not', () async {
     final world = _World();
     await world.start();
-    await world.container.read(documentControllerProvider.notifier).open(
-      'main.js',
-    );
+    await world.container
+        .read(documentControllerProvider.notifier)
+        .open('main.js');
     await _settle();
     world.git.statusCalls.clear();
     world.pages.single.typeText('// more\n');

@@ -45,9 +45,7 @@ final class GitSettings {
   final int? maxFiles;
 }
 
-final gitSettingsProvider = Provider<GitSettings>(
-  (ref) => const GitSettings(),
-);
+final gitSettingsProvider = Provider<GitSettings>((ref) => const GitSettings());
 
 /// What the workspace is to Git.
 enum GitRepoKind {
@@ -423,9 +421,7 @@ final class GitController extends Notifier<GitRepoState> {
         _watchGitFolder();
       case Err<GitStatus>(failure: GitFailure(problem: GitProblem.notReady)):
         state = GitRepoState(kind: GitRepoKind.waiting, project: project);
-      case Err<GitStatus>(
-        failure: GitFailure(problem: GitProblem.unavailable),
-      ):
+      case Err<GitStatus>(failure: GitFailure(problem: GitProblem.unavailable)):
         state = GitRepoState(kind: GitRepoKind.unavailable, project: project);
       case Err<GitStatus>(:final failure):
         final gitFailure = failure is GitFailure

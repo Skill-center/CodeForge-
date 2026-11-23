@@ -88,9 +88,7 @@ void main() {
     expect(chip.tooltip, contains('1 conflicted file'));
   });
 
-  testWidgets('a project that is not a repository has no chip', (
-    tester,
-  ) async {
+  testWidgets('a project that is not a repository has no chip', (tester) async {
     final git = ScriptedGitService()
       ..statusResult = const Err(
         GitFailure('Not a repository', problem: GitProblem.notARepository),

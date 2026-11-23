@@ -25,10 +25,7 @@ void main() {
       expect(const RuntimeFailure('x').kind, 'runtime');
       expect(const ProcessFailure('x', exitCode: 137).kind, 'process');
       expect(const UnexpectedFailure('x').kind, 'unexpected');
-      expect(
-        const GitFailure('x', problem: GitProblem.locked).kind,
-        'git',
-      );
+      expect(const GitFailure('x', problem: GitProblem.locked).kind, 'git');
     });
 
     test('GitProblem reads the host codes, and an unknown one as unknown', () {

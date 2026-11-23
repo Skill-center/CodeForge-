@@ -248,7 +248,8 @@ final class GitStatus {
   ];
 
   /// Files with any change, ignored ones aside.
-  int get changeCount => files.where((f) => f.kind != GitEntryKind.ignored).length;
+  int get changeCount =>
+      files.where((f) => f.kind != GitEntryKind.ignored).length;
 
   bool get clean => changeCount == 0;
 }
@@ -462,7 +463,8 @@ final class GitProgress {
       other.remote == remote;
 
   @override
-  int get hashCode => Object.hash(phase, percent, done, total, finished, remote);
+  int get hashCode =>
+      Object.hash(phase, percent, done, total, finished, remote);
 
   @override
   String toString() =>

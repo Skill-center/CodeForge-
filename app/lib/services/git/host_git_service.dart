@@ -32,12 +32,10 @@ final class HostGitService implements GitService {
   Future<Result<GitStatus>> status(String project, {int? maxFiles}) async {
     // A rename takes two records, and the headers up to five.
     final limit = (maxFiles ?? defaultMaxFiles) * 2 + 8;
-    final ran = await _run(
-      project,
-      'status',
-      const ['--branch', '--untracked-files=all'],
-      maxRecords: limit,
-    );
+    final ran = await _run(project, 'status', const [
+      '--branch',
+      '--untracked-files=all',
+    ], maxRecords: limit);
     return switch (ran) {
       Ok<GitOutcome>(:final value) => Ok(
         parseStatus(value.records, truncated: value.truncated),
@@ -66,11 +64,11 @@ final class HostGitService implements GitService {
     // Before the first commit there is no HEAD to restore from: the paths
     // only leave the index.
     final head = await _host.run(
-      GitInvocation(
-        'rev-parse',
-        const ['--verify', '-q', 'HEAD'],
-        project: project,
-      ),
+      GitInvocation('rev-parse', const [
+        '--verify',
+        '-q',
+        'HEAD',
+      ], project: project),
     );
     switch (head) {
       case Err<GitOutcome>(:final failure):
@@ -176,7 +174,7 @@ final class HostGitService implements GitService {
       '--name-status',
       '-M',
       '--no-commit-id',
-      if (parent != null) parent,
+      ?parent,
       commit,
     ]);
     return switch (ran) {
@@ -225,16 +223,12 @@ final class HostGitService implements GitService {
     String? from,
     bool switchTo = true,
   }) async => _done(
-    await _run(
-      project,
-      switchTo ? 'switch' : 'branch',
-      [
-        '-q',
-        if (switchTo) '--create',
-        name,
-        if (from != null) from,
-      ],
-    ),
+    await _run(project, switchTo ? 'switch' : 'branch', [
+      '-q',
+      if (switchTo) '--create',
+      name,
+      ?from,
+    ]),
   );
 
   @override
@@ -243,12 +237,10 @@ final class HostGitService implements GitService {
     String name, {
     void Function(GitProgress progress)? onProgress,
   }) async => _done(
-    await _run(
-      project,
-      'switch',
-      [if (onProgress != null) '--progress' else '-q', name],
-      onProgress: _progressTo(onProgress),
-    ),
+    await _run(project, 'switch', [
+      if (onProgress != null) '--progress' else '-q',
+      name,
+    ], onProgress: _progressTo(onProgress)),
   );
 
   @override
@@ -265,12 +257,11 @@ final class HostGitService implements GitService {
     String branch, {
     void Function(GitProgress progress)? onProgress,
   }) async => _done(
-    await _run(
-      project,
-      'merge',
-      ['--no-edit', if (onProgress != null) '--progress', branch],
-      onProgress: _progressTo(onProgress),
-    ),
+    await _run(project, 'merge', [
+      '--no-edit',
+      if (onProgress != null) '--progress',
+      branch,
+    ], onProgress: _progressTo(onProgress)),
   );
 
   @override

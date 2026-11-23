@@ -126,10 +126,7 @@ void main() {
         exitCode: 1,
         records: ['On branch main', 'nothing to commit, working tree clean'],
       );
-      expect(
-        await git.commit('demo', 'x'),
-        _fails(GitProblem.nothingToCommit),
-      );
+      expect(await git.commit('demo', 'x'), _fails(GitProblem.nothingToCommit));
       host.answer = (_) => const GitScript(
         exitCode: 128,
         stderr:
@@ -146,8 +143,12 @@ void main() {
 
     test('reads the history; before the first commit there is none', () async {
       host.answer = (_) => GitScript(records: _records('log'));
-      final commits = (await git.log('demo', max: 50, skip: 10, path: 'a.txt'))
-          .orThrow;
+      final commits = (await git.log(
+        'demo',
+        max: 50,
+        skip: 10,
+        path: 'a.txt',
+      )).orThrow;
       expect(commits, hasLength(4));
       expect(host.commands.single, [
         'log',
@@ -160,7 +161,8 @@ void main() {
       ]);
       host.answer = (_) => const GitScript(
         exitCode: 128,
-        stderr: "fatal: your current branch 'main' does not have any commits "
+        stderr:
+            "fatal: your current branch 'main' does not have any commits "
             'yet\n',
       );
       expect((await git.log('demo')).orThrow, isEmpty);
@@ -246,12 +248,7 @@ void main() {
       await git.switchBranch('demo', 'big', onProgress: heard.add);
       expect(host.commands.single, ['switch', '--progress', 'big']);
       expect(heard, const [
-        GitProgress(
-          phase: 'Updating files',
-          percent: 50,
-          done: 5,
-          total: 10,
-        ),
+        GitProgress(phase: 'Updating files', percent: 50, done: 5, total: 10),
         GitProgress(
           phase: 'Updating files',
           percent: 100,
@@ -265,39 +262,39 @@ void main() {
     test('a merge that stops on conflicts fails as a conflict', () async {
       host.answer = (_) =>
           GitScript(exitCode: 1, records: _records('merge_conflict'));
-      expect(
-        await git.merge('demo', 'other'),
-        _fails(GitProblem.conflict),
-      );
+      expect(await git.merge('demo', 'other'), _fails(GitProblem.conflict));
     });
 
-    test("the identity: read from the runtime's home, set, and unset", () async {
-      host.answer = (invocation) => switch (invocation.arguments.last) {
-        'user.name' => const GitScript(records: ['Ada Lovelace']),
-        _ => const GitScript(exitCode: 1),
-      };
-      final identity = (await git.identity()).orThrow;
-      expect(identity, const GitIdentity(name: 'Ada Lovelace'));
-      expect(identity.complete, isFalse);
-      expect(host.invocations.every((i) => i.project == null), isTrue);
-      host.invocations.clear();
-      host.answer = (invocation) => invocation.arguments.contains('--unset')
-          ? const GitScript(exitCode: 5)
-          : const GitScript();
-      final set = await git.setIdentity(
-        const GitIdentity(name: ' Ada Lovelace ', email: ''),
-      );
-      expect(set.isOk, isTrue);
-      expect(host.commands, [
-        ['config', '--global', 'user.name', 'Ada Lovelace'],
-        ['config', '--global', '--unset', 'user.email'],
-      ]);
-      host.answer = (_) => const GitScript(problem: GitProblem.busy);
-      expect(
-        await git.setIdentity(const GitIdentity(name: 'x', email: 'y')),
-        _fails(GitProblem.busy),
-      );
-    });
+    test(
+      "the identity: read from the runtime's home, set, and unset",
+      () async {
+        host.answer = (invocation) => switch (invocation.arguments.last) {
+          'user.name' => const GitScript(records: ['Ada Lovelace']),
+          _ => const GitScript(exitCode: 1),
+        };
+        final identity = (await git.identity()).orThrow;
+        expect(identity, const GitIdentity(name: 'Ada Lovelace'));
+        expect(identity.complete, isFalse);
+        expect(host.invocations.every((i) => i.project == null), isTrue);
+        host.invocations.clear();
+        host.answer = (invocation) => invocation.arguments.contains('--unset')
+            ? const GitScript(exitCode: 5)
+            : const GitScript();
+        final set = await git.setIdentity(
+          const GitIdentity(name: ' Ada Lovelace ', email: ''),
+        );
+        expect(set.isOk, isTrue);
+        expect(host.commands, [
+          ['config', '--global', 'user.name', 'Ada Lovelace'],
+          ['config', '--global', '--unset', 'user.email'],
+        ]);
+        host.answer = (_) => const GitScript(problem: GitProblem.busy);
+        expect(
+          await git.setIdentity(const GitIdentity(name: 'x', email: 'y')),
+          _fails(GitProblem.busy),
+        );
+      },
+    );
 
     test('a branch name is checked by git, and what reads as an option '
         'never reaches it', () async {
@@ -391,34 +388,42 @@ void main() {
       }
     });
 
-    test('runs a command by its project, and hears its records and exit',
-        () async {
-      answer('run', (args) => GitStartMessage());
-      final host = PigeonGitHost();
-      final ran = host.run(
-        const GitInvocation(
-          'status',
-          ['--branch'],
-          project: 'demo',
-          maxRecords: 100,
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-      final request = asked.single[1]! as GitRunMessage;
-      expect(request.project, 'demo');
-      expect(request.operation, 'status');
-      expect(request.arguments, ['--branch']);
-      expect(request.maxRecords, 100);
-      await notice('output', [request.runId, <String>['# branch.head main']]);
-      await notice('output', [request.runId, <String>['? a.txt']]);
-      await notice('exited', [exitOf(request.runId, records: 2)]);
-      final outcome = (await ran).orThrow;
-      expect(outcome.records, ['# branch.head main', '? a.txt']);
-      expect(outcome.exitCode, 0);
-      expect(outcome.ok, isTrue);
-      expect(outcome.recordCount, 2);
-      await host.dispose();
-    });
+    test(
+      'runs a command by its project, and hears its records and exit',
+      () async {
+        answer('run', (args) => GitStartMessage());
+        final host = PigeonGitHost();
+        final ran = host.run(
+          const GitInvocation(
+            'status',
+            ['--branch'],
+            project: 'demo',
+            maxRecords: 100,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        final request = asked.single[1]! as GitRunMessage;
+        expect(request.project, 'demo');
+        expect(request.operation, 'status');
+        expect(request.arguments, ['--branch']);
+        expect(request.maxRecords, 100);
+        await notice('output', [
+          request.runId,
+          <String>['# branch.head main'],
+        ]);
+        await notice('output', [
+          request.runId,
+          <String>['? a.txt'],
+        ]);
+        await notice('exited', [exitOf(request.runId, records: 2)]);
+        final outcome = (await ran).orThrow;
+        expect(outcome.records, ['# branch.head main', '? a.txt']);
+        expect(outcome.exitCode, 0);
+        expect(outcome.ok, isTrue);
+        expect(outcome.recordCount, 2);
+        await host.dispose();
+      },
+    );
 
     test("a run's events may come before the host's answer", () async {
       final host = PigeonGitHost();
@@ -428,7 +433,10 @@ void main() {
         final request = args.single! as GitRunMessage;
         asked.add(['run', request]);
         // The exit first, then the answer.
-        await notice('output', [request.runId, <String>['early']]);
+        await notice('output', [
+          request.runId,
+          <String>['early'],
+        ]);
         await notice('exited', [exitOf(request.runId, records: 1)]);
         answered.complete();
         return codec.encodeMessage(<Object?>[GitStartMessage()]);
@@ -441,8 +449,7 @@ void main() {
       await host.dispose();
     });
 
-    test('records go to a listener as they come, when one is given',
-        () async {
+    test('records go to a listener as they come, when one is given', () async {
       answer('run', (args) => GitStartMessage());
       final host = PigeonGitHost();
       final batches = <List<String>>[];
@@ -454,7 +461,10 @@ void main() {
       );
       await Future<void>.delayed(Duration.zero);
       final runId = (asked.single[1]! as GitRunMessage).runId;
-      await notice('output', [runId, <String>['a', 'b']]);
+      await notice('output', [
+        runId,
+        <String>['a', 'b'],
+      ]);
       await notice('progress', [runId, 'Counting: 1', false]);
       await notice('progress', [runId, 'Counting: 2, done.', true]);
       await notice('exited', [exitOf(runId, records: 2)]);

@@ -112,7 +112,9 @@ List<GitCommitFile> parseCommitFiles(List<String> records) {
   final files = <GitCommitFile>[];
   var i = 0;
   // Without --no-commit-id, the commit comes first.
-  if (records.isNotEmpty && records[0].length >= 40 && _hash.hasMatch(records[0])) {
+  if (records.isNotEmpty &&
+      records[0].length >= 40 &&
+      _hash.hasMatch(records[0])) {
     i = 1;
   }
   while (i < records.length) {

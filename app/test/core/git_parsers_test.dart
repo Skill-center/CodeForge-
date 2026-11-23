@@ -109,19 +109,23 @@ void main() {
       expect(status.branch.label, status.branch.oid!.substring(0, 7));
     });
 
-    test('after a merge stopped on conflicts: each conflict as git left it', () {
-      final status = _status('status_conflicts');
-      expect({
-        for (final f in status.conflicted) f.path: f.conflict,
-      }, {
-        'added.txt': GitConflict.bothAdded,
-        'both.txt': GitConflict.bothModified,
-        'ours_deleted.txt': GitConflict.deletedByUs,
-        'theirs_deleted.txt': GitConflict.deletedByThem,
-      });
-      expect(status.staged, isEmpty);
-      expect(status.unstaged, isEmpty);
-    });
+    test(
+      'after a merge stopped on conflicts: each conflict as git left it',
+      () {
+        final status = _status('status_conflicts');
+        expect(
+          {for (final f in status.conflicted) f.path: f.conflict},
+          {
+            'added.txt': GitConflict.bothAdded,
+            'both.txt': GitConflict.bothModified,
+            'ours_deleted.txt': GitConflict.deletedByUs,
+            'theirs_deleted.txt': GitConflict.deletedByThem,
+          },
+        );
+        expect(status.staged, isEmpty);
+        expect(status.unstaged, isEmpty);
+      },
+    );
 
     test('cut at the cap inside a rename keeps what it has', () {
       final records = _records('status_changes');
@@ -177,11 +181,10 @@ void main() {
     test("for-each-ref's branches: upstreams, ahead and behind, gone, the "
         'one checked out', () {
       final branches = parseRefs(_records('for_each_ref'));
-      expect([for (final b in branches) b.name], [
-        'feature',
-        'main',
-        'origin/main',
-      ]);
+      expect(
+        [for (final b in branches) b.name],
+        ['feature', 'main', 'origin/main'],
+      );
       final feature = branches[0];
       expect(feature.kind, GitBranchKind.local);
       expect(feature.upstream, 'origin/feature');
@@ -234,11 +237,10 @@ void main() {
         expect(progress, isNotNull, reason: text);
         read.add(progress!);
       }
-      expect({for (final p in read) p.phase}, {
-        'Counting objects',
-        'Compressing objects',
-        'Receiving objects',
-      });
+      expect(
+        {for (final p in read) p.phase},
+        {'Counting objects', 'Compressing objects', 'Receiving objects'},
+      );
       expect(read.first.remote, isTrue);
       expect(read.first.percent, 0);
       final last = read.last;
@@ -318,8 +320,7 @@ void main() {
   });
 
   group('fuzzed', () {
-    const alphabet =
-        ' #12uM.ADRCTU?!NSabc/\n\u001f\u0000ü-+()%:*,refs/heads/';
+    const alphabet = ' #12uM.ADRCTU?!NSabc/\n\u001f\u0000ü-+()%:*,refs/heads/';
     String noise(Random random, int max) => String.fromCharCodes([
       for (var i = random.nextInt(max); i > 0; i--)
         alphabet.codeUnitAt(random.nextInt(alphabet.length)),
