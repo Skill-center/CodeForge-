@@ -197,8 +197,7 @@ double _round1(num value) => (value * 10).round() / 10;
 double _max(List<double> values) =>
     values.isEmpty ? 0 : values.reduce(math.max);
 
-List<Object?> _list(Object? value) =>
-    value is List<Object?> ? value : const [];
+List<Object?> _list(Object? value) => value is List<Object?> ? value : const [];
 
 int _int(Object? value) => value is num ? value.toInt() : 0;
 
@@ -294,8 +293,7 @@ final class _Figures {
   double get diagnosticsP50 => percentile(diagnosticsMs, 0.5);
   double get diagnosticsP95 => percentile(diagnosticsMs, 0.95);
   bool get diagnosticsUnderBudget =>
-      diagnosticsMs.length >= _saves &&
-      diagnosticsP95 <= diagnosticsBudgetMs;
+      diagnosticsMs.length >= _saves && diagnosticsP95 <= diagnosticsBudgetMs;
 
   int get pssKib => info?.pssKib ?? 0;
   double get pssMb => _round1(pssKib / 1024);
