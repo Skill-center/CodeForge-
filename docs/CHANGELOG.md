@@ -4,6 +4,9 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Phase 7 W1 accepted, and the owner's decisions (2026-11-23)
+- Git works in projects, and a folder from the phone's storage offers *Import as project*; Phase 7 builds HTTPS tokens and SSH keys; the status of a 10,000-file repository is shown in the app within 500 ms at the 95th percentile on the Pixel 8a, with at most 5 % of frames over 32 ms and none frozen while long operations run (PHASE_7_PLAN §10).
+
 ### Fixed — git in the runtime (Phase 7 W1)
 - **`git init`, `git clone` and HTTPS remotes work in the terminal.** They had failed since the runtime arrived in Phase 4, unnoticed: git looked for its templates and its helper programs where Termux keeps them, a place the app's runtime does not have. The runtime now tells git where they are.
 

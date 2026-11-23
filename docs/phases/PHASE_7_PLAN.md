@@ -1,6 +1,6 @@
 # Phase 7 Plan — Git & Source Control
 
-**Status:** **In progress.** Proposed on 2026-11-23, the day Phase 6 was accepted, and started the same day on the owner's "green start next phase" (CI 45236523396 on the plan). **W1 done on 2026-11-23** (phase gate 45250655049: `GitTest` 7 of 7 on API 26 to 36 and on Test Lab's Pixel 8a, after the first gate had found git's paths broken in the runtime and the fix had gone in; see *As built (W1)* and [ADR-0016](../adr/0016-git.md)). **The owner's decisions in §10, items 2 to 4,** now have W1's numbers · **Spec reference:** §8 Phase 7 (Git and source control), §7 (security), §9 (performance: measure, never assume) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §4 (the credential store), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) (Git on folders from shared storage), [SECURITY.md](../SECURITY.md) §1, §2 and §4, [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0012](../adr/0012-backup-opt-in.md) (backup), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy) · **Builds on:** Phase 6 ([report](PHASE_6_REPORT.md)), and the sealed runtime's Git since Phase 4
+**Status:** **In progress.** Proposed on 2026-11-23, the day Phase 6 was accepted, and started the same day on the owner's "green start next phase" (CI 45236523396 on the plan). **W1 done on 2026-11-23** (phase gate 45250655049: `GitTest` 7 of 7 on API 26 to 36 and on Test Lab's Pixel 8a, after the first gate had found git's paths broken in the runtime and the fix had gone in; see *As built (W1)* and [ADR-0016](../adr/0016-git.md)). **The owner accepted W1 and decided §10's items 2 to 4 on 2026-11-23:** (a) Git in projects, folders through *Import as project*; (b) HTTPS tokens and SSH keys; (a) the Git budgets as proposed. **W2 under way** · **Spec reference:** §8 Phase 7 (Git and source control), §7 (security), §9 (performance: measure, never assume) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §4 (the credential store), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) (Git on folders from shared storage), [SECURITY.md](../SECURITY.md) §1, §2 and §4, [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0012](../adr/0012-backup-opt-in.md) (backup), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy) · **Builds on:** Phase 6 ([report](PHASE_6_REPORT.md)), and the sealed runtime's Git since Phase 4
 
 ---
 
@@ -159,7 +159,7 @@ Every later package builds on its answers: HTTPS through libcurl, a credential h
   - pull merges by default; a conflict is W4's;
   - the first push of a branch sets its upstream;
   - typed failures: authentication, not found, offline, a rejected push (fetch first), a host's TLS refused.
-- **SSH keys, if decided** (§10, item 3):
+- **SSH keys, decided on 2026-11-23** (§10, item 3, (b)):
   - an ed25519 key made with the runtime's `ssh-keygen`, encrypted by OpenSSH with a random passphrase that only the store holds;
   - the passphrase given per operation through `SSH_ASKPASS`;
   - `known_hosts` in the runtime's home, a new host's fingerprint shown once for the user to accept;
@@ -178,7 +178,7 @@ Every later package builds on its answers: HTTPS through libcurl, a credential h
   - after a pull with conflicts: the files listed, each opened with its markers, *Mark resolved*, and *Abort the merge*.
 - **The status strip:** the branch chip opens the panel, and shows when the tree has changes.
 - **The explorer:** files coloured by their state, a folder by its files'.
-- **Folders from shared storage,** as decided (§10, item 2).
+- **Folders from shared storage, decided on 2026-11-23** (§10, item 2, (a)): a folder that holds a repository says in the panel that Git works in projects, and offers *Import as project*, which copies `.git` with the rest, pack files over 64 MB included (§9).
 - **Accessibility** (labels, tap targets, text at 1.3×) and goldens, as the other panels have.
 
 ### W5 — Diffs in the editor (1–2 sessions) → G5
@@ -193,8 +193,8 @@ Every later package builds on its answers: HTTPS through libcurl, a credential h
 
 ### W6 — The Git gate on real targets (1–2 sessions) → G6
 
-**The budgets,** as the owner decides after W1 (§10, item 4). The agent will propose, from W1's numbers:
-- status of the 10,000-file repository, warm, at the 95th percentile;
+**The budgets, decided by the owner on 2026-11-23** (§10, item 4, (a), from W1's numbers):
+- the status of the 10,000-file repository shown in the app within 500 ms at the 95th percentile on the Pixel 8a (git alone took 134 ms in W1);
 - the app's frames while a status, a clone and a commit of the large repository run: at most 5 % over 32 ms and none frozen, the terminal flood's rule;
 - a clone's time and the processes' memory, recorded.
 
@@ -292,12 +292,15 @@ GIT_ARCHITECTURE (new), ADR-0016 (new), SECURITY §2.4 and §4, ARCHITECTURE, ED
    - **(b)** As (a), plus a folder's status, diffs and history, read-only, from a copy of its `.git` made on request.
    - **(c)** Git on the folder itself, through a two-way copy of its files and `.git`, kept in step. Writing thousands of small files back through Android's storage framework is slow, and a copy stopped halfway could damage the user's repository.
    - **The agent recommends (a).** The run copy and *Import as project* already exist, and the user's repository is never written by anything but the user.
+   - **Decided on 2026-11-23: (a),** Git in projects.
 3. **Credentials in Phase 7,** by W3:
    - **(a) HTTPS with a token** (a personal access token from GitHub, GitLab, Codeberg, Bitbucket or any host), kept in the Keystore.
    - **(b)** (a), plus SSH keys made in the app (§3, W3). About one more session; W1 probes it.
    - **(c)** (a), plus signing in to GitHub through its device flow. It needs an OAuth app that the owner registers, and its client id.
-   - **The agent recommends (a) now, and brings (b) at W1's end** with the SSH probe's result.
+   - **The agent recommends (a) now, and brings (b) at W1's end** with the SSH probe's result. W1 found the SSH client working on every target, so the agent recommended (b).
+   - **Decided on 2026-11-23: (b),** HTTPS tokens and SSH keys made in the app.
 4. **The Git budgets, after W1's numbers:** status of the 10,000-file repository, the frames during long operations, and what is only recorded. The agent proposes them at W1's end, as Phase 4 W6 proposed search's.
+   - **Decided on 2026-11-23: (a),** as proposed: the status of the 10,000-file repository in the app within 500 ms at p95 on the Pixel 8a; at most 5 % of frames over 32 ms and none frozen while a status, a clone and a commit run; a clone's time and memory recorded (W6).
 5. **Non-blocking, carried from Phase 6:**
    - the phone sessions: PHASE_6_PHONE_CHECKLIST, and the Phase 3, 4 and 5 checklists, on Phase 6's exit gate APK;
    - the first release: the keys, and the licence review;
