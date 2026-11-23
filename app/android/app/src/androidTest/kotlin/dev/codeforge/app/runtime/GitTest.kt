@@ -397,7 +397,8 @@ class GitTest {
                 record("ssh_local_clone", "sshd_not_listening")
                 return
             }
-            val user = Os.getpwuid(Os.getuid()).pw_name
+            // The app's own user name, as the runtime's coreutils give it (Os.getpwuid is not public).
+            val user = run("whoami").stdout.text.trim().ifEmpty { "gate" }
             val command = "ssh -F /dev/null -i ${key.path} -o IdentitiesOnly=yes -o BatchMode=yes " +
                 "-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=${File(ssh, "known_local").path}"
             val clone = git(ssh, "-c", "core.sshCommand=$command", "clone", "-q", "ssh://$user@127.0.0.1:$port${bare.path}", "cloned", timeoutMs = 60_000L)
