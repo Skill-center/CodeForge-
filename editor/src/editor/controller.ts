@@ -91,6 +91,7 @@ import {
   withValidQuery,
 } from './search_session';
 import { DEFAULT_PALETTE, fontSizeTheme, forgeTheme } from './theme';
+import { browserTimingClock, CompletionTimings, type TimingClock } from './timings';
 
 /** A rejected host command; the bridge turns it into an error response. */
 export class EditorError extends Error {
@@ -116,6 +117,8 @@ export interface ControllerOptions {
   searchStateDelayMs?: number;
   /** The page's own requests to the host (Phase 6 W5: language features). */
   requests?: PageRequester | null;
+  /** The clock completion lists are timed with (Phase 6 W6: timings.ts). */
+  timingClock?: TimingClock;
 }
 
 /** How many sent batches a document remembers, to map diagnostics from (W5). */
@@ -210,6 +213,8 @@ export class EditorController implements LanguageHost {
   readonly view: EditorView;
   readonly scheduler: Scheduler;
   readonly requests: PageRequester | null;
+  /** Each completion list's time, from the request to the frame that drew it (Phase 6 W6). */
+  readonly timings: CompletionTimings;
 
   private readonly docs = new Map<string, DocEntry>();
   private activeId: string | null = null;
@@ -239,6 +244,7 @@ export class EditorController implements LanguageHost {
   constructor(private readonly options: ControllerOptions) {
     this.scheduler = options.scheduler ?? browserScheduler;
     this.requests = options.requests ?? null;
+    this.timings = new CompletionTimings(options.timingClock ?? browserTimingClock);
     this.language = new LanguageLayer(this);
     this.viewStateDelayMs = options.viewStateDelayMs ?? 400;
     this.searchStateDelayMs = options.searchStateDelayMs ?? 100;
@@ -314,6 +320,8 @@ export class EditorController implements LanguageHost {
       }
       case 'doc.applyEdits':
         return this.applyEdits((payload as HostToEditor['doc.applyEdits']).documents);
+      case 'probe.read':
+        return this.timings.read((payload as HostToEditor['probe.read']).clear ?? false);
       case 'response':
         // The bridge takes answers to the page's requests before this.
         throw new EditorError('bad_payload', 'a response is not a command');

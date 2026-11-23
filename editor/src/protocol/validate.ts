@@ -228,6 +228,7 @@ const HOST_TO_EDITOR: Record<string, Check> = {
   ),
   'diag.set': obj({ docId, version, items: arrayOf(diagnostic, { max: MAX_DIAGNOSTICS }) }),
   'doc.applyEdits': obj({ documents: arrayOf(documentEdits, { max: MAX_EDITED_DOCUMENTS }) }),
+  'probe.read': obj({}, { clear: bool }),
   response: responsePayload,
 };
 

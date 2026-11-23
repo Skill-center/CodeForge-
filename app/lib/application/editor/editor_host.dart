@@ -748,6 +748,26 @@ final class EditorHost {
     return _done(await _request('cmd.exec', {'command': command}));
   }
 
+  /// The page's measurements (Phase 6 W6, the page's timings.ts), as it
+  /// sent them: each completion list's time from the request to the frame
+  /// that drew it (`completions`: `ms`, `answerMs`, `items`, `trigger`),
+  /// and the lists never drawn (`undrawn`), the empty answers (`empty`) and
+  /// the frames that never came (`throttled`). With [clear] the page starts
+  /// counting again.
+  Future<Result<Map<String, Object?>>> readProbe({bool clear = false}) async {
+    if (!_ready || (_syncing != null && !await _afterSync())) {
+      return const Err(BridgeFailure('The editor is not ready.'));
+    }
+    final result = await _request('probe.read', {if (clear) 'clear': true});
+    return switch (result) {
+      Ok<Object?>(:final value) when value is Map<String, Object?> => Ok(value),
+      Ok<Object?>() => const Err(
+        BridgeFailure('The editor answered a probe oddly.'),
+      ),
+      Err<Object?>(:final failure) => Err(failure),
+    };
+  }
+
   /// Opens or updates the page's search session (`search.set`); the
   /// result says whether the query is usable. Counts follow as
   /// [SearchStateChanged] events.

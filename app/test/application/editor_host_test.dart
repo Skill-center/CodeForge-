@@ -698,4 +698,33 @@ void main() {
     expect(causeOf(stale), 'stale');
     await host.dispose();
   });
+
+  testWidgets("the page's completion timings come back as it sent them, and "
+      'a read can start the count again (Phase 6 W6)', (tester) async {
+    await createHost(tester, start: false);
+    expect(
+      (await host.readProbe()).failureOrNull?.message,
+      'The editor is not ready.',
+    );
+    await host.start();
+    await settle(tester);
+    page.probeReport = {
+      'completions': [
+        {'ms': 85.5, 'answerMs': 60, 'items': 2, 'trigger': 'invoked'},
+      ],
+      'undrawn': 1,
+      'empty': 0,
+      'throttled': 0,
+    };
+    final read = await host.readProbe();
+    expect(read.valueOrNull, page.probeReport);
+    expect((await host.readProbe(clear: true)).isOk, isTrue);
+    expect(page.probeReads, [false, true]);
+    final sent = page.received.where((m) => m.type == 'probe.read').toList();
+    expect(sent.map((m) => m.payload), [
+      <String, Object?>{},
+      {'clear': true},
+    ]);
+    await host.dispose();
+  });
 }

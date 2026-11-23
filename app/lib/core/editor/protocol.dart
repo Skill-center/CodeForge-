@@ -586,6 +586,10 @@ final Map<String, _Check> _hostToEditor = {
   'doc.applyEdits': _obj({
     'documents': _arrayOf(_documentEdits, max: maxEditedDocuments),
   }),
+  // Phase 6 W6. The page's measurements (editor/src/editor/timings.ts):
+  // each completion list's time from the request to the frame that drew
+  // it; with clear, the page starts counting again.
+  'probe.read': _obj({}, {'clear': _bool}),
   // The host's answer to one of the page's requests (lsp.*).
   'response': _responsePayload,
 };

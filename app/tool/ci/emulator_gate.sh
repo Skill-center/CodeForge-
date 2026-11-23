@@ -2061,7 +2061,7 @@ cat "$RESULTS/run.txt" >> "$RESULTS/attempts.txt"
 [ "$run_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
-echo "::group::Language servers (Phase 6 W5, G5: diagnostics underlined, listed and cleared; completion, hover and definition through the page; a rename across files with undo; TypeScript; a killed server back with its documents; three restarts, then Restart; a folder through its copy)"
+echo "::group::Language servers (Phase 6 W5, G5: diagnostics underlined, listed and cleared; completion, hover and definition through the page; a rename across files with undo; TypeScript; a killed server back with its documents; three restarts, then Restart; a folder through its copy. W6, G6: the budgets' figures on a 200-file project, recorded)"
 # integration_test/lsp_test.dart, in the build with the x86_64 payload,
 # which carries the language servers (native/runtime-core/build.gradle.kts):
 # the editor's language features in the real app on the sealed runtime,
@@ -2075,7 +2075,14 @@ echo "::group::Language servers (Phase 6 W5, G5: diagnostics underlined, listed 
 # offered, the editor still editing; then the gate folder, picked in
 # Android's picker (folder_driver answers it), analysed through its copy.
 # The LSP_GATE lines are the evidence; their times are recorded, never
-# judged here (W6 judges the budgets).
+# judged here. Since Phase 6 W6 the group then runs
+# integration_test/phone_lsp_test.dart, which Test Lab's phone runs and
+# judges (G6): completion after an edit timed in the page, diagnostics
+# after a save, and the servers' memory, on the gate's 200-file project
+# in Python and TypeScript, the app's and its renderers' memory through
+# folder_driver's `mem`. Here its `LSP_GATE budget` lines are recorded and
+# its exit with them, never judged: the emulator's figures are not the
+# phone's, and a failure here fails nothing.
 lsp_group() {
   "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
   folder_fixture_push lsp_fixture.txt || return 1
@@ -2095,6 +2102,12 @@ for attempt in 1 2; do
   echo "lsp attempt $attempt hit infrastructure failures — running it again" \
     | tee -a "$RESULTS/attempts.txt"
 done
+lsp_budget_exit=skipped
+if [ "$lsp_ok" = "1" ]; then
+  lsp_budget_exit=0
+  ITEST_LIMIT=20m ITEST_ATTEMPTS=1 run_itest lsp_budget_itest integration_test/phone_lsp_test.dart \
+    || lsp_budget_exit=$?
+fi
 kill "$lsp_driver_pid" 2>/dev/null || true
 wait "$lsp_driver_pid" 2>/dev/null || true
 "$ADB" logcat -d -s CodeForgeLsp:I CodeForgeStorage:I < /dev/null > "$RESULTS/lsp_logcat.txt" 2>&1 || true
@@ -2102,6 +2115,8 @@ wait "$lsp_driver_pid" 2>/dev/null || true
   echo "lsp_group=$([ "$lsp_ok" = "1" ] && echo pass || echo fail)"
   echo "lsp_picker_picked=$(grep -c ' pick .*-> picked' "$RESULTS/lsp_driver.txt")"
   grep -oE 'LSP_GATE .*' "$RESULTS/lsp_itest.txt" 2>/dev/null | sed 's/^LSP_GATE /lsp: /'
+  echo "lsp_budget_exit=$lsp_budget_exit (recorded, never judged)"
+  grep -oE 'LSP_GATE budget .*' "$RESULTS/lsp_budget_itest.txt" 2>/dev/null | sed 's/^LSP_GATE /lsp: /'
 } | tee "$RESULTS/lsp.txt"
 # The annotations have no slot left: attempts.txt carries the verdict.
 cat "$RESULTS/lsp.txt" >> "$RESULTS/attempts.txt"

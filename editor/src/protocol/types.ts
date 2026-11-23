@@ -395,8 +395,37 @@ export interface HostToEditor {
    * past its base version or has edits not sent yet.
    */
   'doc.applyEdits': { documents: DocumentEdits[] };
+  /**
+   * The page's measurements (Phase 6 W6, editor/timings.ts): each completion
+   * list's time from the request to the frame that drew it. Answered with a
+   * [ProbeReport]; with `clear`, the page starts counting again.
+   */
+  'probe.read': { clear?: boolean };
   /** The answer to one of the page's requests (`lsp.*`). */
   response: ResponsePayload;
+}
+
+/** One completion list, timed (Phase 6 W6, editor/timings.ts). */
+export interface CompletionTiming {
+  /** From the request to the end of the frame that drew the list, in ms. */
+  ms: number;
+  /** From the request to the host's answer, in ms. */
+  answerMs: number;
+  /** The options the list was drawn from. */
+  items: number;
+  trigger: CompletionTrigger;
+}
+
+/** `probe.read`'s answer: what was measured since the page last cleared it. */
+export interface ProbeReport {
+  /** The lists drawn, oldest first. */
+  completions: CompletionTiming[];
+  /** Lists answered but never drawn: closed or replaced before they opened. */
+  undrawn: number;
+  /** Answers with nothing to draw. */
+  empty: number;
+  /** Frames that never came while timing (a hidden page): those times are the fallback's. */
+  throttled: number;
 }
 
 // ---------------------------------------------------------------- editor → host

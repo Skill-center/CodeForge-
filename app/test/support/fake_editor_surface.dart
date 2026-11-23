@@ -128,6 +128,16 @@ final class FakeEditorSurface implements EditorSurface {
   /// changed it: what an undo would take back (Phase 6 W5).
   final Map<String, List<String>> undoStack = {};
 
+  /// What `probe.read` answers (Phase 6 W6: the page's completion
+  /// timings), and each read's `clear`, in order.
+  Map<String, Object?> probeReport = const {
+    'completions': <Object?>[],
+    'undrawn': 0,
+    'empty': 0,
+    'throttled': 0,
+  };
+  final List<bool> probeReads = [];
+
   /// The page's own requests waiting for the host's answer (Phase 6 W5).
   final Map<String, Completer<Map<String, Object?>>> _asked = {};
 
@@ -320,6 +330,9 @@ final class FakeEditorSurface implements EditorSurface {
         });
       case 'doc.applyEdits':
         _applyEdits(id, payload);
+      case 'probe.read':
+        probeReads.add(payload['clear'] == true);
+        _ok(id, probeReport);
       case 'response':
         // The host's answer to one of this page's requests.
         _asked.remove(payload.string('re'))?.complete(payload);

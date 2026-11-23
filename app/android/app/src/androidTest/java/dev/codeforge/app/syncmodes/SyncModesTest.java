@@ -28,7 +28,10 @@ import dev.flutter.plugins.integration_test.FlutterTestRunner;
  * folder's copy on the phone ({@code integration_test/phone_terminal_test.dart}),
  * whose requests to the gate ({@code folder_gate.dart}: memory, the gate
  * folder, the folder picker) {@link GateAnswers} answers, from the moment the
- * rule launches the activity.</p>
+ * rule launches the activity. Since Phase 6 W6 it also measures the language
+ * budgets ({@code integration_test/phone_lsp_test.dart}: completion,
+ * diagnostics after a save and the servers' memory on a 200-file project),
+ * whose memory requests {@link GateAnswers} answers too.</p>
  */
 @RunWith(FlutterTestRunner.class)
 public class SyncModesTest {

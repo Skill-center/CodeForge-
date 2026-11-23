@@ -1197,7 +1197,15 @@ jobs:
   #   recorded, the owner's decision of 2026-11-21) and a folder's copy
   #   through Android's picker
   #   (integration_test/phone_terminal_test.dart), whose requests the
-  #   instrumentation answers (syncmodes/GateAnswers.java).
+  #   instrumentation answers (syncmodes/GateAnswers.java), and since
+  #   Phase 6 W6 the language budgets (G6, integration_test/
+  #   phone_lsp_test.dart): on the 200-file project in Python (Pyright) and
+  #   TypeScript, completion after an edit within 300 ms at p95 from the
+  #   page's request to the list drawn, diagnostics within 1 s of a save
+  #   at p95, and each server's process tree within 300 MB of PSS, the
+  #   app's total with the servers recorded (the owner's decision of
+  #   2026-11-22). The runtime's LanguageServerInstallTest and
+  #   LanguageServerTest (Phase 6 W2 to W4) run before it.
   # One matrix on one phone: 1 of the Spark plan's 5 free physical-device
   # tests a day. The JUnit report and the device log come back from Test
   # Lab's results bucket, app/tool/ci/gate_results.py judges them (every
@@ -1465,7 +1473,8 @@ jobs:
             args+=(--figures "$log" --document CODEFORGE_SYNC_JSON "$log")
             args+=(--document CODEFORGE_SEARCH_JSON "$log")
             args+=(--document CODEFORGE_TERMINAL_JSON "$log" --document CODEFORGE_COPY_JSON "$log")
-            grep -E 'CodeForgeRuntimeGate|CodeForgeRuntime|CodeForgeSearch|CodeForgeGate|CodeForgePagePort|ExecModel|CODEFORGE_SYNC_JSON|CODEFORGE_SEARCH_JSON|CODEFORGE_TERMINAL_JSON|CODEFORGE_COPY_JSON|RUNTIME_GATE page_|RUNTIME_GATE copy_|phone terminal|phone copy|terminal measure|PlatformViewsChannel|Impeller|FlutterTestRunner|TestRunner|AndroidRuntime' \
+            args+=(--document CODEFORGE_LSP_JSON "$log")
+            grep -E 'CodeForgeRuntimeGate|CodeForgeRuntime|CodeForgeSearch|CodeForgeGate|CodeForgePagePort|CodeForgeLsp|ExecModel|CODEFORGE_SYNC_JSON|CODEFORGE_SEARCH_JSON|CODEFORGE_TERMINAL_JSON|CODEFORGE_COPY_JSON|CODEFORGE_LSP_JSON|RUNTIME_GATE page_|RUNTIME_GATE copy_|RUNTIME_GATE lsp_phone_|LSP_GATE|phone terminal|phone copy|terminal measure|PlatformViewsChannel|Impeller|FlutterTestRunner|TestRunner|AndroidRuntime' \
               "$log" | tail -n 3000 > "$RESULTS/logcat-runtime.txt" || true
           fi
           python3 app/tool/ci/gate_results.py "${args[@]}" \
@@ -1477,7 +1486,7 @@ jobs:
             --expect dev.codeforge.app.runtime.SessionServiceTest:4 \
             --expect dev.codeforge.app.runtime.LanguageServerInstallTest:3 \
             --expect dev.codeforge.app.runtime.LanguageServerTest:6 \
-            --expect dev.codeforge.app.syncmodes.SyncModesTest:4 \
+            --expect dev.codeforge.app.syncmodes.SyncModesTest:5 \
             --require lsp_install_damaged=damaged \
             --require lsp_crash=signaled:9 \
             --require exec_model_audit_outside_apk=0 \
@@ -1512,10 +1521,17 @@ jobs:
             --require page_flood_whole=1 \
             --require page_flood_ui_under_budget=1 \
             --require page_memory_open_under_budget=1 \
+            --require lsp_phone_pyright_completion_under_budget=1 \
+            --require lsp_phone_typescript_completion_under_budget=1 \
+            --require lsp_phone_pyright_diagnostics_under_budget=1 \
+            --require lsp_phone_typescript_diagnostics_under_budget=1 \
+            --require lsp_phone_pyright_memory_under_budget=1 \
+            --require lsp_phone_typescript_memory_under_budget=1 \
             --need-document CODEFORGE_SYNC_JSON \
             --need-document CODEFORGE_SEARCH_JSON \
             --need-document CODEFORGE_TERMINAL_JSON \
             --need-document CODEFORGE_COPY_JSON \
+            --need-document CODEFORGE_LSP_JSON \
             --meta "device=$DEVICE" --meta "gcloud_exit=$GCLOUD_EXIT" \
             --meta "run=${{ github.run_id }}" --meta "sha=${GITHUB_SHA:0:7}" \
             --out-json "$RESULTS/runtime.json" --out-txt "$RESULTS/runtime.txt"

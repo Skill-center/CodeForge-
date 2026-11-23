@@ -15,6 +15,7 @@ import { Bridge } from '../src/bridge';
 import { EditorController } from '../src/editor/controller';
 import { renderMarkup } from '../src/editor/markdown';
 import { type PageRequester, type PendingRequest, RequestError } from '../src/editor/requests';
+import { MAX_TIMINGS, type TimingClock } from '../src/editor/timings';
 import type {
   DiagnosticItem,
   EditorMessageType,
@@ -22,6 +23,7 @@ import type {
   PageRequests,
   PageRequestType,
   PageResults,
+  ProbeReport,
 } from '../src/protocol/types';
 import { parseMessage } from '../src/protocol/validate';
 import { FakeScheduler, flushMicrotasks } from './helpers';
@@ -67,17 +69,54 @@ class FakeRequester implements PageRequester {
   }
 }
 
+/** A clock the test moves on; a frame ends when the test paints it (Phase 6 W6). */
+class FakeTimingClock implements TimingClock {
+  time = 0;
+  /** Frames that never came, as afterPaint counts them. */
+  missed = 0;
+  private readonly frames: Array<(time: number) => void> = [];
+
+  now(): number {
+    return this.time;
+  }
+
+  afterPaint(): Promise<number> {
+    return new Promise((resolve) => this.frames.push(resolve));
+  }
+
+  throttled(): number {
+    return this.missed;
+  }
+
+  /** Frames waited for and not yet painted. */
+  get waiting(): number {
+    return this.frames.length;
+  }
+
+  /** Moves the time on by [ms] and ends the frame. */
+  paint(ms: number): void {
+    this.time += ms;
+    for (const resolve of this.frames.splice(0)) resolve(this.time);
+  }
+}
+
 interface Sent {
   type: EditorMessageType;
   payload: unknown;
 }
 
-function setup(requests: PageRequester | null = new FakeRequester()) {
+function setup(requests: PageRequester | null = new FakeRequester(), timingClock?: TimingClock) {
   document.body.innerHTML = '<div id="editor"></div>';
   const parent = document.getElementById('editor') as HTMLElement;
   const scheduler = new FakeScheduler();
   const sent: Sent[] = [];
-  const ctl = new EditorController({ parent, scheduler, requests, emit: (type, payload) => void sent.push({ type, payload }) });
+  const ctl = new EditorController({
+    parent,
+    scheduler,
+    requests,
+    emit: (type, payload) => void sent.push({ type, payload }),
+    ...(timingClock ? { timingClock } : {}),
+  });
   const of = <K extends EditorMessageType>(type: K): Array<EditorToHost[K]> =>
     sent.filter((m) => m.type === type).map((m) => m.payload as EditorToHost[K]);
   return { ctl, scheduler, sent, of, requests: requests as FakeRequester, view: ctl.view };
@@ -437,6 +476,115 @@ describe('completion', () => {
     const { ctl, view } = setup();
     openDoc(ctl, 'd1', 'plain words', 'plaintext');
     expect(startCompletion(view)).toBe(false);
+  });
+});
+
+// ------------------------------------------------- timings (Phase 6 W6)
+
+describe('completion timings (Phase 6 W6)', () => {
+  const read = (ctl: EditorController, clear = false): ProbeReport =>
+    ctl.handle('probe.read', clear ? { clear } : {}) as ProbeReport;
+
+  it('times a list from the request to the frame that draws it, and probe.read reports it', async () => {
+    const clock = new FakeTimingClock();
+    const { ctl, view, requests } = setup(new FakeRequester(), clock);
+    openDoc(ctl, 'd1', 'greeting = 1\ngre');
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    clock.time = 1000;
+    startCompletion(view);
+    await vi.waitFor(() => expect(requests.asked.length).toBe(1));
+    // The host's answer comes 60 ms after the request.
+    clock.time = 1060;
+    requests.last('lsp.complete').resolve({
+      resultId: 'c1',
+      incomplete: false,
+      items: [{ label: 'greeting' }, { label: 'greet' }],
+    });
+    await completions(view);
+    // The list is open; the frame that draws it ends 25 ms later.
+    expect(clock.waiting).toBe(1);
+    expect(read(ctl).completions).toEqual([]);
+    clock.paint(25);
+    await flushMicrotasks();
+    expect(read(ctl)).toEqual({
+      completions: [{ ms: 85, answerMs: 60, items: 2, trigger: 'invoked' }],
+      undrawn: 0,
+      empty: 0,
+      throttled: 0,
+    });
+    // Frames that never came are counted since the last clear.
+    clock.missed = 2;
+    expect(read(ctl, true)).toMatchObject({ completions: [{ ms: 85 }], throttled: 2 });
+    expect(read(ctl)).toEqual({ completions: [], undrawn: 0, empty: 0, throttled: 0 });
+  });
+
+  it('counts a list never drawn and an answer with nothing to draw, and times neither', async () => {
+    const clock = new FakeTimingClock();
+    const { ctl, view, requests } = setup(new FakeRequester(), clock);
+    openDoc(ctl, 'd1', 'zz\ngr');
+    // Nothing offered matches what was typed: the list never opens.
+    view.dispatch({ selection: { anchor: 2 } });
+    startCompletion(view);
+    await vi.waitFor(() => expect(requests.asked.length).toBe(1));
+    requests.last('lsp.complete').resolve({ resultId: 'c1', incomplete: false, items: [{ label: 'greet' }] });
+    await flushMicrotasks();
+    expect(currentCompletions(view.state)).toEqual([]);
+    // An answer with no items.
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    startCompletion(view);
+    await vi.waitFor(() => expect(requests.asked.length).toBe(2));
+    requests.last('lsp.complete').resolve({ resultId: 'c2', incomplete: false, items: [] });
+    await flushMicrotasks();
+    // Then one that is drawn.
+    closeCompletion(view);
+    startCompletion(view);
+    await vi.waitFor(() => expect(requests.asked.length).toBe(3), { timeout: 2000 });
+    clock.time = 40;
+    requests.last('lsp.complete').resolve({ resultId: 'c3', incomplete: false, items: [{ label: 'greet' }] });
+    await completions(view);
+    clock.paint(10);
+    await flushMicrotasks();
+    const report = read(ctl);
+    expect(report.undrawn).toBe(1);
+    expect(report.empty).toBe(1);
+    expect(report.completions).toEqual([{ ms: 50, answerMs: 40, items: 1, trigger: 'invoked' }]);
+  });
+
+  it("does not time the document's words standing in for a server", async () => {
+    const clock = new FakeTimingClock();
+    const { ctl, view, requests } = setup(new FakeRequester(), clock);
+    openDoc(ctl, 'd1', 'greeting = 1\ngre');
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    startCompletion(view);
+    await vi.waitFor(() => expect(requests.asked.length).toBe(1));
+    requests.last('lsp.complete').reject(new RequestError('unavailable', 'Pyright is restarting.'));
+    await completions(view);
+    expect(clock.waiting).toBe(0);
+    expect(read(ctl)).toEqual({ completions: [], undrawn: 0, empty: 0, throttled: 0 });
+  });
+
+  it(`keeps the newest ${MAX_TIMINGS} times`, async () => {
+    const clock = new FakeTimingClock();
+    const { ctl, view, requests } = setup(new FakeRequester(), clock);
+    openDoc(ctl, 'd1', 'greeting = 1\ngre');
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    startCompletion(view);
+    await vi.waitFor(() => expect(requests.asked.length).toBe(1));
+    requests.last('lsp.complete').resolve({ resultId: 'c1', incomplete: false, items: [{ label: 'greeting' }] });
+    const open = await completions(view);
+    clock.paint(0);
+    await flushMicrotasks();
+    // The open list answered and drawn again and again, the i-th in i ms.
+    for (let i = 1; i <= MAX_TIMINGS + 1; i++) {
+      ctl.timings.answered(clock.time, open, 'invoked');
+      ctl.timings.update(view.state);
+      clock.paint(i);
+      await flushMicrotasks();
+    }
+    const kept = read(ctl).completions;
+    expect(kept.length).toBe(MAX_TIMINGS);
+    expect(kept[0]?.ms).toBe(2);
+    expect(kept.at(-1)?.ms).toBe(MAX_TIMINGS + 1);
   });
 });
 

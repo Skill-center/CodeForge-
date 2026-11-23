@@ -14,7 +14,11 @@
 /// entrypoint also runs search on the phone (phone_search_test.dart), whose
 /// figures come back as CODEFORGE_SEARCH_JSON, and since Phase 5 W6 the
 /// terminal's budgets (G6) and a folder's copy (phone_terminal_test.dart:
-/// RUNTIME_GATE figures, CODEFORGE_TERMINAL_JSON and CODEFORGE_COPY_JSON).
+/// RUNTIME_GATE figures, CODEFORGE_TERMINAL_JSON and CODEFORGE_COPY_JSON),
+/// and since Phase 6 W6 the language budgets (G6: completion, diagnostics
+/// after a save and the servers' memory on a 200-file project;
+/// phone_lsp_test.dart: RUNTIME_GATE lsp_phone_* figures and
+/// CODEFORGE_LSP_JSON).
 library;
 
 import 'dart:convert';
@@ -26,6 +30,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'large_files_test.dart' show storeTimings;
+import 'phone_lsp_test.dart' show phoneLspTests;
 import 'phone_search_test.dart' show phoneSearchTests;
 import 'phone_terminal_test.dart' show phoneTerminalTests;
 
@@ -58,4 +63,6 @@ void main() {
   // Since Phase 5 W6, the terminal's budgets (G6) and a folder's copy
   // (phone_terminal_test.dart).
   phoneTerminalTests();
+  // Since Phase 6 W6, the language budgets (G6, phone_lsp_test.dart).
+  phoneLspTests();
 }

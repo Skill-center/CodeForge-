@@ -21,6 +21,9 @@
  *   asks for the new name itself: F12 and F2, the symbol menu, and the
  *   host's commands (the symbol toolbar, the palette). A request that finds
  *   nothing, or fails, says so briefly at the cursor.
+ * - **Timing** (Phase 6 W6): each list asked of a server is timed from the
+ *   request to the frame that draws it (timings.ts); the host reads the
+ *   times with `probe.read`.
  */
 import {
   autocompletion,
@@ -47,6 +50,7 @@ import {
 import type { Scheduler } from './batcher';
 import { renderMarkup } from './markdown';
 import { type PageRequester, REQUEST_TIMEOUT_MS, RequestError } from './requests';
+import type { CompletionTimings } from './timings';
 
 /** The languages a server analyses (app/lib/core/lsp/lsp_models.dart, LspServerId). */
 export const ANALYZED_LANGUAGES: ReadonlySet<LanguageId> = new Set<LanguageId>([
@@ -72,6 +76,8 @@ export interface LanguageHost {
   docIdOf(state: EditorState): string;
   /** Sends [docId]'s edits not sent yet; its version now, or null when it is not open. */
   syncedVersion(docId: string): number | null;
+  /** Where each completion list's time goes (Phase 6 W6). */
+  readonly timings: CompletionTimings;
 }
 
 /** A completion option with what applying and resolving it need. */
@@ -302,6 +308,10 @@ export class LanguageLayer {
         },
       }),
       this.hoverWithMouse ? hoverTooltip(this.hover, { hoverTime: 600 }) : [],
+      // The frame that draws an answered list is timed (Phase 6 W6).
+      EditorView.updateListener.of((update) => {
+        if (this.host.timings.waiting) this.host.timings.update(update.state);
+      }),
       theme,
     ];
   }
@@ -383,6 +393,8 @@ export class LanguageLayer {
     // A number, not a name.
     if (!context.explicit && word !== null && /^\d/.test(word.text)) return null;
     const requests = this.host.requests;
+    // Timed from here (Phase 6 W6): the edits not sent yet go first.
+    const started = this.host.timings.now();
     const version = docId === '' ? null : this.host.syncedVersion(docId);
     if (requests === null || version === null) return completeAnyWord(context);
     const from = word?.from ?? context.pos;
@@ -406,8 +418,9 @@ export class LanguageLayer {
     }
     if (result.triggerCharacters !== undefined) this.triggers.set(docId, new Set(result.triggerCharacters));
     this.incompleteAt = result.incomplete ? { docId, from } : null;
-    if (result.items.length === 0) return null;
-    const options = this.options(result, docId, from, context.pos);
+    const options = result.items.length === 0 ? [] : this.options(result, docId, from, context.pos);
+    this.host.timings.answered(started, options, payload.trigger);
+    if (options.length === 0) return null;
     return result.incomplete ? { from, options } : { from, options, validFor: WORD_TAIL };
   };
 
