@@ -1,7 +1,30 @@
 git_version=git version 2.56.1
-git_https_ls_remote=failed exit=128 failure=null ms=65 detail=fatal: remote helper 'https' aborted session
-git_https_ls_remote_with_ca_info=failed exit=128 failure=null ms=36 detail=fatal: remote helper 'https' aborted session
-git_https_clone=failed exit=128 failure=null ms=22 detail=fatal: cannot stat template '/data/data/com.termux/files/usr/share/git-core/templates/description': No such file or directory files=0
+git_local_status_ms=n=20 p50=14 p95=20 max=20
+git_local=ok ms=11355
+git_conflict=listed=1 markers=1 resolved=1 parents=2 merge_ms=23
+git_remote_clone=ok ms=144
+git_remote_push=ok ms=149
+git_remote_pull=ok ms=140
+git_remote_wrong_password=refused erased=1 ms=72
+git_remote_no_credential=refused ms=58 detail=fatal: could not read Username for 'http://127.0.0.1:45281': No such device or address
+git_remote_secret_in_files=0
+git_remote_server=ended=ended leftovers=1
+git_https_ls_remote=ok exit=0 failure=null ms=806 detail=
+git_https_clone=ok exit=0 failure=null ms=770 detail= files=2
 git_ssh_version=OpenSSH_10.6p2, OpenSSL 3.6.5 29 Sep 2026
 git_ssh_keygen=exit=0 read_back=true
-git_ssh_github=handshake=ok exit=255 ms=583 host_key_matches=true detail=git@github.com: Permission denied (publickey).
+git_ssh_github=handshake=ok exit=255 ms=740 host_key_matches=true detail=git@github.com: Permission denied (publickey).
+git_ssh_local_clone=failed exit=128 failure=null ms=101 detail=and the repository exists. files=0
+git_ssh_local_sshd=ended=ended log=Connection closed by invalid user u0_a192 127.0.0.1 port 49492 [preauth]
+git_large=files=10000 written_ms=1091 untracked_status_ms=32 untracked_status_bytes=160000 add_ms=647 commit_ms=99
+git_large_status_first_ms=43
+git_large_status_ms=n=20 p50=26 p95=40 max=40
+git_large_status_no_locks_ms=n=20 p50=28 p95=47 max=47
+git_large_changes=status_ms=31 add_ms=42 commit_ms=48 log_ms=16 diff_stat_ms=20
+git_large_objects=loose=10704 packs=0 pack_kib=0
+git_very_large=files=50000 import_ms=1229 checkout_ms=1328
+git_very_large_status_first_ms=234
+git_very_large_status_ms=n=20 p50=87 p95=192 max=192
+git_very_large_status_no_locks_ms=n=20 p50=82 p95=98 max=98
+git_very_large_changes=status_ms=81 add_ms=109 commit_ms=107 log_ms=15 diff_stat_ms=18
+git_very_large_objects=loose=202 packs=1 pack_kib=4270
