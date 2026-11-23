@@ -1,6 +1,6 @@
 # Phase 7 Plan — Git & Source Control
 
-**Status:** **Proposed on 2026-11-23,** the day Phase 6 was accepted. The owner's decisions it needs are in §10 · **Spec reference:** §8 Phase 7 (Git and source control), §7 (security), §9 (performance: measure, never assume) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §4 (the credential store), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) (Git on folders from shared storage), [SECURITY.md](../SECURITY.md) §1, §2 and §4, [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0012](../adr/0012-backup-opt-in.md) (backup), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy) · **Builds on:** Phase 6 ([report](PHASE_6_REPORT.md)), and the sealed runtime's Git since Phase 4
+**Status:** **In progress.** Proposed on 2026-11-23, the day Phase 6 was accepted, and started the same day on the owner's "green start next phase" (CI 45236523396 on the plan). **W1 under way.** The owner's decisions in §10 wait for W1's numbers · **Spec reference:** §8 Phase 7 (Git and source control), §7 (security), §9 (performance: measure, never assume) · **Architecture:** [ARCHITECTURE.md](../ARCHITECTURE.md) §4 (the credential store), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md) (Git on folders from shared storage), [SECURITY.md](../SECURITY.md) §1, §2 and §4, [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0012](../adr/0012-backup-opt-in.md) (backup), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy) · **Builds on:** Phase 6 ([report](PHASE_6_REPORT.md)), and the sealed runtime's Git since Phase 4
 
 ---
 
@@ -96,11 +96,14 @@ Every later package builds on its answers: HTTPS through libcurl, a credential h
   - the credential handed to Git by a **credential helper** (Git's own protocol: `get`, `store`, `erase`), which the test answers. Nothing in an argument, the environment or a file. A wrong password is refused, and Git asks no terminal;
   - W1 picks the helper's transport with these measurements: a script in the runtime's bash talking over two FIFOs the host creates for that operation, or a small native helper next to the launcher.
 - **HTTPS to a real host:** `git ls-remote` of a public repository on github.com proves TLS, the payload's certificates and DNS from the runtime. Recorded, not judged, since a network can fail. If libcurl looks for its certificates under Termux's own prefix, CodeForge passes `http.sslCAInfo` on every command.
-- **SSH, as a probe** for §10, item 3: `ssh-keygen` makes an ed25519 key with a passphrase; the runtime's `sshd` serves a repository on 127.0.0.1 with that key authorised; `git clone` over SSH, the passphrase given through `SSH_ASKPASS`. Recorded.
-- **A large repository,** generated: 10,000 files in 500 folders, two commits, and the same at 50,000 files:
-  - `status` once cold (the first after the files were written) and 20 times warm: the median, the 95th percentile and the slowest;
-  - the size of its output, `add -A` and `commit` of 100 changed files, `log -n 100`, and `diff --stat`;
-  - the same `status` with `--no-optional-locks`, which leaves the index alone, so the app's reads never block the terminal's git.
+- **SSH, as a probe** for §10, item 3, recorded:
+  - `ssh-keygen` makes an ed25519 key with a passphrase, and reads it back with that passphrase;
+  - GitHub's handshake: refused at the key, as an unknown key must be, with GitHub's published host key;
+  - the runtime's `sshd` serves a repository on 127.0.0.1, and `git clone` fetches it over SSH with a key it authorises. That key has no passphrase: handing one over through `SSH_ASKPASS` needs the environment of the command, which W3's host gives.
+- **A large repository,** generated:
+  - 10,000 files in 500 folders, as a new project is made: written, its untracked status, `add -A` and `commit`;
+  - 50,000 files in 2,500 folders, as a clone leaves one: a single pack (`fast-import`), then checked out;
+  - for each, `status` once after the commit or checkout and 20 times more (the median, the 95th percentile and the slowest), the same with `--no-optional-locks`, which leaves the index alone, so the app's reads never block the terminal's git, then 100 files changed: their status, `add`, `commit`, `log -n 100` and `diff --stat`.
 - **The outcome:**
   - ADR-0016 (Git) records the choices with these numbers: the sealed CLI through a host; the helper's transport; HTTPS settings.
   - W1's report brings the owner the numbers for §10's items 2, 3 and 4, with a recommendation for each.
@@ -110,7 +113,7 @@ Every later package builds on its answers: HTTPS through libcurl, a credential h
 - **The host** (Kotlin, `git/GitHost.kt`):
   - runs `git` through the launcher, in a project's folder named by the project, never by a path from Dart;
   - takes an operation from a fixed set (`status`, `add`, `restore`, `commit`, `log`, `show`, `diff`, `branch`, `switch`, `merge`, `init`, and W3's remotes) with its arguments. It refuses any option that runs a program or moves Git elsewhere (`-c`, `--config-env`, `--exec-path`, `--git-dir`, `--work-tree`, `--upload-pack` and clone's `-u`, `--receive-pack`, `--exec`, `--template`). Paths come after `--`, relative, inside the project;
-  - adds the same settings to every command, which a repository's own configuration cannot change for that command: no fsmonitor, no `ext::` transport, no pager, no colour, paths unquoted, CodeForge's credential helper only (W3), `GIT_TERMINAL_PROMPT=0`, no system configuration;
+  - adds the same settings to every command, which a repository's own configuration cannot change for that command: no fsmonitor, no `ext::` transport, no pager, no colour, paths unquoted, CodeForge's credential helper only (W3), housekeeping in the foreground (`gc.autoDetach=false`), since the launcher ends whatever a command leaves running, `GIT_TERMINAL_PROMPT=0`, no system configuration;
   - streams stdout, NUL-separated, up to 64 MiB, and parses stderr's progress lines;
   - runs one command that writes at a time per repository, reads alongside; a read uses `--no-optional-locks`;
   - logs an operation's kind, its time and its exit, never its arguments, a path or a URL.
