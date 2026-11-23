@@ -4,6 +4,14 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 6 W5, the language features in the editor (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
+- **Completion from the language server** as you type a name or after a `.`: each item with its kind's icon and its documentation when selected, imports added with it. While the server starts or restarts, the editor completes the file's own words.
+- **Problems underlined as you type,** with marks in the gutter; a tap on an underline shows the message. The status strip counts the file's problems, and the *Problems* sheet lists every open file's (Ctrl+Shift+M); a tap goes to the line.
+- **Go to definition** from a long press, the symbol toolbar or F12. It opens the file at the place, and Python's stubs and TypeScript's `lib.d.ts` open read-only.
+- **Rename across files** (a long press or F2): the server's change applied to every file or none, each open file's as one undo step. A file that changed meanwhile stops it, and nothing is written.
+- **Hover:** a long press shows what the server knows about a name, with code in the editor's font.
+- **Folders from shared storage get all of this,** through their copy. **Settings → Editor** turns each language's server on or off, and **Settings → Linux runtime** shows each server with its memory and *Restart*.
+
 ### Added — Phase 6 W4, the language client (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
 - **The app speaks LSP:** a client in Dart for each language server. It gives every request a timeout (2 s for completion) and can call one off, opens the project as the server's one folder, and sends the editor's edits as ranges in version order, never whole documents but after a resync. Saves, closed tabs and files changed outside the app reach the servers too.
 - **A server that fails comes back** after 1 s, 2 s and 4 s, with every open file. A fourth failure within five minutes stops it, and the status strip offers *Restart*. A server with no open file for ten minutes is shut down.

@@ -87,6 +87,12 @@ MB here is KiB / 1024, as Phase 5's memory figures were.
 - **TypeScript 6.0.3 is the last JavaScript TypeScript.** It checks JavaScript and TypeScript today. Moving to TypeScript 7 means shipping its native binary among the APK's programs.
 - **The first install** would grow by Pyright's 5,423 files. W2 installs each language's server only when that language is first needed.
 
+## As built (W5)
+
+- **The servers reach the editor** (CI 45131313756; phase gate 45135282059). The page asks the host for completion, documentation, hover, definition and rename through new protocol messages, and the host asks the servers through W4's clients. Diagnostics are underlined through `@codemirror/lint` 6.9.8 and listed in a Problems sheet. A rename is applied all or nothing, open documents through the editor with one undo each and closed files written. No server text reaches the page as HTML.
+- **Folders are analysed through their copy**, as decided for Run (ADR-0013), brought up to date before a server starts in it and after each save or change. Settings → Editor turns each language's server on or off.
+- The gate's new `lsp` group proved it in the real app on the emulator: diagnostics listed, underlined and cleared (476 ms after the fix); completion through the page; hover; a definition and a rename across files, with one undo per open document; TypeScript's errors and completion; Pyright back with its documents 2,318 ms after a SIGKILL; *Restart* offered after three restarts, with the editor still editing; and a folder through its copy. The group passed at its first attempt, in 43 s.
+
 ## As built (W4)
 
 - **The client is Dart's, as decided** (`application/lsp/`; CI 45065692542). It has JSON-RPC with a timeout per request and `$/cancelRequest`, `initialize` in UTF-16 with one workspace folder, and incremental sync from the editor's change sets. A failing server restarts after 1, 2 and 4 s, at most three times in five minutes; an idle one stops after 10 minutes. A status chip says how each is. Its tests run against a fake transport. The servers' options are as W1 measured them: Pyright's python and `openFilesOnly` through `workspace/configuration`, and the APK's `tsserver.js` with one tsserver and no typings fetched.

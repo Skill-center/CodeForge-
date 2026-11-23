@@ -19,7 +19,8 @@ CodeForge-/
 │   │   │                         #   files/: workspace paths, text codec, file stamps;
 │   │   │                         #   legal/: the source offer About shows (Ph. 5 W1);
 │   │   │                         #   lsp/: the language servers' models, URIs and
-│   │   │                         #   change sets as ranges (Ph. 6 W4)
+│   │   │                         #   change sets as ranges (Ph. 6 W4), their answers
+│   │   │                         #   for the editor and a rename's edits (W5)
 │   │   ├── services/             # interfaces + fake/ + native/ impls;
 │   │   │                         #   files/: the dart:io file service + demo project;
 │   │   │                         #   platform/: the app's files folder (one channel);
@@ -33,7 +34,8 @@ CodeForge-/
 │   │   │                         #   runtime/: the runtime's state + its Pigeon client (Ph. 4),
 │   │   │                         #   the userland's licence texts for About (Ph. 5 W1);
 │   │   │                         #   search/: search across files + its Pigeon client (Ph. 4 W6);
-│   │   │                         #   lsp/native/: the language servers' Pigeon client (Ph. 6 W3–W4)
+│   │   │                         #   lsp/native/: the language servers' Pigeon client (Ph. 6 W3–W4);
+│   │   │                         #   lsp/library_files.dart: their own files, read-only (W5)
 │   │   ├── application/          # controllers + providers; editor/: the editor host;
 │   │   │                         #   terminal/: the terminal page's host + the
 │   │   │                         #   sessions' tabs (Ph. 5 W3), links to open (W4);
@@ -41,7 +43,7 @@ CodeForge-/
 │   │   │                         #   documents/: open documents and tabs;
 │   │   │                         #   bench/: the engine benchmark runner;
 │   │   │                         #   lsp/: the language clients and their controller
-│   │   │                         #   (Ph. 6 W4)
+│   │   │                         #   (Ph. 6 W4), the editor's features and rename (W5)
 │   │   ├── features/             # home, workbench, explorer, editor, terminal,
 │   │   │   └── <feature>/        #   search, source_control, extensions,
 │   │   │       ├── presentation/ #   run_debug, settings (settings/developer/:
