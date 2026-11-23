@@ -4,6 +4,14 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 6 W4, the language client (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
+- **The app speaks LSP:** a client in Dart for each language server. It gives every request a timeout (2 s for completion) and can call one off, opens the project as the server's one folder, and sends the editor's edits as ranges in version order, never whole documents but after a resync. Saves, closed tabs and files changed outside the app reach the servers too.
+- **A server that fails comes back** after 1 s, 2 s and 4 s, with every open file. A fourth failure within five minutes stops it, and the status strip offers *Restart*. A server with no open file for ten minutes is shut down.
+- **The status strip names the server:** starting, ready, analysing, restarting or off, with why. A language counts as analyzable while its server runs.
+- **Where Pyright's time goes:** on the phone, its completion after an edit took the same with the 256 MB heap cap as without it (p95 82.2 to 85.0 ms), so the cap stays. The server takes most of each request (31 to 34 ms at p50), and handing a message to the host's writer thread costs about 3 ms on the phone.
+- Completion, diagnostics, definition, rename and hover in the editor come in W5, and folders from shared storage get servers then too. The integration tests run without servers, so what they measure stays comparable.
+- Verified by: CI 45065692542 (`+1179: All tests passed!`, 228 Kotlin tests); phase gate 45067383709: `LanguageServerTest` 6 of 6 on each runtime leg, every emulator group (the emulator job on its second attempt: the first met a black screen at boot), and Test Lab's Pixel 8a 41 of 41 in the same run.
+
 ### Added — Phase 6 W3, the language servers' host (plan: [phases/PHASE_6_PLAN.md](phases/PHASE_6_PLAN.md))
 - **The app can run a language server:** `LspHost` starts one through the launcher with its stdin open, in its own process group under the sessions' limits. It carries whole messages both ways, stops the server with its whole tree, and says how each one ended (its exit code or signal, and the last 64 KiB of its stderr).
 - **Messages are checked:** a message over 16 MiB, a malformed header or invalid UTF-8 ends the server as broken, never as half a message.

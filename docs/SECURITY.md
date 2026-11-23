@@ -85,7 +85,7 @@ W2 adds interactive sessions at the same boundary (TERMINAL_ARCHITECTURE §1; th
 
 **Evidence:** test-pty.py in CI 44445690182 (19 tests); the JVM tests in the bootstrap run 44451456079 (`kotlin_tests=161`, 23 more than before: `TerminalSessionTest`'s 22 and one in `RuntimeHubTest`); the instrumented class in phase gates 44461809588 and 44475934378, on API 26 to 36 (the first gate, 44454605348, found End all's race on API 26), and on Test Lab's arm64 phone, a Google Pixel 8a with Android 14, in CI 44482754814 (End all 112 ms, the flood whole in 1.04 s). **W5** (T7 and T10 to T16): `test-spawn.py` (22 tests) and `test-pty.py` (20) in CI's runtime job; the JVM tests in the bootstrap run 44732997918 (`kotlin_tests=187`); `SessionServiceTest` on API 26 to 36 in phase gates 44735804283, 44744464658, 44763350329 and 44777091949, where 44752660910 had found its first session refused on API 27 and 34 (READY published under the install's lock, T7); the sessions group in phase gates 44752660910, 44763350329 and 44777091949; `SessionServiceTest` 4/4 on Test Lab's Pixel 8a in CI 44786509685 (End all 143 ms); the release manifest in CI 44732997918.
 
-### 2.3 Language servers as built (Phase 6 W3; W7 completes this section)
+### 2.3 Language servers as built (Phase 6 W3 and W4; W7 completes this section)
 
 A language server is third-party JavaScript the app runs (ADR-0015). Kotlin's `LspHost` is its boundary:
 - **Where it runs:** Dart names a project or a folder's copy, and the host resolves it as a terminal's folder is (E3). Dart never gives a path (T3).
@@ -93,6 +93,8 @@ A language server is third-party JavaScript the app runs (ADR-0015). Kotlin's `L
 - **What it can send back:** whole messages only. A message over 16 MiB, a malformed header or invalid UTF-8 ends the server as broken. Its stderr is kept to the last 64 KiB, and the logs never hold a message or a path.
 - **How much of the device it gets:** the sessions' limits (file size, processes, OOM score), at most two servers, memory read every 10 s, and servers stopped first on Android's low-memory warnings. No foreground service: a server ends with the app and with the engine that started it.
 - **How it ends:** with its whole process group, as every session does. Gate 45029118568 killed a server's node with SIGKILL on every target and found nothing of its tree left.
+- **What it is told (W4):** its settings come from a fixed table in Dart's client: nothing the user typed, and no path but the runtime's python and the server's own files, which the host names. Dart builds the documents' URIs on the folder the host names for the workspace, and never sends the host a path.
+- **What it can ask for (W4):** its settings, its registrations, progress tokens and the workspace's folder are answered. An edit it asks to apply is refused (`workspace/applyEdit`), a document it asks to show is not shown, and anything else is answered MethodNotFound. Its log lines reach the app's log at most 20 a minute, each clipped to 300 characters.
 
 ## 3. WebView & bridge hardening (Phase 2+)
 

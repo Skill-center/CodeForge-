@@ -1,6 +1,6 @@
 # Phase 6 Plan — Language Intelligence
 
-**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 done on 2026-11-22** (phase gate 44977463887: both servers pass the smoke suite on API 26 to 36 and on Test Lab's Pixel 8a; see *As built (W1)* and ADR-0015). **W2 done on 2026-11-22** (CI 44994907490; phase gate 44995822826, with Test Lab's Pixel 8a 39 of 39 in the same run; see *As built (W2)*). **The memory budget decided on 2026-11-22:** (b), a budget of each server's own, 300 MB of PSS (§10, item 3). **W3 done on 2026-11-22** (CI 45020136733, and 45027761446 on the final code; phase gate 45029118568, with Test Lab's Pixel 8a 40 of 40 in the same run; see *As built (W3)*) · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
+**Status:** **In progress.** Proposed on 2026-11-21, the day Phase 5 was accepted. **The owner chose (a) on 2026-11-22** (§10, item 2): servers for Python and for JavaScript/TypeScript. **W1 done on 2026-11-22** (phase gate 44977463887: both servers pass the smoke suite on API 26 to 36 and on Test Lab's Pixel 8a; see *As built (W1)* and ADR-0015). **W2 done on 2026-11-22** (CI 44994907490; phase gate 44995822826, with Test Lab's Pixel 8a 39 of 39 in the same run; see *As built (W2)*). **The memory budget decided on 2026-11-22:** (b), a budget of each server's own, 300 MB of PSS (§10, item 3). **W3 done on 2026-11-22** (CI 45020136733, and 45027761446 on the final code; phase gate 45029118568, with Test Lab's Pixel 8a 40 of 40 in the same run; see *As built (W3)*). **W4 done on 2026-11-22** (CI 45065692542; phase gate 45067383709, with Test Lab's Pixel 8a 41 of 41 in the same run; see *As built (W4)*) · **Spec reference:** §8 Phase 6 (language intelligence), §6.3 (no full-document sync per keystroke), §6.5 (the capability model), §6.6 (a failing server never breaks the editor), §7 (security) · **Architecture:** [LSP_ARCHITECTURE.md](../LSP_ARCHITECTURE.md) (the Phase 0 seed this phase finalizes), [EDITOR_ARCHITECTURE.md](../EDITOR_ARCHITECTURE.md), [RUNTIME_INTEGRATION.md](../RUNTIME_INTEGRATION.md), [SECURITY.md](../SECURITY.md) §2, [ADR-0004](../adr/0004-editor-engine.md) (CodeMirror 6), [ADR-0005](../adr/0005-sealed-runtime.md), [ADR-0013](../adr/0013-folders-and-the-runtime.md) (a folder runs in a copy), [ADR-0014](../adr/0014-pty-and-sessions.md) · **Builds on:** Phase 5 ([report](PHASE_5_REPORT.md)): the launcher's sessions and limits, the editor protocol, Run and the folders' copy
 
 ---
 
@@ -305,6 +305,70 @@ ROADMAP and LSP_ARCHITECTURE §2 put it first, and every later package builds on
   - cancellation and timeouts;
   - the restart backoff and its cap;
   - diagnostics routed by URI, and the URIs of projects and copies.
+
+**As built (W4):**
+- **G4 met** (CI 45065692542, which committed the counts: `+1179: All tests passed!`, 228 Kotlin tests, analyze clean; phase gate 45067383709: `LanguageServerTest` 6 of 6 on every runtime leg, every emulator group at its first try in the emulator job's second attempt, the cold start at 1,302 ms (record-only) and no ANR of CodeForge's (2 of Google Play services' at boot); that job's first attempt had failed only its keys group, whose first tap met a black screen while System UI's keyguard hung 20 s at boot (its screenshot is in `151caf32`), so that job alone was run again; Test Lab's Pixel 8a 41 of 41 in the same run; evidence `4f5ded29`, `8b91b9f3` and `171a8582`). The first CI run, 45063872382, failed on a test's missing import and on one widget test's count (below).
+- **The service** (`services/contracts.dart`): `LspService` starts a server by its id in a workspace named, never a path; carries whole JSON-RPC messages; stops a server; lists those that run; and streams their messages and exits.
+  - `PigeonLspService` (`services/lsp/native/`) is the only Dart that sees the generated types.
+  - `FakeLspService` reports no host, so tests and other platforms show no server chip.
+- **What the host says since W4** (`pigeons/lsp_api.dart`, `lsp/LanguageServerHost.kt`, `runtime/LspHost.kt`):
+  - A start names the workspace's folder as the server sees it (absolute, links resolved), the runtime's programs and the server's own folder. Dart builds every URI and the servers' options from them, and still never sends the host a path.
+  - A send answers once its message is written to the server's stdin, with when, and each message comes with when the host read it whole. Both are on the monotonic clock (Kotlin's `System.nanoTime`, Dart's `Timeline.now`). A message still queued when its server ends is told it was not written.
+  - A start may go without the heap cap, for the measurement below.
+- **JSON-RPC** (`application/lsp/lsp_connection.dart`):
+  - numbered requests, each with its timeout (2 s for completion, 10 s otherwise, `initialize` included), and `$/cancelRequest` when one runs out or is called off; an answer that comes later is dropped;
+  - the server's errors fail the request with their code (`RequestCancelled` as cancelled);
+  - each request's time split into the host's queue, the server and the delivery.
+- **The client** (`application/lsp/language_client.dart`), one per server:
+  - **The session:** `initialize` offers UTF-16 positions only and one workspace folder, the root the host named; then `initialized`.
+    - Pyright's settings come from a fixed table through `workspace/configuration`: the runtime's python, and `openFilesOnly`.
+    - The TypeScript server gets the APK's `tsserver.js`, one tsserver process and no typings fetched.
+    - Registrations, progress tokens and the workspace's folders are answered. `workspace/applyEdit` is refused, and anything else gets MethodNotFound.
+    - Its log lines go to the app's log, 20 a minute at most.
+  - **Documents:**
+    - `didOpen` with the whole text when a document is first shown;
+    - each of the editor's change sets as ranges, last first, computed against the text before it (`core/lsp/text_sync.dart`), with LSP's version growing with the editor's;
+    - the whole text after a resync, or when an edit does not follow what the client holds;
+    - `didSave` to a server that asked for it, and `didClose` with the tab;
+    - the files Phase 3's watcher finds changed, as `didChangeWatchedFiles`, matched against each server's own globs (`core/lsp/lsp_glob.dart`).
+    - A request about a document waits until the edits up to the version the page names have gone out.
+  - **Restarts:** an exit, a crash, a broken message or a failed `initialize` restarts the server after 1 s, 2 s, then 4 s.
+    - A fourth within five minutes gives up, and only the user's *Restart* starts it again.
+    - Requests in flight fail as restarting, and every open document is opened again.
+    - A server stopped to free memory waits for the next document shown.
+  - **The idle stop:** ten minutes with no open document send `shutdown` and `exit`, and the host's stop follows 2 s later if the server has not ended.
+  - **Diagnostics** are routed by URI to their document's workspace path, and go with its tab or with its server.
+- **In the app** (`application/lsp/lsp_controller.dart`):
+  - Servers run in projects once the runtime is ready. Folders follow with W5, through their copies.
+  - The status strip's chip names the active file's server and its state: starting, ready, analysing, restarting, or off, with why. Once the client has given up, a tap restarts it.
+  - A language is *analyzable* while its server runs (`core/editor/capabilities.dart`).
+  - The integration tests turn servers off (`languageServersEnabledProvider`), so the phase gate's groups measure what they did. W6's `lsp` group turns them on.
+- **Measured** (gate 45067383709): `LanguageServerTest` f runs Pyright's 50 completions after an edit on the two-file project four times, alternating the host's heap cap and none, and splits each request into its stages.
+
+  | Pixel 8a, ms | capped 1 | no cap 1 | capped 2 | no cap 2 |
+  |---|---|---|---|---|
+  | Total, p50 / p95 | 58.2 / 83.4 | 55.3 / 84.5 | 58.8 / 85.0 | 54.8 / 82.2 |
+  | The host's queue, p50 / p95 | 3.0 / 6.1 | 3.2 / 6.1 | 3.2 / 6.0 | 2.7 / 5.6 |
+  | The server, p50 / p95 | 33.9 / 53.4 | 31.1 / 55.2 | 32.3 / 65.7 | 31.4 / 51.7 |
+  | The delivery, p50 / p95 | 0.58 / 2.55 | 0.60 / 1.17 | 0.68 / 1.90 | 0.67 / 7.54 |
+  | PSS after (MB) | 162.1 | 163.3 | 163.9 | 165.8 |
+
+  - **The heap cap is not why Pyright got slower:** the phone's totals were the same with it and without it, as on the five emulators. The cap stays.
+  - **The server takes most of a request:** 31 to 34 ms at p50 on the phone, and 7 to 17 ms on the emulators.
+  - **The host's queue costs about 3 ms on the phone** (2.7 to 3.2 ms at p50), against 0.05 to 0.2 ms on the emulators: the hand-off to the server's writer thread. The delivery to the listener takes 0.6 ms.
+  - **About 20 ms of the phone's median lie after the delivery,** in the test's own client: the stages' medians add up to 35 to 38 ms of a 55 to 59 ms total. That is its JSON parse and its waiting thread's wake, with messages of at most 6.9 KB. The app's path differs there: the host posts each message to Dart's main thread, and the client times its delivery itself. W6 measures it on the phone.
+  - **W4 does not settle why W2's figures were lower;** it rules out the heap cap and shows where the time goes now.
+  - The rest of the phone's figures held. Pyright's completion after an edit took 85.4 ms at p95 on two files and 95.4 ms on 200, and the TypeScript server's 79.6 and 45.1 ms. PSS after the suite was 165.8 to 257.6 MB. A server killed with SIGKILL was reported as signaled in 17 ms.
+- **Differs from the plan:**
+  - **The host changed too.** Timing a request's stages needs when the host wrote it and read the answer, and the URIs need the root as the server sees it. So the Pigeon API grew (above), rather than Dart guessing either.
+  - **Folders wait for W5.** A folder's server works in its copy (ADR-0013), which W5 keeps in step. W4 tests the URIs of copies, and the chip says folders are not served yet.
+  - **`didChangeWatchedFiles` from listings.** Phase 3's watcher reports folders, not files, so each folder listed again is compared with its last listing: files created, deleted, or changed in size. A file rewritten at the same size outside the app is missed unless it is open, when its reload resyncs it.
+  - **Off in the integration tests,** so the other groups' figures stay comparable (above).
+  - **What CI caught:** the first run (45063872382) failed on a test's missing import, and on a widget test that had not counted the TypeScript server the demo's `main.js` starts.
+- **Tests:**
+  - 86 new Dart tests: `lsp_text_sync_test` (12), `lsp_uri_test` (11), `lsp_connection_test` (11), `language_client_test` (31), `lsp_controller_test` (7), `lsp_service_test` (8), `lsp_chip_test` (5), and one in `capabilities_test`. They run against the scripted host (`test/support/scripted_lsp_service.dart`) on a clock moved by hand.
+  - `LspHostTest` 15 (3 new: a send told when written, messages dropped when the server ends, a start without the heap cap) and `LanguageServerTest` 6 (f new).
+  - Counts: `+1179: All tests passed!` and 228 Kotlin tests (CI 45065692542).
 
 ### W5 — In the editor: completion, diagnostics, definition, rename, hover (2 sessions) → G5
 

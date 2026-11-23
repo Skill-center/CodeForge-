@@ -167,7 +167,7 @@ Spec §4.4: never lose text, never corrupt a file, never jump the cursor. Saving
 
 ### What is written, and when
 
-- **Change sets, as they arrive.** The page reports every edit as a CodeMirror change set with its base version, new version and the text length before and after (§2). The host applies it to its shadow and passes it on as `DocumentEdited(docId, version, change: JournalChange)`. If the edit makes the document dirty, `DocumentJournal` appends the change to its journal.
+- **Change sets, as they arrive.** The page reports every edit as a CodeMirror change set with its base version, new version and the text length before and after (§2). The host applies it to its shadow and passes it on as `DocumentEdited(docId, version, change: JournalChange)`. If the edit makes the document dirty, `DocumentJournal` appends the change to its journal. Since Phase 6 W4 the language clients take the same events: each change set goes to the document's server as ranges (LSP_ARCHITECTURE §2).
 - **A snapshot, from which the changes continue.** A snapshot is the document's full text at a known version. One is taken:
   - at the first unsaved edit;
   - when the user switches tabs (for the tab being left);

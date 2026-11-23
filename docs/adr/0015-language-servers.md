@@ -87,6 +87,11 @@ MB here is KiB / 1024, as Phase 5's memory figures were.
 - **TypeScript 6.0.3 is the last JavaScript TypeScript.** It checks JavaScript and TypeScript today. Moving to TypeScript 7 means shipping its native binary among the APK's programs.
 - **The first install** would grow by Pyright's 5,423 files. W2 installs each language's server only when that language is first needed.
 
+## As built (W4)
+
+- **The client is Dart's, as decided** (`application/lsp/`; CI 45065692542). It has JSON-RPC with a timeout per request and `$/cancelRequest`, `initialize` in UTF-16 with one workspace folder, and incremental sync from the editor's change sets. A failing server restarts after 1, 2 and 4 s, at most three times in five minutes; an idle one stops after 10 minutes. A status chip says how each is. Its tests run against a fake transport. The servers' options are as W1 measured them: Pyright's python and `openFilesOnly` through `workspace/configuration`, and the APK's `tsserver.js` with one tsserver and no typings fetched.
+- **The heap cap stays.** Measured on the phone with and without it (gate 45067383709), Pyright's completion after an edit took the same (p95 82.2 to 85.0 ms). The time is the server's own (31 to 34 ms at p50), the host's hand-off to its writer thread (about 3 ms) and the delivery (0.6 ms). The rest lay in the test's own client.
+
 ## As built (W3)
 
 - **The launcher's mode:** the command mode with stdin open, as the plan's W3 asked to decide. W1 had run both servers through it on every target, and `LspHostTest` runs the real launcher against a stub server. No pipe mode was added.
