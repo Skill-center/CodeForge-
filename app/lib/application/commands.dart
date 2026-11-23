@@ -114,7 +114,12 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
       'Edit',
       WorkbenchIntent.goToDefinition,
     ),
-    ('edit.renameSymbol', 'Rename Symbol…', 'Edit', WorkbenchIntent.renameSymbol),
+    (
+      'edit.renameSymbol',
+      'Rename Symbol…',
+      'Edit',
+      WorkbenchIntent.renameSymbol,
+    ),
     ('edit.showHover', 'Show Symbol Info', 'Edit', WorkbenchIntent.showHover),
     ('view.problems', 'Show Problems', 'View', WorkbenchIntent.problems),
   ]) {

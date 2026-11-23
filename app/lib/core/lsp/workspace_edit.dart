@@ -94,7 +94,11 @@ final class FileTextEdits {
       final version = document is Map<String, Object?>
           ? document['version']
           : null;
-      final problem = add(uri, change['edits'], version is int ? version : null);
+      final problem = add(
+        uri,
+        change['edits'],
+        version is int ? version : null,
+      );
       if (problem != null) {
         return (files: const [], problem: problem);
       }
@@ -140,8 +144,11 @@ typedef OffsetEdit = ({int from, int to, String insert});
 /// [text] with [edits] applied: the new text and the edits as offsets,
 /// sorted; or the problem that stops them. With [expected] (a rename's old
 /// name), every replaced span must be exactly that.
-({String? text, List<OffsetEdit> offsets, EditProblem? problem})
-applyTextEdits(String text, List<LspTextEdit> edits, {String? expected}) {
+({String? text, List<OffsetEdit> offsets, EditProblem? problem}) applyTextEdits(
+  String text,
+  List<LspTextEdit> edits, {
+  String? expected,
+}) {
   final index = LineIndex(text);
   final offsets = <({int order, OffsetEdit edit})>[];
   for (var i = 0; i < edits.length; i++) {

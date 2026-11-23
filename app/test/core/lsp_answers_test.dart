@@ -60,11 +60,14 @@ void main() {
       expect(answer.items, hasLength(maxCompletionItems));
       expect(answer.items.first['label'], 'name000');
       expect(answer.incomplete, isTrue);
-      expect(validatePageResult('lsp.complete', {
-        'resultId': 'c1',
-        'items': answer.items,
-        'incomplete': answer.incomplete,
-      }), isNull);
+      expect(
+        validatePageResult('lsp.complete', {
+          'resultId': 'c1',
+          'items': answer.items,
+          'incomplete': answer.incomplete,
+        }),
+        isNull,
+      );
     });
 
     test('turns edits into offsets, snippets into text, and keeps imports', () {
@@ -148,7 +151,11 @@ void main() {
       );
       expect([for (final i in answer.items) i['label']], ['ok']);
       for (var kind = 1; kind <= 25; kind++) {
-        expect(completionKinds, contains(completionKindOf(kind)), reason: '$kind');
+        expect(
+          completionKinds,
+          contains(completionKindOf(kind)),
+          reason: '$kind',
+        );
       }
       expect(completionKindOf(99), isNull);
     });
@@ -231,7 +238,10 @@ void main() {
 
   group('definition and rename', () {
     test('locations: one, a list, or links', () {
-      final one = locationsOf({'uri': 'file:///a.py', 'range': _range(1, 2, 1, 5)});
+      final one = locationsOf({
+        'uri': 'file:///a.py',
+        'range': _range(1, 2, 1, 5),
+      });
       expect(one.single.uri, 'file:///a.py');
       expect(one.single.range.start, const LspPosition(1, 2));
       final links = locationsOf([
@@ -263,15 +273,17 @@ void main() {
   });
 
   group('diagnostics', () {
-    LspDiagnostic d(LspSeverity severity, {List<LspDiagnosticTag> tags = const []}) =>
-        LspDiagnostic(
-          range: const LspRange(LspPosition(1, 0), LspPosition(1, 99)),
-          severity: severity,
-          message: severity.name,
-          source: 'Pyright',
-          code: 'x',
-          tags: tags,
-        );
+    LspDiagnostic d(
+      LspSeverity severity, {
+      List<LspDiagnosticTag> tags = const [],
+    }) => LspDiagnostic(
+      range: const LspRange(LspPosition(1, 0), LspPosition(1, 99)),
+      severity: severity,
+      message: severity.name,
+      source: 'Pyright',
+      code: 'x',
+      tags: tags,
+    );
 
     test('as the page draws them: offsets, severities, tags', () {
       const text = 'import os\nprint(greet)\n';

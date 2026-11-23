@@ -25,7 +25,8 @@ const Duration serverMemoryRefresh = Duration(seconds: 10);
 String languageServerLine(LspStatus status, {int? pssKib}) {
   final reason = status.reason;
   final state = switch (status.phase) {
-    LspPhase.off => reason == null ? 'Off: starts with a file it analyses' : 'Off: $reason',
+    LspPhase.off =>
+      reason == null ? 'Off: starts with a file it analyses' : 'Off: $reason',
     LspPhase.starting => 'Starting',
     LspPhase.ready => 'Ready',
     LspPhase.analysing => 'Analysing the project',
@@ -55,7 +56,10 @@ class _LanguageServersSectionState
   void initState() {
     super.initState();
     unawaited(_readMemory());
-    _timer = Timer.periodic(serverMemoryRefresh, (_) => unawaited(_readMemory()));
+    _timer = Timer.periodic(
+      serverMemoryRefresh,
+      (_) => unawaited(_readMemory()),
+    );
   }
 
   @override
@@ -94,8 +98,8 @@ class _LanguageServersSectionState
         for (final server in LspServerId.values)
           () {
             final status = state.statusOf(server);
-            final running = state.statuses.containsKey(server) &&
-                state.isOn(server);
+            final running =
+                state.statuses.containsKey(server) && state.isOn(server);
             return CfSettingsTile(
               key: ValueKey('runtime_server_${server.id}'),
               leading: Icon(
@@ -116,7 +120,9 @@ class _LanguageServersSectionState
                       icon: CfIcons.restartAlt,
                       tooltip: 'Restart ${server.title}',
                       onPressed: () => unawaited(
-                        ref.read(lspControllerProvider.notifier).restart(server),
+                        ref
+                            .read(lspControllerProvider.notifier)
+                            .restart(server),
                       ),
                     )
                   : null,

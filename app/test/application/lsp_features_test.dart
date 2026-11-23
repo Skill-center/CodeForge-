@@ -206,7 +206,10 @@ void main() {
       expect(answer['ok'], isTrue, reason: '$answer');
       final result = _map(answer['result']);
       expect(
-        [for (final item in result['items']! as List<Object?>) _map(item)['label']],
+        [
+          for (final item in result['items']! as List<Object?>)
+            _map(item)['label'],
+        ],
         ['path', 'pathsep'],
       );
       expect(result['incomplete'], isFalse);
@@ -356,10 +359,9 @@ void main() {
       expect(view.line, 0);
       expect(view.text, startsWith('def len'));
       // No tab for it.
-      expect(
-        world.container.read(documentControllerProvider).documents.keys,
-        ['main.py'],
-      );
+      expect(world.container.read(documentControllerProvider).documents.keys, [
+        'main.py',
+      ]);
     });
 
     test('outside the workspace and the server files: refused', () async {
@@ -447,10 +449,14 @@ void main() {
       );
       final page = world.page;
       final host = world.container.read(editorHostProvider);
-      expect(page.documents[world.docIdOf('main.py')]!.text,
-          'from people import welcome\nprint(welcome("you"))\n');
-      expect(host.textOf(world.docIdOf('people.py')),
-          'def welcome(name):\n    return name\n');
+      expect(
+        page.documents[world.docIdOf('main.py')]!.text,
+        'from people import welcome\nprint(welcome("you"))\n',
+      );
+      expect(
+        host.textOf(world.docIdOf('people.py')),
+        'def welcome(name):\n    return name\n',
+      );
       expect(
         (await world.files.readText('other.py')).valueOrNull?.text,
         'from people import welcome\nwelcome("x")\n',
@@ -473,30 +479,32 @@ void main() {
       expect(page.undoStack[world.docIdOf('people.py')], hasLength(1));
     });
 
-    test('nothing changes when a closed file changed after it was computed',
-        () async {
-      final world = await setUp();
-      final request = await prepare(world);
-      final rename = world.answers['textDocument/rename']!;
-      world.answers['textDocument/rename'] = (params) {
-        // Another program edits other.py while the server works.
-        world.files.putText('other.py', '# moved\n$other');
-        return rename(params);
-      };
-      final result = await world.features.rename(request, 'welcome');
-      await _drain();
-      expect(result, isA<Err<RenameSummary>>());
-      expect(
-        (result as Err<RenameSummary>).failure.message,
-        'Nothing was renamed: other.py changed after the rename was computed.',
-      );
-      expect(world.page.documents[world.docIdOf('main.py')]!.text, main);
-      expect(world.page.undoStack, isEmpty);
-      expect(
-        (await world.files.readText('other.py')).valueOrNull?.text,
-        '# moved\n$other',
-      );
-    });
+    test(
+      'nothing changes when a closed file changed after it was computed',
+      () async {
+        final world = await setUp();
+        final request = await prepare(world);
+        final rename = world.answers['textDocument/rename']!;
+        world.answers['textDocument/rename'] = (params) {
+          // Another program edits other.py while the server works.
+          world.files.putText('other.py', '# moved\n$other');
+          return rename(params);
+        };
+        final result = await world.features.rename(request, 'welcome');
+        await _drain();
+        expect(result, isA<Err<RenameSummary>>());
+        expect(
+          (result as Err<RenameSummary>).failure.message,
+          'Nothing was renamed: other.py changed after the rename was computed.',
+        );
+        expect(world.page.documents[world.docIdOf('main.py')]!.text, main);
+        expect(world.page.undoStack, isEmpty);
+        expect(
+          (await world.files.readText('other.py')).valueOrNull?.text,
+          '# moved\n$other',
+        );
+      },
+    );
 
     test('nothing changes when an open document moved on while it was '
         'computed', () async {
@@ -545,7 +553,11 @@ void main() {
       final request = await prepare(world);
       world.answers['textDocument/rename'] = (_) => {
         'documentChanges': [
-          {'kind': 'rename', 'oldUri': _uri('people.py'), 'newUri': _uri('x.py')},
+          {
+            'kind': 'rename',
+            'oldUri': _uri('people.py'),
+            'newUri': _uri('x.py'),
+          },
         ],
       };
       final result = await world.features.rename(request, 'welcome');
@@ -594,7 +606,10 @@ void main() {
         'message': 'problem 1:6',
         'source': 'Pyright',
       });
-      expect(world.problems.countsOf('main.py'), const ProblemCounts(errors: 1, warnings: 1));
+      expect(
+        world.problems.countsOf('main.py'),
+        const ProblemCounts(errors: 1, warnings: 1),
+      );
       world.publish('main.py', []);
       await _drain();
       expect(world.page.diagnostics[docId]!.items, isEmpty);
@@ -623,7 +638,10 @@ void main() {
       await _drain();
       world.page.restartPage();
       await _drain();
-      expect(world.page.diagnostics[world.docIdOf('main.py')]!.items, hasLength(1));
+      expect(
+        world.page.diagnostics[world.docIdOf('main.py')]!.items,
+        hasLength(1),
+      );
     });
 
     test('go with the server that found them', () async {

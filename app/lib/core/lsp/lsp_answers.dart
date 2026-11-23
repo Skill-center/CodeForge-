@@ -175,8 +175,7 @@ Map<String, Object?>? _completionItem(
 }) {
   final label = _clip(item['label']! as String, 500);
   final snippet = item['insertTextFormat'] == 2;
-  String plain(String text) =>
-      _lf(snippet ? snippetToPlainText(text) : text);
+  String plain(String text) => _lf(snippet ? snippetToPlainText(text) : text);
   Map<String, Object?>? edit;
   final textEdit = item['textEdit'];
   final defaultRange = defaults?['editRange'];
@@ -522,9 +521,8 @@ List<Map<String, Object?>> diagnosticItems(
   final index = LineIndex(text);
   final ordered = diagnostics.length <= maxDiagnostics
       ? diagnostics
-      : ([...diagnostics]..sort(
-              (a, b) => a.severity.value.compareTo(b.severity.value),
-            ))
+      : ([...diagnostics]
+              ..sort((a, b) => a.severity.value.compareTo(b.severity.value)))
             .take(maxDiagnostics)
             .toList();
   return [
@@ -544,8 +542,7 @@ List<Map<String, Object?>> diagnosticItems(
             LspSeverity.hint => 'hint',
           },
           'message': _clip(d.message, 4000),
-          if (source != null && source.isNotEmpty)
-            'source': _clip(source, 100),
+          if (source != null && source.isNotEmpty) 'source': _clip(source, 100),
           if (code != null && code.isNotEmpty) 'code': _clip(code, 100),
           if (d.tags.isNotEmpty) 'tags': [for (final tag in d.tags) tag.name],
         };
@@ -587,8 +584,9 @@ List<Map<String, Object?>> _textEdits(
 }
 
 /// "\n" line breaks only, as the bridge carries text.
-String _lf(String text) =>
-    text.contains('\r') ? text.replaceAll('\r\n', '\n').replaceAll('\r', '\n') : text;
+String _lf(String text) => text.contains('\r')
+    ? text.replaceAll('\r\n', '\n').replaceAll('\r', '\n')
+    : text;
 
 String _clip(String text, int max) =>
     text.length <= max ? text : '${text.substring(0, max - 1)}…';

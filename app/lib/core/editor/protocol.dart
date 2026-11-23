@@ -693,11 +693,7 @@ final Map<String, _Check> _pageResults = {
     'documentation': _markup,
     'additionalEdits': _arrayOf(_textEdit, max: 100),
   }),
-  'lsp.hover': _obj({}, {
-    'contents': _markup,
-    'from': _length,
-    'to': _length,
-  }),
+  'lsp.hover': _obj({}, {'contents': _markup, 'from': _length, 'to': _length}),
   'lsp.definition': _obj({'found': _length}),
   'lsp.prepareRename': _obj({
     'from': _length,

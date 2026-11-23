@@ -204,7 +204,10 @@ final class LspFeatures extends Notifier<ProblemsState> {
     final build = _build;
     _published = {};
     final watched =
-        <LspServerId, ({LanguageClient client, StreamSubscription<void> sub})>{};
+        <
+          LspServerId,
+          ({LanguageClient client, StreamSubscription<void> sub})
+        >{};
     _watched = watched;
     _completions.clear();
     host.pageRequestHandler = _answer;
@@ -285,16 +288,18 @@ final class LspFeatures extends Notifier<ProblemsState> {
     };
     final cancel = LspCancel();
     request.onCancel(cancel.cancel);
-    Future<Result<Object?>> ask(String method, Map<String, Object?> extra,
-        {Duration? timeout}) =>
-        client.request(
-          method,
-          {...params, ...extra},
-          path: doc.path,
-          atVersion: version,
-          cancel: cancel,
-          timeout: timeout,
-        );
+    Future<Result<Object?>> ask(
+      String method,
+      Map<String, Object?> extra, {
+      Duration? timeout,
+    }) => client.request(
+      method,
+      {...params, ...extra},
+      path: doc.path,
+      atVersion: version,
+      cancel: cancel,
+      timeout: timeout,
+    );
     switch (request.type) {
       case 'lsp.complete':
         final trigger = payload['trigger'];
@@ -313,19 +318,31 @@ final class LspFeatures extends Notifier<ProblemsState> {
         return switch (answer) {
           Err<Object?>(:final failure) => Err(failure),
           Ok<Object?>(:final value) => Ok(
-            _completed(value, docId: docId, text: text, pos: at, client: client),
+            _completed(
+              value,
+              docId: docId,
+              text: text,
+              pos: at,
+              client: client,
+            ),
           ),
         };
       case 'lsp.hover':
-        final answer = await ask('textDocument/hover', const {},
-            timeout: hoverTimeout);
+        final answer = await ask(
+          'textDocument/hover',
+          const {},
+          timeout: hoverTimeout,
+        );
         return switch (answer) {
           Err<Object?>(:final failure) => Err(failure),
           Ok<Object?>(:final value) => Ok(hoverAnswer(value, text: text)),
         };
       case 'lsp.definition':
-        final answer = await ask('textDocument/definition', const {},
-            timeout: definitionTimeout);
+        final answer = await ask(
+          'textDocument/definition',
+          const {},
+          timeout: definitionTimeout,
+        );
         if (answer case Err<Object?>(:final failure)) {
           return Err(failure);
         }
@@ -346,7 +363,10 @@ final class LspFeatures extends Notifier<ProblemsState> {
         );
     }
     return Err(
-      LspFailure('No answer for ${request.type}.', problem: LspProblem.badRequest),
+      LspFailure(
+        'No answer for ${request.type}.',
+        problem: LspProblem.badRequest,
+      ),
     );
   }
 
@@ -362,7 +382,8 @@ final class LspFeatures extends Notifier<ProblemsState> {
       result,
       text: text,
       pos: pos,
-      resolvable: provider is Map<String, Object?> &&
+      resolvable:
+          provider is Map<String, Object?> &&
           provider['resolveProvider'] == true,
     );
     _nextCompletion += 1;
@@ -500,9 +521,12 @@ final class LspFeatures extends Notifier<ProblemsState> {
   }
 
   Future<Result<Object?>> _prepareRename(
-    Future<Result<Object?>> Function(String, Map<String, Object?>,
-            {Duration? timeout})
-        ask, {
+    Future<Result<Object?>> Function(
+      String,
+      Map<String, Object?>, {
+      Duration? timeout,
+    })
+    ask, {
     required LspServerId server,
     required LanguageClient client,
     required OpenDocument doc,
@@ -521,9 +545,13 @@ final class LspFeatures extends Notifier<ProblemsState> {
     }
     LspRange? range;
     String? placeholder;
-    if (provider is Map<String, Object?> && provider['prepareProvider'] == true) {
-      final answer = await ask('textDocument/prepareRename', const {},
-          timeout: prepareRenameTimeout);
+    if (provider is Map<String, Object?> &&
+        provider['prepareProvider'] == true) {
+      final answer = await ask(
+        'textDocument/prepareRename',
+        const {},
+        timeout: prepareRenameTimeout,
+      );
       if (answer case Err<Object?>(:final failure)) {
         return Err(failure);
       }
@@ -705,8 +733,7 @@ final class LspFeatures extends Notifier<ProblemsState> {
         }
       }
     }
-    if (changed ||
-        (previous?.documents.length ?? 0) != next.documents.length) {
+    if (changed || (previous?.documents.length ?? 0) != next.documents.length) {
       _refresh();
     }
   }

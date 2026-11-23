@@ -212,10 +212,7 @@ void main() {
     test('caps: 200 completion items, 1000 diagnostics', () {
       expect(types, contains('MAX_COMPLETION_ITEMS = $maxCompletionItems;'));
       expect(types, contains('MAX_DIAGNOSTICS = $maxDiagnostics;'));
-      expect(
-        types,
-        contains('MAX_EDITED_DOCUMENTS = $maxEditedDocuments;'),
-      );
+      expect(types, contains('MAX_EDITED_DOCUMENTS = $maxEditedDocuments;'));
       expect(types, contains('MAX_DOCUMENT_EDITS = $maxDocumentEdits;'));
       List<Map<String, Object?>> items(int n) => [
         for (var i = 0; i < n; i++) {'label': 'item$i'},

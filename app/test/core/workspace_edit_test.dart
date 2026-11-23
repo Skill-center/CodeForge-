@@ -15,10 +15,8 @@ Map<String, Object?> _edit(int sl, int sc, int el, int ec, String text) => {
   'newText': text,
 };
 
-LspTextEdit _e(int sl, int sc, int el, int ec, String text) => LspTextEdit(
-  LspRange(LspPosition(sl, sc), LspPosition(el, ec)),
-  text,
-);
+LspTextEdit _e(int sl, int sc, int el, int ec, String text) =>
+    LspTextEdit(LspRange(LspPosition(sl, sc), LspPosition(el, ec)), text);
 
 void main() {
   group('reading a WorkspaceEdit', () {
@@ -31,10 +29,10 @@ void main() {
         },
       });
       expect(parsed.problem, isNull);
-      expect([for (final f in parsed.files) f.uri], [
-        'file:///w/a.py',
-        'file:///w/b.py',
-      ]);
+      expect(
+        [for (final f in parsed.files) f.uri],
+        ['file:///w/a.py', 'file:///w/b.py'],
+      );
       expect(parsed.files.first.version, isNull);
     });
 
@@ -144,7 +142,10 @@ void main() {
 
     test('overlapping edits are refused', () {
       expect(
-        applyTextEdits(text, [_e(0, 0, 0, 5, 'x'), _e(0, 3, 0, 6, 'y')]).problem,
+        applyTextEdits(text, [
+          _e(0, 0, 0, 5, 'x'),
+          _e(0, 3, 0, 6, 'y'),
+        ]).problem,
         EditProblem.overlapping,
       );
     });
@@ -172,10 +173,7 @@ void main() {
     });
 
     test("the new text's line breaks become \\n", () {
-      expect(
-        applyTextEdits('x', [_e(0, 1, 0, 1, '\r\ny\r')]).text,
-        'x\ny\n',
-      );
+      expect(applyTextEdits('x', [_e(0, 1, 0, 1, '\r\ny\r')]).text, 'x\ny\n');
     });
   });
 }

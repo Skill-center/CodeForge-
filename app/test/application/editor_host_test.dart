@@ -555,8 +555,10 @@ void main() {
       'pos': 0,
     });
     await settle(tester);
-    expect(((await none)['error']! as Map<String, Object?>)['code'],
-        'unavailable');
+    expect(
+      ((await none)['error']! as Map<String, Object?>)['code'],
+      'unavailable',
+    );
     host.pageRequestHandler = (_) async => const Err(
       LspFailure('Pyright is restarting.', problem: LspProblem.restarting),
     );
@@ -571,9 +573,8 @@ void main() {
       'code': 'unavailable',
       'message': 'Pyright is restarting.',
     });
-    host.pageRequestHandler = (_) async => const Err(
-      LspFailure('Too slow.', problem: LspProblem.timeout),
-    );
+    host.pageRequestHandler = (_) async =>
+        const Err(LspFailure('Too slow.', problem: LspProblem.timeout));
     final slow = page.request('lsp.hover', {
       'docId': 'd1',
       'version': 0,
@@ -627,7 +628,9 @@ void main() {
       request.onCancel(() => cancelled = true);
       return Completer<Result<Object?>>().future;
     };
-    unawaited(page.request('lsp.hover', {'docId': 'd1', 'version': 0, 'pos': 0}));
+    unawaited(
+      page.request('lsp.hover', {'docId': 'd1', 'version': 0, 'pos': 0}),
+    );
     await settle(tester);
     unawaited(host.reloadPage());
     await settle(tester);
@@ -638,7 +641,11 @@ void main() {
   testWidgets("diagnostics and a rename's edits reach the page; a stale "
       'rename is refused (Phase 6 W5)', (tester) async {
     await createHost(tester);
-    await host.openDocument(docId: 'd1', text: 'greet()\ngreet()\n', language: 'python');
+    await host.openDocument(
+      docId: 'd1',
+      text: 'greet()\ngreet()\n',
+      language: 'python',
+    );
     await settle(tester);
     expect(
       (await host.setDiagnostics('d1', 0, [

@@ -45,12 +45,12 @@ class RenameDialog extends StatefulWidget {
 }
 
 class _RenameDialogState extends State<RenameDialog> {
-  late final TextEditingController _input = TextEditingController(
-    text: widget.request.placeholder,
-  )..selection = TextSelection(
-      baseOffset: 0,
-      extentOffset: widget.request.placeholder.length,
-    );
+  late final TextEditingController _input =
+      TextEditingController(text: widget.request.placeholder)
+        ..selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: widget.request.placeholder.length,
+        );
   String? _problem;
 
   @override

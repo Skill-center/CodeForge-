@@ -173,7 +173,8 @@ class _LibraryFileSheetState extends State<LibraryFileSheet> {
         longest = line.length;
       }
     }
-    final width = digits * 9.0 + CfSpacing.lg + CfSpacing.md + longest * 8.0 + 24;
+    final width =
+        digits * 9.0 + CfSpacing.lg + CfSpacing.md + longest * 8.0 + 24;
     final screen = MediaQuery.sizeOf(context).width;
     return width < screen ? screen : width.clamp(screen, 20000.0);
   }

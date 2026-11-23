@@ -15,12 +15,15 @@ void main() {
     // `flutter test` runs with the package root (app/) as working directory.
     final manifest =
         jsonDecode(
-              File('../runtime/language-servers/package.json').readAsStringSync(),
+              File(
+                '../runtime/language-servers/package.json',
+              ).readAsStringSync(),
             )
             as Map<String, Object?>;
     final pinned = manifest['dependencies']! as Map<String, Object?>;
     for (final server in LspServerId.values) {
-      for (final MapEntry(key: name, value: version) in server.packages.entries) {
+      for (final MapEntry(key: name, value: version)
+          in server.packages.entries) {
         expect(pinned[name], version, reason: '${server.id}: $name');
       }
     }

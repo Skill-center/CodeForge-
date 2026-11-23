@@ -142,9 +142,9 @@ void main() {
   testWidgets("a definition in a server's own file opens read-only, at the "
       'place', (tester) async {
     final library = MemoryLibraryFiles()
-      ..files[lspStub] = [for (var i = 0; i < 60; i++) 'def f$i(): ...'].join(
-        '\n',
-      );
+      ..files[lspStub] = [
+        for (var i = 0; i < 60; i++) 'def f$i(): ...',
+      ].join('\n');
     final (harness, lsp) = await pumpWithServers(
       tester,
       files: {'use.py': 'f40()\n'},
@@ -193,7 +193,10 @@ void main() {
   testWidgets('the palette asks the page for definition, rename and hover', (
     tester,
   ) async {
-    final (harness, _) = await pumpWithServers(tester, files: {'use.py': 'x\n'});
+    final (harness, _) = await pumpWithServers(
+      tester,
+      files: {'use.py': 'x\n'},
+    );
     await openFile(tester, 'use.py');
     final intents = _container(tester).read(workbenchIntentsProvider);
     for (final intent in [
@@ -204,9 +207,12 @@ void main() {
       intents.fire(intent);
       await tester.pumpAndSettle();
     }
-    expect(harness.editorSurface.commands.skip(
-      harness.editorSurface.commands.length - 3,
-    ), ['goToDefinition', 'renameSymbol', 'showHover']);
+    expect(
+      harness.editorSurface.commands.skip(
+        harness.editorSurface.commands.length - 3,
+      ),
+      ['goToDefinition', 'renameSymbol', 'showHover'],
+    );
   });
 
   testWidgets("Settings → Editor turns a language's server off", (
@@ -218,9 +224,9 @@ void main() {
     );
     await openFile(tester, 'use.py');
     expect(find.byKey(const ValueKey('status_lsp')), findsOneWidget);
-    GoRouter.of(tester.element(find.byType(WorkbenchScreen))).go(
-      '/settings/editor',
-    );
+    GoRouter.of(
+      tester.element(find.byType(WorkbenchScreen)),
+    ).go('/settings/editor');
     await tester.pumpAndSettle();
     expect(find.text('pyright 1.1.414'), findsOneWidget);
     expect(
@@ -231,7 +237,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(harness.settingsStore.load().pythonServer, isFalse);
     expect(harness.settingsStore.load().typescriptServer, isTrue);
-    expect(lsp.running.where((h) => h == lsp.handleOf(LspServerId.pyright)),
-        isEmpty);
+    expect(
+      lsp.running.where((h) => h == lsp.handleOf(LspServerId.pyright)),
+      isEmpty,
+    );
   });
 }

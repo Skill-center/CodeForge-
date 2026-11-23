@@ -27,7 +27,10 @@ final class MemoryLibraryFiles implements LibraryFiles {
     final text = files[path];
     return text == null
         ? const Err(
-            FileFailure('That file is not there.', problem: FileProblem.notFound),
+            FileFailure(
+              'That file is not there.',
+              problem: FileProblem.notFound,
+            ),
           )
         : Ok(text);
   }

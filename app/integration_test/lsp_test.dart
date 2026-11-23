@@ -50,7 +50,8 @@ import 'smoke_test.dart' show pumpRealApp, pumpUntil;
 
 void _report(String line) => debugPrint('LSP_GATE $line');
 
-const String _people = 'def greet(name: str) -> str:\n    return "Hello, " + name\n';
+const String _people =
+    'def greet(name: str) -> str:\n    return "Hello, " + name\n';
 const String _main =
     'from people import greet\n\nprint(greet("you"))\nprint(undefined_name)\n';
 const String _other = 'from people import greet\n\ngreet("other")\n';
@@ -171,7 +172,11 @@ void main() {
               in (result! as Map<String, Object?>)['items']! as List<Object?>)
             (item! as Map<String, Object?>)['label']! as String,
         ];
-        for (var i = 0; i < 50 && !host.textOf(docId)!.endsWith(expected); i++) {
+        for (
+          var i = 0;
+          i < 50 && !host.textOf(docId)!.endsWith(expected);
+          i++
+        ) {
           await host.exec('acceptCompletion');
           await tester.pump(const Duration(milliseconds: 200));
         }
@@ -184,7 +189,11 @@ void main() {
         final exec = container.read(runtimeServiceProvider).exec;
         // The brackets keep the launcher, whose arguments hold the pattern,
         // out of the match.
-        final killed = await exec('pkill', ['-9', '-f', '[l]angserver.index.js']);
+        final killed = await exec('pkill', [
+          '-9',
+          '-f',
+          '[l]angserver.index.js',
+        ]);
         final result = killed.valueOrNull;
         if (result != null && result.failure == null && result.exitCode == 0) {
           return;
@@ -234,7 +243,9 @@ void main() {
       );
       await pumpUntil(
         tester,
-        () => countsOf('main.py').total == 0 && host.diagnosticsShown(mainId) == 0,
+        () =>
+            countsOf('main.py').total == 0 &&
+            host.diagnosticsShown(mainId) == 0,
         what: 'the fixed error to clear',
         timeout: const Duration(seconds: 60),
       );
@@ -256,7 +267,8 @@ void main() {
       expect((await host.gotoLine(3, column: 8)).isOk, isTrue);
       final hover = await asks('showHover', 'lsp.hover');
       final contents =
-          ((hover! as Map<String, Object?>)['contents']! as Map<String, Object?>)['value']!
+          ((hover! as Map<String, Object?>)['contents']!
+                  as Map<String, Object?>)['value']!
               as String;
       expect(contents, contains('greet'));
       _report('hover chars=${contents.length}');
@@ -267,7 +279,9 @@ void main() {
       expect(found, {'found': 1});
       await pumpUntil(
         tester,
-        () => container.read(documentControllerProvider).activePath == 'people.py',
+        () =>
+            container.read(documentControllerProvider).activePath ==
+            'people.py',
         what: 'people.py to open at the definition',
       );
       final peopleId = docIdOf('people.py');
@@ -287,25 +301,32 @@ void main() {
         () => find.byKey(const ValueKey('rename_dialog')).evaluate().isNotEmpty,
         what: 'the rename dialog',
       );
-      await tester.enterText(find.byKey(const ValueKey('rename_field')), 'welcome');
+      await tester.enterText(
+        find.byKey(const ValueKey('rename_field')),
+        'welcome',
+      );
       await tester.tap(find.byKey(const ValueKey('rename_confirm')));
       await pumpUntil(
         tester,
-        () => find.byKey(const ValueKey('rename_summary')).evaluate().isNotEmpty,
+        () =>
+            find.byKey(const ValueKey('rename_summary')).evaluate().isNotEmpty,
         what: 'the rename summary',
         timeout: const Duration(seconds: 60),
       );
-      final summary = tester
-          .widget<SnackBar>(find.byKey(const ValueKey('rename_summary')))
-          .content as Text;
+      final summary =
+          tester
+                  .widget<SnackBar>(
+                    find.byKey(const ValueKey('rename_summary')),
+                  )
+                  .content
+              as Text;
       expect(summary.data, startsWith('Renamed greet to welcome in 3 files'));
       expect(host.textOf(mainId), contains('print(welcome("you"))'));
       expect(host.textOf(peopleId), startsWith('def welcome('));
-      final otherOnDisk = (await container
-              .read(fileServiceProvider)
-              .readText('other.py'))
-          .valueOrNull
-          ?.text;
+      final otherOnDisk =
+          (await container.read(fileServiceProvider).readText('other.py'))
+              .valueOrNull
+              ?.text;
       expect(otherOnDisk, contains('welcome("other")'));
       // One undo per open file takes it back there.
       expect((await host.exec('undo')).isOk, isTrue);
@@ -368,7 +389,9 @@ void main() {
         what: 'the unsaved error again from the restarted server',
         timeout: const Duration(seconds: 90),
       );
-      _report('killed back_ms=${killed.elapsedMilliseconds} documents=reopened');
+      _report(
+        'killed back_ms=${killed.elapsedMilliseconds} documents=reopened',
+      );
 
       // ── 8. Three restarts, then Restart offered ─────────────────────────
       var ends = 1;

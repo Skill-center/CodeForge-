@@ -34,7 +34,11 @@ Future<void> showProblemsSheet(BuildContext context) {
   LspSeverity severity,
   CfColors colors,
 ) => switch (severity) {
-  LspSeverity.error => (icon: CfIcons.error, color: colors.danger, label: 'Error'),
+  LspSeverity.error => (
+    icon: CfIcons.error,
+    color: colors.danger,
+    label: 'Error',
+  ),
   LspSeverity.warning => (
     icon: CfIcons.warning,
     color: colors.warning,
@@ -45,7 +49,11 @@ Future<void> showProblemsSheet(BuildContext context) {
     color: colors.info,
     label: 'Information',
   ),
-  LspSeverity.hint => (icon: CfIcons.info, color: colors.textSecondary, label: 'Hint'),
+  LspSeverity.hint => (
+    icon: CfIcons.info,
+    color: colors.textSecondary,
+    label: 'Hint',
+  ),
 };
 
 /// "2 errors, 1 warning": the counts that are not zero.
