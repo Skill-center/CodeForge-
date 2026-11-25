@@ -4,6 +4,12 @@ All notable changes to CodeForge. Format: [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Added — Phase 7 W2, the Git host and the real service (plan: [phases/PHASE_7_PLAN.md](phases/PHASE_7_PLAN.md))
+- **Git through a host of its own** ([GIT_ARCHITECTURE.md](GIT_ARCHITECTURE.md)): the app runs the runtime's git for a project through a Kotlin host that takes only the operations and options it lists, runs each with settings a repository cannot change, one change at a time per repository, and logs no argument, path or URL. A status of 10,000 new files comes back in batches; on the Pixel 8a the clean status of 10,000 files took 114 ms at the 95th percentile through the host.
+- **The status strip's branch chip is real:** the branch, `*` when anything changed, the warning colour on conflicts, and its words for TalkBack. It refreshes after saves, on file changes, on changes in `.git` (the terminal's git included) and when the app comes back.
+- **Settings → Source control:** the name and email commits are made with, kept in the runtime's `~/.gitconfig`, which the terminal's git shares.
+- Verified by: CI 45283948595 and 45623732053; phase gate 45626687240: `GitHostTest` 6 of 6 on each runtime leg (API 26 to 36) and on Test Lab's Pixel 8a.
+
 ### Phase 7 W1 accepted, and the owner's decisions (2026-11-23)
 - Git works in projects, and a folder from the phone's storage offers *Import as project*; Phase 7 builds HTTPS tokens and SSH keys; the status of a 10,000-file repository is shown in the app within 500 ms at the 95th percentile on the Pixel 8a, with at most 5 % of frames over 32 ms and none frozen while long operations run (PHASE_7_PLAN §10).
 
