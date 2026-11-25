@@ -2,6 +2,8 @@
 /// email every commit is made with. They live in the Linux runtime's home
 /// (`~/.gitconfig`), so the terminal's git commits as the same person.
 /// Reading or writing them starts the runtime, as opening a workspace does.
+/// Since Phase 7 W3 the accounts and the SSH key follow
+/// (git_accounts_section.dart).
 library;
 
 import 'dart:async';
@@ -20,6 +22,7 @@ import '../../design_system/tokens/colors.dart';
 import '../../design_system/tokens/geometry.dart';
 import '../../design_system/tokens/icons.dart';
 import '../../services/runtime/runtime_service.dart';
+import 'git_accounts_section.dart';
 
 /// The longest name or email git is given (the host refuses longer).
 const int _maxIdentity = 256;
@@ -280,6 +283,8 @@ class _SourceControlSettingsScreenState
                     ),
                   ),
                 ),
+              // Phase 7 W3: the tokens kept for hosts, and the SSH key.
+              GitAccountsSection(ready: ready),
             ],
           ],
         ),

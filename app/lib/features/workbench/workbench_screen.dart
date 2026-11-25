@@ -41,6 +41,7 @@ import '../../design_system/tokens/icons.dart';
 import '../../services/contracts.dart';
 import '../../services/runtime/runtime_service.dart';
 import '../../services/shell/shell_state.dart';
+import '../home/clone_dialog.dart';
 import '../palette/command_palette.dart';
 import 'editor_actions.dart';
 import 'file_actions.dart';
@@ -211,6 +212,45 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
     await resolveRestoredConflicts(context, ref);
   }
 
+  /// Fetch, pull or push (Phase 7 W3), with their progress and Stop.
+  Future<void> _remote(WorkbenchIntent intent) async {
+    final git = ref.read(gitControllerProvider.notifier);
+    final kind = ref.read(gitControllerProvider).kind;
+    if (kind != GitRepoKind.repository && kind != GitRepoKind.failed) {
+      showFileMessage(context, switch (kind) {
+        GitRepoKind.notARepository => 'This project is not a Git repository.',
+        GitRepoKind.folder => 'Git works in projects. Import the folder first.',
+        _ => 'Git is not ready yet.',
+      });
+      return;
+    }
+    final (title, done) = switch (intent) {
+      WorkbenchIntent.gitFetch => ('Fetching', 'Fetched.'),
+      WorkbenchIntent.gitPull => ('Pulling', 'Pulled.'),
+      _ => ('Pushing', 'Pushed.'),
+    };
+    final result = await showGitProgress(
+      context,
+      title: title,
+      run: (onProgress, stop) => switch (intent) {
+        WorkbenchIntent.gitFetch => git.fetch(onProgress: onProgress, stop: stop),
+        WorkbenchIntent.gitPull => git.pull(onProgress: onProgress, stop: stop),
+        _ => git.push(onProgress: onProgress, stop: stop),
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    switch (result) {
+      case Ok<void>():
+        showFileMessage(context, done);
+      case Err<void>(failure: GitFailure(problem: GitProblem.stopped)):
+        showFileMessage(context, 'Stopped.');
+      case Err<void>(:final failure):
+        showFileMessage(context, failure.message);
+    }
+  }
+
   void _onIntent(WorkbenchIntent intent) {
     if (!mounted) {
       return;
@@ -275,6 +315,10 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
         unawaited(ref.read(runControllerProvider.notifier).stopLatest());
       case WorkbenchIntent.problems:
         unawaited(showProblemsSheet(context));
+      case WorkbenchIntent.gitFetch:
+      case WorkbenchIntent.gitPull:
+      case WorkbenchIntent.gitPush:
+        unawaited(_remote(intent));
       case WorkbenchIntent.goToDefinition:
       case WorkbenchIntent.renameSymbol:
       case WorkbenchIntent.showHover:

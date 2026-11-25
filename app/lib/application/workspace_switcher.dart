@@ -200,6 +200,28 @@ final class WorkspaceSwitcher {
     return Ok(project);
   }
 
+  /// Records [name], a project git has just cloned into the projects'
+  /// folder (Phase 7 W3), in the recents. The caller opens it.
+  Future<Result<ProjectLocation>> adoptClonedProject(String name) async {
+    final folders = (await _projects.folders()).valueOrNull ?? const <String>[];
+    if (!folders.contains(name)) {
+      return const Err(
+        FileFailure(
+          'The cloned project is not there.',
+          problem: FileProblem.notFound,
+        ),
+      );
+    }
+    final project = ProjectLocation(
+      id: newProjectId(),
+      name: name,
+      folder: name,
+    );
+    await _store.touchWorkspace(project, displayPath: displayPathOf(project));
+    appLogger.info('workspace', 'project_cloned');
+    return Ok(project);
+  }
+
   /// Copies [folder] whole, git's files included, into a new project named
   /// [name] (Phase 5 W4, ADR-0013's option (b): for a folder that needs
   /// more than a run's copy gives) and records it in the recents. The

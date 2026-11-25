@@ -377,6 +377,35 @@ abstract interface class GitHost {
     void Function(String text, bool closing)? onProgress,
     Future<void>? stop,
   });
+
+  /// What remote runs ask the user, as they ask it (Phase 7 W3): a token
+  /// for a host, or whether to trust a new SSH host. Each is answered with
+  /// [answerCredential], once.
+  Stream<GitCredentialPrompt> get credentialPrompts;
+
+  /// Prompts no run waits for any more (it ended, or timed out): their
+  /// dialogs close.
+  Stream<int> get withdrawnPrompts;
+
+  /// Stored credentials a host refused, which the host removed.
+  Stream<GitCredentialRejected> get rejectedCredentials;
+
+  Future<void> answerCredential(GitCredentialAnswer answer);
+
+  /// The stored credentials' hosts and user names, newest first.
+  Future<Result<List<GitAccount>>> accounts();
+
+  /// Removes a stored token; false when there was none.
+  Future<Result<bool>> removeAccount(GitAccount account);
+
+  /// CodeForge's SSH key, or null.
+  Future<Result<GitSshKey?>> sshKey();
+
+  /// Makes a new SSH key named [comment], replacing the last one.
+  Future<Result<GitSshKey>> createSshKey(String comment);
+
+  /// Removes the SSH key; false when there was none.
+  Future<Result<bool>> deleteSshKey();
 }
 
 /// Git for the app (Phase 7 W2, PHASE_7_PLAN W2): a project's repository,
@@ -489,4 +518,70 @@ abstract interface class GitService {
 
   /// Whether [name] may name a branch (`git check-ref-format --branch`).
   Future<Result<bool>> isValidBranchName(String name);
+
+  /// Clones [url] into a new project named [name] (Phase 7 W3): into a
+  /// hidden folder first, renamed into place when git succeeds, so a
+  /// stopped or failed clone leaves nothing. [onProgress] hears git's
+  /// progress; completing [stop] stops it with everything it started.
+  Future<Result<void>> clone(
+    String url,
+    String name, {
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  });
+
+  /// Fetches [remote] (the upstream's remote when null).
+  Future<Result<void>> fetch(
+    String project, {
+    String? remote,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  });
+
+  /// Pulls [branch] of [remote] into the branch checked out, merging (the
+  /// upstream when both are null). Conflicts fail as [GitProblem.conflict].
+  Future<Result<void>> pull(
+    String project, {
+    String? remote,
+    String? branch,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  });
+
+  /// Pushes [branch] to the same name on [remote]; [setUpstream] makes it
+  /// the branch's upstream, as a branch's first push does.
+  Future<Result<void>> push(
+    String project, {
+    required String remote,
+    required String branch,
+    bool setUpstream = false,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  });
+
+  /// What remote runs ask the user ([GitHost.credentialPrompts]).
+  Stream<GitCredentialPrompt> get credentialPrompts;
+
+  /// Prompts no run waits for any more.
+  Stream<int> get withdrawnPrompts;
+
+  /// Stored credentials a host refused, and the host removed.
+  Stream<GitCredentialRejected> get rejectedCredentials;
+
+  Future<void> answerCredential(GitCredentialAnswer answer);
+
+  /// The stored credentials' hosts and user names, newest first.
+  Future<Result<List<GitAccount>>> accounts();
+
+  /// Removes a stored token.
+  Future<Result<bool>> removeAccount(GitAccount account);
+
+  /// CodeForge's SSH key, or null.
+  Future<Result<GitSshKey?>> sshKey();
+
+  /// Makes a new SSH key named [comment], replacing the last one.
+  Future<Result<GitSshKey>> createSshKey(String comment);
+
+  /// Removes the SSH key.
+  Future<Result<bool>> deleteSshKey();
 }

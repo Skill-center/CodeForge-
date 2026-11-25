@@ -71,12 +71,14 @@ class GitCommandsTest {
     @Test
     fun onlyTheListedOperationsRun() {
         val unlisted = listOf(
-            "clone", "fetch", "push", "pull", "remote", "gc", "submodule", "filter-branch", "daemon", "upload-pack",
+            "remote", "gc", "submodule", "filter-branch", "daemon", "upload-pack", "ls-remote", "archive-remote",
             "credential", "difftool", "mergetool", "bisect", "stash", "rebase", "tag", "blame", "archive", "-c",
             "--exec-path", "!sh", "",
         )
         for (operation in unlisted) assertEquals(operation, GitFailure.REFUSED, refusal(operation, emptyList()))
         assertTrue(GitCommands.OPERATIONS.containsAll(setOf("status", "add", "commit", "log", "diff", "branch", "switch", "init", "config")))
+        // Phase 7 W3: the remotes.
+        assertTrue(GitCommands.OPERATIONS.containsAll(setOf("clone", "fetch", "pull", "push")))
     }
 
     @Test

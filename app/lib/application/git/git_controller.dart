@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors/failure.dart';
 import '../../core/files/workspace_location.dart';
+import '../../core/git/git_errors.dart';
 import '../../core/git/git_models.dart';
 import '../../core/logging/logger.dart';
 import '../../services/contracts.dart';
@@ -288,6 +289,80 @@ final class GitController extends Notifier<GitRepoState> {
     'init',
     (git, project) => git.init(project, initialBranch: initialBranch),
   );
+
+  // The remotes (Phase 7 W3): each with its progress and a stop, queued as
+  // every change is; a question from the host (a token, a new SSH host)
+  // comes through GitCredentialPrompts meanwhile.
+
+  /// Fetches the upstream's remote, pruning branches gone from it.
+  Future<Result<void>> fetch({
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) => _change(
+    'fetch',
+    (git, project) => git.fetch(project, onProgress: onProgress, stop: stop),
+  );
+
+  /// Pulls the upstream into the branch checked out, merging; a branch
+  /// with no upstream says so before anything runs.
+  Future<Result<void>> pull({
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) {
+    final branch = state.status?.branch;
+    if (branch != null && branch.upstream == null) {
+      return Future.value(
+        Err<void>(
+          GitFailure(
+            gitProblemMessage(GitProblem.noUpstream),
+            problem: GitProblem.noUpstream,
+            operation: 'pull',
+          ),
+        ),
+      );
+    }
+    return _change(
+      'pull',
+      (git, project) => git.pull(project, onProgress: onProgress, stop: stop),
+    );
+  }
+
+  /// Pushes the branch checked out to its upstream; a branch's first push
+  /// goes to `origin` under its own name and sets that as its upstream.
+  Future<Result<void>> push({
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) {
+    final branch = state.status?.branch;
+    final head = branch?.head;
+    if (branch == null || head == null) {
+      return Future.value(
+        const Err<void>(
+          GitFailure(
+            'Check out a branch to push it.',
+            problem: GitProblem.badRequest,
+            operation: 'push',
+          ),
+        ),
+      );
+    }
+    final upstream = branch.upstream;
+    final slash = upstream?.indexOf('/') ?? -1;
+    final remote = upstream != null && slash > 0
+        ? upstream.substring(0, slash)
+        : 'origin';
+    return _change(
+      'push',
+      (git, project) => git.push(
+        project,
+        remote: remote,
+        branch: head,
+        setUpstream: upstream == null,
+        onProgress: onProgress,
+        stop: stop,
+      ),
+    );
+  }
 
   /// Runs [change] after the changes queued before it, then refreshes.
   Future<Result<void>> _change(

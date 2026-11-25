@@ -305,6 +305,9 @@ enum GitProblem {
   /// The project's folder is not there.
   noSuchProject('no_such_project'),
 
+  /// A clone's project name is taken (Phase 7 W3).
+  exists('exists'),
+
   /// Another command changes this repository, or too many run.
   busy('busy'),
 
@@ -364,6 +367,32 @@ enum GitProblem {
 
   /// No such branch.
   noSuchBranch('no_such_branch'),
+
+  /// The host refused the credential: a wrong token, or a key it does not
+  /// know (Phase 7 W3).
+  authFailed('auth_failed'),
+
+  /// No credential was given: the user cancelled, or none is stored.
+  noCredential('no_credential'),
+
+  /// No such repository at that URL, or none the credential can see.
+  repositoryNotFound('repository_not_found'),
+
+  /// The host cannot be reached: no network, no such host, nothing
+  /// listening.
+  offline('offline'),
+
+  /// A push behind the remote's branch: fetch first.
+  rejected('rejected'),
+
+  /// The host's certificate was not accepted.
+  tls('tls'),
+
+  /// ssh did not trust the host: its key changed, or it was not accepted.
+  hostKeyChanged('host_key_changed'),
+
+  /// The branch has no upstream to pull from or push to.
+  noUpstream('no_upstream'),
 
   /// git failed in a way not listed above: [GitFailure.stderr] says how.
   gitError('git_error'),

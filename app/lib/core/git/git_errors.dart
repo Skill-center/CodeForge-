@@ -24,6 +24,58 @@ GitProblem classifyGitError({
   if (said('not a git repository')) {
     return GitProblem.notARepository;
   }
+  // The remotes (Phase 7 W3; test/fixtures/git/remote_errors.json): ssh's
+  // and curl's words first, since git's own around them are the same for
+  // every failure ("Could not read from remote repository").
+  if (said('could not read username') ||
+      said('could not read password') ||
+      said('terminal prompts disabled')) {
+    return GitProblem.noCredential;
+  }
+  if (said('authentication failed') ||
+      said('permission denied (publickey') ||
+      said('invalid username or password') ||
+      said('the requested url returned error: 403') ||
+      said('the requested url returned error: 401')) {
+    return GitProblem.authFailed;
+  }
+  if (said('host key verification failed') ||
+      said('remote host identification has changed')) {
+    return GitProblem.hostKeyChanged;
+  }
+  if (said('ssl certificate problem') ||
+      said('server certificate verification failed') ||
+      said('certificate verify failed') ||
+      said('unable to get local issuer certificate')) {
+    return GitProblem.tls;
+  }
+  if (said('repository not found') ||
+      (said("repository '") && said("' not found")) ||
+      said('does not appear to be a git repository') ||
+      said('the requested url returned error: 404')) {
+    return GitProblem.repositoryNotFound;
+  }
+  if (said('could not resolve host') ||
+      said('could not resolve hostname') ||
+      said('failed to connect to') ||
+      said("couldn't connect to server") ||
+      said('connection refused') ||
+      said('connection timed out') ||
+      said('operation timed out') ||
+      said('network is unreachable') ||
+      said('no route to host') ||
+      said('temporary failure in name resolution')) {
+    return GitProblem.offline;
+  }
+  if (said('[rejected]') ||
+      said('failed to push some refs') ||
+      said('non-fast-forward')) {
+    return GitProblem.rejected;
+  }
+  if (said('has no upstream branch') ||
+      said('there is no tracking information')) {
+    return GitProblem.noUpstream;
+  }
   if (said('index.lock') && said('file exists')) {
     return GitProblem.locked;
   }
@@ -91,6 +143,7 @@ String gitProblemMessage(GitProblem problem) => switch (problem) {
   GitProblem.badRequest => 'Git was asked something it cannot do.',
   GitProblem.refused => 'CodeForge does not run that git command.',
   GitProblem.noSuchProject => 'The project is not there any more.',
+  GitProblem.exists => 'A project with that name exists. Choose another.',
   GitProblem.busy => 'Git is busy with this repository. Try again in a moment.',
   GitProblem.launchFailed => 'Git could not start.',
   GitProblem.timedOut => 'Git took too long and was stopped.',
@@ -122,6 +175,23 @@ String gitProblemMessage(GitProblem problem) => switch (problem) {
   GitProblem.currentBranch =>
     'That branch is checked out. Switch to another branch first.',
   GitProblem.noSuchBranch => 'There is no such branch.',
+  GitProblem.authFailed =>
+    'The host refused the credential. Check the token, or the SSH key in '
+        'the host\'s settings.',
+  GitProblem.noCredential => 'No credential was given, so the host refused.',
+  GitProblem.repositoryNotFound =>
+    'There is no such repository, or this account cannot see it.',
+  GitProblem.offline =>
+    'The host cannot be reached. Check the connection and the URL.',
+  GitProblem.rejected =>
+    'The remote has commits this branch does not. Pull first, then push.',
+  GitProblem.tls =>
+    'The host\'s certificate was not accepted, so nothing was sent.',
+  GitProblem.hostKeyChanged =>
+    'The host\'s SSH key is not the one trusted. If it changed for a good '
+        'reason, remove it from known_hosts in the terminal.',
+  GitProblem.noUpstream =>
+    'This branch has no upstream yet. Push it first to set one.',
   GitProblem.gitError => 'Git could not do that.',
   GitProblem.unavailable => 'Git runs on the Linux runtime, on Android.',
   GitProblem.unknown => 'Git could not do that.',

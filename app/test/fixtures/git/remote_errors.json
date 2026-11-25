@@ -1,0 +1,123 @@
+{
+  "git": "git version 2.39.5",
+  "note": "What git says when a remote operation fails, through the host's settings (no terminal prompt, an empty GIT_ASKPASS, CodeForge's credential helper), each with the problem it should be read as. Ports are PORT.",
+  "command": "various",
+  "cases": [
+    {
+      "problem": "auth_failed",
+      "operation": "clone",
+      "note": "a wrong token over HTTPS: the helper's erase follows",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'x'...\nfatal: Authentication failed for 'http://127.0.0.1:PORT/repo.git/'\n"
+    },
+    {
+      "problem": "no_credential",
+      "operation": "clone",
+      "note": "no credential given (the user cancelled): git may not prompt",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'y'...\nfatal: could not read Username for 'http://127.0.0.1:PORT': terminal prompts disabled\n"
+    },
+    {
+      "problem": "repository_not_found",
+      "operation": "clone",
+      "note": "the server answers 404",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\nfatal: repository 'http://127.0.0.1:PORT/nope.git/' not found\n"
+    },
+    {
+      "problem": "offline",
+      "operation": "clone",
+      "note": "no DNS for the host (offline, or a wrong host)",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\nfatal: unable to access 'https://nonexistent.invalid/r.git/': Could not resolve host: nonexistent.invalid\n"
+    },
+    {
+      "problem": "offline",
+      "operation": "clone",
+      "note": "nothing listens there",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\nfatal: unable to access 'http://127.0.0.1:1/r.git/': Failed to connect to 127.0.0.1 port 1 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "problem": "rejected",
+      "operation": "push",
+      "note": "a push behind the remote's branch: fetch first",
+      "exitCode": 1,
+      "records": [],
+      "stderr": "To http://127.0.0.1:PORT/repo.git\n ! [rejected]        main -> main (fetch first)\nerror: failed to push some refs to 'http://127.0.0.1:PORT/repo.git'\nhint: Updates were rejected because the remote contains work that you do\nhint: not have locally. This is usually caused by another repository pushing\nhint: to the same ref. You may want to first integrate the remote changes\nhint: (e.g., 'git pull ...') before pushing again.\nhint: See the 'Note about fast-forwards' in 'git push --help' for details.\n"
+    },
+    {
+      "problem": "no_upstream",
+      "operation": "pull",
+      "note": "pull on a branch with no upstream",
+      "exitCode": 1,
+      "records": [],
+      "stderr": "remote: Enumerating objects: 1, done.        \nremote: Total 1 (delta 0), reused 0 (delta 0), pack-reused 0        \nFrom http://127.0.0.1:PORT/repo\n   bc5d2cb..ec84d2a  main       -> origin/main\nThere is no tracking information for the current branch.\nPlease specify which branch you want to merge with.\nSee git-pull(1) for details.\n\n    git pull <remote> <branch>\n\nIf you wish to set tracking information for this branch you can do so with:\n\n    git branch --set-upstream-to=origin/<branch> topic\n\n"
+    },
+    {
+      "problem": "no_upstream",
+      "operation": "push",
+      "note": "push on a branch with no upstream (the app names the remote and branch, and sets the upstream)",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "fatal: The current branch topic has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin topic\n\nTo have this happen automatically for branches without a tracking\nupstream, see 'push.autoSetupRemote' in 'git help config'.\n\n"
+    },
+    {
+      "problem": "conflict",
+      "operation": "pull",
+      "note": "a pull whose merge conflicts",
+      "exitCode": 1,
+      "records": [
+        "Auto-merging a.txt",
+        "CONFLICT (content): Merge conflict in a.txt",
+        "Automatic merge failed; fix conflicts and then commit the result."
+      ],
+      "stderr": "remote: Enumerating objects: 5, done.        \nremote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0        \nFrom http://127.0.0.1:PORT/repo\n * branch            main       -> FETCH_HEAD\n   ec84d2a..ea48e81  main       -> origin/main\n"
+    },
+    {
+      "problem": "tls",
+      "operation": "clone",
+      "note": "a certificate no authority signed",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\nfatal: unable to access 'https://127.0.0.1:PORT/r.git/': server certificate verification failed. CAfile: none CRLfile: none\n"
+    },
+    {
+      "problem": "auth_failed",
+      "operation": "clone",
+      "note": "ssh: the host refused the key (ssh's words, from a stand-in)",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\ngit@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n"
+    },
+    {
+      "problem": "host_key_changed",
+      "operation": "clone",
+      "note": "ssh: a host whose key changed, or one not trusted (ssh's words, from a stand-in)",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\nHost key verification failed.\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n"
+    },
+    {
+      "problem": "repository_not_found",
+      "operation": "clone",
+      "note": "ssh: GitHub's words for a repository the key cannot see (from a stand-in)",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\nERROR: Repository not found.\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n"
+    },
+    {
+      "problem": "offline",
+      "operation": "clone",
+      "note": "ssh: no DNS (ssh's words, from a stand-in)",
+      "exitCode": 128,
+      "records": [],
+      "stderr": "Cloning into 'z'...\nssh: Could not resolve hostname github.com: Temporary failure in name resolution\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n"
+    }
+  ]
+}

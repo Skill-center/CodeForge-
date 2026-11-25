@@ -35,6 +35,9 @@ enum class GitFailure(val code: String) {
     /** No such project. */
     NO_SUCH_PROJECT("no_such_project"),
 
+    /** A clone's project name is taken (Phase 7 W3). */
+    EXISTS("exists"),
+
     /** Another change to the same repository runs. */
     BUSY("busy"),
 
@@ -67,6 +70,13 @@ enum class GitPlace {
 
     /** Either: `check-ref-format` needs no repository. */
     EITHER,
+
+    /**
+     * A project that does not exist yet (Phase 7 W3): `clone` runs in the
+     * projects' folder, into a hidden staging folder the runner names and
+     * appends, renamed into place when git succeeds.
+     */
+    NEW_PROJECT,
 }
 
 /** One git command as the host runs it. */
@@ -78,6 +88,11 @@ data class GitCommand(
     val arguments: List<String>,
     val timeoutMs: Long,
     val place: GitPlace,
+    /**
+     * It reaches a remote (Phase 7 W3): the runner gives it CodeForge's
+     * credential helper and ssh's askpass for this run alone.
+     */
+    val network: Boolean = false,
 )
 
 /**
@@ -119,6 +134,23 @@ object GitCommands {
         "-c", "commit.gpgSign=false",
     )
 
+    /**
+     * A remote operation's settings, after [SETTINGS] (Phase 7 W3): only
+     * HTTPS, SSH and HTTP transports, whatever a URL or `insteadOf` says (the
+     * credential helper never answers plain HTTP but for this device); no
+     * submodule is fetched; a remote URL holding a password or a token,
+     * which the terminal could have configured, is refused rather than used.
+     */
+    val NETWORK_SETTINGS: List<String> = listOf(
+        "-c", "protocol.allow=never",
+        "-c", "protocol.https.allow=always",
+        "-c", "protocol.ssh.allow=always",
+        "-c", "protocol.http.allow=always",
+        "-c", "submodule.recurse=false",
+        "-c", "fetch.recurseSubmodules=false",
+        "-c", "transfer.credentialsInUrl=die",
+    )
+
     /** Before the operation: no pager, pathspecs taken literally. */
     val GLOBAL_OPTIONS: List<String> = listOf("--no-pager", "--literal-pathspecs")
 
@@ -157,6 +189,7 @@ object GitCommands {
     /** The command for [operation] with [arguments], or why not ([GitRefused]). */
     fun build(operation: String, arguments: List<String>): GitCommand {
         if (operation == "config") return config(arguments)
+        if (operation == "clone") return clone(arguments)
         val spec = SPECS[operation] ?: throw GitRefused(GitFailure.REFUSED, "not an operation the app runs")
         checkSizes(arguments)
         val checked = ArrayList<String>(arguments.size + spec.forced.size)
@@ -205,7 +238,7 @@ object GitCommands {
                     if (positionals > spec.maxPositionals) {
                         throw GitRefused(GitFailure.BAD_REQUEST, "git $operation takes at most ${spec.maxPositionals} names")
                     }
-                    checkPositional(spec.positional, argument)
+                    checkPositional(spec.positionalKinds?.getOrNull(positionals - 1) ?: spec.positional, argument)
                     checked.add(argument)
                 }
             }
@@ -215,7 +248,30 @@ object GitCommands {
         for (required in spec.required) {
             if (required !in seenFlags) throw GitRefused(GitFailure.BAD_REQUEST, "git $operation needs $required")
         }
-        return command(operation, spec.access, spec.output, checked, spec.timeoutMs, spec.place)
+        return command(operation, spec.access, spec.output, checked, spec.timeoutMs, spec.place, spec.network)
+    }
+
+    /**
+     * `clone`: one URL, checked ([GitUrls]); progress on. The runner appends
+     * the staging folder it names, so Dart never names where it goes.
+     */
+    private fun clone(arguments: List<String>): GitCommand {
+        if (arguments.size != 1) throw GitRefused(GitFailure.BAD_REQUEST, "git clone takes one URL")
+        val url = arguments.single()
+        GitUrls.check(url)
+        return command(
+            "clone", GitAccess.WRITE, GitOutput.LINES, listOf("--progress", "--", url),
+            WRITE_TIMEOUT_MS, GitPlace.NEW_PROJECT, network = true,
+        )
+    }
+
+    /** [command]'s arguments with [extra] settings before its operation: CodeForge's credential helper. */
+    fun withSettings(command: GitCommand, extra: List<String>): List<String> {
+        if (extra.isEmpty()) return command.arguments
+        val at = GLOBAL_OPTIONS.size + (if (command.access == GitAccess.READ) 1 else 0) + SETTINGS.size +
+            (if (command.network) NETWORK_SETTINGS.size else 0)
+        check(command.arguments.getOrNull(at) == command.operation) { "not a command GitCommands built" }
+        return command.arguments.subList(0, at) + extra + command.arguments.subList(at, command.arguments.size)
     }
 
     /** `config --global`: the identity's two keys only, read, set or unset. */
@@ -250,14 +306,16 @@ object GitCommands {
         checked: List<String>,
         timeoutMs: Long,
         place: GitPlace,
+        network: Boolean = false,
     ): GitCommand {
-        val full = ArrayList<String>(GLOBAL_OPTIONS.size + 1 + SETTINGS.size + 1 + checked.size)
+        val full = ArrayList<String>(GLOBAL_OPTIONS.size + 1 + SETTINGS.size + NETWORK_SETTINGS.size + 1 + checked.size)
         full.addAll(GLOBAL_OPTIONS)
         if (access == GitAccess.READ) full.add(NO_OPTIONAL_LOCKS)
         full.addAll(SETTINGS)
+        if (network) full.addAll(NETWORK_SETTINGS)
         full.add(operation)
         full.addAll(checked)
-        return GitCommand(operation, access, output, full, timeoutMs, place)
+        return GitCommand(operation, access, output, full, timeoutMs, place, network)
     }
 
     private fun checkIdentityKey(key: String) {
@@ -311,6 +369,10 @@ object GitCommands {
 
     private fun checkPositional(kind: Value, value: String) {
         when (kind) {
+            Value.REMOTE -> {
+                if (!REMOTE_NAME.matches(value)) throw GitRefused(GitFailure.BAD_REQUEST, "a remote is named, never given as a URL")
+            }
+            Value.BRANCH -> checkValue(Value.BRANCH, value, "a branch")
             Value.REF_PATTERN -> {
                 if (!value.startsWith("refs/") || value.length > 256 || value.contains("..") || value.any { it <= ' ' || it == '\u007f' }) {
                     throw GitRefused(GitFailure.BAD_REQUEST, "a ref pattern starts with refs/")
@@ -344,7 +406,7 @@ object GitCommands {
                 checkRevision(value)
                 if (value.contains(':') || value.contains(' ')) throw GitRefused(GitFailure.BAD_REQUEST, "not a branch name")
             }
-            Value.REVISION, Value.REF_PATTERN -> checkPositional(kind, value)
+            Value.REVISION, Value.REF_PATTERN, Value.REMOTE -> checkPositional(kind, value)
         }
     }
 
@@ -363,7 +425,10 @@ object GitCommands {
     }
 
     /** What a value or a name must be. */
-    private enum class Value { NUMBER, MESSAGE, LOG_FORMAT, REF_FORMAT, SORT, BRANCH, REVISION, REF_PATTERN }
+    private enum class Value { NUMBER, MESSAGE, LOG_FORMAT, REF_FORMAT, SORT, BRANCH, REVISION, REF_PATTERN, REMOTE }
+
+    /** A remote's name: `origin`, `upstream`; never a URL or a path. */
+    private val REMOTE_NAME = Regex("^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
 
     /** One operation: what it may be given, and how it runs. */
     private class Spec(
@@ -378,11 +443,15 @@ object GitCommands {
         val prefixed: Map<String, Value> = emptyMap(),
         val maxPositionals: Int = 0,
         val positional: Value = Value.REVISION,
+        /** Each position's kind, when they differ (`<remote> <branch>`); else [positional]. */
+        val positionalKinds: List<Value>? = null,
         val paths: Boolean = false,
         val pathsRequired: Boolean = false,
         val required: Set<String> = emptySet(),
         val timeoutMs: Long = if (access == GitAccess.READ) READ_TIMEOUT_MS else WRITE_TIMEOUT_MS,
         val place: GitPlace = GitPlace.PROJECT,
+        /** It reaches a remote: [NETWORK_SETTINGS] and the credential helper. */
+        val network: Boolean = false,
     )
 
     private val SPECS: Map<String, Spec> = mapOf(
@@ -510,6 +579,33 @@ object GitCommands {
             valued = mapOf("-b" to Value.BRANCH),
             prefixed = mapOf("--initial-branch=" to Value.BRANCH),
         ),
+        // Phase 7 W3: the remotes, by name only, never a URL; progress on.
+        "fetch" to Spec(
+            GitAccess.WRITE,
+            forced = listOf("--progress"),
+            flags = setOf("--prune", "-q", "--quiet"),
+            maxPositionals = 1,
+            positional = Value.REMOTE,
+            network = true,
+        ),
+        // Pull merges, whatever pull.rebase says (PHASE_7_PLAN W3); a conflict is left to resolve.
+        "pull" to Spec(
+            GitAccess.WRITE,
+            forced = listOf("--progress", "--no-rebase", "--no-edit"),
+            flags = setOf("--ff-only", "--ff", "--no-ff", "-q", "--quiet"),
+            maxPositionals = 2,
+            positionalKinds = listOf(Value.REMOTE, Value.BRANCH),
+            network = true,
+        ),
+        // A branch by its name, to the same name: no refspec, no force, no delete, no tags.
+        "push" to Spec(
+            GitAccess.WRITE,
+            forced = listOf("--progress"),
+            flags = setOf("--set-upstream", "-q", "--quiet"),
+            maxPositionals = 2,
+            positionalKinds = listOf(Value.REMOTE, Value.BRANCH),
+            network = true,
+        ),
         "check-ref-format" to Spec(
             access = GitAccess.READ,
             flags = setOf("--branch", "--allow-onelevel", "--normalize"),
@@ -519,5 +615,5 @@ object GitCommands {
     )
 
     /** The operations the host runs, for its tests and its log. */
-    val OPERATIONS: Set<String> get() = SPECS.keys + "config"
+    val OPERATIONS: Set<String> get() = SPECS.keys + "config" + "clone"
 }

@@ -11,12 +11,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../application/providers.dart';
 import '../../application/recents_controller.dart';
 import '../../application/settings_controller.dart';
 import '../../application/shell_controller.dart';
 import '../../application/workspace_switcher.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/workspace_location.dart';
+import '../../core/git/git_errors.dart';
 import '../../core/logging/logger.dart';
 import '../../design_system/components/buttons.dart';
 import '../../design_system/components/feedback.dart';
@@ -25,6 +27,7 @@ import '../../design_system/tokens/geometry.dart';
 import '../../design_system/tokens/icons.dart';
 import '../../services/contracts.dart';
 import '../../services/files/storage_broker.dart';
+import 'clone_dialog.dart';
 import 'home_dialogs.dart';
 import 'import_folder.dart';
 
@@ -139,6 +142,81 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case Err<WorkspaceRef>(:final failure):
         _tell(failure.message);
         unawaited(_refresh());
+    }
+  }
+
+  /// Clones a repository into a new project, and opens it (Phase 7 W3).
+  /// The clone runs with its progress and Stop; a question from the host
+  /// (a token, a new SSH host) comes through GitCredentialPrompts.
+  Future<void> _clone() async {
+    if (_busy) {
+      return;
+    }
+    final git = ref.read(gitServiceProvider);
+    if (!git.available) {
+      _tell(gitProblemMessage(GitProblem.unavailable));
+      return;
+    }
+    final asked = await askClone(
+      context,
+      taken: ref.read(recentsProvider).projectFolders,
+    );
+    if (!mounted || asked == null) {
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final cloned = await showGitProgress(
+        context,
+        title: 'Cloning ${asked.name}',
+        run: (onProgress, stop) => git.clone(
+          asked.url,
+          asked.name,
+          onProgress: onProgress,
+          stop: stop,
+        ),
+      );
+      if (!mounted) {
+        return;
+      }
+      switch (cloned) {
+        case Err<void>(failure: final GitFailure failure)
+            when failure.problem == GitProblem.stopped:
+          _tell('The clone was stopped. Nothing was kept.');
+          return;
+        case Err<void>(:final failure):
+          appLogger.info(
+            'home',
+            'clone_failed',
+            fields: {
+              'problem': failure is GitFailure ? failure.problem.code : '-',
+            },
+          );
+          _tell(failure.message);
+          return;
+        case Ok<void>():
+          break;
+      }
+      final adopted = await _switcher.adoptClonedProject(asked.name);
+      final opened = switch (adopted) {
+        Ok<ProjectLocation>(:final value) => await _switcher.open(value),
+        Err<ProjectLocation>(:final failure) => Err<WorkspaceRef>(failure),
+      };
+      if (!mounted) {
+        return;
+      }
+      switch (opened) {
+        case Ok<WorkspaceRef>():
+          appLogger.info('home', 'project_cloned');
+          context.go('/workspace');
+        case Err<WorkspaceRef>(:final failure):
+          _tell(failure.message);
+          unawaited(_refresh());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -454,6 +532,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   icon: CfIcons.add,
                   expanded: true,
                   onPressed: _busy ? null : _newProject,
+                ),
+                const SizedBox(height: CfSpacing.sm),
+                CfButton(
+                  key: const ValueKey('clone_repository'),
+                  label: 'Clone Repository…',
+                  icon: CfIcons.forkRight,
+                  variant: CfButtonVariant.ghost,
+                  expanded: true,
+                  onPressed: _busy ? null : _clone,
                 ),
                 const SizedBox(height: CfSpacing.sm),
                 CfButton(

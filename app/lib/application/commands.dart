@@ -122,6 +122,9 @@ final commandRegistryProvider = Provider<CommandRegistry>((ref) {
     ),
     ('edit.showHover', 'Show Symbol Info', 'Edit', WorkbenchIntent.showHover),
     ('view.problems', 'Show Problems', 'View', WorkbenchIntent.problems),
+    ('git.fetch', 'Git: Fetch', 'Source Control', WorkbenchIntent.gitFetch),
+    ('git.pull', 'Git: Pull', 'Source Control', WorkbenchIntent.gitPull),
+    ('git.push', 'Git: Push', 'Source Control', WorkbenchIntent.gitPush),
   ]) {
     registry.register(
       CfCommand(

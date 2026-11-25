@@ -244,7 +244,7 @@ class GitHostTest {
         assertEquals(GitFailure.REFUSED, refused(PROJECT, "status", "--git-dir=/"))
         assertEquals(GitFailure.REFUSED, refused(PROJECT, "log", "--output=/data/local/tmp/x"))
         assertEquals(GitFailure.REFUSED, refused(PROJECT, "diff", "--ext-diff"))
-        assertEquals(GitFailure.REFUSED, refused(PROJECT, "push"))
+        assertEquals(GitFailure.REFUSED, refused(PROJECT, "gc"))
         assertEquals(GitFailure.REFUSED, refused(null, "config", "--global", "core.sshCommand", "x"))
         assertEquals(GitFailure.BAD_REQUEST, refused(PROJECT, "add", "--", "../escape.txt"))
         assertEquals(GitFailure.BAD_REQUEST, refused(PROJECT, "add", "--", ".git/config"))

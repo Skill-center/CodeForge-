@@ -1208,8 +1208,9 @@ jobs:
   #   app's total with the servers recorded (the owner's decision of
   #   2026-11-22). The runtime's LanguageServerInstallTest and
   #   LanguageServerTest (Phase 6 W2 to W4) run before it, and since Phase 7
-  #   runtime.GitTest (W1, the Git spike) and git.GitHostTest (W2, the Git
-  #   host's runner with the runtime's own git).
+  #   runtime.GitTest (W1, the Git spike), git.GitHostTest (W2, the Git
+  #   host's runner with the runtime's own git) and git.GitRemoteTest (W3,
+  #   remotes and credentials with the real Keystore).
   # One matrix on one phone: 1 of the Spark plan's 5 free physical-device
   # tests a day. The JUnit report and the device log come back from Test
   # Lab's results bucket, app/tool/ci/gate_results.py judges them (every
@@ -1493,6 +1494,7 @@ jobs:
             --expect dev.codeforge.app.runtime.LanguageServerTest:6 \
             --expect dev.codeforge.app.runtime.GitTest:7 \
             --expect dev.codeforge.app.git.GitHostTest:6 \
+            --expect dev.codeforge.app.git.GitRemoteTest:4 \
             --expect dev.codeforge.app.syncmodes.SyncModesTest:5 \
             --require lsp_install_damaged=damaged \
             --require lsp_crash=signaled:9 \

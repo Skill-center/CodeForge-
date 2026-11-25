@@ -6,6 +6,10 @@
 /// Dart picks each run's id and takes its events from then on, before the
 /// host answers: a run's records, progress and exit may come before the
 /// answer to `run` does.
+///
+/// Since Phase 7 W3 a remote run may ask for a credential while it runs:
+/// [credentialPrompts] carries each question, and [answerCredential] sends
+/// the user's answer back. A token crosses to the host only there.
 library;
 
 import 'dart:async';
@@ -14,6 +18,7 @@ import 'package:flutter/services.dart';
 
 import '../../../core/errors/failure.dart';
 import '../../../core/git/git_errors.dart';
+import '../../../core/git/git_models.dart';
 import '../../../core/logging/logger.dart';
 import '../../contracts.dart';
 import 'git_api.g.dart';
@@ -27,6 +32,11 @@ final class PigeonGitHost implements GitHost {
 
   final GitApi _api;
   final Map<int, _Run> _runs = {};
+  final StreamController<GitCredentialPrompt> _prompts =
+      StreamController<GitCredentialPrompt>.broadcast();
+  final StreamController<int> _withdrawn = StreamController<int>.broadcast();
+  final StreamController<GitCredentialRejected> _rejected =
+      StreamController<GitCredentialRejected>.broadcast();
   int _nextId;
   bool _hearing = false;
   bool _disposed = false;
@@ -110,6 +120,160 @@ final class PigeonGitHost implements GitHost {
     return run.done.future;
   }
 
+  @override
+  Stream<GitCredentialPrompt> get credentialPrompts {
+    _hear();
+    return _prompts.stream;
+  }
+
+  @override
+  Stream<int> get withdrawnPrompts {
+    _hear();
+    return _withdrawn.stream;
+  }
+
+  @override
+  Stream<GitCredentialRejected> get rejectedCredentials {
+    _hear();
+    return _rejected.stream;
+  }
+
+  @override
+  Future<void> answerCredential(GitCredentialAnswer answer) async {
+    try {
+      await _api
+          .answerCredential(
+            GitCredentialAnswerMessage(
+              id: answer.id,
+              accepted: answer.accepted,
+              remember: answer.remember,
+              username: answer.username,
+              secret: answer.secret,
+            ),
+          )
+          .timeout(_answerLimit);
+    } on PlatformException catch (error) {
+      appLogger.warn('git', 'answer_failed', fields: {'code': error.code});
+    } on TimeoutException {
+      appLogger.warn('git', 'answer_timed_out');
+    }
+  }
+
+  @override
+  Future<Result<List<GitAccount>>> accounts() => _call('accounts', () async {
+    final accounts = await _api.accounts();
+    return [
+      for (final account in accounts)
+        if (GitAccountKind.fromCode(account.kind) case final kind?)
+          GitAccount(
+            kind: kind,
+            host: account.host,
+            username: account.username,
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(
+              account.updatedAt,
+              isUtc: true,
+            ),
+          ),
+    ];
+  });
+
+  @override
+  Future<Result<bool>> removeAccount(GitAccount account) => _call(
+    'remove_account',
+    () => _api.removeAccount(account.kind.code, account.host, account.username),
+  );
+
+  @override
+  Future<Result<GitSshKey?>> sshKey() => _call('ssh_key', () async {
+    final key = await _api.sshKey();
+    return key == null ? null : _keyOf(key);
+  });
+
+  @override
+  Future<Result<GitSshKey>> createSshKey(String comment) async {
+    final made = await _call(
+      'create_ssh_key',
+      () => _api.createSshKey(comment),
+      limit: const Duration(minutes: 2),
+    );
+    switch (made) {
+      case Err<GitSshKeyResultMessage>(:final failure):
+        return Err(failure);
+      case Ok<GitSshKeyResultMessage>(:final value):
+        final key = value.key;
+        if (key != null) {
+          return Ok(_keyOf(key));
+        }
+        final problem = GitProblem.fromCode(value.failure);
+        return Err(
+          GitFailure(
+            gitProblemMessage(problem),
+            problem: problem,
+            operation: 'ssh-keygen',
+            detail: value.detail,
+          ),
+        );
+    }
+  }
+
+  @override
+  Future<Result<bool>> deleteSshKey() =>
+      _call('delete_ssh_key', () => _api.deleteSshKey());
+
+  static GitSshKey _keyOf(GitSshKeyMessage key) => GitSshKey(
+    publicKey: key.publicKey,
+    fingerprint: key.fingerprint,
+    comment: key.comment,
+  );
+
+  /// One call that is not a run: its answer, or the host as unavailable.
+  Future<Result<T>> _call<T>(
+    String what,
+    Future<T> Function() call, {
+    Duration limit = _answerLimit,
+  }) async {
+    if (_disposed) {
+      return Err(_unavailable(what));
+    }
+    try {
+      return Ok(await call().timeout(limit));
+    } on PlatformException catch (error) {
+      appLogger.warn(
+        'git',
+        'call_failed',
+        fields: {'op': what, 'code': error.code},
+      );
+      return Err(_unavailable(what, cause: error));
+    } on TimeoutException catch (error) {
+      appLogger.warn('git', 'call_timed_out', fields: {'op': what});
+      return Err(_unavailable(what, cause: error));
+    }
+  }
+
+  void _prompted(GitCredentialPromptMessage prompt) {
+    if (_disposed) {
+      return;
+    }
+    final kind = GitPromptKind.fromCode(prompt.kind);
+    if (kind == null) {
+      // Not a question this app knows how to ask: declined at once.
+      unawaited(answerCredential(GitCredentialAnswer.declined(prompt.id)));
+      return;
+    }
+    appLogger.info('git', 'credential_prompt', fields: {'kind': kind.code});
+    _prompts.add(
+      GitCredentialPrompt(
+        id: prompt.id,
+        runId: prompt.runId,
+        kind: kind,
+        host: prompt.host,
+        username: prompt.username,
+        fingerprint: prompt.fingerprint,
+        keyType: prompt.keyType,
+      ),
+    );
+  }
+
   /// Stops hearing the host; runs not yet ended fail as unavailable.
   Future<void> dispose() async {
     _disposed = true;
@@ -123,10 +287,13 @@ final class PigeonGitHost implements GitHost {
       unawaited(_stop(id));
       run.complete(Err(_unavailable(null)));
     }
+    await _prompts.close();
+    await _withdrawn.close();
+    await _rejected.close();
   }
 
   void _hear() {
-    if (_hearing) {
+    if (_hearing || _disposed) {
       return;
     }
     _hearing = true;
@@ -240,4 +407,28 @@ final class _Notices implements GitEvents {
 
   @override
   Future<void> exited(GitExitMessage exit) async => _host._exited(exit);
+
+  @override
+  Future<void> credentialRequested(GitCredentialPromptMessage prompt) async =>
+      _host._prompted(prompt);
+
+  @override
+  Future<void> credentialWithdrawn(int id) async {
+    if (!_host._disposed) {
+      _host._withdrawn.add(id);
+    }
+  }
+
+  @override
+  Future<void> credentialRejected(
+    int runId,
+    String host,
+    String username,
+  ) async {
+    if (!_host._disposed) {
+      _host._rejected.add(
+        GitCredentialRejected(runId: runId, host: host, username: username),
+      );
+    }
+  }
 }

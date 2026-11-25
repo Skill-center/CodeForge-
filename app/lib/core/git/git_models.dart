@@ -492,6 +492,178 @@ final class GitIdentity {
   int get hashCode => Object.hash(name, email);
 }
 
+/// What a remote run asks the user (Phase 7 W3): a token for a host over
+/// HTTPS, or whether to trust a host ssh has not seen.
+enum GitPromptKind {
+  https('https'),
+  hostKey('host_key');
+
+  const GitPromptKind(this.code);
+
+  final String code;
+
+  static GitPromptKind? fromCode(String code) {
+    for (final kind in values) {
+      if (kind.code == code) {
+        return kind;
+      }
+    }
+    return null;
+  }
+}
+
+/// One question from a remote run, answered with [GitCredentialAnswer].
+final class GitCredentialPrompt {
+  const GitCredentialPrompt({
+    required this.id,
+    required this.runId,
+    required this.kind,
+    required this.host,
+    this.username,
+    this.fingerprint,
+    this.keyType,
+  });
+
+  final int id;
+  final int runId;
+  final GitPromptKind kind;
+
+  /// git's host (`github.com`, `127.0.0.1:8080`), or ssh's.
+  final String host;
+
+  /// The user name the URL names, if any.
+  final String? username;
+
+  /// A new host's key: `SHA256:...`, and its type (`ED25519`).
+  final String? fingerprint;
+  final String? keyType;
+}
+
+/// The user's answer to a [GitCredentialPrompt]. The secret is never logged
+/// and never kept here longer than the answer takes.
+final class GitCredentialAnswer {
+  const GitCredentialAnswer({
+    required this.id,
+    required this.accepted,
+    this.username,
+    this.secret,
+    this.remember = false,
+  });
+
+  /// Cancelled, or the host not trusted.
+  const GitCredentialAnswer.declined(this.id)
+    : accepted = false,
+      username = null,
+      secret = null,
+      remember = false;
+
+  final int id;
+  final bool accepted;
+  final String? username;
+  final String? secret;
+
+  /// Keep it in the store once the host accepts it.
+  final bool remember;
+
+  @override
+  String toString() =>
+      'GitCredentialAnswer($id, accepted: $accepted, remember: $remember)';
+}
+
+/// A stored credential the host refused during a run, and removed.
+final class GitCredentialRejected {
+  const GitCredentialRejected({
+    required this.runId,
+    required this.host,
+    required this.username,
+  });
+
+  final int runId;
+  final String host;
+  final String username;
+}
+
+/// What a stored credential is for.
+enum GitAccountKind {
+  https('https'),
+  sshKey('ssh_key');
+
+  const GitAccountKind(this.code);
+
+  final String code;
+
+  static GitAccountKind? fromCode(String code) {
+    for (final kind in values) {
+      if (kind.code == code) {
+        return kind;
+      }
+    }
+    return null;
+  }
+}
+
+/// A stored credential as Settings lists it: its host and user name, never
+/// its secret.
+final class GitAccount {
+  const GitAccount({
+    required this.kind,
+    required this.host,
+    required this.username,
+    required this.updatedAt,
+  });
+
+  final GitAccountKind kind;
+  final String host;
+  final String username;
+  final DateTime updatedAt;
+
+  @override
+  bool operator ==(Object other) =>
+      other is GitAccount &&
+      other.kind == kind &&
+      other.host == host &&
+      other.username == username &&
+      other.updatedAt == updatedAt;
+
+  @override
+  int get hashCode => Object.hash(kind, host, username, updatedAt);
+}
+
+/// CodeForge's SSH key's public half: what a host's settings take.
+final class GitSshKey {
+  const GitSshKey({
+    required this.publicKey,
+    required this.fingerprint,
+    required this.comment,
+  });
+
+  /// `ssh-ed25519 AAAA... comment`.
+  final String publicKey;
+
+  /// `SHA256:...`, as ssh-keygen prints it.
+  final String fingerprint;
+  final String comment;
+
+  @override
+  bool operator ==(Object other) =>
+      other is GitSshKey &&
+      other.publicKey == publicKey &&
+      other.fingerprint == fingerprint &&
+      other.comment == comment;
+
+  @override
+  int get hashCode => Object.hash(publicKey, fingerprint, comment);
+}
+
+/// Hosts whose published SSH key fingerprints the app knows, so the trust
+/// dialog can say a key is the one the host publishes.
+const Map<String, Map<String, String>> knownHostKeys = {
+  // https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+  'github.com': {
+    'ED25519': 'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU',
+  },
+};
+
 bool _sameList(List<String> a, List<String> b) {
   if (a.length != b.length) {
     return false;

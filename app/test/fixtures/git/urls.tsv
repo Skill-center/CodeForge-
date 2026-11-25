@@ -1,0 +1,40 @@
+# The remote URLs the Git host clones (Phase 7 W3): read by GitUrlsTest (Kotlin) and git_urls_test.dart (Dart),
+# which must agree. Tab-separated: accept, the scheme, the host as git names it, the URL; or refuse, why, -, the URL.
+accept	https	github.com	https://github.com/octocat/Hello-World.git
+accept	https	github.com	https://ada@github.com/octocat/Hello-World.git
+accept	https	github.com	HTTPS://GitHub.com/octocat/Hello-World
+accept	https	example.com:8443	https://example.com:8443/team/repo.git
+accept	ssh	github.com	git@github.com:octocat/Hello-World.git
+accept	ssh	github.com	ssh://git@github.com/octocat/Hello-World.git
+accept	ssh	example.com:2222	ssh://git@example.com:2222/repo.git
+accept	ssh	gitlab.com	gitlab.com:group/project.git
+accept	http	127.0.0.1:8080	http://127.0.0.1:8080/repo.git
+accept	http	localhost:3000	http://localhost:3000/repo.git
+accept	http	[::1]:8080	http://[::1]:8080/repo.git
+refuse	a password	-	https://ada:hunter2@github.com/o/r.git
+refuse	a password, percent-encoded	-	https://ada%3Ahunter2@github.com/o/r.git
+refuse	a password, scp-like	-	ada:hunter2@github.com:o/r.git
+refuse	a GitHub token	-	https://ghp_0123456789abcdefghijklmnopqrstuvwxyzAB@github.com/o/r.git
+refuse	a fine-grained GitHub token	-	https://github_pat_11ABCDEFG0123456789_abcdefghijklmnop@github.com/o/r.git
+refuse	a GitLab token	-	https://glpat-abcdefghijklmnopqrst@gitlab.com/o/r.git
+refuse	a long random user name	-	https://x9F3kQ2mZ7pL1vB8nR4tY6wC0dH5jS2a@example.com/o/r.git
+refuse	a query	-	https://example.com/o/r.git?access_token=abc
+refuse	a fragment	-	https://example.com/o/r.git#main
+refuse	file://	-	file:///data/repo.git
+refuse	git://	-	git://github.com/o/r.git
+refuse	ftp://	-	ftp://example.com/r.git
+refuse	a remote helper	-	ext::git-upload-pack
+refuse	a remote helper	-	fd::17
+refuse	a folder	-	/data/data/dev.codeforge.app/files/workspaces/demo
+refuse	a folder	-	./demo
+refuse	a folder	-	../demo
+refuse	plain HTTP to another host	-	http://example.com/o/r.git
+refuse	an option	-	-uevil
+refuse	an option	-	--upload-pack=touch
+refuse	an option as a host	-	https://-oProxyCommand=evil/o/r.git
+refuse	an option as a host	-	ssh://-oProxyCommand=evil/o/r.git
+refuse	no repository	-	https://github.com/
+refuse	no repository	-	https://github.com
+refuse	a space	-	https://github.com/o/r .git
+refuse	a backslash	-	https://github.com\o\r.git
+refuse	empty	-	

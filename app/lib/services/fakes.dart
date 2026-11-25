@@ -240,4 +240,70 @@ final class FakeGitService implements GitService {
   @override
   Future<Result<bool>> isValidBranchName(String name) async =>
       const Err<bool>(_unavailable);
+
+  @override
+  Future<Result<void>> clone(
+    String url,
+    String name, {
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> fetch(
+    String project, {
+    String? remote,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> pull(
+    String project, {
+    String? remote,
+    String? branch,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Future<Result<void>> push(
+    String project, {
+    required String remote,
+    required String branch,
+    bool setUpstream = false,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async => const Err<void>(_unavailable);
+
+  @override
+  Stream<GitCredentialPrompt> get credentialPrompts => const Stream.empty();
+
+  @override
+  Stream<int> get withdrawnPrompts => const Stream.empty();
+
+  @override
+  Stream<GitCredentialRejected> get rejectedCredentials => const Stream.empty();
+
+  @override
+  Future<void> answerCredential(GitCredentialAnswer answer) async {}
+
+  @override
+  Future<Result<List<GitAccount>>> accounts() async =>
+      const Err<List<GitAccount>>(_unavailable);
+
+  @override
+  Future<Result<bool>> removeAccount(GitAccount account) async =>
+      const Err<bool>(_unavailable);
+
+  @override
+  Future<Result<GitSshKey?>> sshKey() async =>
+      const Err<GitSshKey?>(_unavailable);
+
+  @override
+  Future<Result<GitSshKey>> createSshKey(String comment) async =>
+      const Err<GitSshKey>(_unavailable);
+
+  @override
+  Future<Result<bool>> deleteSshKey() async => const Err<bool>(_unavailable);
 }

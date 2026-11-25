@@ -7,11 +7,16 @@
 /// (android/…/git/GitCommands.kt); the commands here are exactly those,
 /// checked in test/services/git_service_test.dart. Paths always come after
 /// `--`, so a file named like an option is still a file.
+///
+/// Since Phase 7 W3: clone, fetch, pull and push. A URL is checked here
+/// first (core/git/git_urls.dart), then again by the host; a remote is
+/// named, never given as a URL; credentials go through the host's helper.
 library;
 
 import '../../core/errors/failure.dart';
 import '../../core/git/git_errors.dart';
 import '../../core/git/git_models.dart';
+import '../../core/git/git_urls.dart';
 import '../../core/git/history_parser.dart';
 import '../../core/git/status_parser.dart';
 import '../contracts.dart';
@@ -360,6 +365,129 @@ final class HostGitService implements GitService {
     };
   }
 
+  @override
+  Future<Result<void>> clone(
+    String url,
+    String name, {
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async {
+    final checked = checkRemoteUrl(url);
+    final problem = checked.problem;
+    if (problem != null) {
+      return Err(
+        GitFailure(
+          problem.message,
+          problem: GitProblem.badRequest,
+          operation: 'clone',
+          detail: problem.message,
+        ),
+      );
+    }
+    return _done(
+      await _run(
+        name,
+        'clone',
+        [url],
+        onProgress: _progressTo(onProgress),
+        stop: stop,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> fetch(
+    String project, {
+    String? remote,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async => _done(
+    await _run(
+      project,
+      'fetch',
+      ['--prune', ?remote],
+      onProgress: _progressTo(onProgress),
+      stop: stop,
+    ),
+  );
+
+  @override
+  Future<Result<void>> pull(
+    String project, {
+    String? remote,
+    String? branch,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async {
+    if (branch != null && remote == null) {
+      return const Err(
+        GitFailure(
+          'A branch is pulled from a remote.',
+          problem: GitProblem.badRequest,
+          operation: 'pull',
+        ),
+      );
+    }
+    return _done(
+      await _run(
+        project,
+        'pull',
+        [?remote, ?branch],
+        onProgress: _progressTo(onProgress),
+        stop: stop,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> push(
+    String project, {
+    required String remote,
+    required String branch,
+    bool setUpstream = false,
+    void Function(GitProgress progress)? onProgress,
+    Future<void>? stop,
+  }) async => _done(
+    await _run(
+      project,
+      'push',
+      [if (setUpstream) '--set-upstream', remote, branch],
+      onProgress: _progressTo(onProgress),
+      stop: stop,
+    ),
+  );
+
+  @override
+  Stream<GitCredentialPrompt> get credentialPrompts => _host.credentialPrompts;
+
+  @override
+  Stream<int> get withdrawnPrompts => _host.withdrawnPrompts;
+
+  @override
+  Stream<GitCredentialRejected> get rejectedCredentials =>
+      _host.rejectedCredentials;
+
+  @override
+  Future<void> answerCredential(GitCredentialAnswer answer) =>
+      _host.answerCredential(answer);
+
+  @override
+  Future<Result<List<GitAccount>>> accounts() => _host.accounts();
+
+  @override
+  Future<Result<bool>> removeAccount(GitAccount account) =>
+      _host.removeAccount(account);
+
+  @override
+  Future<Result<GitSshKey?>> sshKey() => _host.sshKey();
+
+  @override
+  Future<Result<GitSshKey>> createSshKey(String comment) =>
+      _host.createSshKey(comment);
+
+  @override
+  Future<Result<bool>> deleteSshKey() => _host.deleteSshKey();
+
   /// Runs one command in [project]: its outcome when git succeeded, the
   /// failure git's words name when it did not, or the host's failure.
   Future<Result<GitOutcome>> _run(
@@ -368,6 +496,7 @@ final class HostGitService implements GitService {
     List<String> arguments, {
     int? maxRecords,
     void Function(String text, bool closing)? onProgress,
+    Future<void>? stop,
   }) async {
     final ran = await _host.run(
       GitInvocation(
@@ -377,6 +506,7 @@ final class HostGitService implements GitService {
         maxRecords: maxRecords,
       ),
       onProgress: onProgress,
+      stop: stop,
     );
     return switch (ran) {
       Ok<GitOutcome>(:final value) when !value.ok => Err(_failureOf(value)),

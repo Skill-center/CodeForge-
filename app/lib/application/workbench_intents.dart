@@ -34,6 +34,10 @@ enum WorkbenchIntent {
   goToDefinition,
   renameSymbol,
   showHover,
+  // The remotes (Phase 7 W3).
+  gitFetch,
+  gitPull,
+  gitPush,
 }
 
 /// Shortcut names the page forwards (protocol `appShortcuts`) → intents.

@@ -334,6 +334,134 @@ void main() {
     });
   });
 
+  group('the remotes (Phase 7 W3)', () {
+    late ScriptedGitHost host;
+    late HostGitService git;
+
+    setUp(() {
+      host = ScriptedGitHost();
+      git = HostGitService(host);
+    });
+
+    test('clone names the URL and the new project, with progress', () async {
+      host.answer = (_) => const GitScript(
+        progress: [
+          ('Receiving objects:  50% (5/10)', false),
+          ('Receiving objects: 100% (10/10), done.', true),
+        ],
+      );
+      final progress = <GitProgress>[];
+      final stop = Completer<void>();
+      expect(
+        await git.clone(
+          'https://github.com/octocat/Hello-World.git',
+          'Hello-World',
+          onProgress: progress.add,
+          stop: stop.future,
+        ),
+        isA<Ok<void>>(),
+      );
+      expect(host.commands.single, [
+        'clone',
+        'https://github.com/octocat/Hello-World.git',
+      ]);
+      expect(host.invocations.single.project, 'Hello-World');
+      expect(progress.map((p) => p.percent), [50, 100]);
+      expect(progress.last.finished, isTrue);
+    });
+
+    test('a URL with a secret is refused before the host is asked', () async {
+      expect(
+        await git.clone('https://ada:pw@github.com/o/r.git', 'r'),
+        _fails(GitProblem.badRequest),
+      );
+      expect(
+        await git.clone('file:///data/r.git', 'r'),
+        _fails(GitProblem.badRequest),
+      );
+      expect(host.invocations, isEmpty);
+    });
+
+    test('fetch, pull and push name remotes and branches, never URLs', () async {
+      await git.fetch('demo');
+      await git.fetch('demo', remote: 'upstream');
+      await git.pull('demo');
+      await git.pull('demo', remote: 'origin', branch: 'main');
+      await git.push('demo', remote: 'origin', branch: 'feature/x');
+      await git.push(
+        'demo',
+        remote: 'origin',
+        branch: 'topic',
+        setUpstream: true,
+      );
+      expect(host.commands, [
+        ['fetch', '--prune'],
+        ['fetch', '--prune', 'upstream'],
+        ['pull'],
+        ['pull', 'origin', 'main'],
+        ['push', 'origin', 'feature/x'],
+        ['push', '--set-upstream', 'origin', 'topic'],
+      ]);
+      expect(
+        await git.pull('demo', branch: 'main'),
+        _fails(GitProblem.badRequest),
+      );
+    });
+
+    test("a remote's failures read as what they mean", () async {
+      final cases =
+          (jsonDecode(
+                    File(
+                      'test/fixtures/git/remote_errors.json',
+                    ).readAsStringSync(),
+                  )
+                  as Map<String, Object?>)['cases']!
+              as List<Object?>;
+      for (final c in cases.cast<Map<String, Object?>>()) {
+        host.answer = (_) => GitScript(
+          exitCode: c['exitCode']! as int,
+          stderr: c['stderr']! as String,
+          records: (c['records']! as List<Object?>).cast<String>(),
+        );
+        final result = await git.push('demo', remote: 'origin', branch: 'm');
+        final problem = GitProblem.fromCode(c['problem']! as String);
+        expect(result, _fails(problem), reason: '${c['note']}');
+      }
+    });
+
+    test('the credentials pass through to the host', () async {
+      final prompts = <GitCredentialPrompt>[];
+      final subscription = git.credentialPrompts.listen(prompts.add);
+      const prompt = GitCredentialPrompt(
+        id: 1,
+        runId: 2,
+        kind: GitPromptKind.https,
+        host: 'github.com',
+      );
+      host.ask(prompt);
+      expect(prompts, [prompt]);
+      await git.answerCredential(const GitCredentialAnswer.declined(1));
+      expect(host.answers.single.accepted, isFalse);
+      host.accountsValue = [
+        GitAccount(
+          kind: GitAccountKind.https,
+          host: 'github.com',
+          username: 'ada',
+          updatedAt: DateTime.utc(2026, 11, 25),
+        ),
+      ];
+      final accounts = (await git.accounts()).orThrow;
+      expect((await git.removeAccount(accounts.single)).orThrow, isTrue);
+      expect((await git.accounts()).orThrow, isEmpty);
+      expect((await git.sshKey()).orThrow, isNull);
+      final key = (await git.createSshKey('codeforge@android')).orThrow;
+      expect(key.comment, 'codeforge@android');
+      expect((await git.sshKey()).orThrow, key);
+      expect((await git.deleteSshKey()).orThrow, isTrue);
+      await subscription.cancel();
+    });
+  });
+
   group('the Pigeon host', () {
     TestWidgetsFlutterBinding.ensureInitialized();
     const prefix = 'dev.flutter.pigeon.codeforge.GitApi';
@@ -558,6 +686,124 @@ void main() {
         await host.run(const GitInvocation('status', [], project: 'demo')),
         _fails(GitProblem.unavailable),
       );
+    });
+
+    test("a remote run's question comes as a prompt, and the answer goes "
+        'back (Phase 7 W3)', () async {
+      final host = PigeonGitHost();
+      final prompts = <GitCredentialPrompt>[];
+      final withdrawn = <int>[];
+      final rejected = <GitCredentialRejected>[];
+      final subscriptions = [
+        host.credentialPrompts.listen(prompts.add),
+        host.withdrawnPrompts.listen(withdrawn.add),
+        host.rejectedCredentials.listen(rejected.add),
+      ];
+      answer('answerCredential', (args) => null);
+      await notice('credentialRequested', [
+        GitCredentialPromptMessage(
+          id: 41,
+          runId: 7,
+          kind: 'https',
+          host: 'github.com',
+          username: 'ada',
+        ),
+      ]);
+      expect(prompts.single.id, 41);
+      expect(prompts.single.kind, GitPromptKind.https);
+      expect(prompts.single.host, 'github.com');
+      expect(prompts.single.username, 'ada');
+      await host.answerCredential(
+        const GitCredentialAnswer(
+          id: 41,
+          accepted: true,
+          username: 'ada',
+          secret: 'tok',
+          remember: true,
+        ),
+      );
+      final sent = asked.single[1]! as GitCredentialAnswerMessage;
+      expect(asked.single.first, 'answerCredential');
+      expect(
+        [sent.id, sent.accepted, sent.username, sent.secret, sent.remember],
+        [41, true, 'ada', 'tok', true],
+      );
+      // A kind this app does not know is declined at once.
+      await notice('credentialRequested', [
+        GitCredentialPromptMessage(id: 42, runId: 7, kind: 'otp', host: 'h'),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+      expect(prompts, hasLength(1));
+      final declined = asked.last[1]! as GitCredentialAnswerMessage;
+      expect([declined.id, declined.accepted], [42, false]);
+      await notice('credentialWithdrawn', [41]);
+      expect(withdrawn, [41]);
+      await notice('credentialRejected', [7, 'github.com', 'ada']);
+      expect(rejected.single.host, 'github.com');
+      expect(rejected.single.username, 'ada');
+      for (final subscription in subscriptions) {
+        await subscription.cancel();
+      }
+      await host.dispose();
+    });
+
+    test('the accounts and the SSH key come from the host, never a secret '
+        '(Phase 7 W3)', () async {
+      final host = PigeonGitHost();
+      answer(
+        'accounts',
+        (args) => [
+          GitAccountMessage(
+            kind: 'https',
+            host: 'github.com',
+            username: 'ada',
+            updatedAt: 1764000000000,
+          ),
+          GitAccountMessage(
+            kind: 'unknown',
+            host: 'x',
+            username: 'y',
+            updatedAt: 0,
+          ),
+        ],
+      );
+      final accounts = (await host.accounts()).orThrow;
+      expect(accounts, hasLength(1));
+      expect(accounts.single.kind, GitAccountKind.https);
+      expect(accounts.single.host, 'github.com');
+      expect(
+        accounts.single.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1764000000000, isUtc: true),
+      );
+      answer('removeAccount', (args) => true);
+      expect((await host.removeAccount(accounts.single)).orThrow, isTrue);
+      expect(asked.last, ['removeAccount', 'https', 'github.com', 'ada']);
+
+      answer('sshKey', (args) => null);
+      expect((await host.sshKey()).orThrow, isNull);
+      answer(
+        'createSshKey',
+        (args) => GitSshKeyResultMessage(
+          key: GitSshKeyMessage(
+            publicKey: 'ssh-ed25519 AAAA ${args[0]}',
+            fingerprint: 'SHA256:abc',
+            comment: args[0]! as String,
+          ),
+        ),
+      );
+      final key = (await host.createSshKey('codeforge@android')).orThrow;
+      expect(key.publicKey, 'ssh-ed25519 AAAA codeforge@android');
+      answer(
+        'createSshKey',
+        (args) => GitSshKeyResultMessage(
+          failure: 'not_ready',
+          detail: 'the runtime is not ready',
+        ),
+      );
+      expect(await host.createSshKey('x'), _fails(GitProblem.notReady));
+      answer('deleteSshKey', (args) => true);
+      expect((await host.deleteSshKey()).orThrow, isTrue);
+      await host.dispose();
     });
   });
 

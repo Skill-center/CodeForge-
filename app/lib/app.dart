@@ -13,6 +13,7 @@ import 'application/settings_controller.dart';
 import 'application/shell_controller.dart';
 import 'application/terminal/terminal_controller.dart';
 import 'design_system/theme/theme.dart';
+import 'features/git/credential_prompts.dart';
 
 class CodeForgeApp extends ConsumerStatefulWidget {
   const CodeForgeApp({super.key});
@@ -96,7 +97,12 @@ class _CodeForgeAppState extends ConsumerState<CodeForgeApp>
           data: media.copyWith(
             disableAnimations: media.disableAnimations || reducedMotion,
           ),
-          child: child ?? const SizedBox.shrink(),
+          // A remote git operation's questions (Phase 7 W3), wherever the
+          // user is when one asks.
+          child: GitCredentialPrompts(
+            navigatorKey: router.routerDelegate.navigatorKey,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

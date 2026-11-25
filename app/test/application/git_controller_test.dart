@@ -365,4 +365,62 @@ void main() {
       );
     });
   });
+
+  test('the remotes: fetch, pull from the upstream, push to it or set it '
+      'on the first push (Phase 7 W3)', () async {
+    final world = _World(
+      git: ScriptedGitService(
+        status: GitStatus(
+          branch: GitBranchState(
+            head: 'main',
+            oid: 'a' * 40,
+            upstream: 'upstream/main',
+            ahead: 1,
+            behind: 2,
+          ),
+        ),
+      ),
+    );
+    await world.start();
+    final stop = Completer<void>();
+    final progress = <GitProgress>[];
+    world.git.remoteProgress = const [
+      GitProgress(phase: 'Receiving objects', percent: 10),
+    ];
+    expect(
+      await world.controller.fetch(onProgress: progress.add, stop: stop.future),
+      isA<Ok<void>>(),
+    );
+    expect(progress.single.percent, 10);
+    expect(await world.controller.pull(), isA<Ok<void>>());
+    expect(await world.controller.push(), isA<Ok<void>>());
+    expect(world.git.calls, ['fetch', 'pull', 'push upstream main']);
+    // Each change reads the status again.
+    expect(world.git.statusCalls.length, greaterThanOrEqualTo(4));
+
+    // A branch with no upstream: pull says so, and push sets origin's.
+    world.git.statusResult = Ok(_changed('topic', const []));
+    world.controller.changed();
+    await _settle();
+    final pulled = await world.controller.pull();
+    expect(
+      pulled,
+      isA<Err<void>>().having(
+        (e) => (e.failure as GitFailure).problem,
+        'problem',
+        GitProblem.noUpstream,
+      ),
+    );
+    expect(await world.controller.push(), isA<Ok<void>>());
+    expect(world.git.calls.last, 'push --set-upstream origin topic');
+
+    // A detached HEAD has nothing to push.
+    world.git.statusResult = const Ok(
+      GitStatus(branch: GitBranchState(oid: '1111111111111111111111111111111111111111')),
+    );
+    world.controller.changed();
+    await _settle();
+    expect(await world.controller.push(), isA<Err<void>>());
+    expect(world.git.calls.last, 'push --set-upstream origin topic');
+  });
 }

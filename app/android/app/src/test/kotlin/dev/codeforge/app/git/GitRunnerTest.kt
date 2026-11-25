@@ -251,7 +251,7 @@ class GitRunnerTest {
         assertEquals("status runs in a project", GitFailure.BAD_REQUEST, refused(null, "status"))
         assertEquals("the identity is not a project's", GitFailure.BAD_REQUEST, refused("demo", "config", "--global", "user.name", "x"))
         assertEquals(GitFailure.REFUSED, refused("demo", "status", "--git-dir=/tmp"))
-        assertEquals(GitFailure.REFUSED, refused("demo", "push"))
+        assertEquals(GitFailure.REFUSED, refused("demo", "gc"))
         assertEquals(GitFailure.BAD_REQUEST, refused("demo", "add", "--", "../outside.txt"))
         Thread.sleep(200)
         assertTrue("nothing ran", recorder.records.isEmpty() && recorder.exits.isEmpty())

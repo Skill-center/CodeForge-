@@ -294,6 +294,48 @@ void main() {
       }
     });
 
+    test('each remote failure reads as the problem it names (Phase 7 W3)', () {
+      final cases = (_fixture('remote_errors')['cases']! as List<Object?>)
+          .cast<Map<String, Object?>>();
+      expect(cases, hasLength(14));
+      final problems = <String>{};
+      for (final c in cases) {
+        final problem = classifyGitError(
+          exitCode: c['exitCode']! as int,
+          stderr: c['stderr']! as String,
+          stdout: (c['records']! as List<Object?>).cast<String>(),
+        );
+        expect(
+          problem.code,
+          c['problem'],
+          reason: '${c['operation']} (${c['note']}): ${c['stderr']}',
+        );
+        problems.add(problem.code);
+      }
+      expect(problems, {
+        'auth_failed',
+        'no_credential',
+        'repository_not_found',
+        'offline',
+        'rejected',
+        'no_upstream',
+        'conflict',
+        'tls',
+        'host_key_changed',
+      });
+      // The phone's libcurl is OpenSSL's, whose words differ from the
+      // fixture machine's GnuTLS.
+      expect(
+        classifyGitError(
+          exitCode: 128,
+          stderr:
+              "fatal: unable to access 'https://h/r.git/': SSL certificate "
+              'problem: self-signed certificate\n',
+        ),
+        GitProblem.tls,
+      );
+    });
+
     test('a merge that stopped on conflicts says so on stdout', () {
       final merge = _fixture('merge_conflict');
       expect(merge['exitCode'], 1);
