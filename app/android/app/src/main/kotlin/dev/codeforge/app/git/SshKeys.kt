@@ -34,6 +34,14 @@ class SshKeys(
     /** A key's public half, as `~/.ssh/codeforge_ed25519.pub` holds it. */
     data class Key(val publicKey: String, val fingerprint: String, val comment: String)
 
+    /**
+     * Why the last [verify] answered as it did: for a failing test and the
+     * gate's report, never a secret.
+     */
+    @Volatile
+    var lastVerification: String = "none"
+        private set
+
     /** The key in [home], or null. */
     fun current(home: File): Key? {
         val public = File(keyFile(home).path + ".pub")
@@ -76,13 +84,10 @@ class SshKeys(
         }
         val key = current(home)
         if (result == null || result.failure != null || result.exitCode != 0 || key == null) {
+            val why = if (result == null) GitFailure.NOT_READY else GitFailure.LAUNCH_FAILED
+            val said = describe(result, home, opened)
             delete(home)
-            val why = when {
-                result == null -> GitFailure.NOT_READY
-                result.failure != null -> GitFailure.LAUNCH_FAILED
-                else -> GitFailure.LAUNCH_FAILED
-            }
-            throw GitRefused(why, "ssh-keygen did not make the key" + (result?.exitCode?.let { " (exit $it)" } ?: ""))
+            throw GitRefused(why, "ssh-keygen did not make the key: $said")
         }
         return key
     }
@@ -108,6 +113,7 @@ class SshKeys(
         } finally {
             opened.close()
         }
+        lastVerification = describe(result, home, opened)
         if (result == null || result.failure != null || result.exitCode != 0) return false
         val derived = lines.firstOrNull { it.startsWith("ssh-ed25519 ") }?.split(' ')?.take(2) ?: return false
         return derived == key.publicKey.split(' ').take(2)
@@ -124,8 +130,30 @@ class SshKeys(
         return had
     }
 
+    /**
+     * Why a run of `ssh-keygen` did not do what it was asked, for the
+     * refusal's detail and a failing test: how it ended, what it said on
+     * stderr, the questions it asked (never an answer), and what is on disk.
+     * A passphrase is in none of these.
+     */
+    private fun describe(result: CommandResult?, home: File, opened: CredentialChannel): String {
+        val key = keyFile(home)
+        val said = result?.stderr?.text?.replace('\n', ' ')?.trim()?.take(DETAIL_CHARS).orEmpty()
+        return buildString {
+            append("exit=").append(result?.exitCode)
+            append(" failure=").append(result?.failure)
+            append(" signal=").append(result?.signal)
+            append(" asked=").append(opened.questions)
+            append(" key=").append(key.isFile).append(" public=").append(File(key.path + ".pub").isFile)
+            if (said.isNotEmpty()) append(" said=").append(said)
+        }
+    }
+
     companion object {
         const val KEY_NAME = "codeforge_ed25519"
+
+        /** The most characters of what a run said that a refusal carries. */
+        private const val DETAIL_CHARS = 300
 
         private val COMMENT = Regex("^[A-Za-z0-9._@+-]{1,100}$")
         private val random = SecureRandom()

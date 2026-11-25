@@ -545,7 +545,8 @@ jobs:
       # change to them is green in plain CI before a commit spends a Test Lab
       # run on it (the owner's rule, 2026-11-17; BUILD_AND_RELEASE §4). Since
       # Phase 4 W5 that includes gate_results.py, which judges the runtime
-      # gates' runs, the emulator legs' and Test Lab's alike.
+      # gates' runs, the emulator legs' and Test Lab's alike, and since
+      # Phase 7 W3 junit_failures.py, which says what a failing JVM test said.
       - name: Test Lab scripts
         id: testlab_scripts
         continue-on-error: true
@@ -553,6 +554,7 @@ jobs:
           status=0
           { python3 tool/ci/testlab_device.py --self-test \
               && python3 tool/ci/testlab_diagnose.py --self-test \
+              && python3 tool/ci/junit_failures.py --self-test \
               && python3 tool/ci/gate_results.py --self-test; } \
             > ci-results/testlab-scripts.txt 2>&1 || status=$?
           cat ci-results/testlab-scripts.txt
@@ -618,6 +620,13 @@ jobs:
           done
           summary="kotlin_tests=$tests failures=$failures errors=$errors skipped=$skipped gradle_exit=$status"
           echo "$summary" | tee -a ci-results/kotlin-tests.txt >> "$GITHUB_STEP_SUMMARY"
+          # Gradle's console names a failing test and its first frame, not what
+          # it said; the reports are not downloadable from here, so each
+          # failure's message and stack go to ci-results, which is committed
+          # back (the same for the sealed runtime's tests below).
+          python3 tool/ci/junit_failures.py build/app/test-results/testDebugUnitTest \
+            >> ci-results/kotlin-tests.txt || true
+          sed -n '/^--- failing tests/,$p' ci-results/kotlin-tests.txt | head -n 60
           [ "$status" -eq 0 ] && [ "$tests" -gt 0 ] \
             && [ "$failures" -eq 0 ] && [ "$errors" -eq 0 ]
 

@@ -72,6 +72,9 @@ class CredentialChannel private constructor(
     /** Whether the user cancelled a prompt during the run. */
     val declined: Boolean get() = broker.declined
 
+    /** The questions ssh asked this run, as [CredentialBroker.questions] keeps them. */
+    val questions: List<String> get() = broker.questions.toList()
+
     private fun start(): CredentialChannel {
         thread.start()
         return this

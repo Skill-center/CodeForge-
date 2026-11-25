@@ -272,6 +272,66 @@ class GitRemoteRunnerTest {
         assertEquals(0, runner.runningCount())
     }
 
+    /**
+     * ssh runs its askpass with the question as the one argument, and that
+     * askpass is the runtime's bash with the relay as `BASH_ENV`: the half
+     * that answers, proved without ssh-keygen, so a failure says which half
+     * broke. A question is answered; a real script bash is given still runs.
+     */
+    @Test
+    fun theRelayAnswersAQuestionAndLeavesARealScriptAlone() {
+        val passphrase = "pass-" + java.util.UUID.randomUUID().toString()
+        val channel = CredentialChannel.open(
+            channels, ids.incrementAndGet(),
+            CredentialBroker(1L, store, user, newPassphrase = passphrase, promptTimeoutMs = 10_000L),
+            bash = File(environment.bin, "bash"), makeFifo = ::mkfifo,
+        )
+        val said: (List<String>) -> Pair<dev.codeforge.app.runtime.CommandResult?, List<String>> = { arguments ->
+            val lines = CopyOnWriteArrayList<String>()
+            val result = commands.stream(
+                dev.codeforge.app.runtime.CommandRequest(
+                    program = "bash",
+                    arguments = arguments,
+                    directory = null,
+                    timeoutMs = 60_000L,
+                    variables = channel.variables(null),
+                ),
+                object : dev.codeforge.app.runtime.LineSink {
+                    override fun line(text: String): Boolean {
+                        lines.add(text)
+                        return true
+                    }
+                },
+            )
+            result to lines.toList()
+        }
+        try {
+            // As ssh-keygen asks for a new key's passphrase, twice.
+            val (first, firstLines) = said(listOf("Enter passphrase (empty for no passphrase): "))
+            assertEquals("bash as askpass: ${first?.failure} ${first?.stderr?.text}", 0, first?.exitCode)
+            assertEquals(listOf(passphrase), firstLines)
+            val (again, againLines) = said(listOf("Enter same passphrase again: "))
+            assertEquals(0, again?.exitCode)
+            assertEquals(listOf(passphrase), againLines)
+            assertEquals(
+                listOf("Enter passphrase (empty for no passphrase):", "Enter same passphrase again:"),
+                channel.questions,
+            )
+            // A question nobody has an answer for ends the run, with nothing said.
+            val (strange, strangeLines) = said(listOf("What is your name? "))
+            assertEquals(0, strange?.exitCode)
+            assertEquals(emptyList<String>(), strangeLines)
+            // A real script still runs: the relay lets bash get on with it.
+            val script = File(temp.root, "real.sh").apply { writeText("echo ran\n") }
+            val (ran, ranLines) = said(listOf(script.path))
+            assertEquals(0, ran?.exitCode)
+            assertEquals(listOf("ran"), ranLines)
+        } finally {
+            channel.close()
+        }
+        assertTrue("no channel left", channels.list().isNullOrEmpty())
+    }
+
     @Test
     fun anSshKeyIsMadeWithAPassphraseOnlyTheStoreHolds() {
         val keygen = listOf(File("/usr/bin/ssh-keygen"), File("/bin/ssh-keygen")).firstOrNull { it.canExecute() }

@@ -1,5 +1,6 @@
 package dev.codeforge.app.git
 
+import java.util.Collections
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -149,6 +150,13 @@ class CredentialBroker(
     var declined = false
         private set
 
+    /**
+     * The questions ssh asked this run, as it asked them, cut at
+     * [QUESTION_CHARS]: a question, never an answer, so the gate's report and
+     * a failing test can say what was asked. A password is never a question.
+     */
+    val questions: MutableList<String> = Collections.synchronizedList(ArrayList<String>())
+
     /** The answer to write back, for `get` and askpass; null for what expects none. */
     fun answer(request: HelperRequest): String? = when (request) {
         is HelperRequest.Credential -> when (request.operation) {
@@ -220,6 +228,7 @@ class CredentialBroker(
 
     private fun askPass(prompt: String): String {
         val text = prompt.trim()
+        questions.add(text.take(QUESTION_CHARS))
         if (newPassphrase != null && (text.startsWith("Enter passphrase (empty for no passphrase)") || text.startsWith("Enter same passphrase again"))) {
             return newPassphrase + "\n"
         }
@@ -282,6 +291,9 @@ class CredentialBroker(
     companion object {
         /** How long a prompt waits for the user. */
         const val PROMPT_TIMEOUT_MS = 5L * 60_000L
+
+        /** The most characters of a question [questions] keeps. */
+        const val QUESTION_CHARS = 120
 
         /** The SSH key's passphrase is stored as this host and user. */
         const val SSH_KEY_HOST = "codeforge-ssh-key"
