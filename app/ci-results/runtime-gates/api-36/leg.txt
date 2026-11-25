@@ -5,7 +5,7 @@ system_image=system-images;android-36;google_apis;x86_64
 accel=kvm
 webview=com.google.android.webview, 133.0.6943.137
 apk_bytes=216582491
-class dev.codeforge.app.git.GitHostTest tests=6 passed=5 failed=1 skipped=0
+class dev.codeforge.app.git.GitHostTest tests=6 passed=6 failed=0 skipped=0
 class dev.codeforge.app.runtime.ExecModelTest tests=1 passed=1 failed=0 skipped=0
 class dev.codeforge.app.runtime.GitTest tests=7 passed=7 failed=0 skipped=0
 class dev.codeforge.app.runtime.LanguageServerInstallTest tests=3 passed=3 failed=0 skipped=0
@@ -13,19 +13,22 @@ class dev.codeforge.app.runtime.LanguageServerTest tests=6 passed=6 failed=0 ski
 class dev.codeforge.app.runtime.RuntimeCommandsTest tests=7 passed=7 failed=0 skipped=0
 class dev.codeforge.app.runtime.RuntimeInstallTest tests=7 passed=7 failed=0 skipped=0
 class dev.codeforge.app.runtime.SealedShellTest tests=2 passed=2 failed=0 skipped=0
-class dev.codeforge.app.runtime.SessionServiceTest tests=4 passed=4 failed=0 skipped=0
+class dev.codeforge.app.runtime.SessionServiceTest tests=4 passed=3 failed=1 skipped=0
 class dev.codeforge.app.runtime.TerminalSessionTest tests=7 passed=7 failed=0 skipped=0
-problem: dev.codeforge.app.git.GitHostTest has 1 failure(s): e_aStopAndTheCap: java.lang.AssertionError: expected null, but was:<0>
+problem: dev.codeforge.app.runtime.SessionServiceTest has 1 failure(s): b_endAllFromTheNotificationEndsEveryTree: org.junit.ComparisonFailure: the notification's title expected:<[2 terminal sessions] running> but was:<[1 terminal session] running>
+problem: figure service_end_all_left was not recorded
+problem: figure service_end_all_processes_left was not recorded
+problem: figure service_end_all_stopped was not recorded
 abi=x86_64
 apk_bytes=216582491
-audit_ms=632
+audit_ms=619
 audit_outside_apk=0
 audit_outside_scripts=24
 audit_scanned=7611
 audit_shipped=535
 audit_truncated=false
 commands_addon_from_storage=loaded
-commands_addon_from_storage_detail=exit=0 sdk=36 ms=175 loaded Module did not self-register: '/data/user/0/dev.codeforge.app/files/runtime-gate/commands/home/cf-addon-probe.node'.
+commands_addon_from_storage_detail=exit=0 sdk=36 ms=173 loaded Module did not self-register: '/data/user/0/dev.codeforge.app/files/runtime-gate/commands/home/cf-addon-probe.node'.
 commands_addon_from_storage_expected=refused
 commands_cap=kept=1024 bytes=300000 truncated=true
 commands_end=failure=ended ended=5 remaining=0 ms=100 left=0 in_group=0 processes_before=1 processes_after=1
@@ -35,21 +38,21 @@ commands_gem_home=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/roo
 commands_git_exec_path=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/libexec/git-core
 commands_git_template_dir=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/share/git-core/templates
 commands_node_path=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules
-commands_npm_version=12.2.2 exit=0 failure=null ms=377
+commands_npm_version=12.2.2 exit=0 failure=null ms=342
 commands_perl5lib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/site_perl/5.44.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0/x86_64-android:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/perl5/5.44.0
 commands_pythonhome=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr
 commands_rubylib=/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0:/data/user/0/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/4.0.0/x86_64-linux-android
-commands_timeout=failure=timed_out ms=512 ended=1
+commands_timeout=failure=timed_out ms=508 ended=1
 commands_timeout_tree=ended=3 left=0
-commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=17 detail=5.3.9(1)-release
-commands_tool_git=2.56.1/ok pinned=2.56.1 ms=18 detail=git version 2.56.1
-commands_tool_node=26.13.1/ok pinned=26.13.1 ms=246 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
-commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=25 detail=5.44.0 3
-commands_tool_python=3.14.10/ok pinned=3.14.10 ms=251 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
-commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=21 detail=ripgrep 15.2.0
-commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=73 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
-commands_tools_ms=655
-commands_tree=sleeps=5 with_marker=6 group=8933 in_group=5 setsid=true
+commands_tool_bash=5.3.9/ok pinned=5.3.9 ms=16 detail=5.3.9(1)-release
+commands_tool_git=2.56.1/ok pinned=2.56.1 ms=15 detail=git version 2.56.1
+commands_tool_node=26.13.1/ok pinned=26.13.1 ms=223 detail=26.13.1 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/node_modules/npm/package.json
+commands_tool_perl=5.44.0/ok pinned=5.44.0-1 ms=19 detail=5.44.0 3
+commands_tool_python=3.14.10/ok pinned=3.14.10 ms=247 detail=3.14.10 OpenSSL 3.6.5 29 Sep 2026
+commands_tool_rg=15.2.0/ok pinned=15.2.0 ms=15 detail=ripgrep 15.2.0
+commands_tool_ruby=4.0.9/ok pinned=4.0.9 ms=69 detail=4.0.9 /data/data/dev.codeforge.app/files/runtime-gate/commands/rootfs/data/data/com.termux/files/usr/lib/ruby/gems/4.0.0
+commands_tools_ms=608
+commands_tree=sleeps=5 with_marker=6 group=8750 in_group=5 setsid=true
 digest_detail=digest differs: bin/am
 digest_problem=corrupt
 exec_manifest_entries=535
@@ -69,52 +72,53 @@ first_install_bytes=274844694
 first_install_executables=535
 first_install_files=13894
 first_install_links=1169
-first_install_ms=6127
+first_install_ms=5938
 first_install_verified=13894
 flipped_byte_detail=the payload archive is damaged: invalid entry size (expected 5822696 but got 5822723 bytes)
 flipped_byte_offset=33554432
 flipped_byte_problem=corrupt
-git_conflict=listed=1 markers=1 resolved=1 parents=2 merge_ms=27
-git_https_clone=ok exit=0 failure=null ms=270 detail= files=2
-git_https_ls_remote=ok exit=0 failure=null ms=282 detail=
-git_large=files=10000 written_ms=977 untracked_status_ms=39 untracked_status_bytes=160000 add_ms=819 commit_ms=119
-git_large_changes=status_ms=39 add_ms=50 commit_ms=55 log_ms=16 diff_stat_ms=22
+git_conflict=listed=1 markers=1 resolved=1 parents=2 merge_ms=26
+git_https_clone=ok exit=0 failure=null ms=741 detail= files=2
+git_https_ls_remote=ok exit=0 failure=null ms=5233 detail=
+git_large=files=10000 written_ms=969 untracked_status_ms=40 untracked_status_bytes=160000 add_ms=794 commit_ms=113
+git_large_changes=status_ms=31 add_ms=46 commit_ms=51 log_ms=14 diff_stat_ms=21
 git_large_objects=loose=10704 packs=0 pack_kib=0
-git_large_status_first_ms=39
-git_large_status_ms=n=20 p50=33 p95=42 max=42
-git_large_status_no_locks_ms=n=20 p50=33 p95=41 max=41
-git_local=ok ms=6922
-git_local_status_ms=n=20 p50=18 p95=25 max=25
-git_remote_clone=ok ms=370
-git_remote_no_credential=refused ms=82 detail=fatal: could not read Username for 'http://127.0.0.1:45341': No such device or address
-git_remote_pull=ok ms=194
-git_remote_push=ok ms=170
+git_large_status_first_ms=38
+git_large_status_ms=n=20 p50=31 p95=44 max=44
+git_large_status_no_locks_ms=n=20 p50=30 p95=42 max=42
+git_local=ok ms=6998
+git_local_status_ms=n=20 p50=17 p95=24 max=24
+git_remote_clone=ok ms=167
+git_remote_no_credential=refused ms=106 detail=fatal: could not read Username for 'http://127.0.0.1:33201': No such device or address
+git_remote_pull=ok ms=321
+git_remote_push=ok ms=361
 git_remote_secret_in_files=0
 git_remote_server=ended=ended leftovers=1
-git_remote_wrong_password=refused erased=1 ms=106
-git_ssh_github=handshake=ok exit=255 ms=116 host_key_matches=true detail=git@github.com: Permission denied (publickey).
+git_remote_wrong_password=refused erased=1 ms=210
+git_ssh_github=handshake=ok exit=255 ms=876 host_key_matches=true detail=git@github.com: Permission denied (publickey).
 git_ssh_keygen=exit=0 read_back=true
-git_ssh_local_clone=failed exit=128 failure=null ms=127 detail=and the repository exists. files=0
-git_ssh_local_sshd=ended=ended log=Connection closed by invalid user u0_a216 127.0.0.1 port 59584 [preauth]
+git_ssh_local_clone=failed exit=128 failure=null ms=117 detail=and the repository exists. files=0
+git_ssh_local_sshd=ended=ended log=Received signal 15; terminating.
 git_ssh_version=OpenSSH_10.6p2, OpenSSL 3.6.5 29 Sep 2026
 git_version=git version 2.56.1
-git_very_large=files=50000 import_ms=1516 checkout_ms=1936
-git_very_large_changes=status_ms=99 add_ms=130 commit_ms=113 log_ms=19 diff_stat_ms=28
+git_very_large=files=50000 import_ms=1446 checkout_ms=1936
+git_very_large_changes=status_ms=95 add_ms=127 commit_ms=101 log_ms=15 diff_stat_ms=20
 git_very_large_objects=loose=202 packs=1 pack_kib=4270
-git_very_large_status_first_ms=272
-git_very_large_status_ms=n=20 p50=99 p95=222 max=222
-git_very_large_status_no_locks_ms=n=20 p50=97 p95=108 max=108
+git_very_large_status_first_ms=315
+git_very_large_status_ms=n=20 p50=93 p95=116 max=116
+git_very_large_status_no_locks_ms=n=20 p50=89 p95=105 max=105
 githost_10k=ok
-githost_10k_add_ms=828
-githost_10k_commit_ms=712
-githost_10k_status_ms=p50=34 p95=55 max=58
+githost_10k_add_ms=803
+githost_10k_commit_ms=679
+githost_10k_status_ms=p50=29 p95=32 max=33
 githost_10k_untracked_status_chars=140000
-githost_10k_untracked_status_ms=76
-githost_10k_write_ms=1024
-githost_busy=ok add_ms=74
-githost_conflict=ok merge_ms=28
-githost_operations=ok ms=7721
+githost_10k_untracked_status_ms=64
+githost_10k_write_ms=1029
+githost_busy=ok add_ms=68
+githost_conflict=ok merge_ms=25
+githost_operations=ok ms=6288
 githost_refusals=ok
+githost_stop=ok stopped_ms=8 capped_ms=20 cap=git_done_first
 installed_total_bytes=631422625
 kernel_manifest_stream=read 1 sdk=36
 lsp_abi=x86_64
@@ -125,99 +129,99 @@ lsp_device_sdk=36
 lsp_install_after_damaged=reused=false files=5423
 lsp_install_damaged=damaged
 lsp_install_damaged_detail=the pyright server's archive is damaged: invalid entry CRC (expected 0x2953b93 but got 0x1c230260)
-lsp_install_pyright=reused=false files=5423 on_disk=5424 bytes=19457120 ms=1595
+lsp_install_pyright=reused=false files=5423 on_disk=5424 bytes=19457120 ms=1210
 lsp_install_pyright_again=reused=true ms=1
 lsp_install_servers=pyright:5423,typescript:145
-lsp_install_typescript=reused=false files=145 on_disk=146 bytes=26803017 ms=323
+lsp_install_typescript=reused=false files=145 on_disk=146 bytes=26803017 ms=271
 lsp_install_typescript_again=reused=true ms=1
-lsp_pyright_cleared_ms=268
-lsp_pyright_completion_cold=ms=32 items=25 member=true
+lsp_pyright_cleared_ms=275
+lsp_pyright_completion_cold=ms=27 items=25 member=true
 lsp_pyright_completion_edit_p95_under_budget=1
-lsp_pyright_completion_edit_us=n=50 p50=14116 p95=28925 max=44308
-lsp_pyright_completion_repeat_us=n=50 p50=1278 p95=3746 max=5734
+lsp_pyright_completion_edit_us=n=50 p50=10615 p95=33199 max=40837
+lsp_pyright_completion_repeat_us=n=50 p50=1327 p95=3560 max=4414
 lsp_pyright_definition=ok=true ms=3 targets=1
 lsp_pyright_diagnostics=count=1 errors=1 error="undefined_thing" is not defined
-lsp_pyright_first_diagnostics_ms=897
+lsp_pyright_first_diagnostics_ms=855
 lsp_pyright_import_pip=resolved
-lsp_pyright_initialize_ms=556
-lsp_pyright_install=reused=true files=5423 ms=2
+lsp_pyright_initialize_ms=538
+lsp_pyright_install=reused=true files=5423 ms=4
 lsp_pyright_left=group_found=true processes=0
-lsp_pyright_memory_after=pss_kib=183836 rss_kib=188532 processes=2
-lsp_pyright_memory_idle=pss_kib=137552 rss_kib=142260 processes=2
-lsp_pyright_project_completion_cold=ms=34 items=26 member=true
+lsp_pyright_memory_after=pss_kib=179637 rss_kib=184236 processes=2
+lsp_pyright_memory_idle=pss_kib=122181 rss_kib=126752 processes=2
+lsp_pyright_project_completion_cold=ms=37 items=26 member=true
 lsp_pyright_project_completion_edit_p95_under_budget=1
-lsp_pyright_project_completion_edit_us=n=50 p50=16390 p95=49201 max=81875
-lsp_pyright_project_completion_repeat_us=n=50 p50=1501 p95=3213 max=3744
+lsp_pyright_project_completion_edit_us=n=50 p50=13606 p95=46420 max=91314
+lsp_pyright_project_completion_repeat_us=n=50 p50=1579 p95=5156 max=5405
 lsp_pyright_project_diagnostics=count=1 errors=1 error="not_defined_anywhere" is not defined
 lsp_pyright_project_files=202
-lsp_pyright_project_first_diagnostics_ms=1000
-lsp_pyright_project_initialize_ms=541
+lsp_pyright_project_first_diagnostics_ms=923
+lsp_pyright_project_initialize_ms=536
 lsp_pyright_project_left=group_found=true processes=0
-lsp_pyright_project_memory_after=pss_kib=193969 rss_kib=198872 processes=2
-lsp_pyright_project_memory_idle=pss_kib=163589 rss_kib=168340 processes=2
+lsp_pyright_project_memory_after=pss_kib=196842 rss_kib=201600 processes=2
+lsp_pyright_project_memory_idle=pss_kib=153478 rss_kib=158232 processes=2
 lsp_pyright_project_server=unnamed
-lsp_pyright_project_shutdown=end=exited exit=0 ms=45 messages=117 sent=158 largest_message=6931 log_messages=11
+lsp_pyright_project_shutdown=end=exited exit=0 ms=26 messages=117 sent=158 largest_message=6931 log_messages=11
 lsp_pyright_project_sync=2
 lsp_pyright_rename=files=2 ms=4 prepare_ms=2
 lsp_pyright_server=unnamed
-lsp_pyright_shutdown=end=exited exit=0 ms=20 messages=121 sent=162 largest_message=6341 log_messages=11
+lsp_pyright_shutdown=end=exited exit=0 ms=18 messages=121 sent=162 largest_message=6341 log_messages=11
 lsp_pyright_sync=2
 lsp_second_pyright=already_running running=true
 lsp_servers=pyright@1.1.414,typescript@6.0.3,typescript-language-server@6.1.0
-lsp_stages_capped1_delivery_us=n=50 p50=92 p95=1314 max=1457
-lsp_stages_capped1_edit_us=n=50 p50=13360 p95=23824 max=86967
-lsp_stages_capped1_memory_after=pss_kib=167011 rss_kib=171984 processes=2
+lsp_stages_capped1_delivery_us=n=50 p50=60 p95=612 max=20946
+lsp_stages_capped1_edit_us=n=50 p50=12709 p95=27932 max=59375
+lsp_stages_capped1_memory_after=pss_kib=170891 rss_kib=175732 processes=2
 lsp_stages_capped1_node_options=--max-old-space-size=256
-lsp_stages_capped1_queue_us=n=50 p50=91 p95=3423 max=27774
-lsp_stages_capped1_server_us=n=50 p50=12309 p95=22096 max=58732
-lsp_stages_capped2_delivery_us=n=50 p50=85 p95=2820 max=9551
-lsp_stages_capped2_edit_us=n=50 p50=12706 p95=27689 max=53634
-lsp_stages_capped2_memory_after=pss_kib=165724 rss_kib=170772 processes=2
+lsp_stages_capped1_queue_us=n=50 p50=68 p95=1413 max=2057
+lsp_stages_capped1_server_us=n=50 p50=12178 p95=27220 max=40544
+lsp_stages_capped2_delivery_us=n=50 p50=68 p95=149 max=1261
+lsp_stages_capped2_edit_us=n=50 p50=12183 p95=33791 max=42225
+lsp_stages_capped2_memory_after=pss_kib=169744 rss_kib=174620 processes=2
 lsp_stages_capped2_node_options=--max-old-space-size=256
-lsp_stages_capped2_queue_us=n=50 p50=72 p95=1393 max=16080
-lsp_stages_capped2_server_us=n=50 p50=12069 p95=27100 max=33270
-lsp_stages_uncapped1_delivery_us=n=50 p50=87 p95=263 max=4501
-lsp_stages_uncapped1_edit_us=n=50 p50=12866 p95=22444 max=28801
-lsp_stages_uncapped1_memory_after=pss_kib=173258 rss_kib=178040 processes=2
+lsp_stages_capped2_queue_us=n=50 p50=78 p95=1619 max=4791
+lsp_stages_capped2_server_us=n=50 p50=11269 p95=25820 max=40823
+lsp_stages_uncapped1_delivery_us=n=50 p50=63 p95=150 max=2044
+lsp_stages_uncapped1_edit_us=n=50 p50=12360 p95=22539 max=25970
+lsp_stages_uncapped1_memory_after=pss_kib=178301 rss_kib=183116 processes=2
 lsp_stages_uncapped1_node_options=none
-lsp_stages_uncapped1_queue_us=n=50 p50=80 p95=1486 max=4546
-lsp_stages_uncapped1_server_us=n=50 p50=11836 p95=19774 max=28270
-lsp_stages_uncapped2_delivery_us=n=50 p50=90 p95=155 max=2048
-lsp_stages_uncapped2_edit_us=n=50 p50=13641 p95=26654 max=96422
-lsp_stages_uncapped2_memory_after=pss_kib=166883 rss_kib=171684 processes=2
+lsp_stages_uncapped1_queue_us=n=50 p50=65 p95=623 max=14483
+lsp_stages_uncapped1_server_us=n=50 p50=11447 p95=20824 max=25475
+lsp_stages_uncapped2_delivery_us=n=50 p50=46 p95=90 max=118
+lsp_stages_uncapped2_edit_us=n=50 p50=10871 p95=19671 max=23068
+lsp_stages_uncapped2_memory_after=pss_kib=173599 rss_kib=178508 processes=2
 lsp_stages_uncapped2_node_options=none
-lsp_stages_uncapped2_queue_us=n=50 p50=77 p95=765 max=3708
-lsp_stages_uncapped2_server_us=n=50 p50=13093 p95=26036 max=92098
-lsp_typescript_cleared_ms=363
-lsp_typescript_completion_cold=ms=59 items=2 member=true
+lsp_stages_uncapped2_queue_us=n=50 p50=62 p95=428 max=5209
+lsp_stages_uncapped2_server_us=n=50 p50=10273 p95=19209 max=22657
+lsp_typescript_cleared_ms=362
+lsp_typescript_completion_cold=ms=48 items=2 member=true
 lsp_typescript_completion_edit_p95_under_budget=1
-lsp_typescript_completion_edit_us=n=50 p50=5647 p95=21524 max=29205
-lsp_typescript_completion_repeat_us=n=50 p50=1753 p95=3033 max=3418
-lsp_typescript_definition=ok=true ms=19 targets=2
+lsp_typescript_completion_edit_us=n=50 p50=5315 p95=19386 max=21909
+lsp_typescript_completion_repeat_us=n=50 p50=1342 p95=2864 max=3441
+lsp_typescript_definition=ok=true ms=16 targets=2
 lsp_typescript_diagnostics=count=1 errors=1 error=Type 'string' is not assignable to type 'number'.
-lsp_typescript_first_diagnostics_ms=1729
-lsp_typescript_initialize_ms=436
+lsp_typescript_first_diagnostics_ms=1726
+lsp_typescript_initialize_ms=414
 lsp_typescript_install=reused=true files=145 ms=1
 lsp_typescript_left=group_found=true processes=0
-lsp_typescript_memory_after=pss_kib=244999 rss_kib=286224 processes=3
-lsp_typescript_memory_idle=pss_kib=213983 rss_kib=254572 processes=3
-lsp_typescript_project_completion_cold=ms=50 items=3 member=true
+lsp_typescript_memory_after=pss_kib=245090 rss_kib=285520 processes=3
+lsp_typescript_memory_idle=pss_kib=226826 rss_kib=266592 processes=3
+lsp_typescript_project_completion_cold=ms=48 items=3 member=true
 lsp_typescript_project_completion_edit_p95_under_budget=1
-lsp_typescript_project_completion_edit_us=n=50 p50=11338 p95=49102 max=75654
-lsp_typescript_project_completion_repeat_us=n=50 p50=1618 p95=3587 max=4203
+lsp_typescript_project_completion_edit_us=n=50 p50=9813 p95=30962 max=51296
+lsp_typescript_project_completion_repeat_us=n=50 p50=1431 p95=3198 max=5802
 lsp_typescript_project_diagnostics=count=199 errors=1 error=Type 'string' is not assignable to type 'number'.
 lsp_typescript_project_files=202
-lsp_typescript_project_first_diagnostics_ms=1908
-lsp_typescript_project_initialize_ms=391
+lsp_typescript_project_first_diagnostics_ms=1832
+lsp_typescript_project_initialize_ms=394
 lsp_typescript_project_left=group_found=true processes=0
-lsp_typescript_project_memory_after=pss_kib=270986 rss_kib=314524 processes=3
-lsp_typescript_project_memory_idle=pss_kib=227226 rss_kib=270452 processes=3
+lsp_typescript_project_memory_after=pss_kib=266560 rss_kib=310688 processes=3
+lsp_typescript_project_memory_idle=pss_kib=233492 rss_kib=277208 processes=3
 lsp_typescript_project_server=unnamed
-lsp_typescript_project_shutdown=end=exited exit=0 ms=30 messages=111 sent=158 largest_message=37986 log_messages=1
+lsp_typescript_project_shutdown=end=exited exit=0 ms=32 messages=110 sent=158 largest_message=37986 log_messages=1
 lsp_typescript_project_sync=2
-lsp_typescript_rename=files=2 ms=2 prepare_ms=13
+lsp_typescript_rename=files=2 ms=3 prepare_ms=12
 lsp_typescript_server=unnamed
-lsp_typescript_shutdown=end=exited exit=0 ms=29 messages=115 sent=162 largest_message=1613 log_messages=1
+lsp_typescript_shutdown=end=exited exit=0 ms=32 messages=115 sent=162 largest_message=1613 log_messages=1
 lsp_typescript_sync=2
 native_library_bytes=139995440
 payload=3dc2163786c5abef
@@ -235,13 +239,13 @@ sealed_shell_bash_version=5.3.9(1)-release
 sealed_shell_device_sdk=36
 sealed_shell_dpkg=ok
 sealed_shell_first_start_audit_outside_apk=0
-sealed_shell_first_start_install_ms=44166
+sealed_shell_first_start_install_ms=38411
 sealed_shell_first_start_ms=1
 sealed_shell_first_start_state=ready
 sealed_shell_git=git version 2.56.1
 sealed_shell_install_executables=535
 sealed_shell_install_files=13894
-sealed_shell_install_ms=5869
+sealed_shell_install_ms=5887
 sealed_shell_install_verified=13894
 sealed_shell_node=v26.13.1
 sealed_shell_perl=v5.44.0
@@ -249,7 +253,7 @@ sealed_shell_python=py-ssl OpenSSL 3.6.5 29 Sep 2026
 sealed_shell_rg=ripgrep 15.2.0  features:+pcre2 simd(compile):+SSE2,+SSSE3,-
 sealed_shell_ruby=ruby 4.0.9 (2026-10-23 revision 3e93b23afc) +PRISM [x86_64-l
 sealed_shell_second_start_audit_outside_apk=0
-sealed_shell_second_start_ms=36
+sealed_shell_second_start_ms=37
 sealed_shell_second_start_relinked=0
 sealed_shell_second_start_warm_ms=35
 sealed_shell_sed=ok
@@ -257,10 +261,6 @@ sealed_shell_target_sdk=36
 service_app_fsize=unlimited
 service_app_nproc=15659
 service_app_oom_score_adj=0
-service_end_all=ms=129 shell=ended/4 script=ended/3 processes_before=1 processes_after=1
-service_end_all_left=0
-service_end_all_processes_left=0
-service_end_all_stopped=1
 service_first_without_notification=foreground
 service_fsize_enforced=1
 service_fsize_enforced_detail=exit=153 bytes=65536
@@ -268,8 +268,8 @@ service_ledger_exited_tombstone=exit:7
 service_ledger_running_tombstone=system
 service_notifications_allowed_at_first=0
 service_nproc_enforced=1
-service_nproc_enforced_detail=limit=42 started=10 refused=110
-service_nproc_headroom=2022
+service_nproc_enforced_detail=limit=41 started=10 refused=110
+service_nproc_headroom=2023
 service_nproc_safe=1
 service_oom_score_raised=1
 service_session_core=0
@@ -279,31 +279,31 @@ service_session_fsize_hard_bytes=4294967296
 service_session_nproc=2048
 service_session_nproc_hard=2048
 service_session_oom_score_adj=800
-service_start_ms=122
+service_start_ms=87
 service_started_with_first=1
 service_stop_ms=0
 service_stopped_after_last=1
 service_title_one=1 terminal session running
 service_title_two=2 terminal sessions running
-service_uid_tasks=26
+service_uid_tasks=25
 terminal_bash=ok
 terminal_bash_exit=3
 terminal_echo_p95_under_budget=1
-terminal_echo_us=p50=586 p95=766 max=819 n=50
-terminal_end_all=left=0 ms=107 shell=ended/4 script=ended/3 remaining=0 processes_before=1 processes_after=1
+terminal_echo_us=p50=549 p95=752 max=817 n=50
+terminal_end_all=left=0 ms=106 shell=ended/4 script=ended/3 remaining=0 processes_before=1 processes_after=1
 terminal_end_all_left=0
 terminal_end_all_processes_left=0
 terminal_end_all_tree=sleeps=5 with_marker=7
-terminal_first_answer_ms=35
-terminal_flood=bytes=10485760 batches=42 ms=815 high_water=262144 window=262144 buffer=1048576 heap_growth_kib=1032 native_growth_kib=-1
+terminal_first_answer_ms=30
+terminal_flood=bytes=10485760 batches=42 ms=825 high_water=262144 window=262144 buffer=1048576 heap_growth_kib=1036 native_growth_kib=-1
 terminal_flood_whole=1
 terminal_flood_within_window=1
 terminal_ninth=too_many
-terminal_node_prompt_ms=221
+terminal_node_prompt_ms=217
 terminal_node_repl=ok exit=0
 terminal_stty=24x80,40x120
-warm_audit_ms=599
+warm_audit_ms=562
 warm_audit_outside_apk=0
 warm_start_budget_ms=100
-warm_start_ms_median=26
-warm_start_ms_samples=26,26,27,28,26
+warm_start_ms_median=24
+warm_start_ms_samples=33,25,24,24,23
