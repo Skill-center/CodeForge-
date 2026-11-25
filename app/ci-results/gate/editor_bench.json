@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "kind": "codeforge-editor-bench-gate",
-  "generatedAt": "2026-11-25T19:38:33.280Z",
+  "generatedAt": "2026-11-25T20:51:01.944Z",
   "environment": {
     "device": "CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU",
     "build": "debug APK (profile mode is refused on emulators)",
@@ -163,15 +163,15 @@
       "summary": {
         "runs": 3,
         "medians": {
-          "readyMs": 338.1,
-          "typingP50Ms": 104.9,
-          "typingP95Ms": 190.2,
-          "largeOpenMs": 134.1,
-          "largeTypingP95Ms": 206.4,
-          "scrollSlowFramePct": 95,
-          "plainOpenMs": 150.8,
-          "plainTypingP95Ms": 219.1,
-          "plainScrollSlowFramePct": 95.5
+          "readyMs": 217.7,
+          "typingP50Ms": 89.9,
+          "typingP95Ms": 184.1,
+          "largeOpenMs": 244.2,
+          "largeTypingP95Ms": 186.4,
+          "scrollSlowFramePct": 100,
+          "plainOpenMs": 283.7,
+          "plainTypingP95Ms": 191.5,
+          "plainScrollSlowFramePct": 100
         },
         "featuresOk": true,
         "highlightOk": true,
@@ -181,22 +181,22 @@
       },
       "checks": {
         "readyMs": {
-          "value": 338.1,
+          "value": 217.7,
           "budget": 800,
           "within": true
         },
         "typingP95Ms": {
-          "value": 190.2,
+          "value": 184.1,
           "budget": 32,
           "within": false
         },
         "inputP95Ms": {
-          "value": 118.4,
+          "value": 82.1,
           "budget": 32,
           "within": false
         },
         "scrollSlowFramePct": {
-          "value": 95,
+          "value": 100,
           "budget": 5,
           "within": false
         },
@@ -206,7 +206,7 @@
           "within": true
         },
         "totalPssMB": {
-          "value": 536.4,
+          "value": 524,
           "budget": 250,
           "within": false
         },
@@ -218,17 +218,17 @@
       },
       "driver": {
         "engine": "codemirror",
-        "startedAt": "2026-11-25T19:34:57.002Z",
+        "startedAt": "2026-11-25T20:47:27.306Z",
         "inputMode": "editcontext",
         "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
         "inputLatency": {
           "keys": 60,
           "textMatches": true,
           "count": 60,
-          "p50Ms": 32.8,
-          "p95Ms": 118.4,
-          "maxMs": 143.4,
-          "meanMs": 46.6,
+          "p50Ms": 21.7,
+          "p95Ms": 82.1,
+          "maxMs": 119.2,
+          "meanMs": 33.4,
           "events": {
             "keydown": 60,
             "beforeinput": 60,
@@ -305,33 +305,33 @@
           ]
         },
         "memorySession": {
-          "openMs": 157.7,
+          "openMs": 91.6,
           "scroll": {
-            "frames": 14,
-            "slowFrames": 13,
-            "slowFramePct": 92.9,
-            "p95FrameMs": 216.7,
-            "maxFrameMs": 216.7,
+            "frames": 15,
+            "slowFrames": 14,
+            "slowFramePct": 93.3,
+            "p95FrameMs": 250,
+            "maxFrameMs": 250,
             "thresholdMs": 32,
             "distancePx": 12000
           }
         },
         "jsHeap": {
-          "usedMB": 13.6,
+          "usedMB": 12.8,
           "totalMB": 20.7
         },
         "processMemory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 403.6,
+          "appPssMB": 402.8,
           "renderers": [
             {
-              "pid": 8251,
+              "pid": 8441,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 132.8
+              "pssMB": 121.2
             }
           ],
-          "rendererPssMB": 132.8,
-          "totalPssMB": 536.4
+          "rendererPssMB": 121.2,
+          "totalPssMB": 524
         },
         "pageErrors": [],
         "reconnects": []
@@ -341,7 +341,7 @@
           {
             "engine": "codemirror",
             "run": 1,
-            "hostReadyMs": 2537,
+            "hostReadyMs": 1620,
             "result": {
               "schema": 1,
               "engine": "codemirror",
@@ -357,37 +357,37 @@
                 "scrollPxPerMs": 6
               },
               "load": {
-                "scriptStartMs": 929.9,
-                "modulesReadyMs": 1220.6,
-                "mountedMs": 1343.6,
-                "readyMs": 1437.4,
+                "scriptStartMs": 365.4,
+                "modulesReadyMs": 563.9,
+                "mountedMs": 810.5,
+                "readyMs": 876.6,
                 "firstPaintMs": null,
                 "firstContentfulPaintMs": null
               },
               "highlight": {
                 "javascript": {
                   "spans": 57,
-                  "ms": 0.4
+                  "ms": 0.3
                 },
                 "typescript": {
                   "spans": 58,
-                  "ms": 0.2
+                  "ms": 2.2
                 },
                 "python": {
                   "spans": 49,
-                  "ms": 0.2
+                  "ms": 0.3
                 },
                 "json": {
                   "spans": 14,
-                  "ms": 0.1
+                  "ms": 0.2
                 },
                 "html": {
                   "spans": 58,
-                  "ms": 0.2
+                  "ms": 0.1
                 },
                 "css": {
                   "spans": 30,
-                  "ms": 0.1
+                  "ms": 0
                 }
               },
               "features": {
@@ -396,66 +396,66 @@
               },
               "typing": {
                 "count": 60,
-                "p50Ms": 107.1,
-                "p95Ms": 227.3,
-                "maxMs": 259.6,
-                "meanMs": 114.7
+                "p50Ms": 90,
+                "p95Ms": 200.8,
+                "maxMs": 244.5,
+                "meanMs": 100.7
               },
               "largeFile": {
                 "bytes": 1048614,
                 "lines": 35107,
-                "openMs": 261.3,
+                "openMs": 209.8,
                 "typing": {
                   "count": 30,
-                  "p50Ms": 85.9,
-                  "p95Ms": 189.3,
-                  "maxMs": 217.7,
-                  "meanMs": 95.9
+                  "p50Ms": 83.9,
+                  "p95Ms": 186.4,
+                  "maxMs": 262.2,
+                  "meanMs": 99.4
                 },
                 "scroll": {
-                  "frames": 19,
-                  "slowFrames": 18,
-                  "slowFramePct": 94.7,
-                  "p95FrameMs": 366.7,
-                  "maxFrameMs": 366.7,
+                  "frames": 20,
+                  "slowFrames": 20,
+                  "slowFramePct": 100,
+                  "p95FrameMs": 233.3,
+                  "maxFrameMs": 266.7,
                   "thresholdMs": 32,
-                  "distancePx": 18500
+                  "distancePx": 18600
                 }
               },
               "largePlain": {
                 "bytes": 1048614,
-                "openMs": 167.9,
+                "openMs": 283.7,
                 "typing": {
                   "count": 30,
-                  "p50Ms": 76.4,
-                  "p95Ms": 205.2,
-                  "maxMs": 212.9,
-                  "meanMs": 88
+                  "p50Ms": 76.7,
+                  "p95Ms": 208.6,
+                  "maxMs": 230.3,
+                  "meanMs": 94
                 },
                 "scroll": {
-                  "frames": 22,
-                  "slowFrames": 21,
-                  "slowFramePct": 95.5,
-                  "p95FrameMs": 233.4,
-                  "maxFrameMs": 233.4,
+                  "frames": 20,
+                  "slowFrames": 20,
+                  "slowFramePct": 100,
+                  "p95FrameMs": 216.7,
+                  "maxFrameMs": 233.3,
                   "thresholdMs": 32,
-                  "distancePx": 18200
+                  "distancePx": 18000
                 }
               },
               "memory": {
-                "usedJSHeapMB": 13.6,
+                "usedJSHeapMB": 12.8,
                 "totalJSHeapMB": 20.7
               },
               "domNodes": 193,
               "throttledFrames": 0,
               "errors": [],
-              "durationMs": 24900
+              "durationMs": 24699.4
             }
           },
           {
             "engine": "codemirror",
             "run": 2,
-            "hostReadyMs": 575,
+            "hostReadyMs": 337,
             "result": {
               "schema": 1,
               "engine": "codemirror",
@@ -471,147 +471,33 @@
                 "scrollPxPerMs": 6
               },
               "load": {
-                "scriptStartMs": 225.2,
-                "modulesReadyMs": 250.1,
-                "mountedMs": 274.1,
-                "readyMs": 338.1,
+                "scriptStartMs": 130.4,
+                "modulesReadyMs": 160.3,
+                "mountedMs": 193.5,
+                "readyMs": 217.7,
                 "firstPaintMs": null,
                 "firstContentfulPaintMs": null
               },
               "highlight": {
                 "javascript": {
-                  "spans": 24,
-                  "ms": 34.3
-                },
-                "typescript": {
-                  "spans": 58,
+                  "spans": 57,
                   "ms": 0.3
                 },
-                "python": {
+                "typescript": {
                   "spans": 28,
-                  "ms": 0.3
-                },
-                "json": {
-                  "spans": 14,
                   "ms": 0.4
-                },
-                "html": {
-                  "spans": 58,
-                  "ms": 1
-                },
-                "css": {
-                  "spans": 30,
-                  "ms": 0.1
-                }
-              },
-              "features": {
-                "replaceAll": true,
-                "completion": true
-              },
-              "typing": {
-                "count": 60,
-                "p50Ms": 104.9,
-                "p95Ms": 190.2,
-                "maxMs": 219.2,
-                "meanMs": 106.4
-              },
-              "largeFile": {
-                "bytes": 1048614,
-                "lines": 35107,
-                "openMs": 134.1,
-                "typing": {
-                  "count": 30,
-                  "p50Ms": 70.4,
-                  "p95Ms": 206.4,
-                  "maxMs": 210.7,
-                  "meanMs": 87.4
-                },
-                "scroll": {
-                  "frames": 20,
-                  "slowFrames": 19,
-                  "slowFramePct": 95,
-                  "p95FrameMs": 216.7,
-                  "maxFrameMs": 233.3,
-                  "thresholdMs": 32,
-                  "distancePx": 18500
-                }
-              },
-              "largePlain": {
-                "bytes": 1048614,
-                "openMs": 97,
-                "typing": {
-                  "count": 30,
-                  "p50Ms": 118.3,
-                  "p95Ms": 241,
-                  "maxMs": 245.8,
-                  "meanMs": 122.9
-                },
-                "scroll": {
-                  "frames": 19,
-                  "slowFrames": 18,
-                  "slowFramePct": 94.7,
-                  "p95FrameMs": 216.7,
-                  "maxFrameMs": 216.7,
-                  "thresholdMs": 32,
-                  "distancePx": 18200
-                }
-              },
-              "memory": {
-                "usedJSHeapMB": 13.6,
-                "totalJSHeapMB": 20.7
-              },
-              "domNodes": 191,
-              "throttledFrames": 0,
-              "errors": [],
-              "durationMs": 25779.7
-            }
-          },
-          {
-            "engine": "codemirror",
-            "run": 3,
-            "hostReadyMs": 375,
-            "result": {
-              "schema": 1,
-              "engine": "codemirror",
-              "engineVersion": "6.43.15",
-              "inputMode": "editcontext",
-              "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
-              "options": {
-                "keys": 60,
-                "keyGapMs": 30,
-                "largeBytes": 1048576,
-                "largeKeys": 30,
-                "scrollMs": 3000,
-                "scrollPxPerMs": 6
-              },
-              "load": {
-                "scriptStartMs": 121.7,
-                "modulesReadyMs": 172.6,
-                "mountedMs": 184.3,
-                "readyMs": 231.4,
-                "firstPaintMs": null,
-                "firstContentfulPaintMs": null
-              },
-              "highlight": {
-                "javascript": {
-                  "spans": 39,
-                  "ms": 0.8
-                },
-                "typescript": {
-                  "spans": 58,
-                  "ms": 0.2
                 },
                 "python": {
                   "spans": 49,
-                  "ms": 0.4
+                  "ms": 0.1
                 },
                 "json": {
-                  "spans": 14,
+                  "spans": 12,
                   "ms": 0.3
                 },
                 "html": {
                   "spans": 58,
-                  "ms": 0.1
+                  "ms": 0.4
                 },
                 "css": {
                   "spans": 30,
@@ -624,60 +510,174 @@
               },
               "typing": {
                 "count": 60,
-                "p50Ms": 104.2,
-                "p95Ms": 187.6,
-                "maxMs": 303.5,
-                "meanMs": 108.3
+                "p50Ms": 88.3,
+                "p95Ms": 184.1,
+                "maxMs": 225.7,
+                "meanMs": 95.6
               },
               "largeFile": {
                 "bytes": 1048614,
                 "lines": 35107,
-                "openMs": 128.1,
+                "openMs": 294.2,
                 "typing": {
                   "count": 30,
-                  "p50Ms": 75.2,
-                  "p95Ms": 223.4,
-                  "maxMs": 242.2,
-                  "meanMs": 95.3
+                  "p50Ms": 86,
+                  "p95Ms": 168.9,
+                  "maxMs": 186.2,
+                  "meanMs": 93.3
                 },
                 "scroll": {
                   "frames": 20,
                   "slowFrames": 20,
                   "slowFramePct": 100,
                   "p95FrameMs": 200,
-                  "maxFrameMs": 216.8,
+                  "maxFrameMs": 200,
                   "thresholdMs": 32,
-                  "distancePx": 18300
+                  "distancePx": 18700
                 }
               },
               "largePlain": {
                 "bytes": 1048614,
-                "openMs": 150.8,
+                "openMs": 270.7,
                 "typing": {
                   "count": 30,
-                  "p50Ms": 103.5,
-                  "p95Ms": 219.1,
-                  "maxMs": 233,
-                  "meanMs": 111.6
+                  "p50Ms": 77.9,
+                  "p95Ms": 191.5,
+                  "maxMs": 275.9,
+                  "meanMs": 92.3
                 },
                 "scroll": {
                   "frames": 19,
                   "slowFrames": 19,
                   "slowFramePct": 100,
-                  "p95FrameMs": 216.8,
-                  "maxFrameMs": 216.8,
+                  "p95FrameMs": 200.1,
+                  "maxFrameMs": 200.1,
                   "thresholdMs": 32,
-                  "distancePx": 19000
+                  "distancePx": 18800
                 }
               },
               "memory": {
-                "usedJSHeapMB": 13.6,
+                "usedJSHeapMB": 12.8,
                 "totalJSHeapMB": 20.7
               },
               "domNodes": 190,
               "throttledFrames": 0,
               "errors": [],
-              "durationMs": 25704.1
+              "durationMs": 24986.9
+            }
+          },
+          {
+            "engine": "codemirror",
+            "run": 3,
+            "hostReadyMs": 262,
+            "result": {
+              "schema": 1,
+              "engine": "codemirror",
+              "engineVersion": "6.43.15",
+              "inputMode": "editcontext",
+              "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
+              "options": {
+                "keys": 60,
+                "keyGapMs": 30,
+                "largeBytes": 1048576,
+                "largeKeys": 30,
+                "scrollMs": 3000,
+                "scrollPxPerMs": 6
+              },
+              "load": {
+                "scriptStartMs": 150.3,
+                "modulesReadyMs": 172.8,
+                "mountedMs": 182.7,
+                "readyMs": 188.8,
+                "firstPaintMs": null,
+                "firstContentfulPaintMs": null
+              },
+              "highlight": {
+                "javascript": {
+                  "spans": 29,
+                  "ms": 0.7
+                },
+                "typescript": {
+                  "spans": 34,
+                  "ms": 0.6
+                },
+                "python": {
+                  "spans": 42,
+                  "ms": 0.2
+                },
+                "json": {
+                  "spans": 14,
+                  "ms": 0.2
+                },
+                "html": {
+                  "spans": 58,
+                  "ms": 0
+                },
+                "css": {
+                  "spans": 30,
+                  "ms": 0.1
+                }
+              },
+              "features": {
+                "replaceAll": true,
+                "completion": true
+              },
+              "typing": {
+                "count": 60,
+                "p50Ms": 89.9,
+                "p95Ms": 172.5,
+                "maxMs": 194,
+                "meanMs": 93.7
+              },
+              "largeFile": {
+                "bytes": 1048614,
+                "lines": 35107,
+                "openMs": 244.2,
+                "typing": {
+                  "count": 30,
+                  "p50Ms": 83.5,
+                  "p95Ms": 242.4,
+                  "maxMs": 276.6,
+                  "meanMs": 97.5
+                },
+                "scroll": {
+                  "frames": 19,
+                  "slowFrames": 19,
+                  "slowFramePct": 100,
+                  "p95FrameMs": 250,
+                  "maxFrameMs": 250,
+                  "thresholdMs": 32,
+                  "distancePx": 18100
+                }
+              },
+              "largePlain": {
+                "bytes": 1048614,
+                "openMs": 290.1,
+                "typing": {
+                  "count": 30,
+                  "p50Ms": 85.5,
+                  "p95Ms": 163.4,
+                  "maxMs": 185.6,
+                  "meanMs": 93.8
+                },
+                "scroll": {
+                  "frames": 24,
+                  "slowFrames": 23,
+                  "slowFramePct": 95.8,
+                  "p95FrameMs": 250,
+                  "maxFrameMs": 250.1,
+                  "thresholdMs": 32,
+                  "distancePx": 18701
+                }
+              },
+              "memory": {
+                "usedJSHeapMB": 12.8,
+                "totalJSHeapMB": 20.7
+              },
+              "domNodes": 190,
+              "throttledFrames": 0,
+              "errors": [],
+              "durationMs": 24489.6
             }
           }
         ],
@@ -715,15 +715,15 @@
       "summary": {
         "runs": 3,
         "medians": {
-          "readyMs": 979.8,
-          "typingP50Ms": 102.3,
-          "typingP95Ms": 209.5,
-          "largeOpenMs": 573.9,
-          "largeTypingP95Ms": 207.6,
-          "scrollSlowFramePct": 94.4,
-          "plainOpenMs": 461.7,
-          "plainTypingP95Ms": 207.8,
-          "plainScrollSlowFramePct": 100
+          "readyMs": 837.7,
+          "typingP50Ms": 108.7,
+          "typingP95Ms": 212,
+          "largeOpenMs": 574.5,
+          "largeTypingP95Ms": 196.3,
+          "scrollSlowFramePct": 94.7,
+          "plainOpenMs": 460.2,
+          "plainTypingP95Ms": 198.9,
+          "plainScrollSlowFramePct": 95
         },
         "featuresOk": true,
         "highlightOk": true,
@@ -733,22 +733,22 @@
       },
       "checks": {
         "readyMs": {
-          "value": 979.8,
+          "value": 837.7,
           "budget": 800,
           "within": false
         },
         "typingP95Ms": {
-          "value": 209.5,
+          "value": 212,
           "budget": 32,
           "within": false
         },
         "inputP95Ms": {
-          "value": 127.2,
+          "value": 90.8,
           "budget": 32,
           "within": false
         },
         "scrollSlowFramePct": {
-          "value": 94.4,
+          "value": 94.7,
           "budget": 5,
           "within": false
         },
@@ -758,7 +758,7 @@
           "within": true
         },
         "totalPssMB": {
-          "value": 625.4,
+          "value": 602.9,
           "budget": 250,
           "within": false
         },
@@ -770,17 +770,17 @@
       },
       "driver": {
         "engine": "monaco",
-        "startedAt": "2026-11-25T19:38:01.160Z",
+        "startedAt": "2026-11-25T20:50:32.324Z",
         "inputMode": "editcontext",
         "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
         "inputLatency": {
           "keys": 60,
           "textMatches": true,
           "count": 60,
-          "p50Ms": 51.3,
-          "p95Ms": 127.2,
-          "maxMs": 237.8,
-          "meanMs": 65.4,
+          "p50Ms": 28.1,
+          "p95Ms": 90.8,
+          "maxMs": 138.1,
+          "meanMs": 39.4,
           "events": {
             "keydown": 60,
             "beforeinput": 60,
@@ -857,33 +857,33 @@
           ]
         },
         "memorySession": {
-          "openMs": 491.3,
+          "openMs": 329.8,
           "scroll": {
-            "frames": 14,
-            "slowFrames": 12,
-            "slowFramePct": 85.7,
-            "p95FrameMs": 250,
-            "maxFrameMs": 250,
+            "frames": 15,
+            "slowFrames": 13,
+            "slowFramePct": 86.7,
+            "p95FrameMs": 333.4,
+            "maxFrameMs": 333.4,
             "thresholdMs": 32,
-            "distancePx": 13099
+            "distancePx": 12300
           }
         },
         "jsHeap": {
-          "usedMB": 40.1,
-          "totalMB": 57.5
+          "usedMB": 48.1,
+          "totalMB": 61
         },
         "processMemory": {
           "method": "dumpsys meminfo TOTAL PSS after the session (app process + every WebView sandboxed renderer)",
-          "appPssMB": 452.2,
+          "appPssMB": 449.8,
           "renderers": [
             {
-              "pid": 9221,
+              "pid": 9411,
               "name": "com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0",
-              "pssMB": 173.2
+              "pssMB": 153.1
             }
           ],
-          "rendererPssMB": 173.2,
-          "totalPssMB": 625.4
+          "rendererPssMB": 153.1,
+          "totalPssMB": 602.9
         },
         "pageErrors": [],
         "reconnects": []
@@ -893,7 +893,7 @@
           {
             "engine": "monaco",
             "run": 1,
-            "hostReadyMs": 2671,
+            "hostReadyMs": 2891,
             "result": {
               "schema": 1,
               "engine": "monaco",
@@ -909,37 +909,37 @@
                 "scrollPxPerMs": 6
               },
               "load": {
-                "scriptStartMs": 1371.1,
-                "modulesReadyMs": 1703.3,
-                "mountedMs": 1943.3,
-                "readyMs": 2010.9,
-                "firstPaintMs": 1712,
+                "scriptStartMs": 1784.5,
+                "modulesReadyMs": 2099.3,
+                "mountedMs": 2417.9,
+                "readyMs": 2470.8,
+                "firstPaintMs": null,
                 "firstContentfulPaintMs": null
               },
               "highlight": {
                 "javascript": {
-                  "spans": 95,
-                  "ms": 1431.7
+                  "spans": 6,
+                  "ms": 80.1
                 },
                 "typescript": {
-                  "spans": 116,
-                  "ms": 376.4
+                  "spans": 8,
+                  "ms": 777.1
                 },
                 "python": {
-                  "spans": 8,
-                  "ms": 456.9
+                  "spans": 29,
+                  "ms": 601.8
                 },
                 "json": {
                   "spans": 69,
-                  "ms": 473.1
+                  "ms": 569.3
                 },
                 "html": {
                   "spans": 103,
-                  "ms": 658.2
+                  "ms": 382.7
                 },
                 "css": {
-                  "spans": 5,
-                  "ms": 983.7
+                  "spans": 29,
+                  "ms": 943.1
                 }
               },
               "features": {
@@ -948,288 +948,288 @@
               },
               "typing": {
                 "count": 60,
-                "p50Ms": 103,
-                "p95Ms": 195.9,
-                "maxMs": 265.9,
-                "meanMs": 110.1
+                "p50Ms": 109.2,
+                "p95Ms": 212,
+                "maxMs": 219.6,
+                "meanMs": 106.4
               },
               "largeFile": {
                 "bytes": 1048614,
                 "lines": 35107,
-                "openMs": 738,
+                "openMs": 760.3,
                 "typing": {
                   "count": 30,
-                  "p50Ms": 100,
-                  "p95Ms": 207.6,
-                  "maxMs": 706.4,
-                  "meanMs": 127.2
+                  "p50Ms": 110.5,
+                  "p95Ms": 334.5,
+                  "maxMs": 792.4,
+                  "meanMs": 146
                 },
                 "scroll": {
-                  "frames": 16,
-                  "slowFrames": 16,
+                  "frames": 18,
+                  "slowFrames": 17,
+                  "slowFramePct": 94.4,
+                  "p95FrameMs": 233.4,
+                  "maxFrameMs": 233.4,
+                  "thresholdMs": 32,
+                  "distancePx": 18100
+                }
+              },
+              "largePlain": {
+                "bytes": 1048614,
+                "openMs": 418.4,
+                "typing": {
+                  "count": 30,
+                  "p50Ms": 123.4,
+                  "p95Ms": 195.7,
+                  "maxMs": 197.1,
+                  "meanMs": 115.5
+                },
+                "scroll": {
+                  "frames": 20,
+                  "slowFrames": 19,
+                  "slowFramePct": 95,
+                  "p95FrameMs": 200,
+                  "maxFrameMs": 216.7,
+                  "thresholdMs": 32,
+                  "distancePx": 19100
+                }
+              },
+              "memory": {
+                "usedJSHeapMB": 48.1,
+                "totalJSHeapMB": 61
+              },
+              "domNodes": 360,
+              "throttledFrames": 0,
+              "errors": [],
+              "durationMs": 31580.2
+            }
+          },
+          {
+            "engine": "monaco",
+            "run": 2,
+            "hostReadyMs": 1204,
+            "result": {
+              "schema": 1,
+              "engine": "monaco",
+              "engineVersion": "0.57.0",
+              "inputMode": "editcontext",
+              "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
+              "options": {
+                "keys": 60,
+                "keyGapMs": 30,
+                "largeBytes": 1048576,
+                "largeKeys": 30,
+                "scrollMs": 3000,
+                "scrollPxPerMs": 6
+              },
+              "load": {
+                "scriptStartMs": 704.4,
+                "modulesReadyMs": 757.2,
+                "mountedMs": 795.4,
+                "readyMs": 837.7,
+                "firstPaintMs": null,
+                "firstContentfulPaintMs": null
+              },
+              "highlight": {
+                "javascript": {
+                  "spans": 95,
+                  "ms": 315.1
+                },
+                "typescript": {
+                  "spans": 116,
+                  "ms": 743.3
+                },
+                "python": {
+                  "spans": 76,
+                  "ms": 484.1
+                },
+                "json": {
+                  "spans": 69,
+                  "ms": 768.1
+                },
+                "html": {
+                  "spans": 45,
+                  "ms": 696.1
+                },
+                "css": {
+                  "spans": 29,
+                  "ms": 735.2
+                }
+              },
+              "features": {
+                "replaceAll": true,
+                "completion": true
+              },
+              "typing": {
+                "count": 60,
+                "p50Ms": 108.7,
+                "p95Ms": 229.3,
+                "maxMs": 261.1,
+                "meanMs": 111.2
+              },
+              "largeFile": {
+                "bytes": 1048614,
+                "lines": 35107,
+                "openMs": 574.5,
+                "typing": {
+                  "count": 30,
+                  "p50Ms": 101.3,
+                  "p95Ms": 196.3,
+                  "maxMs": 199.6,
+                  "meanMs": 115.4
+                },
+                "scroll": {
+                  "frames": 19,
+                  "slowFrames": 18,
+                  "slowFramePct": 94.7,
+                  "p95FrameMs": 233.4,
+                  "maxFrameMs": 233.4,
+                  "thresholdMs": 32,
+                  "distancePx": 18001
+                }
+              },
+              "largePlain": {
+                "bytes": 1048614,
+                "openMs": 460.2,
+                "typing": {
+                  "count": 30,
+                  "p50Ms": 96.9,
+                  "p95Ms": 198.9,
+                  "maxMs": 256.9,
+                  "meanMs": 108.3
+                },
+                "scroll": {
+                  "frames": 18,
+                  "slowFrames": 18,
                   "slowFramePct": 100,
-                  "p95FrameMs": 283.4,
-                  "maxFrameMs": 283.4,
+                  "p95FrameMs": 266.8,
+                  "maxFrameMs": 266.8,
+                  "thresholdMs": 32,
+                  "distancePx": 18200
+                }
+              },
+              "memory": {
+                "usedJSHeapMB": 48.1,
+                "totalJSHeapMB": 61
+              },
+              "domNodes": 356,
+              "throttledFrames": 0,
+              "errors": [],
+              "durationMs": 30687.3
+            }
+          },
+          {
+            "engine": "monaco",
+            "run": 3,
+            "hostReadyMs": 996,
+            "result": {
+              "schema": 1,
+              "engine": "monaco",
+              "engineVersion": "0.57.0",
+              "inputMode": "editcontext",
+              "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
+              "options": {
+                "keys": 60,
+                "keyGapMs": 30,
+                "largeBytes": 1048576,
+                "largeKeys": 30,
+                "scrollMs": 3000,
+                "scrollPxPerMs": 6
+              },
+              "load": {
+                "scriptStartMs": 434.2,
+                "modulesReadyMs": 488.6,
+                "mountedMs": 571.2,
+                "readyMs": 584.7,
+                "firstPaintMs": null,
+                "firstContentfulPaintMs": null
+              },
+              "highlight": {
+                "javascript": {
+                  "spans": 6,
+                  "ms": 1798.1
+                },
+                "typescript": {
+                  "spans": 116,
+                  "ms": 437.1
+                },
+                "python": {
+                  "spans": 76,
+                  "ms": 849
+                },
+                "json": {
+                  "spans": 5,
+                  "ms": 670.5
+                },
+                "html": {
+                  "spans": 103,
+                  "ms": 394.3
+                },
+                "css": {
+                  "spans": 5,
+                  "ms": 435.2
+                }
+              },
+              "features": {
+                "replaceAll": true,
+                "completion": true
+              },
+              "typing": {
+                "count": 60,
+                "p50Ms": 108.1,
+                "p95Ms": 162.9,
+                "maxMs": 227.9,
+                "meanMs": 104.1
+              },
+              "largeFile": {
+                "bytes": 1048614,
+                "lines": 35107,
+                "openMs": 538.1,
+                "typing": {
+                  "count": 30,
+                  "p50Ms": 121.1,
+                  "p95Ms": 176.8,
+                  "maxMs": 194.2,
+                  "meanMs": 114.3
+                },
+                "scroll": {
+                  "frames": 20,
+                  "slowFrames": 19,
+                  "slowFramePct": 95,
+                  "p95FrameMs": 233.4,
+                  "maxFrameMs": 250,
                   "thresholdMs": 32,
                   "distancePx": 18800
                 }
               },
               "largePlain": {
                 "bytes": 1048614,
-                "openMs": 474.4,
+                "openMs": 550.9,
                 "typing": {
                   "count": 30,
-                  "p50Ms": 88,
-                  "p95Ms": 204.2,
-                  "maxMs": 225.4,
-                  "meanMs": 102.5
+                  "p50Ms": 105.1,
+                  "p95Ms": 265,
+                  "maxMs": 272.3,
+                  "meanMs": 122.4
                 },
                 "scroll": {
-                  "frames": 18,
-                  "slowFrames": 18,
-                  "slowFramePct": 100,
-                  "p95FrameMs": 250,
-                  "maxFrameMs": 250,
-                  "thresholdMs": 32,
-                  "distancePx": 18200
-                }
-              },
-              "memory": {
-                "usedJSHeapMB": 40.1,
-                "totalJSHeapMB": 57.5
-              },
-              "domNodes": 364,
-              "throttledFrames": 0,
-              "errors": [],
-              "durationMs": 31142.7
-            }
-          },
-          {
-            "engine": "monaco",
-            "run": 2,
-            "hostReadyMs": 1581,
-            "result": {
-              "schema": 1,
-              "engine": "monaco",
-              "engineVersion": "0.57.0",
-              "inputMode": "editcontext",
-              "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
-              "options": {
-                "keys": 60,
-                "keyGapMs": 30,
-                "largeBytes": 1048576,
-                "largeKeys": 30,
-                "scrollMs": 3000,
-                "scrollPxPerMs": 6
-              },
-              "load": {
-                "scriptStartMs": 597.9,
-                "modulesReadyMs": 701.9,
-                "mountedMs": 761.4,
-                "readyMs": 979.8,
-                "firstPaintMs": null,
-                "firstContentfulPaintMs": null
-              },
-              "highlight": {
-                "javascript": {
-                  "spans": 79,
-                  "ms": 158.1
-                },
-                "typescript": {
-                  "spans": 8,
-                  "ms": 611
-                },
-                "python": {
-                  "spans": 76,
-                  "ms": 484.5
-                },
-                "json": {
-                  "spans": 69,
-                  "ms": 840
-                },
-                "html": {
-                  "spans": 3,
-                  "ms": 893.5
-                },
-                "css": {
-                  "spans": 2,
-                  "ms": 242.7
-                }
-              },
-              "features": {
-                "replaceAll": true,
-                "completion": true
-              },
-              "typing": {
-                "count": 60,
-                "p50Ms": 102.3,
-                "p95Ms": 209.5,
-                "maxMs": 222.1,
-                "meanMs": 104.4
-              },
-              "largeFile": {
-                "bytes": 1048614,
-                "lines": 35107,
-                "openMs": 387.1,
-                "typing": {
-                  "count": 30,
-                  "p50Ms": 104.3,
-                  "p95Ms": 204.6,
-                  "maxMs": 272.8,
-                  "meanMs": 115
-                },
-                "scroll": {
-                  "frames": 18,
-                  "slowFrames": 17,
-                  "slowFramePct": 94.4,
-                  "p95FrameMs": 283.4,
-                  "maxFrameMs": 283.4,
-                  "thresholdMs": 32,
-                  "distancePx": 18600
-                }
-              },
-              "largePlain": {
-                "bytes": 1048614,
-                "openMs": 461.7,
-                "typing": {
-                  "count": 30,
-                  "p50Ms": 79.7,
-                  "p95Ms": 207.8,
-                  "maxMs": 212.5,
-                  "meanMs": 96.1
-                },
-                "scroll": {
-                  "frames": 19,
-                  "slowFrames": 18,
-                  "slowFramePct": 94.7,
-                  "p95FrameMs": 249.9,
-                  "maxFrameMs": 249.9,
+                  "frames": 20,
+                  "slowFrames": 19,
+                  "slowFramePct": 95,
+                  "p95FrameMs": 200,
+                  "maxFrameMs": 200.1,
                   "thresholdMs": 32,
                   "distancePx": 18500
                 }
               },
               "memory": {
-                "usedJSHeapMB": 40.1,
-                "totalJSHeapMB": 57.5
+                "usedJSHeapMB": 48.1,
+                "totalJSHeapMB": 61
               },
-              "domNodes": 358,
+              "domNodes": 364,
               "throttledFrames": 0,
               "errors": [],
-              "durationMs": 29170.3
-            }
-          },
-          {
-            "engine": "monaco",
-            "run": 3,
-            "hostReadyMs": 1352,
-            "result": {
-              "schema": 1,
-              "engine": "monaco",
-              "engineVersion": "0.57.0",
-              "inputMode": "editcontext",
-              "userAgent": "Mozilla/5.0 (Linux; Android 16; sdk_gphone64_x86_64 Build/BE2A.250530.026.F3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/133.0.6943.137 Mobile Safari/537.36",
-              "options": {
-                "keys": 60,
-                "keyGapMs": 30,
-                "largeBytes": 1048576,
-                "largeKeys": 30,
-                "scrollMs": 3000,
-                "scrollPxPerMs": 6
-              },
-              "load": {
-                "scriptStartMs": 609.5,
-                "modulesReadyMs": 692.5,
-                "mountedMs": 721.7,
-                "readyMs": 778.7,
-                "firstPaintMs": null,
-                "firstContentfulPaintMs": null
-              },
-              "highlight": {
-                "javascript": {
-                  "spans": 95,
-                  "ms": 240.8
-                },
-                "typescript": {
-                  "spans": 4,
-                  "ms": 543.5
-                },
-                "python": {
-                  "spans": 76,
-                  "ms": 541.5
-                },
-                "json": {
-                  "spans": 69,
-                  "ms": 621.9
-                },
-                "html": {
-                  "spans": 103,
-                  "ms": 1158.4
-                },
-                "css": {
-                  "spans": 2,
-                  "ms": 747.2
-                }
-              },
-              "features": {
-                "replaceAll": true,
-                "completion": true
-              },
-              "typing": {
-                "count": 60,
-                "p50Ms": 88.3,
-                "p95Ms": 211.7,
-                "maxMs": 286.5,
-                "meanMs": 101.4
-              },
-              "largeFile": {
-                "bytes": 1048614,
-                "lines": 35107,
-                "openMs": 573.9,
-                "typing": {
-                  "count": 30,
-                  "p50Ms": 120.5,
-                  "p95Ms": 228.5,
-                  "maxMs": 269.1,
-                  "meanMs": 126.7
-                },
-                "scroll": {
-                  "frames": 17,
-                  "slowFrames": 16,
-                  "slowFramePct": 94.1,
-                  "p95FrameMs": 283.3,
-                  "maxFrameMs": 283.3,
-                  "thresholdMs": 32,
-                  "distancePx": 18899
-                }
-              },
-              "largePlain": {
-                "bytes": 1048614,
-                "openMs": 446.7,
-                "typing": {
-                  "count": 30,
-                  "p50Ms": 107.2,
-                  "p95Ms": 245.8,
-                  "maxMs": 248.1,
-                  "meanMs": 118.4
-                },
-                "scroll": {
-                  "frames": 18,
-                  "slowFrames": 18,
-                  "slowFramePct": 100,
-                  "p95FrameMs": 250,
-                  "maxFrameMs": 250,
-                  "thresholdMs": 32,
-                  "distancePx": 18599
-                }
-              },
-              "memory": {
-                "usedJSHeapMB": 40.1,
-                "totalJSHeapMB": 57.5
-              },
-              "domNodes": 360,
-              "throttledFrames": 0,
-              "errors": [],
-              "durationMs": 31039.3
+              "durationMs": 31533.2
             }
           }
         ],
