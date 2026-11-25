@@ -12,6 +12,15 @@ self-test ok     runtime: but a scarce one comes after any with capacity: model=
 self-test ok     without --runtime, capacity and version decide as before: model=komodo,version=35
 self-test: all cases pass
 testlab_diagnose self-test: OK (11 cases)
+self-test: a passing report -> nothing, as it should
+self-test: a failing report says 'failure: dev.codeforge.app.git.GitRemoteRunnerTe' -> yes
+self-test: a failing report says 'ssh-keygen did not make the key' -> yes
+self-test: a failing report says 'at dev.codeforge.app.git.SshKeys.create(SshKeys.' -> yes
+self-test: a failing report says 'error: dev.codeforge.app.git.GitRemoteRunnerTest' -> yes
+self-test: a failing report says 'the Keystore is not here' -> yes
+self-test: a failing report says 'a line the test wrote' -> yes
+self-test: a passing test is not named -> yes
+self-test: a damaged report -> said so
 self-test ok     am: a pass, a failure and an assumption failure are told apart: {'dev.codeforge.app.runtime.ExecModelTest': (1, 0, 0), 'dev.codeforge.app.runtime.SealedShellTest': (0, 1, 1)}
 self-test ok     am: the failure keeps its first line: ['a_shellAndToolsRunFromTheApkPayload: java.lang.AssertionError: bash did not run (exit 127):']
 self-test ok     am: a failure and a skip both fail the gate: ['dev.codeforge.app.runtime.SealedShellTest has 1 failure(s): a_shellAndToolsRunFromTheApkPayload: java.lang.AssertionError: bash did not run (exit 127):', 'dev.codeforge.app.runtime.SealedShellTest skipped 1 test(s) - a skip is not a pass']
