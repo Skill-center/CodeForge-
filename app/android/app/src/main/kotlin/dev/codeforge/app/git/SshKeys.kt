@@ -74,6 +74,10 @@ class SshKeys(
                     program = "ssh-keygen",
                     arguments = listOf("-q", "-t", "ed25519", "-a", "16", "-f", keyFile(home).path, "-C", comment),
                     directory = null,
+                    // ssh-keygen asks for the passphrase and its confirmation
+                    // for ever until the two answers match, so the run's own
+                    // limit is what ends a question CodeForge cannot answer:
+                    // the refusal then says which questions were asked.
                     timeoutMs = 60_000L,
                     outputLimit = 16 * 1024,
                     variables = opened.variables(null),

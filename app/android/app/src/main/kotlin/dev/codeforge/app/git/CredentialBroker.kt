@@ -109,9 +109,11 @@ interface CredentialPrompter {
  *   host has accepted it: nothing else is ever stored.
  * - `erase` removes a stored credential the host refused, and says so.
  * - ssh's askpass: the passphrase of CodeForge's own key ([sshKeyPath]),
- *   from the store; a new host's fingerprint, to the user; with
- *   [newPassphrase], the passphrase `ssh-keygen` asks for a new key.
- *   Anything else gets no answer.
+ *   from the store, to a question naming that key and no other; a new
+ *   host's fingerprint, to the user, and `no` to a question about a host
+ *   key that cannot be read; with [newPassphrase], the passphrase
+ *   `ssh-keygen` asks for a new key. Anything else gets no answer.
+ *   See PASSPHRASE_QUESTION for the wordings OpenSSH 9 and 10 use.
  *
  * Nothing here logs a field's value.
  */
@@ -229,20 +231,6 @@ class CredentialBroker(
     private fun askPass(prompt: String): String {
         val text = prompt.trim()
         questions.add(text.take(QUESTION_CHARS))
-        if (newPassphrase != null && (text.startsWith("Enter passphrase (empty for no passphrase)") || text.startsWith("Enter same passphrase again"))) {
-            return newPassphrase + "\n"
-        }
-        if (readsOwnKey && (text == "Enter passphrase:" || text.startsWith("Enter passphrase for \""))) {
-            return store.find(CredentialKind.SSH_KEY, SSH_KEY_HOST, SSH_KEY_USER)?.secret?.let { it + "\n" } ?: ""
-        }
-        if (text.startsWith("Enter passphrase for")) {
-            val key = sshKeyPath ?: return ""
-            // ssh names the key file, cut at 100 characters: only CodeForge's own key gets its passphrase.
-            val named = KEY_PROMPT.find(text)?.groupValues?.get(1) ?: return ""
-            if (!(named == key || (named.length == SSH_PROMPT_PATH_CHARS && key.startsWith(named)))) return ""
-            val passphrase = store.find(CredentialKind.SSH_KEY, SSH_KEY_HOST, SSH_KEY_USER)?.secret ?: return ""
-            return passphrase + "\n"
-        }
         if (text.contains("Are you sure you want to continue connecting")) {
             val hostKey = parseHostKeyPrompt(text) ?: return "no\n"
             val reply = ask(
@@ -253,7 +241,30 @@ class CredentialBroker(
             )
             return if (reply != null) "yes\n" else "no\n"
         }
-        return ""
+        if (!PASSPHRASE_QUESTION.containsMatchIn(text)) return ""
+        // A question about another key is not CodeForge's to answer.
+        val named = namedKey(text)
+        if (named != null && !isOwnKey(named)) return ""
+        // ssh-keygen asks twice for a new key's passphrase; since OpenSSH 10
+        // the first question names the file it is making.
+        if (newPassphrase != null && (text.contains(FOR_A_NEW_KEY) || text.startsWith("Enter same passphrase again"))) {
+            return newPassphrase + "\n"
+        }
+        // CodeForge's own key's passphrase: to a question that names that key,
+        // or to a run of ours that reads it back, whose question names no file
+        // before OpenSSH 10 (`ssh-keygen -y`, SshKeys.verify).
+        if (named == null && !readsOwnKey) return ""
+        return store.find(CredentialKind.SSH_KEY, SSH_KEY_HOST, SSH_KEY_USER)?.secret?.let { it + "\n" } ?: ""
+    }
+
+    /** The key file a passphrase question names, as ssh and ssh-keygen name one; null when it names none. */
+    private fun namedKey(text: String): String? =
+        (SSH_KEY_PROMPT.find(text) ?: KEYGEN_KEY_PROMPT.find(text))?.groupValues?.get(1)
+
+    /** Whether [named] is CodeForge's own key, which ssh cuts at 100 characters. */
+    private fun isOwnKey(named: String): Boolean {
+        val key = sshKeyPath ?: return false
+        return named == key || (named.length == SSH_PROMPT_PATH_CHARS && key.startsWith(named))
     }
 
     /** Asks the user; null when they cancel, the run ends, or nobody answers in time. */
@@ -319,12 +330,30 @@ class CredentialBroker(
             return parts.size == 4 && parts[0] == "127" && parts.all { part -> part.toIntOrNull()?.let { it in 0..255 } == true }
         }
 
-        /** ssh's `Enter passphrase for key '%.100s': `. */
-        private val KEY_PROMPT = Regex("""^Enter passphrase for key '(.*)':?$""")
+        /**
+         * What OpenSSH asks about a passphrase, in every wording it uses:
+         *
+         *     ssh         Enter passphrase for key '<file, cut at 100>':
+         *     ssh-keygen  Enter passphrase:                             (to 9)
+         *     ssh-keygen  Enter passphrase for "<file>":                (10)
+         *     ssh-keygen  Enter passphrase (empty for no passphrase):   (to 9)
+         *     ssh-keygen  Enter passphrase for "<file>" (empty for no passphrase):  (10)
+         *     ssh-keygen  Enter same passphrase again:
+         *
+         * Anything else is not a question about a passphrase and gets no
+         * answer. OpenSSH 10 is what the runtime carries; 9 is what a
+         * machine running the JVM tests may have.
+         */
+        private val PASSPHRASE_QUESTION = Regex("""^Enter (same )?passphrase""")
+        private val SSH_KEY_PROMPT = Regex("""^Enter passphrase for key '(.*)':?$""")
+        private val KEYGEN_KEY_PROMPT = Regex("^Enter passphrase for \"([^\"]*)\"")
+        private const val FOR_A_NEW_KEY = "(empty for no passphrase)"
         private const val SSH_PROMPT_PATH_CHARS = 100
 
         private val HOST_LINE = Regex("""The authenticity of host '([^' ]+)(?: \([^)]*\))?' can't be established""")
-        private val KEY_LINE = Regex("""([A-Z0-9-]+) key fingerprint is (SHA256:[A-Za-z0-9+/=]+)""")
+
+        /** OpenSSH 10 puts a colon after "is"; before it, a full stop after the fingerprint. */
+        private val KEY_LINE = Regex("""([A-Z0-9-]+) key fingerprint is:? (SHA256:[A-Za-z0-9+/=]+)""")
 
         /** ssh's \"The authenticity of host ... can't be established\" question, read; null when it is not one. */
         fun parseHostKeyPrompt(prompt: String): HostKey? {

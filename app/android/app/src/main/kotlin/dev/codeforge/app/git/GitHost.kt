@@ -59,12 +59,16 @@ class GitHost(context: Context, messenger: BinaryMessenger) : GitApi {
         store = store,
         run = { request -> runCollecting(hub, request).first },
         channel = { runId, passphrase ->
-            val bin = hub.currentCommands()?.environment?.bin ?: throw IOException("the runtime is not ready")
+            val environment = hub.currentCommands()?.environment ?: throw IOException("the runtime is not ready")
             CredentialChannel.open(
                 channels, runId,
-                // A new key's passphrase; or, reading the key back, the stored one.
-                CredentialBroker(runId, store, prompter, newPassphrase = passphrase, readsOwnKey = passphrase == null),
-                bash = File(bin, "bash"), makeFifo = ::makeFifo,
+                // A new key's passphrase; or, reading the key back, the stored
+                // one. The key's path because OpenSSH names the file it asks about.
+                CredentialBroker(
+                    runId, store, prompter, sshKeyPath = SshKeys.keyFile(environment.home).path,
+                    newPassphrase = passphrase, readsOwnKey = passphrase == null,
+                ),
+                bash = File(environment.bin, "bash"), makeFifo = ::makeFifo,
             )
         },
         read = { request -> runCollecting(hub, request) },

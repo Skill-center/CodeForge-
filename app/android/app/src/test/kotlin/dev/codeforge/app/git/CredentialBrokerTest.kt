@@ -231,6 +231,80 @@ class CredentialBrokerTest {
         assertEquals("", broker.answer(HelperRequest.AskPass("Enter passphrase (empty for no passphrase): ")))
     }
 
+    /**
+     * Every wording OpenSSH uses to ask about a passphrase is answered, and
+     * nothing else is. The runtime carries OpenSSH 10, which names the key
+     * file where 9 did not: a question it asked went unanswered until this
+     * table, and `ssh-keygen` then asked for a new key's passphrase again
+     * and again until the run's time was up (CI 45673678523).
+     */
+    @Test
+    fun everyWordingOpenSshHasForAPassphraseIsAnswered() {
+        val store = store()
+        store.put(GitCredential(CredentialKind.SSH_KEY, CredentialBroker.SSH_KEY_HOST, CredentialBroker.SSH_KEY_USER, "stored-pass"))
+        val key = "/data/user/0/dev.codeforge.app/files/home/.ssh/codeforge_ed25519"
+        val user = User(CredentialReply(accepted = true))
+        fun broker(newPassphrase: String? = null, readsOwnKey: Boolean = false, keyPath: String? = key) =
+            CredentialBroker(11L, store, user, sshKeyPath = keyPath, newPassphrase = newPassphrase, readsOwnKey = readsOwnKey)
+
+        // ssh-keygen making a key: OpenSSH 9's questions, then 10's.
+        val making = broker(newPassphrase = "new-pass")
+        assertEquals("new-pass\n", making.answer(HelperRequest.AskPass("Enter passphrase (empty for no passphrase): ")))
+        assertEquals("new-pass\n", making.answer(HelperRequest.AskPass("""Enter passphrase for "$key" (empty for no passphrase): """)))
+        assertEquals("new-pass\n", making.answer(HelperRequest.AskPass("Enter same passphrase again: ")))
+        assertEquals(
+            "another key is not ours to answer for",
+            "",
+            making.answer(HelperRequest.AskPass("""Enter passphrase for "/elsewhere/id_ed25519" (empty for no passphrase): """)),
+        )
+
+        // ssh-keygen -y reading our key back: 9 names no file, 10 does.
+        val reading = broker(readsOwnKey = true)
+        assertEquals("stored-pass\n", reading.answer(HelperRequest.AskPass("Enter passphrase: ")))
+        assertEquals("stored-pass\n", reading.answer(HelperRequest.AskPass("""Enter passphrase for "$key": """)))
+        assertEquals("", reading.answer(HelperRequest.AskPass("""Enter passphrase for "/elsewhere/id_ed25519": """)))
+
+        // A git run over ssh: our key by name, nothing else, whoever asks.
+        val cloning = broker()
+        assertEquals("stored-pass\n", cloning.answer(HelperRequest.AskPass("Enter passphrase for key '$key': ")))
+        assertEquals("", cloning.answer(HelperRequest.AskPass("Enter passphrase for key '/elsewhere/id_ed25519': ")))
+        assertEquals("a question that names no key is not ours", "", cloning.answer(HelperRequest.AskPass("Enter passphrase: ")))
+        assertEquals("", cloning.answer(HelperRequest.AskPass("git@github.com's password: ")))
+        assertEquals("", cloning.answer(HelperRequest.AskPass("(ada@github.com) Password: ")))
+        assertEquals("", broker(keyPath = null).answer(HelperRequest.AskPass("Enter passphrase for key '$key': ")))
+
+        // Every question asked is kept, as asked, and never an answer.
+        assertTrue(making.questions.first().startsWith("Enter passphrase (empty"))
+        assertFalse(making.questions.any { it.contains("new-pass") || it.contains("stored-pass") })
+    }
+
+    /** OpenSSH 10 puts a colon after "is"; 9 put a full stop after the fingerprint. */
+    @Test
+    fun aNewHostsKeyIsReadInBothOpenSshsWordings() {
+        val nine = "The authenticity of host 'github.com (140.82.121.3)' can't be established.\n" +
+            "ED25519 key fingerprint is SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU.\n" +
+            "This key is not known by any other names.\n" +
+            "Are you sure you want to continue connecting (yes/no/[fingerprint])? "
+        val ten = "The authenticity of host 'github.com (140.82.121.4)' can't be established.\n" +
+            "ED25519 key fingerprint is: SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU\n" +
+            "This key is not known by any other names.\n" +
+            "Are you sure you want to continue connecting (yes/no/[fingerprint])? "
+        val store = store()
+        for (prompt in listOf(nine, ten)) {
+            val read = CredentialBroker.parseHostKeyPrompt(prompt)
+            assertEquals("github.com", read?.host)
+            assertEquals("ED25519", read?.keyType)
+            assertEquals("SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU", read?.fingerprint)
+            val user = User(CredentialReply(accepted = true))
+            assertEquals("yes\n", CredentialBroker(12L, store, user).answer(HelperRequest.AskPass(prompt)))
+            assertEquals(CredentialPrompt.Kind.HOST_KEY, user.asked.single().kind)
+        }
+        // A question about a host key this cannot read is answered no, not left unanswered.
+        val unread = User(CredentialReply(accepted = true))
+        assertEquals("no\n", CredentialBroker(13L, store, unread).answer(HelperRequest.AskPass("Are you sure you want to continue connecting (yes/no)? ")))
+        assertTrue(unread.asked.isEmpty())
+    }
+
     @Test
     fun loopbackIsThisDeviceOnly() {
         for (host in listOf("127.0.0.1", "127.0.0.1:8080", "127.1.2.3:1", "localhost", "LOCALHOST:3000", "[::1]", "[::1]:8080")) {

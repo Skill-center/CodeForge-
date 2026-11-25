@@ -281,9 +281,10 @@ class GitRemoteRunnerTest {
     @Test
     fun theRelayAnswersAQuestionAndLeavesARealScriptAlone() {
         val passphrase = "pass-" + java.util.UUID.randomUUID().toString()
+        val key = SshKeys.keyFile(environment.home).path
         val channel = CredentialChannel.open(
             channels, ids.incrementAndGet(),
-            CredentialBroker(1L, store, user, newPassphrase = passphrase, promptTimeoutMs = 10_000L),
+            CredentialBroker(1L, store, user, sshKeyPath = key, newPassphrase = passphrase, promptTimeoutMs = 10_000L),
             bash = File(environment.bin, "bash"), makeFifo = ::mkfifo,
         )
         val said: (List<String>) -> Pair<dev.codeforge.app.runtime.CommandResult?, List<String>> = { arguments ->
@@ -313,10 +314,21 @@ class GitRemoteRunnerTest {
             val (again, againLines) = said(listOf("Enter same passphrase again: "))
             assertEquals(0, again?.exitCode)
             assertEquals(listOf(passphrase), againLines)
-            assertEquals(
-                listOf("Enter passphrase (empty for no passphrase):", "Enter same passphrase again:"),
-                channel.questions,
+            // As OpenSSH 10 asks it, naming the key it is making, and about another key.
+            val (named, namedLines) = said(listOf("""Enter passphrase for "$key" (empty for no passphrase): """))
+            assertEquals(0, named?.exitCode)
+            assertEquals(listOf(passphrase), namedLines)
+            val (other, otherLines) = said(listOf("""Enter passphrase for "/elsewhere/id_ed25519" (empty for no passphrase): """))
+            assertEquals(0, other?.exitCode)
+            assertEquals("another key's passphrase is not ours to give", emptyList<String>(), otherLines)
+            val asked = listOf(
+                "Enter passphrase (empty for no passphrase):",
+                "Enter same passphrase again:",
+                """Enter passphrase for "$key" (empty for no passphrase):""",
+                """Enter passphrase for "/elsewhere/id_ed25519" (empty for no passphrase):""",
             )
+            // Each question is kept as asked, cut to its first characters.
+            assertEquals(asked.map { it.take(CredentialBroker.QUESTION_CHARS) }, channel.questions)
             // A question nobody has an answer for ends the run, with nothing said.
             val (strange, strangeLines) = said(listOf("What is your name? "))
             assertEquals(0, strange?.exitCode)
