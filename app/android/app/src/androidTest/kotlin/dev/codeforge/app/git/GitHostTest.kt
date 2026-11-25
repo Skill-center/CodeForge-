@@ -48,7 +48,8 @@ import org.junit.runners.MethodSorters
  *   d. One change at a time per repository: a second is BUSY while the
  *      first runs, a read runs alongside, and the next change runs after.
  *   e. A run stopped as it starts ends STOPPED; a status capped at 100
- *      records ends truncated, not failed.
+ *      records ends truncated, not failed (ended at the cap, or exited 0
+ *      when git had written everything before the end reached it).
  *   f. 10,000 new files: their status as 10,000 records in five batches,
  *      then added, committed, and the clean status 20 times. Recorded.
  *
@@ -315,11 +316,14 @@ class GitHostTest {
         for (i in 0 until 300) write(project, "f$i.txt", "$i\n")
         val (capped, exit) = git("status", "--untracked-files=all", project = "cap", maxRecords = 100)
         assertNull(exit.failure)
-        assertNull(exit.exitCode)
+        // Ended at the cap, or, on a fast target, git wrote all 300 into the pipe and exited 0 before the
+        // end reached it (API 36 in phase gate 45620932879): either way only the first 100 come, truncated.
+        assertTrue("exit ${exit.exitCode}", exit.exitCode == null || exit.exitCode == 0)
         assertTrue(exit.truncated)
         assertEquals(100, capped.records.size)
         assertEquals(100, exit.records)
-        record("stop", "ok stopped_ms=${stopped.elapsedMs} capped_ms=${exit.elapsedMs}")
+        val capEnd = if (exit.exitCode == null) "ended" else "git_done_first"
+        record("stop", "ok stopped_ms=${stopped.elapsedMs} capped_ms=${exit.elapsedMs} cap=$capEnd")
     }
 
     @Test
