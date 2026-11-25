@@ -1,0 +1,23 @@
+Editor benchmark (Phase 2 W3) — CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (profile mode is refused on emulators); accel=kvm
+
+codemirror 6.43.15  page 293.9 KiB gzipped  input editcontext  runs 3
+  ok  cold load → first editor frame           185 ms  (budget 800 ms)
+  OVER typing p95, engine path                154.1 ms  (budget 32 ms)
+  OVER input p95, DevTools key events          74.3 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms             95.5 %  (budget 5 %)
+  ok  IME composition failures                      0  (budget 0)
+  OVER memory, app + renderer PSS             539.4 MB  (budget 250 MB)
+  ok  shipped size, gzipped                  300921 B  (budget 1572864 B)
+      1 MiB open 207.2 ms, 1 MiB typing p95 152.4 ms, features ok, highlighting ok
+      1 MiB as plain text: open 260.6 ms, typing p95 131.9 ms, scroll frames > 32 ms 100 % (record-only)
+
+monaco 0.57.0  page 1029.5 KiB gzipped  input editcontext  runs 3
+  ok  cold load → first editor frame         596.5 ms  (budget 800 ms)
+  OVER typing p95, engine path                143.6 ms  (budget 32 ms)
+  OVER input p95, DevTools key events         123.8 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms              100 %  (budget 5 %)
+  ok  IME composition failures                      0  (budget 0)
+  OVER memory, app + renderer PSS             624.3 MB  (budget 250 MB)
+  ok  shipped size, gzipped                 1054170 B  (budget 1572864 B)
+      1 MiB open 488 ms, 1 MiB typing p95 177.5 ms, features ok, highlighting ok
+      1 MiB as plain text: open 358.1 ms, typing p95 168.3 ms, scroll frames > 32 ms 95.7 % (record-only)

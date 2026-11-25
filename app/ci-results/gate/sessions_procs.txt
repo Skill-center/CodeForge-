@@ -1,0 +1,10 @@
+--- procs cf-heartbeat-5201 (14:44:28): app pid 10997 oom_score_adj 200
+11409 10997 11409 libcodeforge-spawn.so --status /data/user/0/dev.codeforge.app/files/coding-harness/codeforge/terminal/terminal-2799895750252769446.status --grace 1000 --fsize 4294967296 --nproc 2048
+11413 11409 11413 bash -c rm -f .cf-beats; n=0; while :; do n=$((n + 1)); date +%s >> .cf-beats; echo "beat $n"; sleep 1; done cf-heartbeat-5201
+first: oom_score_adj 800
+--- procs 9999.5202 (14:49:02): app pid 10997 oom_score_adj 0
+11457 11449 11457 sleep 9999.5202
+first: oom_score_adj 800
+--- procs 9999.5203 (14:49:57): app pid 16515 oom_score_adj 0
+16850 16843 16850 sleep 9999.5203
+first: oom_score_adj 800
