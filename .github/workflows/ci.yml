@@ -639,10 +639,13 @@ jobs:
               echo '--- the compiler, first 40 errors:'
               grep -n -A 2 -E '^e: ' ci-results/kotlin-tests.txt | head -n 40
             fi
-            grep -n -A 12 -E 'What went wrong|No space left|FAILED' \
-              ci-results/kotlin-tests.txt | head -n 30
-            echo '--- the last 15 lines:'
-            tail -n 15 ci-results/kotlin-tests.txt
+            # What each failing test said (junit_failures.py above), first:
+            # it is the only place the exception's message appears.
+            sed -n '/^--- failing tests/,$p' ci-results/kotlin-tests.txt | head -n 45
+            grep -n -A 8 -E 'What went wrong|No space left|FAILED' \
+              ci-results/kotlin-tests.txt | head -n 24
+            echo '--- the last 8 lines:'
+            tail -n 8 ci-results/kotlin-tests.txt
           } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/kotlin-digest.txt"
           echo "::warning title=Kotlin unit tests failed::$(cat "$RUNNER_TEMP/kotlin-digest.txt")"
@@ -677,6 +680,8 @@ jobs:
           done
           summary="sealed_runtime_tests=$tests failures=$failures errors=$errors skipped=$skipped gradle_exit=$status"
           echo "$summary" | tee -a ci-results/sealed-runtime-tests.txt >> "$GITHUB_STEP_SUMMARY"
+          python3 tool/ci/junit_failures.py build/sealed-runtime/test-results/test \
+            >> ci-results/sealed-runtime-tests.txt || true
           [ "$status" -eq 0 ] && [ "$tests" -gt 0 ] \
             && [ "$failures" -eq 0 ] && [ "$errors" -eq 0 ]
 
@@ -684,10 +689,11 @@ jobs:
         if: steps.sealed_runtime_tests.outcome == 'failure'
         run: |
           {
-            grep -n -A 12 -E 'What went wrong|FAILED|error:' \
-              ci-results/sealed-runtime-tests.txt | head -n 30
-            echo '--- the last 15 lines:'
-            tail -n 15 ci-results/sealed-runtime-tests.txt
+            sed -n '/^--- failing tests/,$p' ci-results/sealed-runtime-tests.txt | head -n 45
+            grep -n -A 8 -E 'What went wrong|FAILED|error:' \
+              ci-results/sealed-runtime-tests.txt | head -n 24
+            echo '--- the last 8 lines:'
+            tail -n 8 ci-results/sealed-runtime-tests.txt
           } | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/sealed-digest.txt"
           echo "::warning title=Sealed runtime tests failed::$(cat "$RUNNER_TEMP/sealed-digest.txt")"

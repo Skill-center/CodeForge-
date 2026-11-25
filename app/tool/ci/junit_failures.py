@@ -27,11 +27,13 @@ import xml.etree.ElementTree as ElementTree
 #: The most characters of one failure's message.
 MESSAGE_CHARS = 2000
 
-#: The most lines of one failure's stack.
-STACK_LINES = 25
+#: The most lines of one failure's stack: enough to name the test, the code
+#: it called and the frame that threw, and few enough that several failures
+#: fit in a run's warning.
+STACK_LINES = 12
 
 #: The most characters of a failing test's own output.
-OUTPUT_CHARS = 1200
+OUTPUT_CHARS = 600
 
 
 def _text(element: ElementTree.Element) -> str:
