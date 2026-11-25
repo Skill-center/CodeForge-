@@ -23,21 +23,45 @@ Got dependencies!
 19 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/lsp_test.dart
-Running Gradle task 'assembleDebug'...                             17.0s
+Running Gradle task 'assembleDebug'...                             20.2s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        2,533ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...           3.2s
 00:00 +0: lsp: diagnostics, completion, hover, definition, rename, TypeScript, a killed server, three crashes, a folder
-LSP_GATE diagnostics listed=1 shown=1 ready_ms=5748 first_ms=7789
-LSP_GATE diagnostics cleared ms=519
+LSP_GATE diagnostics listed=1 shown=1 ready_ms=6586 first_ms=9029
+LSP_GATE diagnostics cleared ms=504
 LSP_GATE completion items=9 accepted=greet
 LSP_GATE hover chars=52
 LSP_GATE definition opened=people.py line=1
 LSP_GATE rename files=3 written=1 undone=2 "Renamed greet to welcome in 3 files: main.py, other.py, people.py"
 LSP_GATE typescript errors=2 completion items=2
-LSP_GATE killed back_ms=4111 documents=reopened
-LSP_GATE gave_up ends=4 restarts=3 editing=ok restart=ok
-FOLDERGATE 1795621887166.1 pick cf-gate
-folder gate: request 1795621887166.1 answered picked
-LSP_GATE folder copy=folder-6e871 errors=1 definition=lsp_people.py servers=1
-01:09 +1: (tearDownAll)
-01:10 +1: All tests passed!
+LSP_GATE killed back_ms=4969 documents=reopened
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: not null
+  Actual: <null>
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/lsp_test.dart:418:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/lsp_test.dart line 418
+The test description was:
+  lsp: diagnostics, completion, hover, definition, rename, TypeScript, a killed server, three
+  crashes, a folder
+════════════════════════════════════════════════════════════════════════════════════════════════════
+01:04 +0 -1: lsp: diagnostics, completion, hover, definition, rename, TypeScript, a killed server, three crashes, a folder [E]
+  Test failed. See exception logs above.
+  The test description was: lsp: diagnostics, completion, hover, definition, rename, TypeScript, a killed server, three crashes, a folder
+  
+01:04 +0 -1: (tearDownAll)
+01:06 +0 -1: Some tests failed.
+
+Failing tests:
+  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/lsp_test.dart: lsp: diagnostics, completion, hover, definition, rename, TypeScript, a killed server, three crashes, a folder
