@@ -241,7 +241,9 @@ class _GitCredentialDialogState extends State<GitCredentialDialog> {
                 suffixIcon: IconButton(
                   key: const ValueKey('git_credential_show'),
                   tooltip: _shown ? 'Hide the token' : 'Show the token',
-                  icon: Icon(_shown ? CfIcons.visibilityOff : CfIcons.visibility),
+                  icon: Icon(
+                    _shown ? CfIcons.visibilityOff : CfIcons.visibility,
+                  ),
                   onPressed: () => setState(() => _shown = !_shown),
                 ),
               ),
@@ -383,8 +385,9 @@ class _GitHostKeyDialogState extends State<GitHostKeyDialog> {
         actions: [
           TextButton(
             key: const ValueKey('git_host_key_cancel'),
-            onPressed: () =>
-                Navigator.of(context).pop(GitCredentialAnswer.declined(prompt.id)),
+            onPressed: () => Navigator.of(
+              context,
+            ).pop(GitCredentialAnswer.declined(prompt.id)),
             child: const Text('Cancel'),
           ),
           FilledButton(

@@ -66,7 +66,10 @@ void main() {
       projectNameFromUrl('https://github.com/octocat/Hello-World.git'),
       'Hello-World',
     );
-    expect(projectNameFromUrl('git@github.com:octocat/spoon-knife'), 'spoon-knife');
+    expect(
+      projectNameFromUrl('git@github.com:octocat/spoon-knife'),
+      'spoon-knife',
+    );
     expect(projectNameFromUrl('https://example.com/a/b/'), 'b');
     expect(projectNameFromUrl('  https://example.com/team/app.git  '), 'app');
     expect(projectNameFromUrl('https://example.com/x/.hidden.git'), 'hidden');
@@ -75,7 +78,12 @@ void main() {
   });
 
   test('this device is the only plain-HTTP host', () {
-    for (final host in ['127.0.0.1', '127.0.0.1:8080', 'localhost', '[::1]:9']) {
+    for (final host in [
+      '127.0.0.1',
+      '127.0.0.1:8080',
+      'localhost',
+      '[::1]:9',
+    ]) {
       expect(isLoopbackHost(host), isTrue, reason: host);
     }
     for (final host in ['github.com', '10.0.2.2', '127.0.0.256', '[::2]']) {

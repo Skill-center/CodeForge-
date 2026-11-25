@@ -382,31 +382,34 @@ void main() {
       expect(host.invocations, isEmpty);
     });
 
-    test('fetch, pull and push name remotes and branches, never URLs', () async {
-      await git.fetch('demo');
-      await git.fetch('demo', remote: 'upstream');
-      await git.pull('demo');
-      await git.pull('demo', remote: 'origin', branch: 'main');
-      await git.push('demo', remote: 'origin', branch: 'feature/x');
-      await git.push(
-        'demo',
-        remote: 'origin',
-        branch: 'topic',
-        setUpstream: true,
-      );
-      expect(host.commands, [
-        ['fetch', '--prune'],
-        ['fetch', '--prune', 'upstream'],
-        ['pull'],
-        ['pull', 'origin', 'main'],
-        ['push', 'origin', 'feature/x'],
-        ['push', '--set-upstream', 'origin', 'topic'],
-      ]);
-      expect(
-        await git.pull('demo', branch: 'main'),
-        _fails(GitProblem.badRequest),
-      );
-    });
+    test(
+      'fetch, pull and push name remotes and branches, never URLs',
+      () async {
+        await git.fetch('demo');
+        await git.fetch('demo', remote: 'upstream');
+        await git.pull('demo');
+        await git.pull('demo', remote: 'origin', branch: 'main');
+        await git.push('demo', remote: 'origin', branch: 'feature/x');
+        await git.push(
+          'demo',
+          remote: 'origin',
+          branch: 'topic',
+          setUpstream: true,
+        );
+        expect(host.commands, [
+          ['fetch', '--prune'],
+          ['fetch', '--prune', 'upstream'],
+          ['pull'],
+          ['pull', 'origin', 'main'],
+          ['push', 'origin', 'feature/x'],
+          ['push', '--set-upstream', 'origin', 'topic'],
+        ]);
+        expect(
+          await git.pull('demo', branch: 'main'),
+          _fails(GitProblem.badRequest),
+        );
+      },
+    );
 
     test("a remote's failures read as what they mean", () async {
       final cases =

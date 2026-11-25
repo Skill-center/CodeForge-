@@ -267,6 +267,293 @@ data class GitRunMessage (
 }
 
 /**
+ * What a remote run asks the user (Phase 7 W3): a token for a host over
+ * HTTPS, or whether to trust a host ssh has not seen.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class GitCredentialPromptMessage (
+  /** Answered with this id ([GitApi.answerCredential]). */
+  val id: Long,
+  val runId: Long,
+  /** 'https' (a user name and a token) or 'host_key' (trust a new host). */
+  val kind: String,
+  /** git's host (`github.com`, `127.0.0.1:8080`), or ssh's. */
+  val host: String,
+  /** The user name the URL names, if any. */
+  val username: String? = null,
+  /** A new host's key: its SHA-256 fingerprint and its type (`ED25519`). */
+  val fingerprint: String? = null,
+  val keyType: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): GitCredentialPromptMessage {
+      val id = pigeonVar_list[0] as Long
+      val runId = pigeonVar_list[1] as Long
+      val kind = pigeonVar_list[2] as String
+      val host = pigeonVar_list[3] as String
+      val username = pigeonVar_list[4] as String?
+      val fingerprint = pigeonVar_list[5] as String?
+      val keyType = pigeonVar_list[6] as String?
+      return GitCredentialPromptMessage(id, runId, kind, host, username, fingerprint, keyType)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      runId,
+      kind,
+      host,
+      username,
+      fingerprint,
+      keyType,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as GitCredentialPromptMessage
+    return GitApiPigeonUtils.deepEquals(this.id, other.id) && GitApiPigeonUtils.deepEquals(this.runId, other.runId) && GitApiPigeonUtils.deepEquals(this.kind, other.kind) && GitApiPigeonUtils.deepEquals(this.host, other.host) && GitApiPigeonUtils.deepEquals(this.username, other.username) && GitApiPigeonUtils.deepEquals(this.fingerprint, other.fingerprint) && GitApiPigeonUtils.deepEquals(this.keyType, other.keyType)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.id)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.runId)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.kind)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.host)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.username)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.fingerprint)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.keyType)
+    return result
+  }
+  override fun toString(): String {
+    return "GitCredentialPromptMessage(id=$id, runId=$runId, kind=$kind, host=$host, username=$username, fingerprint=$fingerprint, keyType=$keyType)"
+  }
+}
+
+/**
+ * The user's answer to a prompt.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class GitCredentialAnswerMessage (
+  val id: Long,
+  /** False: cancelled, or the host not trusted. */
+  val accepted: Boolean,
+  val username: String? = null,
+  /** The token or password: one line, never logged. */
+  val secret: String? = null,
+  /** Keep it in the store once the host accepts it. */
+  val remember: Boolean
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): GitCredentialAnswerMessage {
+      val id = pigeonVar_list[0] as Long
+      val accepted = pigeonVar_list[1] as Boolean
+      val username = pigeonVar_list[2] as String?
+      val secret = pigeonVar_list[3] as String?
+      val remember = pigeonVar_list[4] as Boolean
+      return GitCredentialAnswerMessage(id, accepted, username, secret, remember)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      accepted,
+      username,
+      secret,
+      remember,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as GitCredentialAnswerMessage
+    return GitApiPigeonUtils.deepEquals(this.id, other.id) && GitApiPigeonUtils.deepEquals(this.accepted, other.accepted) && GitApiPigeonUtils.deepEquals(this.username, other.username) && GitApiPigeonUtils.deepEquals(this.secret, other.secret) && GitApiPigeonUtils.deepEquals(this.remember, other.remember)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.id)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.accepted)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.username)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.secret)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.remember)
+    return result
+  }
+  override fun toString(): String {
+    return "GitCredentialAnswerMessage(id=$id, accepted=$accepted, username=$username, secret=$secret, remember=$remember)"
+  }
+}
+
+/**
+ * A stored credential as Settings lists it: never its secret.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class GitAccountMessage (
+  /** 'https' or 'ssh_key'. */
+  val kind: String,
+  val host: String,
+  val username: String,
+  /** Milliseconds since the epoch. */
+  val updatedAt: Long
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): GitAccountMessage {
+      val kind = pigeonVar_list[0] as String
+      val host = pigeonVar_list[1] as String
+      val username = pigeonVar_list[2] as String
+      val updatedAt = pigeonVar_list[3] as Long
+      return GitAccountMessage(kind, host, username, updatedAt)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      kind,
+      host,
+      username,
+      updatedAt,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as GitAccountMessage
+    return GitApiPigeonUtils.deepEquals(this.kind, other.kind) && GitApiPigeonUtils.deepEquals(this.host, other.host) && GitApiPigeonUtils.deepEquals(this.username, other.username) && GitApiPigeonUtils.deepEquals(this.updatedAt, other.updatedAt)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.kind)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.host)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.username)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.updatedAt)
+    return result
+  }
+  override fun toString(): String {
+    return "GitAccountMessage(kind=$kind, host=$host, username=$username, updatedAt=$updatedAt)"
+  }
+}
+
+/**
+ * CodeForge's SSH key's public half.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class GitSshKeyMessage (
+  /** `ssh-ed25519 AAAA... comment`, to copy into a host's settings. */
+  val publicKey: String,
+  /** `SHA256:...`, as ssh-keygen prints it. */
+  val fingerprint: String,
+  val comment: String
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): GitSshKeyMessage {
+      val publicKey = pigeonVar_list[0] as String
+      val fingerprint = pigeonVar_list[1] as String
+      val comment = pigeonVar_list[2] as String
+      return GitSshKeyMessage(publicKey, fingerprint, comment)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      publicKey,
+      fingerprint,
+      comment,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as GitSshKeyMessage
+    return GitApiPigeonUtils.deepEquals(this.publicKey, other.publicKey) && GitApiPigeonUtils.deepEquals(this.fingerprint, other.fingerprint) && GitApiPigeonUtils.deepEquals(this.comment, other.comment)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.publicKey)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.fingerprint)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.comment)
+    return result
+  }
+  override fun toString(): String {
+    return "GitSshKeyMessage(publicKey=$publicKey, fingerprint=$fingerprint, comment=$comment)"
+  }
+}
+
+/**
+ * A new key, or why not.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class GitSshKeyResultMessage (
+  val key: GitSshKeyMessage? = null,
+  /** 'not_ready', 'bad_request' or 'launch_failed'. */
+  val failure: String? = null,
+  val detail: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): GitSshKeyResultMessage {
+      val key = pigeonVar_list[0] as GitSshKeyMessage?
+      val failure = pigeonVar_list[1] as String?
+      val detail = pigeonVar_list[2] as String?
+      return GitSshKeyResultMessage(key, failure, detail)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      key,
+      failure,
+      detail,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as GitSshKeyResultMessage
+    return GitApiPigeonUtils.deepEquals(this.key, other.key) && GitApiPigeonUtils.deepEquals(this.failure, other.failure) && GitApiPigeonUtils.deepEquals(this.detail, other.detail)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.key)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.failure)
+    result = 31 * result + GitApiPigeonUtils.deepHash(this.detail)
+    return result
+  }
+  override fun toString(): String {
+    return "GitSshKeyResultMessage(key=$key, failure=$failure, detail=$detail)"
+  }
+}
+
+/**
  * The answer to a run: null [failure] when it runs, and its events follow.
  *
  * Generated class from Pigeon that represents data sent in messages.
@@ -274,7 +561,8 @@ data class GitRunMessage (
 data class GitStartMessage (
   /**
    * Why it does not run: 'not_ready', 'bad_request', 'refused',
-   * 'no_such_project', 'busy' or 'launch_failed' (git/GitCommands.kt).
+   * 'no_such_project', 'exists', 'busy' or 'launch_failed'
+   * (git/GitCommands.kt).
    */
   val failure: String? = null,
   /** What was wrong, in words; never a path or an argument. */
@@ -331,9 +619,9 @@ data class GitExitMessage (
   val exitCode: Long? = null,
   /**
    * When the host ended it or could not run it: 'not_ready',
-   * 'bad_request', 'launch_failed', 'timed_out', 'stopped', 'signaled' or
-   * 'too_large'. Null with no exit code when it was ended at the cap
-   * ([truncated]): what came is a beginning.
+   * 'bad_request', 'launch_failed', 'timed_out', 'stopped', 'signaled',
+   * 'too_large', or 'exists' (a clone's name taken meanwhile). Null when
+   * git exited by itself, or was ended at the cap ([truncated]).
    */
   val failure: String? = null,
   val detail: String? = null,
@@ -342,7 +630,11 @@ data class GitExitMessage (
   /** Records passed on, and their characters. */
   val records: Long,
   val chars: Long,
-  /** Ended at the run's cap of records, or the host's of 64 MiB. */
+  /**
+   * Ended at the run's cap of records, or the host's of 64 MiB: what came
+   * is a beginning, with no exit code, or git's when it had finished
+   * writing before the end reached it.
+   */
   val truncated: Boolean,
   val elapsedMs: Long
 )
@@ -415,10 +707,35 @@ private open class GitApiPigeonCodec : StandardMessageCodec() {
       }
       130.toByte() -> {
         (readValue(buffer) as? List<Any?>)?.let {
-          GitStartMessage.fromList(it)
+          GitCredentialPromptMessage.fromList(it)
         }
       }
       131.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          GitCredentialAnswerMessage.fromList(it)
+        }
+      }
+      132.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          GitAccountMessage.fromList(it)
+        }
+      }
+      133.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          GitSshKeyMessage.fromList(it)
+        }
+      }
+      134.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          GitSshKeyResultMessage.fromList(it)
+        }
+      }
+      135.toByte() -> {
+        (readValue(buffer) as? List<Any?>)?.let {
+          GitStartMessage.fromList(it)
+        }
+      }
+      136.toByte() -> {
         (readValue(buffer) as? List<Any?>)?.let {
           GitExitMessage.fromList(it)
         }
@@ -432,12 +749,32 @@ private open class GitApiPigeonCodec : StandardMessageCodec() {
         stream.write(129)
         writeValue(stream, value.toList())
       }
-      is GitStartMessage -> {
+      is GitCredentialPromptMessage -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
-      is GitExitMessage -> {
+      is GitCredentialAnswerMessage -> {
         stream.write(131)
+        writeValue(stream, value.toList())
+      }
+      is GitAccountMessage -> {
+        stream.write(132)
+        writeValue(stream, value.toList())
+      }
+      is GitSshKeyMessage -> {
+        stream.write(133)
+        writeValue(stream, value.toList())
+      }
+      is GitSshKeyResultMessage -> {
+        stream.write(134)
+        writeValue(stream, value.toList())
+      }
+      is GitStartMessage -> {
+        stream.write(135)
+        writeValue(stream, value.toList())
+      }
+      is GitExitMessage -> {
+        stream.write(136)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -455,6 +792,21 @@ interface GitApi {
    * when it is not running.
    */
   fun stop(runId: Long, callback: (Result<Boolean>) -> Unit)
+  /**
+   * Answers a prompt (Phase 7 W3); one that no run waits for any more is
+   * dropped.
+   */
+  fun answerCredential(answer: GitCredentialAnswerMessage, callback: (Result<Unit>) -> Unit)
+  /** The stored credentials' hosts and user names, newest first. */
+  fun accounts(callback: (Result<List<GitAccountMessage>>) -> Unit)
+  /** Removes a stored credential; false when there was none. */
+  fun removeAccount(kind: String, host: String, username: String, callback: (Result<Boolean>) -> Unit)
+  /** CodeForge's SSH key, or null. */
+  fun sshKey(callback: (Result<GitSshKeyMessage?>) -> Unit)
+  /** Makes a new SSH key named [comment], replacing CodeForge's last one. */
+  fun createSshKey(comment: String, callback: (Result<GitSshKeyResultMessage>) -> Unit)
+  /** Removes the SSH key and its passphrase; false when there was none. */
+  fun deleteSshKey(callback: (Result<Boolean>) -> Unit)
 
   companion object {
     /** The codec used by GitApi. */
@@ -492,6 +844,121 @@ interface GitApi {
             val args = message as List<Any?>
             val runIdArg = args[0] as Long
             api.stop(runIdArg) { result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(GitApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(GitApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.GitApi.answerCredential$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val answerArg = args[0] as GitCredentialAnswerMessage
+            api.answerCredential(answerArg) { result: Result<Unit> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(GitApiPigeonUtils.wrapError(error))
+              } else {
+                reply.reply(GitApiPigeonUtils.wrapResult(null))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.GitApi.accounts$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.accounts{ result: Result<List<GitAccountMessage>> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(GitApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(GitApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.GitApi.removeAccount$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val kindArg = args[0] as String
+            val hostArg = args[1] as String
+            val usernameArg = args[2] as String
+            api.removeAccount(kindArg, hostArg, usernameArg) { result: Result<Boolean> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(GitApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(GitApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.GitApi.sshKey$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.sshKey{ result: Result<GitSshKeyMessage?> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(GitApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(GitApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.GitApi.createSshKey$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val commentArg = args[0] as String
+            api.createSshKey(commentArg) { result: Result<GitSshKeyResultMessage> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(GitApiPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(GitApiPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.codeforge.GitApi.deleteSshKey$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.deleteSshKey{ result: Result<Boolean> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(GitApiPigeonUtils.wrapError(error))
@@ -566,6 +1033,69 @@ class GitEvents(private val binaryMessenger: BinaryMessenger, private val messag
     val channelName = "dev.flutter.pigeon.codeforge.GitEvents.exited$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(listOf(exitArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(GitApiPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  /**
+   * A remote run asks the user (Phase 7 W3); answered through
+   * [GitApi.answerCredential].
+   */
+  fun credentialRequested(promptArg: GitCredentialPromptMessage, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.codeforge.GitEvents.credentialRequested$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(promptArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(GitApiPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  /**
+   * Prompt [id] is no longer waited for (its run ended, or timed out): its
+   * dialog closes.
+   */
+  fun credentialWithdrawn(idArg: Long, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.codeforge.GitEvents.credentialWithdrawn$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(idArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(GitApiPigeonUtils.createConnectionError(channelName)))
+      } 
+    }
+  }
+  /**
+   * A host refused the credential stored for [host] and [username] during
+   * run [runId], and it was removed from the store.
+   */
+  fun credentialRejected(runIdArg: Long, hostArg: String, usernameArg: String, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.codeforge.GitEvents.credentialRejected$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(runIdArg, hostArg, usernameArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

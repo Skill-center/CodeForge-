@@ -61,8 +61,9 @@ final class ScriptedGitHost implements GitHost {
 
   final StreamController<GitCredentialPrompt> _prompts =
       StreamController<GitCredentialPrompt>.broadcast(sync: true);
-  final StreamController<int> _withdrawn =
-      StreamController<int>.broadcast(sync: true);
+  final StreamController<int> _withdrawn = StreamController<int>.broadcast(
+    sync: true,
+  );
   final StreamController<GitCredentialRejected> _rejected =
       StreamController<GitCredentialRejected>.broadcast(sync: true);
 

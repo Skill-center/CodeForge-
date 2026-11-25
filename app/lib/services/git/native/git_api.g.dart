@@ -184,12 +184,335 @@ class GitRunMessage {
   }
 }
 
+/// What a remote run asks the user (Phase 7 W3): a token for a host over
+/// HTTPS, or whether to trust a host ssh has not seen.
+class GitCredentialPromptMessage {
+  GitCredentialPromptMessage({
+    required this.id,
+    required this.runId,
+    required this.kind,
+    required this.host,
+    this.username,
+    this.fingerprint,
+    this.keyType,
+  });
+
+  /// Answered with this id ([GitApi.answerCredential]).
+  int id;
+
+  int runId;
+
+  /// 'https' (a user name and a token) or 'host_key' (trust a new host).
+  String kind;
+
+  /// git's host (`github.com`, `127.0.0.1:8080`), or ssh's.
+  String host;
+
+  /// The user name the URL names, if any.
+  String? username;
+
+  /// A new host's key: its SHA-256 fingerprint and its type (`ED25519`).
+  String? fingerprint;
+
+  String? keyType;
+
+  List<Object?> _toList() {
+    return <Object?>[id, runId, kind, host, username, fingerprint, keyType];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static GitCredentialPromptMessage decode(Object result) {
+    result as List<Object?>;
+    return GitCredentialPromptMessage(
+      id: result[0]! as int,
+      runId: result[1]! as int,
+      kind: result[2]! as String,
+      host: result[3]! as String,
+      username: result[4] as String?,
+      fingerprint: result[5] as String?,
+      keyType: result[6] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! GitCredentialPromptMessage ||
+        other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) &&
+        _deepEquals(runId, other.runId) &&
+        _deepEquals(kind, other.kind) &&
+        _deepEquals(host, other.host) &&
+        _deepEquals(username, other.username) &&
+        _deepEquals(fingerprint, other.fingerprint) &&
+        _deepEquals(keyType, other.keyType);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'GitCredentialPromptMessage(id: $id, runId: $runId, kind: $kind, host: $host, username: $username, fingerprint: $fingerprint, keyType: $keyType)';
+  }
+}
+
+/// The user's answer to a prompt.
+class GitCredentialAnswerMessage {
+  GitCredentialAnswerMessage({
+    required this.id,
+    required this.accepted,
+    this.username,
+    this.secret,
+    required this.remember,
+  });
+
+  int id;
+
+  /// False: cancelled, or the host not trusted.
+  bool accepted;
+
+  String? username;
+
+  /// The token or password: one line, never logged.
+  String? secret;
+
+  /// Keep it in the store once the host accepts it.
+  bool remember;
+
+  List<Object?> _toList() {
+    return <Object?>[id, accepted, username, secret, remember];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static GitCredentialAnswerMessage decode(Object result) {
+    result as List<Object?>;
+    return GitCredentialAnswerMessage(
+      id: result[0]! as int,
+      accepted: result[1]! as bool,
+      username: result[2] as String?,
+      secret: result[3] as String?,
+      remember: result[4]! as bool,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! GitCredentialAnswerMessage ||
+        other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(id, other.id) &&
+        _deepEquals(accepted, other.accepted) &&
+        _deepEquals(username, other.username) &&
+        _deepEquals(secret, other.secret) &&
+        _deepEquals(remember, other.remember);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'GitCredentialAnswerMessage(id: $id, accepted: $accepted, username: $username, secret: $secret, remember: $remember)';
+  }
+}
+
+/// A stored credential as Settings lists it: never its secret.
+class GitAccountMessage {
+  GitAccountMessage({
+    required this.kind,
+    required this.host,
+    required this.username,
+    required this.updatedAt,
+  });
+
+  /// 'https' or 'ssh_key'.
+  String kind;
+
+  String host;
+
+  String username;
+
+  /// Milliseconds since the epoch.
+  int updatedAt;
+
+  List<Object?> _toList() {
+    return <Object?>[kind, host, username, updatedAt];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static GitAccountMessage decode(Object result) {
+    result as List<Object?>;
+    return GitAccountMessage(
+      kind: result[0]! as String,
+      host: result[1]! as String,
+      username: result[2]! as String,
+      updatedAt: result[3]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! GitAccountMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(kind, other.kind) &&
+        _deepEquals(host, other.host) &&
+        _deepEquals(username, other.username) &&
+        _deepEquals(updatedAt, other.updatedAt);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'GitAccountMessage(kind: $kind, host: $host, username: $username, updatedAt: $updatedAt)';
+  }
+}
+
+/// CodeForge's SSH key's public half.
+class GitSshKeyMessage {
+  GitSshKeyMessage({
+    required this.publicKey,
+    required this.fingerprint,
+    required this.comment,
+  });
+
+  /// `ssh-ed25519 AAAA... comment`, to copy into a host's settings.
+  String publicKey;
+
+  /// `SHA256:...`, as ssh-keygen prints it.
+  String fingerprint;
+
+  String comment;
+
+  List<Object?> _toList() {
+    return <Object?>[publicKey, fingerprint, comment];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static GitSshKeyMessage decode(Object result) {
+    result as List<Object?>;
+    return GitSshKeyMessage(
+      publicKey: result[0]! as String,
+      fingerprint: result[1]! as String,
+      comment: result[2]! as String,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! GitSshKeyMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(publicKey, other.publicKey) &&
+        _deepEquals(fingerprint, other.fingerprint) &&
+        _deepEquals(comment, other.comment);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'GitSshKeyMessage(publicKey: $publicKey, fingerprint: $fingerprint, comment: $comment)';
+  }
+}
+
+/// A new key, or why not.
+class GitSshKeyResultMessage {
+  GitSshKeyResultMessage({this.key, this.failure, this.detail});
+
+  GitSshKeyMessage? key;
+
+  /// 'not_ready', 'bad_request' or 'launch_failed'.
+  String? failure;
+
+  String? detail;
+
+  List<Object?> _toList() {
+    return <Object?>[key, failure, detail];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static GitSshKeyResultMessage decode(Object result) {
+    result as List<Object?>;
+    return GitSshKeyResultMessage(
+      key: result[0] as GitSshKeyMessage?,
+      failure: result[1] as String?,
+      detail: result[2] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! GitSshKeyResultMessage || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(key, other.key) &&
+        _deepEquals(failure, other.failure) &&
+        _deepEquals(detail, other.detail);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'GitSshKeyResultMessage(key: $key, failure: $failure, detail: $detail)';
+  }
+}
+
 /// The answer to a run: null [failure] when it runs, and its events follow.
 class GitStartMessage {
   GitStartMessage({this.failure, this.detail});
 
   /// Why it does not run: 'not_ready', 'bad_request', 'refused',
-  /// 'no_such_project', 'busy' or 'launch_failed' (git/GitCommands.kt).
+  /// 'no_such_project', 'exists', 'busy' or 'launch_failed'
+  /// (git/GitCommands.kt).
   String? failure;
 
   /// What was wrong, in words; never a path or an argument.
@@ -258,9 +581,9 @@ class GitExitMessage {
   int? exitCode;
 
   /// When the host ended it or could not run it: 'not_ready',
-  /// 'bad_request', 'launch_failed', 'timed_out', 'stopped', 'signaled' or
-  /// 'too_large'. Null with no exit code when it was ended at the cap
-  /// ([truncated]): what came is a beginning.
+  /// 'bad_request', 'launch_failed', 'timed_out', 'stopped', 'signaled',
+  /// 'too_large', or 'exists' (a clone's name taken meanwhile). Null when
+  /// git exited by itself, or was ended at the cap ([truncated]).
   String? failure;
 
   String? detail;
@@ -273,7 +596,9 @@ class GitExitMessage {
 
   int chars;
 
-  /// Ended at the run's cap of records, or the host's of 64 MiB.
+  /// Ended at the run's cap of records, or the host's of 64 MiB: what came
+  /// is a beginning, with no exit code, or git's when it had finished
+  /// writing before the end reached it.
   bool truncated;
 
   int elapsedMs;
@@ -354,11 +679,26 @@ class _PigeonCodec extends StandardMessageCodec {
     } else if (value is GitRunMessage) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
-    } else if (value is GitStartMessage) {
+    } else if (value is GitCredentialPromptMessage) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
-    } else if (value is GitExitMessage) {
+    } else if (value is GitCredentialAnswerMessage) {
       buffer.putUint8(131);
+      writeValue(buffer, value.encode());
+    } else if (value is GitAccountMessage) {
+      buffer.putUint8(132);
+      writeValue(buffer, value.encode());
+    } else if (value is GitSshKeyMessage) {
+      buffer.putUint8(133);
+      writeValue(buffer, value.encode());
+    } else if (value is GitSshKeyResultMessage) {
+      buffer.putUint8(134);
+      writeValue(buffer, value.encode());
+    } else if (value is GitStartMessage) {
+      buffer.putUint8(135);
+      writeValue(buffer, value.encode());
+    } else if (value is GitExitMessage) {
+      buffer.putUint8(136);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -371,8 +711,18 @@ class _PigeonCodec extends StandardMessageCodec {
       case 129:
         return GitRunMessage.decode(readValue(buffer)!);
       case 130:
-        return GitStartMessage.decode(readValue(buffer)!);
+        return GitCredentialPromptMessage.decode(readValue(buffer)!);
       case 131:
+        return GitCredentialAnswerMessage.decode(readValue(buffer)!);
+      case 132:
+        return GitAccountMessage.decode(readValue(buffer)!);
+      case 133:
+        return GitSshKeyMessage.decode(readValue(buffer)!);
+      case 134:
+        return GitSshKeyResultMessage.decode(readValue(buffer)!);
+      case 135:
+        return GitStartMessage.decode(readValue(buffer)!);
+      case 136:
         return GitExitMessage.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -437,6 +787,126 @@ class GitApi {
     );
     return pigeonVar_replyValue! as bool;
   }
+
+  /// Answers a prompt (Phase 7 W3); one that no run waits for any more is
+  /// dropped.
+  Future<void> answerCredential(GitCredentialAnswerMessage answer) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.GitApi.answerCredential$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[answer],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
+
+  /// The stored credentials' hosts and user names, newest first.
+  Future<List<GitAccountMessage>> accounts() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.GitApi.accounts$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return (pigeonVar_replyValue! as List<Object?>).cast<GitAccountMessage>();
+  }
+
+  /// Removes a stored credential; false when there was none.
+  Future<bool> removeAccount(String kind, String host, String username) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.GitApi.removeAccount$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[kind, host, username],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as bool;
+  }
+
+  /// CodeForge's SSH key, or null.
+  Future<GitSshKeyMessage?> sshKey() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.GitApi.sshKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+    return pigeonVar_replyValue as GitSshKeyMessage?;
+  }
+
+  /// Makes a new SSH key named [comment], replacing CodeForge's last one.
+  Future<GitSshKeyResultMessage> createSshKey(String comment) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.GitApi.createSshKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(
+      <Object?>[comment],
+    );
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as GitSshKeyResultMessage;
+  }
+
+  /// Removes the SSH key and its passphrase; false when there was none.
+  Future<bool> deleteSshKey() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.codeforge.GitApi.deleteSshKey$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as bool;
+  }
 }
 
 /// What the Git host tells Dart unasked.
@@ -452,6 +922,18 @@ abstract class GitEvents {
 
   /// Run [runId] ended; nothing of it follows.
   Future<void> exited(GitExitMessage exit);
+
+  /// A remote run asks the user (Phase 7 W3); answered through
+  /// [GitApi.answerCredential].
+  Future<void> credentialRequested(GitCredentialPromptMessage prompt);
+
+  /// Prompt [id] is no longer waited for (its run ended, or timed out): its
+  /// dialog closes.
+  Future<void> credentialWithdrawn(int id);
+
+  /// A host refused the credential stored for [host] and [username] during
+  /// run [runId], and it was removed from the store.
+  Future<void> credentialRejected(int runId, String host, String username);
 
   static void setUp(
     GitEvents? api, {
@@ -529,6 +1011,84 @@ abstract class GitEvents {
           final GitExitMessage arg_exit = args[0]! as GitExitMessage;
           try {
             await api.exited(arg_exit);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.codeforge.GitEvents.credentialRequested$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final GitCredentialPromptMessage arg_prompt =
+              args[0]! as GitCredentialPromptMessage;
+          try {
+            await api.credentialRequested(arg_prompt);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.codeforge.GitEvents.credentialWithdrawn$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_id = args[0]! as int;
+          try {
+            await api.credentialWithdrawn(arg_id);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          } catch (e) {
+            return wrapResponse(
+              error: PlatformException(code: 'error', message: e.toString()),
+            );
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.codeforge.GitEvents.credentialRejected$messageChannelSuffix',
+        pigeonChannelCodec,
+        binaryMessenger: binaryMessenger,
+      );
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_runId = args[0]! as int;
+          final String arg_host = args[1]! as String;
+          final String arg_username = args[2]! as String;
+          try {
+            await api.credentialRejected(arg_runId, arg_host, arg_username);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

@@ -185,7 +185,9 @@ void _checkUser(String user) {
     throw const GitUrlProblem(_token);
   }
   if (decoded.length > 256 ||
-      decoded.runes.any((r) => r <= 0x20 || r == 0x7f || r == 0x40 || r == 0x2f)) {
+      decoded.runes.any(
+        (r) => r <= 0x20 || r == 0x7f || r == 0x40 || r == 0x2f,
+      )) {
     throw const GitUrlProblem('That is not a user name.');
   }
 }
@@ -251,7 +253,10 @@ bool looksLikeToken(String user) {
 bool isLoopbackHost(String host) {
   String name;
   if (host.startsWith('[')) {
-    name = host.substring(1, host.contains(']') ? host.indexOf(']') : host.length);
+    name = host.substring(
+      1,
+      host.contains(']') ? host.indexOf(']') : host.length,
+    );
   } else if (':'.allMatches(host).length == 1) {
     name = host.substring(0, host.indexOf(':'));
   } else {

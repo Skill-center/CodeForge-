@@ -218,7 +218,7 @@ final class PigeonGitHost implements GitHost {
 
   @override
   Future<Result<bool>> deleteSshKey() =>
-      _call('delete_ssh_key', () => _api.deleteSshKey());
+      _call('delete_ssh_key', _api.deleteSshKey);
 
   static GitSshKey _keyOf(GitSshKeyMessage key) => GitSshKey(
     publicKey: key.publicKey,

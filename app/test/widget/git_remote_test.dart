@@ -124,9 +124,7 @@ void main() {
     expect(git.answers.last.secret, isNull);
   });
 
-  testWidgets('a question its run gave up on closes, declined', (
-    tester,
-  ) async {
+  testWidgets('a question its run gave up on closes, declined', (tester) async {
     final git = ScriptedGitService();
     await _home(tester, TestHarness(git: git));
     git.ask(_https);
@@ -138,7 +136,7 @@ void main() {
     expect(git.answers.single.accepted, isFalse);
   });
 
-  testWidgets("a new SSH host shows its fingerprint and whether it is the "
+  testWidgets('a new SSH host shows its fingerprint and whether it is the '
       "host's published key", (tester) async {
     final git = ScriptedGitService();
     await _home(tester, TestHarness(git: git));
@@ -172,7 +170,11 @@ void main() {
     final git = ScriptedGitService();
     await _home(tester, TestHarness(git: git));
     git.reject(
-      const GitCredentialRejected(runId: 3, host: 'github.com', username: 'ada'),
+      const GitCredentialRejected(
+        runId: 3,
+        host: 'github.com',
+        username: 'ada',
+      ),
     );
     await tester.pump();
     expect(
@@ -189,7 +191,12 @@ void main() {
       'clones and opens it', (tester) async {
     final git = ScriptedGitService()
       ..remoteProgress = const [
-        GitProgress(phase: 'Receiving objects', percent: 40, done: 4, total: 10),
+        GitProgress(
+          phase: 'Receiving objects',
+          percent: 40,
+          done: 4,
+          total: 10,
+        ),
       ];
     final harness = TestHarness(git: git);
     git.onOperation = (call) {
@@ -257,13 +264,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.tap(_key('git_progress_stop'));
     await tester.pump();
-    expect(
-      tester.widget<Text>(_key('git_progress_text')).data,
-      'Stopping…',
-    );
+    expect(tester.widget<Text>(_key('git_progress_text')).data, 'Stopping…');
     git.holdOperations!.complete();
     await tester.pumpAndSettle();
-    expect(find.text('The clone was stopped. Nothing was kept.'), findsOneWidget);
+    expect(
+      find.text('The clone was stopped. Nothing was kept.'),
+      findsOneWidget,
+    );
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
   });
@@ -287,7 +294,9 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
           if (call.method == 'Clipboard.setData') {
-            copied.add((call.arguments as Map<Object?, Object?>)['text']! as String);
+            copied.add(
+              (call.arguments as Map<Object?, Object?>)['text']! as String,
+            );
           }
           return null;
         });
@@ -306,8 +315,10 @@ void main() {
       ];
     setSurface(tester, 412, 1600);
     await tester.pumpWidget(
-      TestHarness(shell: const ShellState(lastRoute: '/settings'), git: git)
-          .app(),
+      TestHarness(
+        shell: const ShellState(lastRoute: '/settings'),
+        git: git,
+      ).app(),
     );
     await tester.pumpAndSettle();
     final tile = _key('settings_source_control');
@@ -395,5 +406,4 @@ void main() {
     }
     expect(git.calls, ['fetch', 'pull', 'push origin main']);
   });
-
 }

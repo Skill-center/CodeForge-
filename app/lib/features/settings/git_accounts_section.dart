@@ -169,9 +169,9 @@ class _GitAccountsSectionState extends ConsumerState<GitAccountsSection> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Public key copied')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Public key copied')));
   }
 
   Future<void> _whileBusy(Future<void> Function() work) async {

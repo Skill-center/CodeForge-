@@ -233,7 +233,10 @@ class _WorkbenchScreenState extends ConsumerState<WorkbenchScreen>
       context,
       title: title,
       run: (onProgress, stop) => switch (intent) {
-        WorkbenchIntent.gitFetch => git.fetch(onProgress: onProgress, stop: stop),
+        WorkbenchIntent.gitFetch => git.fetch(
+          onProgress: onProgress,
+          stop: stop,
+        ),
         WorkbenchIntent.gitPull => git.pull(onProgress: onProgress, stop: stop),
         _ => git.push(onProgress: onProgress, stop: stop),
       },

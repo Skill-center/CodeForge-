@@ -262,11 +262,7 @@ final class ScriptedGitService implements GitService {
     String? branch,
     void Function(GitProgress progress)? onProgress,
     Future<void>? stop,
-  }) => _remote(
-    ['pull', ?remote, ?branch].join(' '),
-    onProgress,
-    stop,
-  );
+  }) => _remote(['pull', ?remote, ?branch].join(' '), onProgress, stop);
 
   @override
   Future<Result<void>> push(
@@ -284,8 +280,9 @@ final class ScriptedGitService implements GitService {
 
   final StreamController<GitCredentialPrompt> _prompts =
       StreamController<GitCredentialPrompt>.broadcast(sync: true);
-  final StreamController<int> _withdrawn =
-      StreamController<int>.broadcast(sync: true);
+  final StreamController<int> _withdrawn = StreamController<int>.broadcast(
+    sync: true,
+  );
   final StreamController<GitCredentialRejected> _rejected =
       StreamController<GitCredentialRejected>.broadcast(sync: true);
 

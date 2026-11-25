@@ -416,7 +416,9 @@ void main() {
 
     // A detached HEAD has nothing to push.
     world.git.statusResult = const Ok(
-      GitStatus(branch: GitBranchState(oid: '1111111111111111111111111111111111111111')),
+      GitStatus(
+        branch: GitBranchState(oid: '1111111111111111111111111111111111111111'),
+      ),
     );
     world.controller.changed();
     await _settle();
