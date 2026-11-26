@@ -494,7 +494,14 @@ void main() {
         timeout: const Duration(seconds: 120),
       );
       final folderMain = docIdOf('lsp_main.py');
-      expect(host.diagnosticsShown(folderMain), 1);
+      // The app's own count comes from the client; the page is told after
+      // it, so wait for the underline rather than reading it in the same
+      // frame (phase gate 45817035219 read 0 here).
+      await pumpUntil(
+        tester,
+        () => host.diagnosticsShown(folderMain) == 1,
+        what: "the page to underline the folder's deliberate error",
+      );
       expect((await host.gotoLine(3, column: 2)).isOk, isTrue);
       expect(await asks('goToDefinition', 'lsp.definition'), {'found': 1});
       await pumpUntil(
