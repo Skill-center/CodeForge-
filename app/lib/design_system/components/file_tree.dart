@@ -77,8 +77,7 @@ class CfTreeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
     final fg =
-        stateColor ??
-        (node.hidden ? colors.textDisabled : colors.textPrimary);
+        stateColor ?? (node.hidden ? colors.textDisabled : colors.textPrimary);
     return Material(
       color: selected ? colors.accentEmberSoft : Colors.transparent,
       child: InkWell(

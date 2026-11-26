@@ -342,5 +342,9 @@ final class GitPanelController extends Notifier<GitPanelState> {
 
   GitFailure _gitFailure(Failure failure) => failure is GitFailure
       ? failure
-      : GitFailure(failure.message, problem: GitProblem.unknown, cause: failure);
+      : GitFailure(
+          failure.message,
+          problem: GitProblem.unknown,
+          cause: failure,
+        );
 }

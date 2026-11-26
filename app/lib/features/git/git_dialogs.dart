@@ -266,10 +266,7 @@ class _CommitSheetState extends State<_CommitSheet> {
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (files.isEmpty)
-              Text(
-                'This commit changed no files.',
-                style: textTheme.bodySmall,
-              )
+              Text('This commit changed no files.', style: textTheme.bodySmall)
             else
               Flexible(
                 child: ListView.builder(

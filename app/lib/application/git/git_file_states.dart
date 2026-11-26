@@ -82,10 +82,7 @@ final class GitFileStates {
         continue;
       }
       // A rename shows at both ends: where the file was, and where it is.
-      final paths = <String>[
-        file.path,
-        if (file.originalPath case final from?) from,
-      ];
+      final paths = <String>[file.path, ?file.originalPath];
       for (final path in paths) {
         final worst = files[path];
         if (worst == null || state.worseThan(worst)) {

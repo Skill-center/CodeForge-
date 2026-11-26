@@ -143,7 +143,9 @@ void main() {
     // The status comes back with another commit on the branch.
     git
       ..statusResult = const Ok(
-        GitStatus(branch: GitBranchState(head: 'main', oid: 'c')),
+        GitStatus(
+          branch: GitBranchState(head: 'main', oid: 'c'),
+        ),
       )
       ..branchesValue = [_branch('main'), _branch('dev')];
     await world.container.read(gitControllerProvider.notifier).refresh();
@@ -171,7 +173,9 @@ void main() {
         operation: 'branches',
       )
       ..statusResult = const Ok(
-        GitStatus(branch: GitBranchState(head: 'other', oid: 'c')),
+        GitStatus(
+          branch: GitBranchState(head: 'other', oid: 'c'),
+        ),
       );
     await world.container.read(gitControllerProvider.notifier).refresh();
     await _settle();
@@ -248,7 +252,9 @@ void main() {
     const repo = GitRepoState(
       kind: GitRepoKind.repository,
       project: 'demo',
-      status: GitStatus(branch: GitBranchState(head: 'main', oid: 'a')),
+      status: GitStatus(
+        branch: GitBranchState(head: 'main', oid: 'a'),
+      ),
     );
     const staged = GitRepoState(
       kind: GitRepoKind.repository,

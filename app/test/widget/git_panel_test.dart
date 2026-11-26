@@ -69,20 +69,17 @@ GitBranch _branch(String name, {bool current = false}) => GitBranch(
 );
 
 /// A repository on `main`, tracking `origin/main`, with [files] changed.
-GitStatus _status(
-  List<GitFileStatus> files, {
-  int ahead = 0,
-  int behind = 0,
-}) => GitStatus(
-  branch: GitBranchState(
-    head: 'main',
-    oid: 'a' * 40,
-    upstream: 'origin/main',
-    ahead: ahead,
-    behind: behind,
-  ),
-  files: files,
-);
+GitStatus _status(List<GitFileStatus> files, {int ahead = 0, int behind = 0}) =>
+    GitStatus(
+      branch: GitBranchState(
+        head: 'main',
+        oid: 'a' * 40,
+        upstream: 'origin/main',
+        ahead: ahead,
+        behind: behind,
+      ),
+      files: files,
+    );
 
 /// The workbench with the Source control panel showing over [git].
 Future<void> _panel(WidgetTester tester, ScriptedGitService git) async {
@@ -108,9 +105,7 @@ void main() {
       _file('changed.js', workTree: GitChange.modified),
       const GitFileStatus(path: 'new.js', kind: GitEntryKind.untracked),
     ];
-    final git = ScriptedGitService(
-      status: _status(files, ahead: 2, behind: 1),
-    );
+    final git = ScriptedGitService(status: _status(files, ahead: 2, behind: 1));
     await _panel(tester, git);
 
     expect(_key('git_panel'), findsOneWidget);
@@ -137,11 +132,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(_key('git_stage_all'));
     await tester.pumpAndSettle();
-    expect(git.calls, [
-      'stage changed.js',
-      'unstage staged.js',
-      'stage_all',
-    ]);
+    expect(git.calls, ['stage changed.js', 'unstage staged.js', 'stage_all']);
   });
 
   testWidgets('a discard names the file, and a new file is deleted', (
@@ -449,9 +440,7 @@ void main() {
     expect(git.calls, ['init main']);
   });
 
-  testWidgets('a folder from shared storage offers the import', (
-    tester,
-  ) async {
+  testWidgets('a folder from shared storage offers the import', (tester) async {
     const uri =
         'content://com.android.externalstorage.documents/tree/primary%3Asite';
     final broker = FakeStorageBroker()

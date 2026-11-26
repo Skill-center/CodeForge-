@@ -84,8 +84,10 @@ void main() {
       GitFileState.conflicted,
       reason: 'a conflict under it is the worst there is',
     );
-    expect(states.stateOf('src/deep', isDirectory: true),
-        GitFileState.conflicted);
+    expect(
+      states.stateOf('src/deep', isDirectory: true),
+      GitFileState.conflicted,
+    );
     expect(states.stateOf('docs', isDirectory: true), GitFileState.modified);
     expect(states.stateOf('src'), isNull, reason: 'as a file it is nothing');
     expect(states.stateOf('other', isDirectory: true), isNull);
@@ -111,15 +113,16 @@ void main() {
 
   test('the states are ordered worst first, with a letter and a word', () {
     expect(GitFileState.values.first, GitFileState.conflicted);
-    expect(
-      GitFileState.conflicted.worseThan(GitFileState.untracked),
-      isTrue,
-    );
+    expect(GitFileState.conflicted.worseThan(GitFileState.untracked), isTrue);
     expect(GitFileState.untracked.worseThan(GitFileState.deleted), isFalse);
-    expect(
-      GitFileState.values.map((s) => s.letter).toList(),
-      ['!', 'D', 'M', 'R', 'A', 'U'],
-    );
+    expect(GitFileState.values.map((s) => s.letter).toList(), [
+      '!',
+      'D',
+      'M',
+      'R',
+      'A',
+      'U',
+    ]);
     for (final state in GitFileState.values) {
       expect(state.word, isNotEmpty);
     }
