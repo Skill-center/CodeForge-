@@ -384,6 +384,11 @@ class _ActivityButton extends StatelessWidget {
 }
 
 /// Bottom status strip: workspace, branch, runtime, cursor, language.
+///
+/// The chips stretch to the bar's full height, so a chip that can be
+/// tapped (the branch, the last run, the problems, a language server)
+/// takes the whole cell under the finger rather than the line of text
+/// inside it (Phase 7 W4).
 class CfStatusStrip extends StatelessWidget {
   const CfStatusStrip({super.key, required this.children});
 
@@ -399,7 +404,10 @@ class CfStatusStrip extends StatelessWidget {
         border: Border(top: BorderSide(color: colors.borderSubtle)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: CfSpacing.xs),
-      child: Row(children: children),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
     );
   }
 }

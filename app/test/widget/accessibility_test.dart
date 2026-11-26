@@ -300,8 +300,11 @@ bool _insideMaterialButton(Element element) {
 /// bar's Source control item for the branch chip (Phase 7 W4), the Run
 /// panel for the run chip, the palette's *Show Problems* for the problems
 /// chip, Settings for the language server's restart — so the direct sweep
-/// below skips them. Their labels are still checked by the stock
-/// guidelines, and the tests of each feature prove the shortcut works.
+/// below skips them. A chip fills the bar's height, so the whole cell is
+/// the target, and the bar lies on the bottom edge of the screen, where
+/// Flutter's own guideline stops measuring. Their labels are still
+/// checked by the stock guidelines, and the tests of each feature prove
+/// the shortcut works.
 bool _insideStatusStrip(Element element) {
   var inside = false;
   element.visitAncestorElements((ancestor) {

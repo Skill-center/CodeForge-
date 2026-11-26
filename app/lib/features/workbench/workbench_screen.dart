@@ -894,6 +894,9 @@ class _StatusStripRow extends ConsumerWidget {
               reverse: true,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
+                // As in the strip itself: a chip that can be tapped takes
+                // the bar's full height, not its line of text (Phase 7 W4).
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _RunChip(onTap: onRunChip),
                   if (server != null && serverStatus != null) ...[
