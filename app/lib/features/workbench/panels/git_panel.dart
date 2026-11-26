@@ -200,7 +200,10 @@ class _GitPanelState extends ConsumerState<GitPanel> {
           return gitProblemMessage(GitProblem.invalidName);
         }
         final made = await _git.createBranch(name);
-        return made case Err<void>(:final failure) ? failure.message : null;
+        if (made case Err<void>(:final failure)) {
+          return failure.message;
+        }
+        return null;
       },
     );
     if (name != null) {
