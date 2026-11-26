@@ -92,7 +92,8 @@ class _GitPanelState extends ConsumerState<GitPanel> {
 
   GitController get _git => ref.read(gitControllerProvider.notifier);
 
-  GitPanelController get _panel => ref.read(gitPanelControllerProvider.notifier);
+  GitPanelController get _panel =>
+      ref.read(gitPanelControllerProvider.notifier);
 
   void _say(String message) {
     if (mounted) {
@@ -111,9 +112,9 @@ class _GitPanelState extends ConsumerState<GitPanel> {
   }
 
   Future<void> _open(String path) async {
-    final opened = await ref.read(documentControllerProvider.notifier).open(
-      path,
-    );
+    final opened = await ref
+        .read(documentControllerProvider.notifier)
+        .open(path);
     if (!mounted) {
       return;
     }
@@ -193,9 +194,9 @@ class _GitPanelState extends ConsumerState<GitPanel> {
       context,
       from: branch.unborn ? 'the first commit' : branch.label,
       submit: (name) async {
-        final valid = await ref.read(gitServiceProvider).isValidBranchName(
-          name,
-        );
+        final valid = await ref
+            .read(gitServiceProvider)
+            .isValidBranchName(name);
         if (valid case Ok<bool>(value: false)) {
           return gitProblemMessage(GitProblem.invalidName);
         }
@@ -665,7 +666,9 @@ class _GitPanelState extends ConsumerState<GitPanel> {
     if (untracked.isNotEmpty) {
       slivers
         ..add(
-          SliverToBoxAdapter(child: _groupHeader('New files', untracked.length)),
+          SliverToBoxAdapter(
+            child: _groupHeader('New files', untracked.length),
+          ),
         )
         ..add(_fileList(untracked, _GitFileGroup.untracked));
     }
