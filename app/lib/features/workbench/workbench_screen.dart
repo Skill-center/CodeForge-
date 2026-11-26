@@ -48,6 +48,7 @@ import 'file_actions.dart';
 import 'library_file_sheet.dart';
 import 'panels/editor_pane.dart';
 import 'panels/explorer_panel.dart';
+import 'panels/git_panel.dart';
 import 'panels/placeholder_panels.dart';
 import 'panels/run_panel.dart';
 import 'panels/search_panel.dart';
@@ -638,7 +639,10 @@ class _CompactPortraitLayout extends ConsumerWidget {
                       .setTerminalStop(TerminalStop.closed),
                 ),
               ),
-            _StatusStripRow(onRunChip: () => onActivitySelected('run')),
+            _StatusStripRow(
+              onRunChip: () => onActivitySelected('run'),
+              onBranchChip: () => onActivitySelected('git'),
+            ),
           ],
         );
       },
@@ -725,7 +729,10 @@ class _DockedLayout extends ConsumerWidget {
                       ),
                     ),
                   ],
-                  _StatusStripRow(onRunChip: () => onActivitySelected('run')),
+                  _StatusStripRow(
+                    onRunChip: () => onActivitySelected('run'),
+                    onBranchChip: () => onActivitySelected('git'),
+                  ),
                 ],
               );
             },
@@ -796,9 +803,12 @@ class _WorkbenchTopBar extends ConsumerWidget {
 /// The branch the open project's work tree is on, with a `*` when it has
 /// changes (Phase 7 W2). Nothing shows until a status has read the
 /// repository, nor in a project that is not one, nor in a folder from
-/// shared storage. Phase 7 W4's panel opens from it.
+/// shared storage. A tap opens the Source control panel (Phase 7 W4).
 class _BranchChip extends ConsumerWidget {
-  const _BranchChip();
+  const _BranchChip({required this.onTap});
+
+  /// Opens the Source control panel.
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -817,15 +827,19 @@ class _BranchChip extends ConsumerWidget {
       label: '${status.branch.label}${status.clean ? '' : '*'}',
       color: warn ? colors.warning : null,
       tooltip: gitBranchTooltip(git),
+      onTap: onTap,
     );
   }
 }
 
 class _StatusStripRow extends ConsumerWidget {
-  const _StatusStripRow({required this.onRunChip});
+  const _StatusStripRow({required this.onRunChip, required this.onBranchChip});
 
   /// The run chip's tap: the Run panel.
   final VoidCallback onRunChip;
+
+  /// The branch chip's tap: the Source control panel.
+  final VoidCallback onBranchChip;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -869,7 +883,7 @@ class _StatusStripRow extends ConsumerWidget {
     return CfStatusStrip(
       children: [
         // The open project's branch, once it is a repository (Phase 7 W2).
-        const _BranchChip(),
+        _BranchChip(onTap: onBranchChip),
         // The document's chips scroll rather than overflow on a narrow
         // phone at a large text scale.
         Expanded(
@@ -1128,7 +1142,7 @@ class _ActivityBody extends StatelessWidget {
     return switch (activity) {
       ShellActivity.explorer => ExplorerPanel(onFileOpened: onFileOpened),
       ShellActivity.search => SearchPanel(onFileOpened: onFileOpened),
-      ShellActivity.git => const GitPanel(),
+      ShellActivity.git => GitPanel(onFileOpened: onFileOpened),
       ShellActivity.extensions => const ExtensionsPanel(),
       ShellActivity.run => RunPanel(onRunStarted: onFileOpened),
     };

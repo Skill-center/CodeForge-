@@ -1,7 +1,9 @@
 /// A repository scripted by the test (Phase 7 W2), for the Git controller
 /// and the widgets: its status is what the test sets, a status can be held
 /// until the test lets it finish, and each operation is recorded and
-/// answered as the test says.
+/// answered as the test says. Phase 7 W4 added the reads the Source
+/// control panel makes — the branches, the log and a commit's files — set
+/// the same way, each recorded in [reads].
 library;
 
 import 'dart:async';
@@ -126,20 +128,58 @@ final class ScriptedGitService implements GitService {
     bool amend = false,
   }) => _operation('commit${amend ? ' --amend' : ''} $message');
 
+  /// The branches, the commits and a commit's files the reads answer.
+  List<GitBranch> branchesValue = const [];
+  List<GitCommit> commits = const [];
+  Map<String, List<GitCommitFile>> commitFilesValue = const {};
+
+  /// When set, that read fails with it.
+  GitFailure? branchesFailure;
+  GitFailure? logFailure;
+  GitFailure? commitFilesFailure;
+
+  /// Every read, as `name argument...`, in the order they were made.
+  final List<String> reads = [];
+
+  /// When set, each read waits for it before answering.
+  Completer<void>? holdReads;
+
+  Future<void> _read(String call) async {
+    reads.add(call);
+    final hold = holdReads;
+    if (hold != null) {
+      await hold.future;
+    }
+  }
+
   @override
   Future<Result<List<GitCommit>>> log(
     String project, {
     int max = 100,
     int skip = 0,
     String? path,
-  }) async => const Ok(<GitCommit>[]);
+  }) async {
+    await _read('log $max');
+    final failure = logFailure;
+    if (failure != null) {
+      return Err(failure);
+    }
+    return Ok([...commits.take(max)]);
+  }
 
   @override
   Future<Result<List<GitCommitFile>>> commitFiles(
     String project,
     String commit, {
     String? parent,
-  }) async => const Ok(<GitCommitFile>[]);
+  }) async {
+    await _read('commit_files $commit');
+    final failure = commitFilesFailure;
+    if (failure != null) {
+      return Err(failure);
+    }
+    return Ok(commitFilesValue[commit] ?? const <GitCommitFile>[]);
+  }
 
   @override
   Future<Result<String>> fileAt(
@@ -149,8 +189,14 @@ final class ScriptedGitService implements GitService {
   }) async => const Ok('');
 
   @override
-  Future<Result<List<GitBranch>>> branches(String project) async =>
-      const Ok(<GitBranch>[]);
+  Future<Result<List<GitBranch>>> branches(String project) async {
+    await _read('branches');
+    final failure = branchesFailure;
+    if (failure != null) {
+      return Err(failure);
+    }
+    return Ok([...branchesValue]);
+  }
 
   @override
   Future<Result<void>> createBranch(

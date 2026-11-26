@@ -21,6 +21,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../application/documents/document_controller.dart';
 import '../../../application/explorer_view_controller.dart';
+import '../../../application/git/git_file_states.dart';
 import '../../../application/providers.dart';
 import '../../../application/settings_controller.dart';
 import '../../../application/workspace_controller.dart';
@@ -33,6 +34,7 @@ import '../../../design_system/tokens/colors.dart';
 import '../../../design_system/tokens/geometry.dart';
 import '../../../design_system/tokens/icons.dart';
 import '../../../services/contracts.dart';
+import '../../git/git_state_look.dart';
 import '../../home/import_folder.dart';
 import '../explorer_actions.dart';
 import '../file_actions.dart';
@@ -550,6 +552,7 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
     final activePath = ref.watch(
       documentControllerProvider.select((s) => s.activePath),
     );
+    final gitStates = ref.watch(gitFileStatesProvider);
     final unlisted = <String>[];
     final rows = visibleRows(
       listings: workspace.listings,
@@ -587,6 +590,12 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
           itemBuilder: (context, index) {
             final (:entry, :depth) = rows[index];
             final selected = entry.path == view.selected;
+            // What Git says about the row (Phase 7 W4): a file's own
+            // state, a folder's the worst of the files under it.
+            final state = gitStates.stateOf(
+              entry.path,
+              isDirectory: entry.isDirectory,
+            );
             return CfTreeRow(
               key: ValueKey('tree_${entry.path}'),
               node: CfFileNode(
@@ -598,6 +607,11 @@ class _ExplorerPanelState extends ConsumerState<ExplorerPanel> {
               depth: depth,
               expanded: view.expanded.contains(entry.path),
               selected: entry.path == highlighted,
+              stateColor: state == null
+                  ? null
+                  : gitStateColor(state, CfColors.of(context)),
+              stateLetter: entry.isDirectory ? null : state?.letter,
+              stateWord: entry.isDirectory ? null : state?.word,
               onTap: () {
                 _treeFocus.requestFocus();
                 _onEntryTap(entry);

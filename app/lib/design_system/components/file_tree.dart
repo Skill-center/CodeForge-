@@ -28,7 +28,10 @@ final class CfFileNode {
 
 /// Indented tree row: chevron, icon, name. Real expand/collapse. Since
 /// Phase 3 W4 a long-press opens the row's menu, and [trailing] (the
-/// selected row's ⋯ button) sits at its end.
+/// selected row's ⋯ button) sits at its end. Since Phase 7 W4 a row can
+/// carry what Git says about it: [stateColor] colours the name and
+/// [stateLetter] follows it (`M`, `U`, `!`), with [stateWord] for
+/// TalkBack.
 class CfTreeRow extends StatelessWidget {
   const CfTreeRow({
     super.key,
@@ -39,6 +42,9 @@ class CfTreeRow extends StatelessWidget {
     this.onLongPress,
     this.selected = false,
     this.trailing,
+    this.stateColor,
+    this.stateLetter,
+    this.stateWord,
   });
 
   final CfFileNode node;
@@ -48,6 +54,16 @@ class CfTreeRow extends StatelessWidget {
   final VoidCallback? onLongPress;
   final bool selected;
   final Widget? trailing;
+
+  /// What Git says about this row: the colour of its name and letter.
+  final Color? stateColor;
+
+  /// The letter after the name; a folder takes its files' colour without
+  /// a letter.
+  final String? stateLetter;
+
+  /// What TalkBack says in the letter's place ('modified', 'new').
+  final String? stateWord;
 
   /// Folders draw Material Symbols; files draw their type's glyph.
   IconData get _icon {
@@ -60,7 +76,9 @@ class CfTreeRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = CfColors.of(context);
-    final fg = node.hidden ? colors.textDisabled : colors.textPrimary;
+    final fg =
+        stateColor ??
+        (node.hidden ? colors.textDisabled : colors.textPrimary);
     return Material(
       color: selected ? colors.accentEmberSoft : Colors.transparent,
       child: InkWell(
@@ -92,6 +110,20 @@ class CfTreeRow extends StatelessWidget {
                   ).textTheme.bodyMedium?.copyWith(color: fg, fontSize: 13),
                 ),
               ),
+              if (stateLetter case final letter?) ...[
+                const SizedBox(width: CfSpacing.xs),
+                Semantics(
+                  label: stateWord,
+                  excludeSemantics: stateWord != null,
+                  child: Text(
+                    letter,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: fg,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
               ?trailing,
             ],
           ),

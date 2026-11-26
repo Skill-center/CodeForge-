@@ -36,7 +36,6 @@ void main() {
   });
 
   const panels = <(String, Widget, String)>[
-    ('source control', GitPanel(), 'Arrives in Phase 7'),
     ('extensions', ExtensionsPanel(), 'Arrives in Phase 8'),
     // Run arrived in Phase 5 W4; debugging is still to come.
     ('run', RunPanel(), 'Debugging arrives in Phase 9'),
@@ -49,5 +48,7 @@ void main() {
     });
   }
 
-  // The branch chip became real in Phase 7 W2 (test/widget/git_chip_test.dart).
+  // The branch chip became real in Phase 7 W2 (test/widget/git_chip_test.dart),
+  // and Source control in W4 (test/widget/git_panel_test.dart): neither is a
+  // placeholder any more.
 }

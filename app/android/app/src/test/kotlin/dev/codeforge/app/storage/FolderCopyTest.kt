@@ -401,6 +401,40 @@ class FolderCopyTest {
     }
 
     @Test
+    fun anImportTakesAPackFileOverTheUsualCap() {
+        // A repository's pack is one large file (PHASE_7_PLAN §9): an import's
+        // per-file cap is the whole copy's, so `.git` comes along entire or the
+        // copy fills up and says so. A run's copy keeps the 64 MB cap, and skips
+        // `.git` altogether.
+        assertEquals(CopyLimits.IMPORT.maxBytes, CopyLimits.IMPORT.maxFileBytes)
+        assertEquals(64L * 1024 * 1024, CopyLimits().maxFileBytes)
+
+        provider.file(".git/objects/pack/pack-1.pack", ByteArray(150))
+        provider.file("main.js", "main\n")
+        val target = temp.newFolder("import-pack-target")
+        // The import's shape at a size this test can hold: one file may be as
+        // large as the whole copy.
+        val summary = FolderCopy(
+            source = SafCopySource(ops),
+            target = target,
+            manifestFile = null,
+            staging = temp.newFolder("import-pack-staging"),
+            limits = CopyLimits(maxFiles = 100, maxBytes = 200, maxFileBytes = 200),
+            skipped = emptySet(),
+        ).sync()
+        assertEquals(0, summary.leftOutLarge)
+        assertEquals(2, summary.copied)
+        assertEquals(150L, File(target, ".git/objects/pack/pack-1.pack").length())
+
+        // A run's copy leaves the same file out and takes no .git at all.
+        val run = copy(CopyLimits(maxFileBytes = 100)).sync()
+        assertEquals(0, run.leftOutLarge)
+        assertEquals(1, run.skipped)
+        assertEquals(1, run.copied)
+        assertFalse(copied(".git").exists())
+    }
+
+    @Test
     fun deleteTreeLeavesWhatALinkPointsAt() {
         val outside = temp.newFolder("keep")
         File(outside, "precious.txt").writeText("precious\n")

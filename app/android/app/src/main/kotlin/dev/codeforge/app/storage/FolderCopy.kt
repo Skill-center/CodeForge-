@@ -75,8 +75,16 @@ data class CopyLimits(
         const val DEFAULT_MAX_FILE_BYTES = 64L * 1024 * 1024
         const val DEFAULT_MAX_DEPTH = 64
 
-        /** Importing a folder as a project is done once, on request: it takes more. */
-        val IMPORT = CopyLimits(maxFiles = 100_000, maxBytes = 4L * 1024 * 1024 * 1024)
+        /**
+         * Importing a folder as a project is done once, on request: it takes more. A repository's
+         * pack file is one file of any size (Phase 7 W4, PHASE_7_PLAN §9), so the per-file cap is
+         * the whole copy's: `.git` comes along entire, or the copy fills up and says so.
+         */
+        val IMPORT = CopyLimits(
+            maxFiles = 100_000,
+            maxBytes = 4L * 1024 * 1024 * 1024,
+            maxFileBytes = 4L * 1024 * 1024 * 1024,
+        )
     }
 }
 

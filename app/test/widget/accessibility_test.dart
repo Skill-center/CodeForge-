@@ -10,8 +10,10 @@ import 'dart:async';
 
 import 'package:codeforge/application/documents/document_controller.dart';
 import 'package:codeforge/application/editor/find_controller.dart';
+import 'package:codeforge/application/git/git_panel_controller.dart';
 import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/core/files/workspace_location.dart';
+import 'package:codeforge/core/git/git_models.dart';
 import 'package:codeforge/design_system/components/dialogs.dart';
 import 'package:codeforge/design_system/components/file_tree.dart';
 import 'package:codeforge/design_system/components/workbench_chrome.dart';
@@ -31,6 +33,7 @@ import 'package:material_ui/material_ui.dart';
 import '../support/fake_storage_broker.dart';
 import '../support/memory_file_service.dart';
 import '../support/memory_project_storage.dart';
+import '../support/scripted_git_service.dart';
 import 'test_harness.dart';
 import 'workbench_dialogs.dart';
 
@@ -63,6 +66,95 @@ const List<_Scenario> _scenarios = [
 
 const _settings = _Scenario('settings', ShellState(lastRoute: '/settings'));
 const _workspace = _Scenario('workspace', ShellState(lastRoute: '/workspace'));
+
+/// The workbench with the Source control panel over a repository with
+/// work in every group, its branches and its history open (Phase 7 W4).
+Future<void> _pumpSourceControl(WidgetTester tester) async {
+  final git = ScriptedGitService(
+    status: const GitStatus(
+      branch: GitBranchState(
+        head: 'feature/login',
+        oid: 'a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0',
+        upstream: 'origin/feature/login',
+        ahead: 2,
+        behind: 1,
+      ),
+      files: [
+        GitFileStatus(
+          path: 'lib/login.dart',
+          kind: GitEntryKind.tracked,
+          index: GitChange.modified,
+        ),
+        GitFileStatus(
+          path: 'lib/app.dart',
+          kind: GitEntryKind.tracked,
+          workTree: GitChange.modified,
+        ),
+        GitFileStatus(path: 'new.dart', kind: GitEntryKind.untracked),
+        GitFileStatus(
+          path: 'README.md',
+          kind: GitEntryKind.conflicted,
+          conflict: GitConflict.bothModified,
+        ),
+      ],
+    ),
+  );
+  git.branchesValue = [
+    GitBranch(
+      name: 'feature/login',
+      ref: 'refs/heads/feature/login',
+      kind: GitBranchKind.local,
+      oid: 'b' * 40,
+      current: true,
+      subject: 'Add the login screen',
+    ),
+    GitBranch(
+      name: 'main',
+      ref: 'refs/heads/main',
+      kind: GitBranchKind.local,
+      oid: 'c' * 40,
+      subject: 'Move the greeting into its own file',
+    ),
+  ];
+  git.commits = [
+    GitCommit(
+      hash: 'a' * 40,
+      parents: const [],
+      authorName: 'Ada Lovelace',
+      authorEmail: 'ada@example.com',
+      authoredAt: DateTime.utc(2026, 11, 5, 14, 3),
+      subject: 'Add the login screen',
+    ),
+  ];
+  git.identityValue = const GitIdentity(
+    name: 'Ada Lovelace',
+    email: 'ada@example.com',
+  );
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pumpWidget(
+    TestHarness(
+      shell: const ShellState(
+        lastRoute: '/workspace',
+        activity: ShellActivity.git,
+      ),
+      git: git,
+    ).app(),
+  );
+  await tester.pumpAndSettle();
+  // On a phone the panel opens as a sheet from the activity bar.
+  if (find.byKey(const ValueKey('git_panel')).evaluate().isEmpty) {
+    await tester.tap(find.byKey(const ValueKey('activity_git')));
+    await tester.pumpAndSettle();
+  }
+  final container = ProviderScope.containerOf(
+    tester.element(find.byType(EditorPane)),
+    listen: false,
+  );
+  final panel = container.read(gitPanelControllerProvider.notifier);
+  panel.toggle(GitPanelSection.branches);
+  panel.toggle(GitPanelSection.history);
+  await tester.pumpAndSettle();
+}
 
 Future<void> _pump(WidgetTester tester, _Scenario scenario) async {
   // A fresh container per pump: a replaced ProviderScope keeps the old one.
@@ -282,6 +374,23 @@ void main() {
         await _flush(tester);
       });
     }
+
+    testWidgets('source control panel: no overflow at any gate size', (
+      tester,
+    ) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      for (final (width, height) in _gateSizes) {
+        setSurface(tester, width, height);
+        await _pumpSourceControl(tester);
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'source control at ${width.toInt()}x${height.toInt()}',
+        );
+      }
+      await _flush(tester);
+    });
 
     testWidgets('settings privacy: no overflow at any gate size', (
       tester,
@@ -568,6 +677,22 @@ void main() {
       // Every match is one node: its name and its folder, and the tap.
       expect(find.bySemanticsLabel('greeting.dart, in src'), findsOneWidget);
       await _expectAccessibleTargets(tester);
+      await _flush(tester);
+      semantics.dispose();
+    });
+
+    testWidgets('the Source control panel (Phase 7 W4)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      for (final (width, height) in [(412.0, 915.0), (1280.0, 800.0)]) {
+        setSurface(tester, width, height);
+        await _pumpSourceControl(tester);
+        expect(find.byKey(const ValueKey('git_panel')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('git_file_lib/login.dart')),
+          findsOneWidget,
+        );
+        await _expectAccessibleTargets(tester);
+      }
       await _flush(tester);
       semantics.dispose();
     });
