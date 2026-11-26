@@ -66,7 +66,10 @@ ScriptedGitService _working() {
           kind: GitEntryKind.tracked,
           workTree: GitChange.modified,
         ),
-        GitFileStatus(path: 'test/login_test.dart', kind: GitEntryKind.added),
+        GitFileStatus(
+          path: 'test/login_test.dart',
+          kind: GitEntryKind.untracked,
+        ),
       ],
     ),
   );

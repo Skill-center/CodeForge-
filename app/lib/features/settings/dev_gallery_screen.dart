@@ -161,6 +161,21 @@ class GalleryBody extends StatelessWidget {
             expanded: false,
             onTap: () {},
           ),
+          // What Git says about a file, in the explorer (Phase 7 W4): the
+          // colour of its worst state, with the letter beside the name.
+          CfTreeRow(
+            node: const CfFileNode(
+              name: 'main.js',
+              path: 'main.js',
+              isFile: true,
+            ),
+            depth: 0,
+            expanded: false,
+            stateColor: colors.warning,
+            stateLetter: 'M',
+            stateWord: 'modified',
+            onTap: () {},
+          ),
           const SizedBox(height: CfSpacing.lg),
           Text('File glyphs', style: textTheme.titleMedium),
           const SizedBox(height: CfSpacing.sm),

@@ -294,6 +294,26 @@ bool _insideMaterialButton(Element element) {
   return inside;
 }
 
+/// The status strip is a 24 dp information bar (UI_DESIGN_SYSTEM.md,
+/// *Chrome metrics*), not a control surface. Its chips are shortcuts to
+/// actions that each have a ≥ 48 dp control of their own — the activity
+/// bar's Source control item for the branch chip (Phase 7 W4), the Run
+/// panel for the run chip, the palette's *Show Problems* for the problems
+/// chip, Settings for the language server's restart — so the direct sweep
+/// below skips them. Their labels are still checked by the stock
+/// guidelines, and the tests of each feature prove the shortcut works.
+bool _insideStatusStrip(Element element) {
+  var inside = false;
+  element.visitAncestorElements((ancestor) {
+    if (ancestor.widget is CfStatusStrip) {
+      inside = true;
+      return false;
+    }
+    return true;
+  });
+  return inside;
+}
+
 String _describe(Element element) {
   final key = element.widget.key;
   if (key is ValueKey<String>) return key.value;
@@ -341,7 +361,9 @@ Future<void> _expectAccessibleTargets(WidgetTester tester) async {
     (widget) => widget is InkWell && widget.onTap != null,
   );
   for (final element in inkWells.evaluate()) {
-    if (_insideMaterialButton(element)) continue;
+    if (_insideMaterialButton(element) || _insideStatusStrip(element)) {
+      continue;
+    }
     final size = (element.renderObject! as RenderBox).size;
     const min = CfSpacing.minTouchTarget - 0.01;
     if (size.width < min || size.height < min) {
@@ -681,6 +703,11 @@ void main() {
       semantics.dispose();
     });
 
+    // The status strip's branch chip is a shortcut into this panel, not a
+    // control of its own: the sweep skips the 24 dp strip (see
+    // _insideStatusStrip), git_chip_test proves the chip's words and
+    // colour, and git_panel_test proves the tap opens the panel — which
+    // the activity bar also does, at 48 dp.
     testWidgets('the Source control panel (Phase 7 W4)', (tester) async {
       final semantics = tester.ensureSemantics();
       for (final (width, height) in [(412.0, 915.0), (1280.0, 800.0)]) {
