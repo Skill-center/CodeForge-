@@ -87,6 +87,11 @@ Every component: default/hover(hardware)/pressed/focused/disabled/loading/error 
 - **The notification (W5):** "*N* terminal sessions running", with End all, on its own low-importance channel.
 - **Honest placeholders:** the Run panel's debugging line says Phase 9; Git and extensions still say Phases 7 and 8 (`later_phases_test.dart`).
 
+**Added in Phase 7:**
+- **The Source control panel (W4):** a header with the branch, its upstream and how far ahead and behind, *Fetch*, *Pull* and *Push*, then three sections — *Changes*, *Branches*, *History* — each with its count beside the title, the last two read only once they are opened. A change is a 48 dp row: the file's name, its folder in `textSecondary`, the letter of its state in that state's colour (conflicted and deleted in `danger`, modified in `warning`, renamed in `info`, added and new in `success`), and the actions that fit the row (resolve, unstage, discard or delete, stage). The commit box is a field, *Amend the last commit* and *Commit*, with one sentence under it when it cannot run. Below them the branches, the current one ticked, and the commits, each opening a sheet of its files. The panel is the same widget in the sidebar on a tablet and in the activity sheet on a phone (`features/workbench/panels/git_panel.dart`).
+- **Git in the explorer and the chrome (W4):** `CfTreeRow` takes `stateColor`, `stateLetter` and `stateWord`, so a file wears the colour of what Git says about it with its letter after the name, and a folder the worst state under it, without a letter. The status strip's branch chip opens the panel; chips in that bar stretch to its height, so the whole cell is the target (§8).
+- **Empty states (W4):** a project that is not a repository offers *Make it a repository*; a folder from shared storage says Git works in projects and offers *Import as project*; a clean tree says \"Nothing has changed since the last commit.\"
+
 ## 6. Iconography
 
 Material Symbols Rounded subset (bundled font, tree-shaken to used glyphs) + custom file-type glyphs (16 dp grid, 1.5 px stroke) for top 20 extensions; generic fallback. No emoji in UI chrome.

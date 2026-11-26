@@ -166,7 +166,9 @@ A prompt waits 5 minutes; a run that ends withdraws its prompt. Every question s
 - **Home → Clone repository** (W3) takes a URL and the new project's name (offered from the URL), says why a URL cannot be cloned before anything runs, and shows the clone as it goes with *Stop*. The new project opens when it finishes.
 - **Fetch, pull and push** (W3) run from the palette with the same progress sheet and *Stop*; the first push of a branch sets its upstream.
 - **The prompts** (`features/git/credential_prompts.dart`) sit above every screen, so a question reaches the user wherever they are: a token for a host with *Remember*, or a new SSH host's fingerprint to accept. Each is answered once, a question its run no longer waits for closes by itself, and a stored token a host refused is removed and said.
-- The *Source control* panel is W4's; until then it keeps its placeholder.
+- **The *Source control* panel** (W4, `features/workbench/panels/git_panel.dart`) is the activity bar's Git item: the same widget in the sidebar on a tablet and in the activity sheet on a phone. Its header has the branch, its upstream and how far ahead and behind, with *Fetch*, *Pull* and *Push*, each with the progress sheet and *Stop* the clone uses. Under it, *Changes* (always open, from the status), *Branches* and *History*, each with its count; the last two are read when they are first opened and again when the branch's commit changes. A change is a 48 dp row: the file, its folder, the letter of its state in that state's colour, and the buttons that fit it — resolve, unstage, discard or delete, stage. The commit box carries the message, *Amend the last commit* (which fills in the last message) and *Commit*, with one sentence under it when it cannot run. A merge that stopped lists its conflicts first, with *Abort the merge* beside the group. Everything that changes the repository goes through the Git controller, which queues it and refreshes the status; the panel's own reads live in `application/git/git_panel_controller.dart` (the branches, the last 100 commits, a commit's files, the identity), and keep the last good answer when a read fails.
+- **The explorer's colours** (W4, `application/git/git_file_states.dart`): one map from path to the worst state Git gives it, so a file wears that state's colour with its letter after the name (`M`, `U`, `!`), a folder the worst state under it without a letter, and a renamed file shows at both ends. The colours are `features/git/git_state_look.dart`: conflicted and deleted `danger`, modified `warning`, renamed `info`, added and new `success`.
+- **A folder from shared storage** (W4, decision (a)): the panel says Git works in projects and offers *Import as project*, which copies the folder's `.git` with everything else — including a pack file over the 64 MiB a run's copy allows per file, since the import's limits are 100,000 files and 4 GiB (`storage/FolderCopy.kt`, `CopyLimits.IMPORT`).
 
 ## 4. Security
 
@@ -203,7 +205,6 @@ GitHub over SSH is recorded, never judged (a network can fail): on every target 
 
 ## 6. Not built yet
 
-- **W4:** the *Source control* panel, the explorer's colours, *Import as project* for a folder's repository.
-- **W5:** diffs in the editor with `@codemirror/merge`.
+- **W5:** diffs in the editor with `@codemirror/merge`; until then a tap on a change opens the file, as the long press does.
 - **W6:** the Git gate on the emulator and the phone, with the budgets.
 - **Out of scope for Phase 7:** hunk or line staging, interactive rebase, stash, tags, submodules, blame, a history graph, LFS, signing, a host's pull requests and issues, HTTPS through a proxy or with a private CA (PHASE_7_PLAN §8).
