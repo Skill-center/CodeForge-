@@ -1,7 +1,7 @@
 === PASS runtime/tests/test-check-bundle-size.py
 test_a_base_over_the_limit_fails (__main__.LimitTest.test_a_base_over_the_limit_fails) ... the base module a device would download is over Play's 1 MB limit by 1.0 MB — move weight into a dynamic feature module (see pack_buildtools/)
 ok
-test_a_bundle_without_a_base_module_is_an_error (__main__.LimitTest.test_a_bundle_without_a_base_module_is_an_error) ... no base module in /tmp/tmpn0kpvtif/app.aab
+test_a_bundle_without_a_base_module_is_an_error (__main__.LimitTest.test_a_bundle_without_a_base_module_is_an_error) ... no base module in /tmp/tmppttgqgb1/app.aab
 ok
 test_a_small_base_passes (__main__.LimitTest.test_a_small_base_passes) ... ok
 test_the_limit_is_per_device_not_the_sum_of_every_abi (__main__.LimitTest.test_the_limit_is_per_device_not_the_sum_of_every_abi) ... the base module a device would download is over Play's 0 MB limit by 0.1 MB — move weight into a dynamic feature module (see pack_buildtools/)
@@ -16,28 +16,28 @@ test_the_bundle_config_counts_against_the_base (__main__.MeasureTest.test_the_bu
 Ran 9 tests in 0.009s
 
 OK
-bundle: /tmp/tmpr8e0faji/app.aab
+bundle: /tmp/tmpnx1rf_b6/app.aab
   base     base                      2.0 MB (2 entries)
   base module against Play's 1 MB limit: 2.0 MB per device (200.0% of it); 2.0 MB for every ABI at once
-bundle: /tmp/tmpyk36y2bh/app.aab
+bundle: /tmp/tmp14133i0n/app.aab
   base     base                      0.0 MB (3 entries)
   base module against Play's 200 MB limit: 0.0 MB per device (0.0% of it); 0.0 MB for every ABI at once
-bundle: /tmp/tmpvp01tfnm/app.aab
+bundle: /tmp/tmpwrul_nnp/app.aab
   base     base                      0.1 MB (3 entries)
   base module on arm64-v8a       0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module on x86_64          0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module against Play's 1 MB limit: 0.1 MB per device (6.1% of it); 0.1 MB for every ABI at once
-bundle: /tmp/tmpvp01tfnm/app.aab
+bundle: /tmp/tmpwrul_nnp/app.aab
   base     base                      0.1 MB (3 entries)
   base module on arm64-v8a       0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module on x86_64          0.1 MB (0.0 MB shared + 0.1 MB of libraries)
   base module against Play's 0 MB limit: 0.1 MB per device; 0.1 MB for every ABI at once
-bundle: /tmp/tmpmef61f0q/app.aab
+bundle: /tmp/tmpdobc8mcz/app.aab
   base     base                      0.0 MB (2 entries)
   feature  pack_buildtools           0.0 MB (2 entries)
   universal APK              0.0 MB
   base module against Play's 200 MB limit: 0.0 MB per device (0.0% of it); 0.0 MB for every ABI at once
-bundle: /tmp/tmp41khxo1h/app.aab
+bundle: /tmp/tmpt6c9u6j1/app.aab
   base     base                      1.5 MB (1 entries)
   base module against Play's 2 MB limit: 1.5 MB per device (75.0% of it); 1.5 MB for every ABI at once
 warning: base module is within 0.5 MB of Play's limit
@@ -66,7 +66,7 @@ test_the_cache_reuses_a_good_tarball_replaces_a_bad_one_and_refuses_a_mismatch (
 test_the_notices_list_every_package_and_each_text_once (__main__.LanguageServersTest.test_the_notices_list_every_package_and_each_text_once) ... ok
 
 ----------------------------------------------------------------------
-Ran 22 tests in 0.144s
+Ran 22 tests in 0.134s
 
 OK
 server alpha: 2 packages, 7 files, 488 bytes, 1631 in its archive
@@ -85,53 +85,53 @@ server beta: 1 packages, 3 files, 116 bytes, 529 in its archive
 === PASS runtime/tests/test-notices.py
 ...........................
 ----------------------------------------------------------------------
-Ran 27 tests in 4.487s
+Ran 27 tests in 4.065s
 
 OK
 === PASS runtime/tests/test-pins.py
 .....................
 ----------------------------------------------------------------------
-Ran 21 tests in 2.709s
+Ran 21 tests in 2.493s
 
 OK
 === PASS runtime/tests/test-provenance.py
-.../home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:120: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-p5fcwlki/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
+.../home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:120: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-1jtksnxh/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
   text = open(os.path.join(self.root, "native", "PROVENANCE.md")).read()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-/home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:123: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/codeforge-provenance-p5fcwlki/codeforge/native/kernel/src/main/java/dev/codeforge/runtime/sealed/Kernel.java'>
+/home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:123: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/codeforge-provenance-1jtksnxh/codeforge/native/kernel/src/main/java/dev/codeforge/runtime/sealed/Kernel.java'>
   actual = provenance.sha256(open(self.java, "rb").read())
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-........./home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:184: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-2cimjvj5/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
+........./home/runner/work/CodeForge-/CodeForge-/runtime/tests/test-provenance.py:184: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/codeforge-provenance-gz4qj2ur/codeforge/native/PROVENANCE.md' mode='r' encoding='UTF-8'>
   text = open(path).read()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 ...
 ----------------------------------------------------------------------
-Ran 15 tests in 0.150s
+Ran 15 tests in 0.135s
 
 OK
 === PASS runtime/tests/test-pty.py
 ....................
 ----------------------------------------------------------------------
-Ran 20 tests in 7.446s
+Ran 20 tests in 8.526s
 
 OK
 
-FLOOD bytes=10588896 seq_blocked_at=982799 launcher_peak_rss_kib=1968
+FLOOD bytes=10588896 seq_blocked_at=990989 launcher_peak_rss_kib=1976
 
-RELAY_ECHO samples=300 direct_p50_us=21 direct_p95_us=26 relay_p50_us=39 relay_p95_us=45 added_p50_us=17 added_p95_us=18
+RELAY_ECHO samples=300 direct_p50_us=21 direct_p95_us=24 relay_p50_us=38 relay_p95_us=43 added_p50_us=16 added_p95_us=18
 === PASS runtime/tests/test-sealed-payload.py
 test-sealed-payload: OK
   executables=10 libraries=6 data=10 links=2 scripts=1
 === PASS runtime/tests/test-sources.py
 ...........................
 ----------------------------------------------------------------------
-Ran 27 tests in 2.970s
+Ran 27 tests in 1.984s
 
 OK
 === PASS runtime/tests/test-spawn.py
 ......................
 ----------------------------------------------------------------------
-Ran 22 tests in 3.841s
+Ran 22 tests in 3.749s
 
 OK
 script_test_files=9 cases=164 failed_files=0
