@@ -99,7 +99,7 @@ Two pages are built from `editor/`: the editor (CodeMirror 6 and its language pa
 <!-- editor:begin -->
 <!-- Written by editor/tool/notices.mjs from editor/package-lock.json. Do not edit by hand: CI checks it. -->
 
-**31 packages** can end up in the editor's or the terminal's page: MIT 31. Their licence texts ship in the app beside each page (`assets/editor/NOTICES.txt`, `assets/terminal/NOTICES.txt`) and appear in its licence page.
+**32 packages** can end up in the editor's or the terminal's page: MIT 32. Their licence texts ship in the app beside each page (`assets/editor/NOTICES.txt`, `assets/terminal/NOTICES.txt`) and appear in its licence page.
 
 | Package | Version | Licence |
 |---|---|---|
@@ -113,6 +113,7 @@ Two pages are built from `editor/`: the editor (CodeMirror 6 and its language pa
 | @codemirror/lang-python | 6.2.1 | MIT |
 | @codemirror/language | 6.13.1 | MIT |
 | @codemirror/lint | 6.9.8 | MIT |
+| @codemirror/merge | 6.13.0 | MIT |
 | @codemirror/search | 6.7.2 | MIT |
 | @codemirror/state | 6.7.6 | MIT |
 | @codemirror/streamparser | 6.0.0 | MIT |
