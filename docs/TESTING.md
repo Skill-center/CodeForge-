@@ -270,6 +270,7 @@ External keyboard tests: hardware keymap suite on tablet + phone (OTG/BT). IME m
 - **Since Phase 5 W1:**
   - A `[release]` subject line runs the release workflow's dry run after the run's own build (BUILD_AND_RELEASE §2.5). It took about 6 minutes for the App Bundle, the APK and the checks, and 11 for the source archive with its cache warm. Dry run CI 44399784786 passed whole.
   - The quality job adds *Release scripts*, the signer check's self-test. The release manifest gate allows INTERNET since W1.
+- **Since Phase 7 W5:** a red run can be read back through the API alone. Both *Enforce* steps name the gates that failed in a check annotation (the steps themselves keep going on failure, so they look green, and the log host the API points at is not always reachable); the test digest sends the lines around each `[E]` marker, where the expanded reporter dumps the exception; and a failed format gate sends the patch `dart format` would write, in chunks. The editor job's licence gate carries its last lines with it.
 - Evidence: test reports + perf numbers uploaded as workflow artifacts; phase exit reports cite run ids (t1 discipline). **A claim of "green" without a run id is a process violation.**
 
 ## 6. Manual test charters (per phase)
