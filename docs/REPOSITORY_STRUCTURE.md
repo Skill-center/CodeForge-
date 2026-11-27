@@ -43,7 +43,10 @@ CodeForge-/
 │   │   │                         #   documents/: open documents and tabs;
 │   │   │                         #   bench/: the engine benchmark runner;
 │   │   │                         #   lsp/: the language clients and their controller
-│   │   │                         #   (Ph. 6 W4), the editor's features and rename (W5)
+│   │   │                         #   (Ph. 6 W4), the editor's features and rename (W5);
+│   │   │                         #   git/: the repository's controllers (Ph. 7 W2, W4) and
+│   │   │                         #   git_diff_controller.dart, what a file is compared
+│   │   │                         #   with (W5)
 │   │   ├── features/             # home, workbench, explorer, editor, terminal,
 │   │   │   └── <feature>/        #   search, source_control, extensions,
 │   │   │       ├── presentation/ #   run_debug, settings (settings/developer/:
@@ -93,7 +96,8 @@ CodeForge-/
 │   ├── src/
 │   │   ├── protocol/             # v1 message catalogue, strict validator, change-set reference
 │   │   ├── editor/               # CM6 controller, change batcher, languages, theme, palette;
-│   │   │                         #   lsp.ts, requests.ts, markdown.ts (Ph. 6 W5), timings.ts (W6)
+│   │   │                         #   lsp.ts, requests.ts, markdown.ts (Ph. 6 W5), timings.ts (W6),
+│   │   │                         #   diff.ts (@codemirror/merge: one column or two, Ph. 7 W5)
 │   │   ├── terminal/             # terminal protocol v1 + validator, xterm.js controller,
 │   │   │                         #   keys, touch, bridge, entry point, page template;
 │   │   │                         #   ime.ts (the input method's text), links.ts (W4),
