@@ -442,13 +442,15 @@ void main() {
     });
 
     test('a comparison that cannot be read leaves the file open', () async {
-      final git = ScriptedGitService(
-        status: _status([_file('main.js', workTree: GitChange.modified)]),
-      )..fileAtFailure = const GitFailure(
-        'Git is busy with this repository.',
-        problem: GitProblem.busy,
-        operation: 'file_at',
-      );
+      final git =
+          ScriptedGitService(
+              status: _status([_file('main.js', workTree: GitChange.modified)]),
+            )
+            ..fileAtFailure = const GitFailure(
+              'Git is busy with this repository.',
+              problem: GitProblem.busy,
+              operation: 'file_at',
+            );
       final w = _World(git: git);
       await w.start();
 

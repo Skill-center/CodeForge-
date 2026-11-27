@@ -74,17 +74,15 @@ void main() {
   testWidgets('a tap compares the file with the staged version', (
     tester,
   ) async {
-    final git =
-        ScriptedGitService(
-            status: _status(const [
-              GitFileStatus(
-                path: 'main.js',
-                kind: GitEntryKind.tracked,
-                workTree: GitChange.modified,
-              ),
-            ]),
-          )
-          ..filesAt = {':main.js': 'console.log(1)\n'};
+    final git = ScriptedGitService(
+      status: _status(const [
+        GitFileStatus(
+          path: 'main.js',
+          kind: GitEntryKind.tracked,
+          workTree: GitChange.modified,
+        ),
+      ]),
+    )..filesAt = {':main.js': 'console.log(1)\n'};
     await _panel(tester, git);
 
     await tester.tap(_key('git_file_main.js'));
@@ -106,17 +104,15 @@ void main() {
   testWidgets('a long press opens the file with nothing to compare', (
     tester,
   ) async {
-    final git =
-        ScriptedGitService(
-            status: _status(const [
-              GitFileStatus(
-                path: 'main.js',
-                kind: GitEntryKind.tracked,
-                workTree: GitChange.modified,
-              ),
-            ]),
-          )
-          ..filesAt = {':main.js': 'console.log(1)\n'};
+    final git = ScriptedGitService(
+      status: _status(const [
+        GitFileStatus(
+          path: 'main.js',
+          kind: GitEntryKind.tracked,
+          workTree: GitChange.modified,
+        ),
+      ]),
+    )..filesAt = {':main.js': 'console.log(1)\n'};
     await _panel(tester, git);
 
     await tester.longPress(_key('git_file_main.js'));
@@ -129,18 +125,17 @@ void main() {
   testWidgets("a commit's file opens read-only, in two columns", (
     tester,
   ) async {
-    final git =
-        ScriptedGitService(status: _status(const []))
-          ..commits = [_commit('a')]
-          ..commitFilesValue = {
-            'a' * 40: const [
-              GitCommitFile(path: 'main.js', change: GitChange.modified),
-            ],
-          }
-          ..filesAt = {
-            '${'a' * 40}:main.js': 'console.log(2)\n',
-            '${'a' * 40}^:main.js': 'console.log(1)\n',
-          };
+    final git = ScriptedGitService(status: _status(const []))
+      ..commits = [_commit('a')]
+      ..commitFilesValue = {
+        'a' * 40: const [
+          GitCommitFile(path: 'main.js', change: GitChange.modified),
+        ],
+      }
+      ..filesAt = {
+        '${'a' * 40}:main.js': 'console.log(2)\n',
+        '${'a' * 40}^:main.js': 'console.log(1)\n',
+      };
     await _panel(tester, git);
 
     await tester.tap(_key('git_section_history'));
@@ -152,7 +147,10 @@ void main() {
 
     final key = DocumentRevision.tabKeyFor('main.js', 'a' * 40);
     final documents = _documents(tester);
-    expect(documents.openPaths, [key]);
+    // The demo workspace opens main.js itself, and the commit's text is a
+    // tab of its own beside it.
+    expect(documents.openPaths, ['main.js', key]);
+    expect(documents.activePath, key);
     expect(documents.documents[key]?.readOnly, isTrue);
     expect(documents.documents[key]?.diff?.mode, EditorDiffMode.split);
     // The tab says which commit it is from, and the banner what it is
@@ -165,18 +163,17 @@ void main() {
   });
 
   testWidgets('one column on a phone', (tester) async {
-    final git =
-        ScriptedGitService(status: _status(const []))
-          ..commits = [_commit('a')]
-          ..commitFilesValue = {
-            'a' * 40: const [
-              GitCommitFile(path: 'main.js', change: GitChange.modified),
-            ],
-          }
-          ..filesAt = {
-            '${'a' * 40}:main.js': 'console.log(2)\n',
-            '${'a' * 40}^:main.js': 'console.log(1)\n',
-          };
+    final git = ScriptedGitService(status: _status(const []))
+      ..commits = [_commit('a')]
+      ..commitFilesValue = {
+        'a' * 40: const [
+          GitCommitFile(path: 'main.js', change: GitChange.modified),
+        ],
+      }
+      ..filesAt = {
+        '${'a' * 40}:main.js': 'console.log(2)\n',
+        '${'a' * 40}^:main.js': 'console.log(1)\n',
+      };
     await _panel(tester, git, width: 412, height: 915);
     // On a compact phone the panel opens as a sheet from the activity bar.
     if (_key('git_panel').evaluate().isEmpty) {
@@ -201,17 +198,15 @@ void main() {
   testWidgets('a file too large to compare is open, and says so', (
     tester,
   ) async {
-    final git =
-        ScriptedGitService(
-            status: _status(const [
-              GitFileStatus(
-                path: 'main.js',
-                kind: GitEntryKind.tracked,
-                workTree: GitChange.modified,
-              ),
-            ]),
-          )
-          ..filesAt = {':main.js': 'x\n' * (512 * 1024)};
+    final git = ScriptedGitService(
+      status: _status(const [
+        GitFileStatus(
+          path: 'main.js',
+          kind: GitEntryKind.tracked,
+          workTree: GitChange.modified,
+        ),
+      ]),
+    )..filesAt = {':main.js': 'x\n' * (512 * 1024)};
     await _panel(tester, git);
 
     await tester.tap(_key('git_file_main.js'));
