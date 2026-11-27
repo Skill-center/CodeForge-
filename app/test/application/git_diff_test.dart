@@ -210,11 +210,7 @@ void main() {
         text: 'b\n',
         language: plainTextLanguage,
       );
-      await w.host.openDiff(
-        'd1',
-        original: 'a\n',
-        mode: EditorDiffMode.inline,
-      );
+      await w.host.openDiff('d1', original: 'a\n', mode: EditorDiffMode.inline);
       await _drain();
       expect(w.diffOpens.length, 1);
 

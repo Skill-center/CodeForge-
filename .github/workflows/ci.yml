@@ -396,6 +396,23 @@ jobs:
         continue-on-error: true
         run: dart format --output=none --set-exit-if-changed . > ci-results/format.txt 2>&1
 
+      # What the formatter would change, as a patch: the log host is not
+      # always reachable, and "these files differ" is not enough to fix
+      # them from here. The tree is put back before anything builds.
+      - name: Format digest
+        if: steps.format.outcome == 'failure'
+        run: |
+          dart format . > /dev/null 2>&1 || true
+          git diff -U1 -- . > "$RUNNER_TEMP/format.diff" || true
+          git checkout -- .
+          split -b 2400 -d "$RUNNER_TEMP/format.diff" "$RUNNER_TEMP/part."
+          # Bounded: a wholesale reformat would otherwise bury the run.
+          for part in $(ls "$RUNNER_TEMP"/part.* | head -n 8); do
+            sed -e 's/%/%25/g' -e 's/\r/%0D/g' "$part" \
+              | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/chunk.txt"
+            echo "::warning title=Format patch ($(basename "$part"))::$(cat "$RUNNER_TEMP/chunk.txt")"
+          done
+
       - name: Analyze
         id: analyze
         continue-on-error: true
@@ -443,20 +460,26 @@ jobs:
         if: steps.tests.outcome == 'failure'
         # Check-run annotations are readable through the API even where the
         # log hosts are not: carry the failures themselves there. The
-        # expanded reporter ends a failing test's line with [E] and prints
-        # the reason under it, so those lines name the test and say why;
-        # the end of the run follows them for the summary.
+        # expanded reporter ends a failing test's line with [E] and dumps
+        # the exception above it, so each failure is sent as the lines
+        # around its marker, one annotation apiece (the API truncates a
+        # long one), with the end of the run after them.
         run: |
-          grep -E -A 8 '\[E\]$' ci-results/test.txt \
-            > "$RUNNER_TEMP/failures.txt" || true
-          {
-            head -n 60 "$RUNNER_TEMP/failures.txt"
-            echo '--- the last 12 lines:'
-            tail -n 12 ci-results/test.txt
-          } > "$RUNNER_TEMP/raw.txt"
-          sed -e 's/%/%25/g' -e 's/\r/%0D/g' "$RUNNER_TEMP/raw.txt" \
-            | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/digest.txt"
-          echo "::warning title=Tests failed (the failures, then the end)::$(cat "$RUNNER_TEMP/digest.txt")"
+          grep -n -E '\[E\]$' ci-results/test.txt | cut -d: -f1 | head -n 3 \
+            > "$RUNNER_TEMP/marks.txt" || true
+          say() {
+            sed -e 's/%/%25/g' -e 's/\r/%0D/g' "$1" \
+              | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/digest.txt"
+            echo "::warning title=$2::$(cat "$RUNNER_TEMP/digest.txt")"
+          }
+          while read -r mark; do
+            start=$(( mark > 30 ? mark - 30 : 1 ))
+            sed -n "${start},$(( mark + 4 ))p" ci-results/test.txt \
+              > "$RUNNER_TEMP/block.txt"
+            say "$RUNNER_TEMP/block.txt" "A test failed (around line $mark)"
+          done < "$RUNNER_TEMP/marks.txt"
+          tail -n 12 ci-results/test.txt > "$RUNNER_TEMP/tail.txt"
+          say "$RUNNER_TEMP/tail.txt" "The end of the test run"
 
       # Golden diff images (Phase 3 W6, an owner item): a golden test that
       # failed left its golden, its own drawing and their differences in a

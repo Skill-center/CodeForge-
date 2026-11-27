@@ -217,9 +217,6 @@ void main() {
     await tester.tap(_key('git_file_main.js'));
     await tester.pumpAndSettle();
     expect(_documents(tester).openPaths, ['main.js']);
-    expect(
-      find.textContaining('too large to compare here'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('too large to compare here'), findsOneWidget);
   });
 }
