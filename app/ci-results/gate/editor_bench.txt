@@ -1,23 +1,23 @@
 Editor benchmark (Phase 2 W3) — CI emulator, API 36 google_apis x86_64, swiftshader_indirect GPU; debug APK (profile mode is refused on emulators); accel=kvm
 
 codemirror 6.43.15  page 293.9 KiB gzipped  input editcontext  runs 3
-  ok  cold load → first editor frame         249.2 ms  (budget 800 ms)
-  OVER typing p95, engine path                158.3 ms  (budget 32 ms)
-  OVER input p95, DevTools key events         103.3 ms  (budget 32 ms)
-  OVER 1 MiB scroll, frames > 32 ms             90.9 %  (budget 5 %)
+  ok  cold load → first editor frame         249.7 ms  (budget 800 ms)
+  OVER typing p95, engine path                159.4 ms  (budget 32 ms)
+  OVER input p95, DevTools key events            74 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms             95.7 %  (budget 5 %)
   ok  IME composition failures                      0  (budget 0)
-  OVER memory, app + renderer PSS             530.8 MB  (budget 250 MB)
-  ok  shipped size, gzipped                  300921 B  (budget 1572864 B)
-      1 MiB open 175.8 ms, 1 MiB typing p95 202.1 ms, features ok, highlighting ok
-      1 MiB as plain text: open 282.9 ms, typing p95 162.4 ms, scroll frames > 32 ms 100 % (record-only)
+  OVER memory, app + renderer PSS               546 MB  (budget 250 MB)
+  ok  shipped size, gzipped                  300957 B  (budget 1572864 B)
+      1 MiB open 151.5 ms, 1 MiB typing p95 178.8 ms, features ok, highlighting ok
+      1 MiB as plain text: open 193 ms, typing p95 164.2 ms, scroll frames > 32 ms 100 % (record-only)
 
 monaco 0.57.0  page 1029.5 KiB gzipped  input editcontext  runs 3
-  OVER cold load → first editor frame           823 ms  (budget 800 ms)
-  OVER typing p95, engine path                175.7 ms  (budget 32 ms)
-  OVER input p95, DevTools key events         104.6 ms  (budget 32 ms)
-  OVER 1 MiB scroll, frames > 32 ms             94.7 %  (budget 5 %)
+  ok  cold load → first editor frame         540.2 ms  (budget 800 ms)
+  OVER typing p95, engine path                157.7 ms  (budget 32 ms)
+  OVER input p95, DevTools key events          97.9 ms  (budget 32 ms)
+  OVER 1 MiB scroll, frames > 32 ms             95.2 %  (budget 5 %)
   ok  IME composition failures                      0  (budget 0)
-  OVER memory, app + renderer PSS             633.3 MB  (budget 250 MB)
-  ok  shipped size, gzipped                 1054170 B  (budget 1572864 B)
-      1 MiB open 517.7 ms, 1 MiB typing p95 200.1 ms, features ok, highlighting ok
-      1 MiB as plain text: open 343.4 ms, typing p95 207.8 ms, scroll frames > 32 ms 95.2 % (record-only)
+  OVER memory, app + renderer PSS             601.2 MB  (budget 250 MB)
+  ok  shipped size, gzipped                 1054201 B  (budget 1572864 B)
+      1 MiB open 495 ms, 1 MiB typing p95 186.2 ms, features ok, highlighting ok
+      1 MiB as plain text: open 353.2 ms, typing p95 181.9 ms, scroll frames > 32 ms 95.2 % (record-only)
