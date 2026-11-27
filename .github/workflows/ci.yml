@@ -147,14 +147,25 @@ jobs:
         if: always()
         run: |
           fail=0
+          failed=""
           for gate in "install=${{ steps.install.outcome }}" "typecheck=${{ steps.typecheck.outcome }}" \
                       "tests=${{ steps.tests.outcome }}" "licenses=${{ steps.licenses.outcome }}" \
                       "build=${{ steps.build.outcome }}" "verify=${{ steps.verify.outcome }}" \
                       "build_terminal=${{ steps.build_terminal.outcome }}" \
                       "verify_terminal=${{ steps.verify_terminal.outcome }}"; do
             echo "$gate"
-            [ "${gate#*=}" = "success" ] || fail=1
+            [ "${gate#*=}" = "success" ] || { fail=1; failed="$failed $gate"; }
           done
+          # A step that keeps going on failure is green in the UI and its
+          # log host is not always reachable: name the gates in an
+          # annotation, which the API serves.
+          if [ "$fail" -ne 0 ]; then
+            echo "::warning title=Editor gates failed::$failed"
+            tail -n 25 ../editor-results/licenses.txt 2>/dev/null \
+              | sed -e 's/%/%25/g' | awk '{ printf "%s%%0A", $0 }' \
+              > "$RUNNER_TEMP/licences.txt" || true
+            echo "::warning title=Licence gate (last lines)::$(cat "$RUNNER_TEMP/licences.txt")"
+          fi
           exit $fail
 
   quality-and-build:
@@ -431,12 +442,21 @@ jobs:
       - name: Test digest
         if: steps.tests.outcome == 'failure'
         # Check-run annotations are readable through the API even where the
-        # log hosts are not: carry the end of the test output there.
+        # log hosts are not: carry the failures themselves there. The
+        # expanded reporter ends a failing test's line with [E] and prints
+        # the reason under it, so those lines name the test and say why;
+        # the end of the run follows them for the summary.
         run: |
-          tail -n 40 ci-results/test.txt \
-            | sed -e 's/%/%25/g' -e 's/\r/%0D/g' \
+          grep -E -A 8 '\[E\]$' ci-results/test.txt \
+            > "$RUNNER_TEMP/failures.txt" || true
+          {
+            head -n 60 "$RUNNER_TEMP/failures.txt"
+            echo '--- the last 12 lines:'
+            tail -n 12 ci-results/test.txt
+          } > "$RUNNER_TEMP/raw.txt"
+          sed -e 's/%/%25/g' -e 's/\r/%0D/g' "$RUNNER_TEMP/raw.txt" \
             | awk '{ printf "%s%%0A", $0 }' > "$RUNNER_TEMP/digest.txt"
-          echo "::warning title=Tests failed (last 40 lines)::$(cat "$RUNNER_TEMP/digest.txt")"
+          echo "::warning title=Tests failed (the failures, then the end)::$(cat "$RUNNER_TEMP/digest.txt")"
 
       # Golden diff images (Phase 3 W6, an owner item): a golden test that
       # failed left its golden, its own drawing and their differences in a
@@ -866,6 +886,7 @@ jobs:
         if: always()
         run: |
           fail=0
+          failed=""
           for gate in editor_page terminal_page lockfile codegen format analyze imports licenses tests build manifest testlab_scripts release_scripts api_floor kotlin_tests sealed_runtime_tests release_build runtime_apk release_manifest; do
             case "$gate" in
               editor_page) outcome="${{ steps.editor_page.outcome }}" ;;
@@ -889,8 +910,13 @@ jobs:
               release_manifest) outcome="${{ steps.release_manifest.outcome }}" ;;
             esac
             echo "$gate: $outcome"
-            [ "$outcome" = "success" ] || fail=1
+            [ "$outcome" = "success" ] || { fail=1; failed="$failed $gate"; }
           done
+          # As the editor job: the gates that failed go into an
+          # annotation, which the API serves where the logs are not.
+          if [ "$fail" -ne 0 ]; then
+            echo "::warning title=Quality gates failed::$failed"
+          fi
           exit $fail
 
   # The sealed runtime's supply chain (Phase 4 W2, gate G2): the runtime/
