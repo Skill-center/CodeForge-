@@ -18,7 +18,10 @@
 /// and since Phase 6 W6 the language budgets (G6: completion, diagnostics
 /// after a save and the servers' memory on a 200-file project;
 /// phone_lsp_test.dart: RUNTIME_GATE lsp_phone_* figures and
-/// CODEFORGE_LSP_JSON).
+/// CODEFORGE_LSP_JSON), and since Phase 7 W6 Git's budgets (G6: the
+/// 10,000-file repository's status, the frames while it is committed and
+/// cloned, and the clone's time and memory; phone_git_test.dart:
+/// RUNTIME_GATE git_phone_* figures and CODEFORGE_GIT_JSON).
 library;
 
 import 'dart:convert';
@@ -30,6 +33,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'large_files_test.dart' show storeTimings;
+import 'phone_git_test.dart' show phoneGitTests;
 import 'phone_lsp_test.dart' show phoneLspTests;
 import 'phone_search_test.dart' show phoneSearchTests;
 import 'phone_terminal_test.dart' show phoneTerminalTests;
@@ -65,4 +69,7 @@ void main() {
   phoneTerminalTests();
   // Since Phase 6 W6, the language budgets (G6, phone_lsp_test.dart).
   phoneLspTests();
+  // Since Phase 7 W6, Git's budgets (G6, phone_git_test.dart). Last: it
+  // clears the projects folder, and its repository is the largest one.
+  phoneGitTests();
 }

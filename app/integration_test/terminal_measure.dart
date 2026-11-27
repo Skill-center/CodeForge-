@@ -499,8 +499,11 @@ Future<EchoFigures> measureEcho(
 
 /// A thin progress bar laid over the app while [action] runs, so that
 /// Flutter draws every frame (an animated UI), and the frame timings
-/// Flutter reported meanwhile, cut to the window [action] marks.
-Future<(T, UiFrames)> _withFramesDrawn<T>(
+/// Flutter reported meanwhile, cut to the window [action] marks. [action]
+/// answers its result and the window, as `Timeline.now` reads the clock
+/// the frames are stamped with. Since Phase 7 W6 the Git group measures
+/// its own operations with it (git_measure.dart).
+Future<(T, UiFrames)> withFramesDrawn<T>(
   WidgetTester tester,
   IntegrationTestWidgetsFlutterBinding binding,
   Future<(T, int, int)> Function() action,
@@ -558,7 +561,7 @@ Future<FloodFigures> measureFlood({
     isTrue,
   );
   final startStats = outputStats?.call();
-  final (report, ui) = await _withFramesDrawn<(Map<String, Object?>, int)>(
+  final (report, ui) = await withFramesDrawn<(Map<String, Object?>, int)>(
     tester,
     binding,
     () async {

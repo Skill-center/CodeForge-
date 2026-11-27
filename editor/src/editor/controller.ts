@@ -80,7 +80,7 @@ import type {
 } from '../protocol/types';
 import { cursorLineHighlight } from './active_line';
 import { browserScheduler, ChangeBatcher, type Scheduler } from './batcher';
-import { chunkCount, diffTheme, inlineDiff, SplitDiff } from './diff';
+import { chunkCount, diffTheme, inlineDiff, revertChunk, SplitDiff } from './diff';
 import { insertIndent } from './indent';
 import { languageExtension } from './languages';
 import { type LanguageHost, LanguageLayer, toLintDiagnostic } from './lsp';
@@ -180,6 +180,7 @@ const COMMANDS: Record<ViewCommand, (view: EditorView) => boolean> = {
   replaceAll: withValidQuery(replaceAll),
   startCompletion,
   acceptCompletion,
+  revertChunk,
   focus: (view) => {
     view.focus();
     return true;

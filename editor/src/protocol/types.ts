@@ -72,6 +72,12 @@ export const EDITOR_COMMANDS = [
   /** Opens the completion list at the cursor, and takes its selected item. */
   'startCompletion',
   'acceptCompletion',
+  /**
+   * Diffs (Phase 7 W6): reverts the change the cursor is in, as the diff's
+   * own *Revert this change* button does — one undoable edit of the
+   * document. False when no diff is shown, or nothing is left to revert.
+   */
+  'revertChunk',
 ] as const;
 export type EditorCommand = (typeof EDITOR_COMMANDS)[number];
 

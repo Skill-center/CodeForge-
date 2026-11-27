@@ -70,6 +70,9 @@ const List<String> editorCommands = [
   // The completion list at the cursor, and its selected item taken.
   'startCompletion',
   'acceptCompletion',
+  // Diffs (Phase 7 W6): the change at the cursor goes back to the older
+  // text, as the diff's own *Revert this change* button does.
+  'revertChunk',
 ];
 
 /// App shortcuts the page forwards: while the WebView has keyboard focus,

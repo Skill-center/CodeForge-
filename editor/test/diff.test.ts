@@ -77,6 +77,34 @@ describe('inline diffs (Phase 7 W5)', () => {
     expect(applyChanges(ORIGINAL, of('doc.changed')[1]!.changes)).toBe(WORKING);
   });
 
+  it('reverts at the cursor as a command, which the host and a key can run', () => {
+    const { ctl, scheduler, of } = setupController();
+    ctl.open({ docId: 'd1', text: 'a\nB\nc\nD\n', language: 'plaintext', version: 0 });
+    ctl.openDiff({ docId: 'd1', original: 'a\nb\nc\nd\n', mode: 'inline' });
+
+    // The cursor in the second change: that one goes, the first stays.
+    const second = ctl.view.state.doc.line(4).from;
+    ctl.view.dispatch({ selection: { anchor: second } });
+    expect(ctl.exec('revertChunk')).toBe(true);
+    expect(ctl.view.state.doc.toString()).toBe('a\nB\nc\nd\n');
+    expect(getChunks(ctl.view.state)?.chunks).toHaveLength(1);
+    scheduler.run();
+    expect(applyChanges('a\nB\nc\nD\n', of('doc.changed')[0]!.changes)).toBe('a\nB\nc\nd\n');
+
+    // It is the button's edit, so one undo takes it back.
+    expect(ctl.exec('undo')).toBe(true);
+    expect(ctl.view.state.doc.toString()).toBe('a\nB\nc\nD\n');
+  });
+
+  it('the revert command reverts nothing where there is no diff', () => {
+    const { ctl } = setupController();
+    ctl.open({ docId: 'd1', text: WORKING, language: 'plaintext', version: 0 });
+    expect(ctl.exec('revertChunk')).toBe(false);
+    ctl.openDiff({ docId: 'd1', original: WORKING, mode: 'inline' });
+    expect(ctl.exec('revertChunk')).toBe(false);
+    expect(ctl.view.state.doc.toString()).toBe(WORKING);
+  });
+
   it('reverts one change at a time, leaving the others', () => {
     const { ctl } = setupController();
     ctl.open({ docId: 'd1', text: 'a\nB\nc\nD\n', language: 'plaintext', version: 0 });

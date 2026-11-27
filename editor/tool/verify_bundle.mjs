@@ -80,6 +80,16 @@ await new Promise((resolve) => setTimeout(resolve, 400));
 send('h6', 'doc.snapshot', { docId: 'd1' });
 check('reverting a change puts the older text back', responseTo('h6')?.result?.text === 'const a = 1;');
 check('the host hears the revert as an edit', received.filter((m) => m.type === 'doc.changed').length === 2);
+// Phase 7 W6: the same revert as a command, which is how the gate reverts
+// a change in the real app (integration_test/git_test.dart).
+send('h8', 'cmd.insert', { text: 'x' });
+send('h9', 'diff.open', { docId: 'd1', original: 'const a = 1;', mode: 'inline' });
+check('a second diff answered with its one change', JSON.stringify(responseTo('h9')?.result) === '{"mode":"inline","chunks":1}');
+send('h10', 'cmd.exec', { command: 'revertChunk' });
+check('cmd.exec revertChunk ran', responseTo('h10')?.result?.ran === true);
+await new Promise((resolve) => setTimeout(resolve, 400));
+send('h11', 'doc.snapshot', { docId: 'd1' });
+check('the command put the older text back', responseTo('h11')?.result?.text === 'const a = 1;');
 send('h7', 'diff.close', { docId: 'd1' });
 check('diff.close answered ok', responseTo('h7')?.ok === true);
 check('the revert controls go with the diff', window.document.querySelectorAll('button.cm-revertChunk').length === 0);

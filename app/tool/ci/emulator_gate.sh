@@ -2126,6 +2126,71 @@ cat "$RESULTS/lsp.txt" >> "$RESULTS/attempts.txt"
 [ "$lsp_ok" = "1" ] || fail=1
 echo "::endgroup::"
 
+echo "::group::Git (Phase 7 W6, G6: a project made a repository, committed and branched; a diff reverted in the page and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository)"
+# integration_test/git_test.dart, in the build with the x86_64 payload
+# (still selected from the runtime group): Git in the real app on the
+# sealed runtime, against a repository the device serves to itself
+# (integration_test/git_measure.dart keeps W1's `git http-backend` behind
+# Basic authentication on 127.0.0.1, in the runtime's own python, so
+# nothing leaves the emulator). The panel's empty state makes the project
+# a repository, the commit box commits it, the branch dialog branches it;
+# a file's diff opens from the panel and one change is reverted in the
+# page (`cmd.exec revertChunk`, the diff button's own edit: a button
+# inside the WebView cannot be tapped from a test) and committed; the
+# clone, the push and the conflicting pull go through the credential
+# dialog, asked once and remembered; the token is then looked for in the
+# app's files, the runtime's home, the project and every process's
+# arguments and environment, while git runs and after it; and the
+# 10,000-file repository is staged, committed and refreshed with
+# Flutter's frames measured. The GIT_GATE lines are the evidence; their
+# times are recorded, never judged here — the budgets are the phone's.
+# The group then runs integration_test/phone_git_test.dart, which Test
+# Lab's phone runs and judges (G6): the status of 10,000 files, the
+# frames while they are committed and cloned, and the clone's time and
+# memory (the app's and its renderers', through folder_driver's `mem`).
+# Here its lines and its exit are recorded, never judged: the emulator's
+# figures are not the phone's, and a failure there fails nothing.
+git_group() {
+  "$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+  "$ADB" logcat -c < /dev/null
+  ITEST_LIMIT=30m ITEST_ATTEMPTS=1 run_itest git_itest integration_test/git_test.dart || return 1
+}
+FOLDER_UI="$RESULTS/git_ui.xml" folder_driver > "$RESULTS/git_driver.txt" 2>&1 &
+git_driver_pid=$!
+git_ok=0
+for attempt in 1 2; do
+  INFRA_SEEN=0
+  if git_group; then
+    git_ok=1
+    break
+  fi
+  [ "$INFRA_SEEN" = "1" ] || break
+  echo "git attempt $attempt hit infrastructure failures — running it again" \
+    | tee -a "$RESULTS/attempts.txt"
+done
+git_budget_exit=skipped
+if [ "$git_ok" = "1" ]; then
+  git_budget_exit=0
+  ITEST_LIMIT=25m ITEST_ATTEMPTS=1 run_itest git_budget_itest integration_test/phone_git_test.dart \
+    || git_budget_exit=$?
+fi
+kill "$git_driver_pid" 2>/dev/null || true
+wait "$git_driver_pid" 2>/dev/null || true
+"$ADB" logcat -d -s CodeForgeGit:I CodeForgeRuntime:I < /dev/null > "$RESULTS/git_logcat.txt" 2>&1 || true
+{
+  echo "git_group=$([ "$git_ok" = "1" ] && echo pass || echo fail)"
+  grep -oE 'GIT_GATE .*' "$RESULTS/git_itest.txt" 2>/dev/null | sed 's/^GIT_GATE /git: /'
+  echo "git_budget_exit=$git_budget_exit (recorded, never judged)"
+  grep -oE 'GIT_GATE phone .*' "$RESULTS/git_budget_itest.txt" 2>/dev/null | sed 's/^GIT_GATE /git: /'
+} | tee "$RESULTS/git.txt"
+# The annotations have no slot left: attempts.txt carries the verdict.
+cat "$RESULTS/git.txt" >> "$RESULTS/attempts.txt"
+# Leave the device as it was: no app, and with it the served repository,
+# the credentials it was reached with and the gate's projects.
+"$ADB" uninstall "$APP_ID" >/dev/null 2>&1 || true
+[ "$git_ok" = "1" ] || fail=1
+echo "::endgroup::"
+
 echo "::group::Sessions (Phase 5 W5, G5: the service with the first session and not after the last, memory pressure, 5 minutes in the background, process death, tombstones)"
 # integration_test/sessions_a_test.dart and sessions_b_test.dart, in the
 # build with the x86_64 payload (still selected from the runtime group).

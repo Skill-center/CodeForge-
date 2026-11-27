@@ -13,7 +13,7 @@
  * chunk, which moves the *original* instead of the document; here the
  * original is a git blob the page cannot write, so that control is left out.
  */
-import { MergeView, getChunks, unifiedMergeView } from '@codemirror/merge';
+import { MergeView, getChunks, rejectChunk, unifiedMergeView } from '@codemirror/merge';
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
@@ -73,6 +73,25 @@ export function inlineDiff(original: string, editable: boolean): Extension {
 /** How many changed chunks [state] shows, 0 when it shows no diff. */
 export function chunkCount(state: EditorState): number {
   return getChunks(state)?.chunks.length ?? 0;
+}
+
+/**
+ * *Revert this change* as a command (Phase 7 W6): the change the cursor is
+ * in, or the first one after it, goes back to the older text. It is the
+ * same edit the button makes — one undoable change — so a keyboard, the
+ * host and the gate can do what a finger does.
+ *
+ * False when there is no inline diff, or nothing left to revert.
+ */
+export function revertChunk(view: EditorView): boolean {
+  const chunks = getChunks(view.state)?.chunks;
+  if (!chunks || chunks.length === 0) return false;
+  const head = view.state.selection.main.head;
+  const at =
+    chunks.find((chunk) => head >= chunk.fromB && head <= chunk.toB) ??
+    chunks.find((chunk) => chunk.fromB >= head) ??
+    chunks[0];
+  return rejectChunk(view, at.fromB);
 }
 
 /** The diff colours, from the app's own tokens (Palette.diffAdded/Removed). */

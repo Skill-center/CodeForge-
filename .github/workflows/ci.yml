@@ -1544,7 +1544,8 @@ jobs:
             args+=(--document CODEFORGE_SEARCH_JSON "$log")
             args+=(--document CODEFORGE_TERMINAL_JSON "$log" --document CODEFORGE_COPY_JSON "$log")
             args+=(--document CODEFORGE_LSP_JSON "$log")
-            grep -E 'CodeForgeRuntimeGate|CodeForgeRuntime|CodeForgeSearch|CodeForgeGate|CodeForgePagePort|CodeForgeLsp|ExecModel|CODEFORGE_SYNC_JSON|CODEFORGE_SEARCH_JSON|CODEFORGE_TERMINAL_JSON|CODEFORGE_COPY_JSON|CODEFORGE_LSP_JSON|RUNTIME_GATE page_|RUNTIME_GATE copy_|RUNTIME_GATE lsp_phone_|LSP_GATE|phone terminal|phone copy|terminal measure|PlatformViewsChannel|Impeller|FlutterTestRunner|TestRunner|AndroidRuntime' \
+            args+=(--document CODEFORGE_GIT_JSON "$log")
+            grep -E 'CodeForgeRuntimeGate|CodeForgeRuntime|CodeForgeSearch|CodeForgeGate|CodeForgePagePort|CodeForgeLsp|CodeForgeGit|ExecModel|CODEFORGE_SYNC_JSON|CODEFORGE_SEARCH_JSON|CODEFORGE_TERMINAL_JSON|CODEFORGE_COPY_JSON|CODEFORGE_LSP_JSON|CODEFORGE_GIT_JSON|RUNTIME_GATE page_|RUNTIME_GATE copy_|RUNTIME_GATE lsp_phone_|RUNTIME_GATE git_phone_|LSP_GATE|GIT_GATE|phone terminal|phone copy|terminal measure|PlatformViewsChannel|Impeller|FlutterTestRunner|TestRunner|AndroidRuntime' \
               "$log" | tail -n 3000 > "$RESULTS/logcat-runtime.txt" || true
           fi
           python3 app/tool/ci/gate_results.py "${args[@]}" \
@@ -1559,7 +1560,7 @@ jobs:
             --expect dev.codeforge.app.runtime.GitTest:7 \
             --expect dev.codeforge.app.git.GitHostTest:6 \
             --expect dev.codeforge.app.git.GitRemoteTest:4 \
-            --expect dev.codeforge.app.syncmodes.SyncModesTest:5 \
+            --expect dev.codeforge.app.syncmodes.SyncModesTest:6 \
             --require lsp_install_damaged=damaged \
             --require lsp_crash=signaled:9 \
             --require exec_model_audit_outside_apk=0 \
@@ -1600,11 +1601,18 @@ jobs:
             --require lsp_phone_typescript_diagnostics_under_budget=1 \
             --require lsp_phone_pyright_memory_under_budget=1 \
             --require lsp_phone_typescript_memory_under_budget=1 \
+            --require git_phone_status_clean_under_budget=1 \
+            --require git_phone_status_changed_under_budget=1 \
+            --require git_phone_status_frames_under_budget=1 \
+            --require git_phone_commit_frames_under_budget=1 \
+            --require git_phone_clone_frames_under_budget=1 \
+            --require git_phone_frozen_frames=0 \
             --need-document CODEFORGE_SYNC_JSON \
             --need-document CODEFORGE_SEARCH_JSON \
             --need-document CODEFORGE_TERMINAL_JSON \
             --need-document CODEFORGE_COPY_JSON \
             --need-document CODEFORGE_LSP_JSON \
+            --need-document CODEFORGE_GIT_JSON \
             --meta "device=$DEVICE" --meta "gcloud_exit=$GCLOUD_EXIT" \
             --meta "run=${{ github.run_id }}" --meta "sha=${GITHUB_SHA:0:7}" \
             --out-json "$RESULTS/runtime.json" --out-txt "$RESULTS/runtime.txt"
@@ -1645,8 +1653,10 @@ jobs:
     # About 30 minutes until Phase 4 W3. W3 puts a payload into three builds
     # and adds two parts: the arm64 bundle, and the runtime group (an x86_64
     # payload build, its instrumented tests and an integration pair). The limit
-    # leaves room for a slow emulator.
-    timeout-minutes: 100
+    # leaves room for a slow emulator. Phase 7 W6 adds the git group (Git in
+    # the real app, twice: the gate's own run and the phone's budgets on a
+    # 10,000-file repository), which took the run to about 100 minutes.
+    timeout-minutes: 130
     defaults:
       run:
         working-directory: app
