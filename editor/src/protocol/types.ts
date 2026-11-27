@@ -153,6 +153,10 @@ export interface Palette {
   searchMatch: string;
   panelBackground: string;
   border: string;
+  /** A diff's added lines (Phase 7 W5), translucent over the background. */
+  diffAdded: string;
+  /** A diff's removed lines, translucent over the background. */
+  diffRemoved: string;
   syntax: SyntaxPalette;
 }
 
@@ -363,6 +367,46 @@ export interface SearchStatePayload {
 
 export const MAX_COUNTED_MATCHES = 1000;
 
+// ------------------------------------------------------------- diffs (Phase 7 W5)
+//
+// A diff is a mode of an open document, never a second copy of it: the
+// document keeps its id, its undo history and its change sets, and the page
+// draws the older text around it (GIT_ARCHITECTURE, EDITOR_ARCHITECTURE §11).
+//
+// - `inline` puts both sides in one column: the document itself, with the
+//   removed lines drawn above the lines that replaced them, and *Revert this
+//   change* on each change. Reverting is an ordinary edit, so it travels as a
+//   change set, marks the tab dirty and undoes with Ctrl+Z.
+// - `split` puts the older text beside the document in a second, read-only
+//   view. Only a read-only document may ask for it (a commit against its
+//   parent): the live document is never moved out of its own editor, which is
+//   what keeps one undo history and one stream of edits.
+
+export const DIFF_MODES = ['inline', 'split'] as const;
+export type DiffMode = (typeof DIFF_MODES)[number];
+
+/**
+ * The longest text a diff compares, in UTF-16 code units: the line above
+ * which a document opens as plain text (app/lib/core/editor/large_files.dart,
+ * EDITOR_ARCHITECTURE §10). Above it the host says so and offers the file
+ * instead, rather than sending the page two large texts to diff.
+ */
+export const MAX_DIFF_CHARS = 512 * 1024;
+
+export interface DiffOpenPayload {
+  /** The open document the diff is about: the newer side. */
+  docId: string;
+  /** The older text, "\n" line breaks, at most [MAX_DIFF_CHARS]. */
+  original: string;
+  mode: DiffMode;
+}
+
+/** What `diff.open` answers: the mode shown, and the changes it found. */
+export interface DiffResult {
+  mode: DiffMode;
+  chunks: number;
+}
+
 export interface HostToEditor {
   'editor.configure': ConfigurePayload;
   'doc.open': DocOpenPayload;
@@ -401,6 +445,13 @@ export interface HostToEditor {
    * [ProbeReport]; with `clear`, the page starts counting again.
    */
   'probe.read': { clear?: boolean };
+  /**
+   * Shows a document against an older text (Phase 7 W5), answered with a
+   * [DiffResult]. A document already showing a diff takes the new one.
+   */
+  'diff.open': DiffOpenPayload;
+  /** Stops showing a document's diff; a document without one is untouched. */
+  'diff.close': { docId: string };
   /** The answer to one of the page's requests (`lsp.*`). */
   response: ResponsePayload;
 }

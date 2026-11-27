@@ -32,6 +32,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/editor/journal.dart';
 import '../../core/editor/languages.dart';
 import '../../core/editor/large_files.dart';
+import '../../core/editor/protocol.dart';
 import '../../core/editor/shadow_document.dart';
 import '../../core/errors/failure.dart';
 import '../../core/files/file_stamp.dart';
@@ -200,6 +201,9 @@ final class DocumentController extends Notifier<DocumentsState> {
 
   void _addTab(OpenDocument doc, {required bool background}) {
     final path = doc.path;
+    if (!background) {
+      _dropSplitDiffs(except: path);
+    }
     state = state.copyWith(
       openPaths: [...state.openPaths, path],
       documents: {...state.documents, path: doc},
@@ -215,6 +219,7 @@ final class DocumentController extends Notifier<DocumentsState> {
     if (doc == null) {
       return;
     }
+    _dropSplitDiffs(except: path);
     if (state.activePath != path) {
       final previous = state.active;
       if (previous != null) {
@@ -265,6 +270,188 @@ final class DocumentController extends Notifier<DocumentsState> {
     );
   }
 
+  // ------------------------------------------------------ diffs (Phase 7 W5)
+
+  /// Shows [path]'s document against [original], the older text, in one
+  /// column with *Revert this change* on each change
+  /// (docs/EDITOR_ARCHITECTURE.md §11). The tab must be open; reverting is
+  /// an ordinary edit of the document, which Undo takes back and Save
+  /// writes.
+  ///
+  /// [against] names the older text for the pane ('the staged version').
+  /// Either text past [maxDiffChars] is not compared at all: the document
+  /// stays as it is and its banner says so, which is how a file too large
+  /// to compare is still offered.
+  Future<Result<void>> showDiff(
+    String path, {
+    required String original,
+    required String against,
+  }) async {
+    final doc = state.documents[path];
+    if (doc == null) {
+      return Err(
+        FileFailure('$path is not open.', problem: FileProblem.notFound),
+      );
+    }
+    final text = _host.textOf(doc.docId) ?? doc.savedText;
+    if (original.length > maxDiffChars || text.length > maxDiffChars) {
+      _replace(
+        doc.copyWith(
+          diff: DocumentDiff(
+            against: against,
+            mode: EditorDiffMode.inline,
+            tooLarge: true,
+          ),
+        ),
+      );
+      return const Ok(null);
+    }
+    return _showDiff(doc, original: original, against: against, wide: false);
+  }
+
+  /// Opens [filePath] as [revision] left it, against [original], the text
+  /// before it: a read-only tab of its own, beside the file's (Phase 7
+  /// W5). Two columns when [wide] (a tablet or a landscape phone), one on
+  /// a narrow screen. Opening the same revision again activates its tab.
+  Future<Result<void>> openRevision({
+    required String filePath,
+    required String revision,
+    required String label,
+    required String text,
+    required String original,
+    required String against,
+    required bool wide,
+  }) async {
+    final key = DocumentRevision.tabKeyFor(filePath, revision);
+    final open = state.documents[key];
+    if (open != null) {
+      activate(key);
+      return const Ok(null);
+    }
+    if (text.contains('\r') || original.contains('\r')) {
+      return Err(
+        FileFailure(
+          '$filePath at $label is not text the editor can show.',
+          problem: FileProblem.notText,
+        ),
+      );
+    }
+    _nextDocId += 1;
+    final (:language, :large) = _languageFor(filePath, text);
+    final doc = OpenDocument(
+      path: key,
+      docId: 'd$_nextDocId',
+      language: language,
+      format: TextFormat.standard,
+      savedText: text,
+      stamp: null,
+      largeFile: large,
+      revision: DocumentRevision(
+        filePath: filePath,
+        revision: revision,
+        label: label,
+      ),
+    );
+    _addTab(doc, background: false);
+    final opened = await _host.openDocument(
+      docId: doc.docId,
+      text: text,
+      language: doc.language,
+      readOnly: true,
+    );
+    if (opened case Err<void>(:final failure)) {
+      appLogger.warn(
+        'documents',
+        'editor_open_failed',
+        fields: {'path': key, 'error': failure.message},
+      );
+      close(key);
+      return Err(failure);
+    }
+    if (original.length > maxDiffChars || text.length > maxDiffChars) {
+      _replace(
+        (state.documents[key] ?? doc).copyWith(
+          diff: DocumentDiff(
+            against: against,
+            mode: EditorDiffMode.inline,
+            tooLarge: true,
+          ),
+        ),
+      );
+      return const Ok(null);
+    }
+    return _showDiff(doc, original: original, against: against, wide: wide);
+  }
+
+  /// Asks the page for the diff and records what it drew.
+  Future<Result<void>> _showDiff(
+    OpenDocument doc, {
+    required String original,
+    required String against,
+    required bool wide,
+  }) async {
+    // Two columns need the room and a document nobody types into.
+    final mode = wide && doc.readOnly
+        ? EditorDiffMode.split
+        : EditorDiffMode.inline;
+    final shown = await _host.openDiff(
+      doc.docId,
+      original: original,
+      mode: mode,
+    );
+    switch (shown) {
+      case Err<EditorDiffShown>(:final failure):
+        appLogger.warn(
+          'documents',
+          'diff_failed',
+          fields: {'path': doc.path, 'error': failure.message},
+        );
+        return Err(failure);
+      case Ok<EditorDiffShown>(:final value):
+        final now = state.documents[doc.path];
+        if (now == null || now.docId != doc.docId) {
+          // The tab closed while the page was drawing it.
+          return const Ok(null);
+        }
+        _replace(
+          now.copyWith(
+            diff: DocumentDiff(
+              against: against,
+              mode: value.mode,
+              chunks: value.chunks,
+            ),
+          ),
+        );
+        return const Ok(null);
+    }
+  }
+
+  /// A two-column diff stands in for the editor, so another document
+  /// coming into it ends that comparison — in the page, and so here
+  /// (Phase 7 W5). The document itself stays open.
+  void _dropSplitDiffs({required String? except}) {
+    final dropped = {
+      for (final MapEntry(key: path, value: doc) in state.documents.entries)
+        if (path != except && doc.diff?.mode == EditorDiffMode.split)
+          path: doc.copyWith(clearDiff: true),
+    };
+    if (dropped.isEmpty) {
+      return;
+    }
+    state = state.copyWith(documents: {...state.documents, ...dropped});
+  }
+
+  /// Stops comparing [path]: the document stays open and editable, with
+  /// every change made through the diff kept.
+  void hideDiff(String path) {
+    final doc = state.documents[path];
+    if (doc == null || doc.diff == null) {
+      return;
+    }
+    _replace(doc.copyWith(clearDiff: true));
+    unawaited(_report('editor_diff_failed', path, _host.closeDiff(doc.docId)));
+  }
+
   /// Takes [path]'s large-file banner down; the document stays plain text.
   void dismissLargeFileNotice(String path) {
     final doc = state.documents[path];
@@ -299,6 +486,9 @@ final class DocumentController extends Notifier<DocumentsState> {
     final recent = [...state.recent.where((p) => p != path)];
     final wasActive = state.activePath == path;
     final fallback = wasActive ? recent.lastOrNull : state.activePath;
+    if (wasActive) {
+      _dropSplitDiffs(except: fallback);
+    }
     state = state.copyWith(
       openPaths: [...state.openPaths.where((p) => p != path)],
       documents: documents,
@@ -345,6 +535,16 @@ final class DocumentController extends Notifier<DocumentsState> {
     if (doc == null) {
       return Err(
         FileFailure('$path is not open.', problem: FileProblem.notFound),
+      );
+    }
+    if (doc.revision case final revision?) {
+      // A commit's text (Phase 7 W5): there is nothing here to write.
+      return Err(
+        FileFailure(
+          '${doc.name} is ${revision.filePath} as it was at '
+          '${revision.label}, which cannot be saved.',
+          problem: FileProblem.unsupported,
+        ),
       );
     }
     if (!overwrite && doc.conflict == DocumentConflict.changedWhileOpen) {
@@ -431,6 +631,17 @@ final class DocumentController extends Notifier<DocumentsState> {
     if (doc == null) {
       return Err(
         FileFailure('$path is not open.', problem: FileProblem.notFound),
+      );
+    }
+    if (doc.revision case final revision?) {
+      // A commit's text (Phase 7 W5): the tab belongs to the repository,
+      // so it is not written anywhere under another name either.
+      return Err(
+        FileFailure(
+          '${doc.name} is ${revision.filePath} as it was at '
+          '${revision.label}, which cannot be saved.',
+          problem: FileProblem.unsupported,
+        ),
       );
     }
     if (state.isOpen(newPath)) {
@@ -573,7 +784,11 @@ final class DocumentController extends Notifier<DocumentsState> {
     // reach the journal between the state and the store.
     _journal.moved(_workspaceId, from, to);
     final renamed = <String, String>{
-      for (final path in state.openPaths) path: ?movedPath(path, from, to),
+      // A revision tab is a commit's text, not a file in the work tree:
+      // moving the file leaves it where it is (Phase 7 W5).
+      for (final path in state.openPaths)
+        if (state.documents[path]?.revision == null)
+          path: ?movedPath(path, from, to),
     };
     if (renamed.isEmpty) {
       return;
@@ -648,7 +863,9 @@ final class DocumentController extends Notifier<DocumentsState> {
     var closed = 0;
     for (final open in [...state.openPaths]) {
       final doc = state.documents[open];
-      if (doc == null || !isWithin(open, path)) {
+      // A revision tab holds a commit's text, which deleting the file
+      // does not touch (Phase 7 W5).
+      if (doc == null || doc.revision != null || !isWithin(open, path)) {
         continue;
       }
       if (!doc.dirty) {
@@ -1351,7 +1568,9 @@ final class DocumentController extends Notifier<DocumentsState> {
     final active = state.activePath;
     final tabs = [
       for (final path in state.openPaths)
-        if (state.documents[path] case final doc?)
+        // A revision tab belongs to the repository, not to the session:
+        // it is not reopened at the next start (Phase 7 W5).
+        if (state.documents[path] case final doc? when doc.revision == null)
           _savedTab(doc, active: path == active),
     ];
     _journal.enqueue(() => store.saveTabs(workspaceId, tabs));

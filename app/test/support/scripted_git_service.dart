@@ -133,10 +133,16 @@ final class ScriptedGitService implements GitService {
   List<GitCommit> commits = const [];
   Map<String, List<GitCommitFile>> commitFilesValue = const {};
 
+  /// What [fileAt] answers, keyed `revision:path` with the staged version
+  /// under `:path` (Phase 7 W5). A path that is not in it is not there at
+  /// that revision, which fails as git does.
+  Map<String, String> filesAt = const {};
+
   /// When set, that read fails with it.
   GitFailure? branchesFailure;
   GitFailure? logFailure;
   GitFailure? commitFilesFailure;
+  GitFailure? fileAtFailure;
 
   /// Every read, as `name argument...`, in the order they were made.
   final List<String> reads = [];
@@ -186,7 +192,25 @@ final class ScriptedGitService implements GitService {
     String project,
     String path, {
     String? revision,
-  }) async => const Ok('');
+  }) async {
+    await _read('file_at ${revision ?? ''}:$path');
+    final failure = fileAtFailure;
+    if (failure != null) {
+      return Err(failure);
+    }
+    final text = filesAt['${revision ?? ''}:$path'];
+    if (text == null) {
+      return Err(
+        GitFailure(
+          '$path is not in ${revision ?? 'the index'}.',
+          problem: GitProblem.gitError,
+          operation: 'file_at',
+          exitCode: 128,
+        ),
+      );
+    }
+    return Ok(text);
+  }
 
   @override
   Future<Result<List<GitBranch>>> branches(String project) async {

@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:codeforge/core/editor/change_set.dart';
+import 'package:codeforge/core/editor/large_files.dart';
 import 'package:codeforge/core/editor/protocol.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -236,6 +237,12 @@ void main() {
       expect(source, contains('PROTOCOL_VERSION = $protocolVersion;'));
       expect(source, contains('MAX_MESSAGE_CHARS = 32 * 1024 * 1024;'));
       expect(maxMessageChars, 32 * 1024 * 1024);
+    });
+
+    test('diff modes and the size a diff is offered above (Phase 7 W5)', () {
+      expect(diffModes, _tsList(source, 'DIFF_MODES'));
+      expect(source, contains('MAX_DIFF_CHARS = 512 * 1024;'));
+      expect(maxDiffChars, plainTextAboveChars);
     });
 
     test('value lists', () {

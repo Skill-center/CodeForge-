@@ -69,6 +69,20 @@ const changed = received.find((m) => m.type === 'doc.changed');
 check('edit arrives as one batched doc.changed', changed?.payload?.version === 1, JSON.stringify(changed?.payload?.changes));
 send('h3', 'doc.snapshot', { docId: 'd1' });
 check('snapshot returns the edited text', responseTo('h3')?.result?.text === '()const a = 1;');
+// Phase 7 W5: the diff, in the built page. One revert control per change,
+// and reverting one is an edit of the document the host hears about.
+send('h5', 'diff.open', { docId: 'd1', original: 'const a = 1;', mode: 'inline' });
+check('diff.open answered with its mode and changes', JSON.stringify(responseTo('h5')?.result) === '{"mode":"inline","chunks":1}');
+const revert = [...window.document.querySelectorAll('button.cm-revertChunk')];
+check('each change offers Revert this change', revert.length === 1, revert[0]?.textContent ?? 'none');
+revert[0]?.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+await new Promise((resolve) => setTimeout(resolve, 400));
+send('h6', 'doc.snapshot', { docId: 'd1' });
+check('reverting a change puts the older text back', responseTo('h6')?.result?.text === 'const a = 1;');
+check('the host hears the revert as an edit', received.filter((m) => m.type === 'doc.changed').length === 2);
+send('h7', 'diff.close', { docId: 'd1' });
+check('diff.close answered ok', responseTo('h7')?.ok === true);
+check('the revert controls go with the diff', window.document.querySelectorAll('button.cm-revertChunk').length === 0);
 send('h4', 'doc.open', { docId: 'bad id', text: '', language: 'javascript', version: 0 });
 check('invalid request answered with bad_payload', responseTo('h4')?.error?.code === 'bad_payload');
 const pageErrors = received.filter((m) => m.type === 'editor.log' && m.payload.level === 'error');

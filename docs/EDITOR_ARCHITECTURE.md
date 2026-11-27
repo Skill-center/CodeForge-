@@ -325,3 +325,48 @@ Gate 42659207710 measured the same files with the policy in place (`large_files.
 - **Release memory** with the 1 MiB file restored was 224.5 to 227.6 MB as plain text in the three runs, against 236 MB highlighted in the run without the policy. All four are within the 250 MB budget.
 - **Opening and saving** grow with the size, whatever the language. In this run, opening took about 0.6 s at 5 MiB and 1.1 s at 10 MiB, about half of it on the app's side (reading and decoding, in a debug build).
 - The session store's costs at these sizes are in ADR-0008.
+
+## 11. Diffs in the editor (as built in Phase 7 W5)
+
+A diff is not a view of its own: it is a way of showing a document that is already open. The document keeps its id, its undo history, its journal and its tab, so everything the diff offers is an ordinary edit, and *Revert this change* is undone with Ctrl+Z and written with Save like any other.
+
+### The page
+
+`editor/src/editor/diff.ts` wraps `@codemirror/merge` 6.13.0 (MIT, and every one of its dependencies was already in the tree, so it adds one package). Two shapes:
+
+- **Inline (`unifiedMergeView`)** — one column: the document, with the older lines drawn around it and a *Revert this change* button on each change. It goes into the `diffSlot` compartment of the document's own state, so opening and closing a diff is a reconfiguration, not a new document. The button is only offered for a document the user can edit: `inlineDiff(original, editable)` passes `mergeControls: false` for a read-only one, because `rejectChunk` dispatches straight at the view and the read-only facet stops commands, not raw dispatches — a revert button on a commit's text would work, which would be a lie.
+- **Split (`MergeView`)** — two columns, for a read-only document only. `MergeView` builds its own DOM and its own two `EditorView`s, so it cannot reuse the controller's view: it mounts into a `cf-split-diff` sibling div while the main view is hidden (`display: none`), and unmounts on `diff.close`, on `doc.close`, when another document is activated, and on destroy. `configure` and `doc.setLanguage` rebuild it, so the appearance and the highlighting follow the app.
+
+`@codemirror/merge` hardcodes its own greens and reds, so `diffTheme` overrides every one of its selectors with the palette's `diffAdded` and `diffRemoved` (`editor/src/editor/palette.ts`), which are the design system's `success` and `danger` at 18 % alpha over the editor's background, so the code on a changed line keeps its contrast. The same theme makes `.cm-revertChunk` and `.cm-collapsedLines` 48 dp tall, since they are touch targets.
+
+### The protocol
+
+Two more host → editor types, with fixtures both sides run (`editor/test/fixtures/protocol/`):
+
+- `diff.open {docId, original, mode}` — `original` is the older text, `\n` only and at most `MAX_DIFF_CHARS` (512 KiB, the same line §10 draws for plain text); `mode` is `inline` or `split`. It is answered with `{mode, chunks}`: the layout drawn and how many changes it found. A document already showing a diff takes the new one. `split` for a document that can be edited is refused as `bad_payload`.
+- `diff.close {docId}` — the document stays open, with every change made through the diff. Closing a diff that is not there is not an error.
+
+`DIFF_MODES` and `MAX_DIFF_CHARS` exist in `editor/src/protocol/types.ts` and as `diffModes` and `maxDiffChars` in `app/lib/core/editor/protocol.dart`; the cross-language contract tests check both lists, and `maxDiffChars` is asserted equal to `plainTextAboveChars`.
+
+### The host and the app
+
+`EditorHost.openDiff(docId, original:, mode:)` and `closeDiff(docId)` hold a diff in the shadow document (`EditorDiff`), so a page that restarts is shown it again after the documents are reopened — a diff is part of what the page was showing. The host refuses a `split` for a document that is not read-only before it reaches the page, refuses `\r`, and refuses an older text past `maxDiffChars`.
+
+`DocumentController` has the two ways in:
+
+- **`showDiff(path, original:, against:)`** — the open document against the older text, inline, editable. `against` is what the pane says it is compared with.
+- **`openRevision(filePath:, revision:, label:, text:, original:, against:, wide:)`** — a file as some commit left it, read-only, in a tab of its own keyed `path@hash` (`DocumentRevision`). It is two columns when `wide`, one otherwise. A revision tab has no file behind it: it is never saved, never watched, never disk-checked, and not written into the session, so the next start does not reopen it. Its tab reads `main.js at a1b2c3d`.
+
+`hideDiff(path)` ends either. Since a two-column diff stands in for the editor, another document coming into it ends that comparison — in the page (`dropSplitUnless`), in the host's shadows, and in the controller's state, so the banner never says what the page is not showing.
+
+**Too large to compare** is decided in the controller, not the page: if either text is past `maxDiffChars`, nothing is asked of the page and the document is simply open, with the banner saying it is too large to compare here. That is how a file over the line is still offered.
+
+The pane's banner (`diff_notice` in `editor_pane.dart`) says *Showing 2 changes against the staged version.*, or *Nothing differs from the last commit.*, with *Stop comparing*. It is the last banner to take room: the journal's warning, a disk conflict, a deleted file and the large-file notice all come first.
+
+### What chooses the older text
+
+`application/git/git_diff_controller.dart` is the piece between git and the editor (GIT_ARCHITECTURE §3.4). A tap on a changed file in the Source control panel opens the file and compares it with the staged version while its changes are unstaged, or with the last commit once they are staged; a new file is compared with nothing; a renamed file is read at the name it had; a long press opens the file alone. A tap on a file in a commit's sheet opens that commit's text read-only against the commit before it — two columns on an expanded window (over 840 dp), one otherwise. The read runs while the file is already open, so a tap shows the file at once and the comparison a moment later.
+
+### The bundle
+
+`editor.html` is 876.2 KiB, **319.6 KiB gzipped** against the 1.5 MiB budget (`tool/verify_bundle.mjs` reports 327,307 B of 1,572,864 B); the merge view cost 10,315 B gzipped, 2.1 % of the budget. The verifier also drives the built page: it opens a diff, checks that one *Revert this change* button is offered, clicks it, and checks that the older text came back as one `doc.changed` the host hears.

@@ -169,6 +169,16 @@ const int maxEditedDocuments = 64;
 /// The most edits one document takes in one `doc.applyEdits`.
 const int maxDocumentEdits = 10000;
 
+/// How a diff is laid out (Phase 7 W5): `inline` is one column, the
+/// document itself with the older lines drawn around it; `split` is two,
+/// the older text beside a read-only document.
+const List<String> diffModes = ['inline', 'split'];
+
+/// The longest text a diff compares, in UTF-16 code units: the line above
+/// which a document opens as plain text (core/editor/large_files.dart).
+/// Above it the app offers the file instead of diffing it.
+const int maxDiffChars = 512 * 1024;
+
 /// The page's requests, each answered by the host through `response`.
 const List<String> pageRequestTypes = [
   'lsp.complete',
@@ -462,6 +472,8 @@ final _Check _palette = _obj({
   'searchMatch': _color,
   'panelBackground': _color,
   'border': _color,
+  'diffAdded': _color,
+  'diffRemoved': _color,
   'syntax': _obj({
     'keyword': _color,
     'string': _color,
@@ -590,6 +602,15 @@ final Map<String, _Check> _hostToEditor = {
   // each completion list's time from the request to the frame that drew
   // it; with clear, the page starts counting again.
   'probe.read': _obj({}, {'clear': _bool}),
+  // Phase 7 W5. diff.open: an open document shown against the older text,
+  // answered with the mode drawn and the changes found. The older text is
+  // capped at the plain-text line: a larger file is offered, not diffed.
+  'diff.open': _obj({
+    'docId': _docId,
+    'original': _str(lfOnly: true, max: maxDiffChars),
+    'mode': _oneOf(diffModes),
+  }),
+  'diff.close': _obj({'docId': _docId}),
   // The host's answer to one of the page's requests (lsp.*).
   'response': _responsePayload,
 };

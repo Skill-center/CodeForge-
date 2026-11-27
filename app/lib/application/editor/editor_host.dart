@@ -227,6 +227,15 @@ final class EditorSnapshot {
   final double? scrollTop;
 }
 
+/// What the page drew for a diff (Phase 7 W5): the layout it could show,
+/// and how many changed chunks it found between the two texts.
+final class EditorDiffShown {
+  const EditorDiffShown({required this.mode, required this.chunks});
+
+  final EditorDiffMode mode;
+  final int chunks;
+}
+
 final class _PendingRequest {
   _PendingRequest(this.type, this.completer, this.timer);
 
@@ -491,6 +500,7 @@ final class EditorHost {
     _documents[docId] = doc;
     if (activate) {
       _activeDocId = docId;
+      _dropSplitDiffs(except: docId);
     }
     if (!_ready) {
       return const Ok(null);
@@ -509,6 +519,7 @@ final class EditorHost {
       return Err(BridgeFailure('Document $docId is not open.'));
     }
     _activeDocId = docId;
+    _dropSplitDiffs(except: docId);
     if (!_ready) {
       return const Ok(null);
     }
@@ -805,6 +816,111 @@ final class EditorHost {
     return _done(
       await _request('cmd.gotoLine', {'line': line, 'column': ?column}),
     );
+  }
+
+  // -------------------------------------------------------- diffs (Phase 7 W5)
+
+  /// Shows [docId] against [original], the older text, in [mode]
+  /// (`diff.open`). The document keeps its id, its undo history and its
+  /// edits: a diff is a way of showing it, not a copy of it, so reverting
+  /// a change in an editable document arrives here as an ordinary edit.
+  ///
+  /// `split` needs a read-only document; the page refuses it for one the
+  /// user can edit. A document already showing a diff takes the new one.
+  /// The diff is remembered, so a page that restarts shows it again.
+  Future<Result<EditorDiffShown>> openDiff(
+    String docId, {
+    required String original,
+    required EditorDiffMode mode,
+  }) async {
+    final doc = _documents[docId];
+    if (doc == null) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    if (original.contains('\r')) {
+      return const Err(
+        BridgeFailure('Editor text must use \\n line breaks only.'),
+      );
+    }
+    if (original.length > maxDiffChars) {
+      return Err(
+        BridgeFailure(
+          'The older text is ${original.length} characters, and a diff '
+          'compares at most $maxDiffChars.',
+        ),
+      );
+    }
+    if (mode == EditorDiffMode.split && !doc.readOnly) {
+      return Err(
+        BridgeFailure('Document $docId can be edited, so it shows one column.'),
+      );
+    }
+    if (!_ready || (_syncing != null && !await _afterSync())) {
+      return const Err(BridgeFailure('The editor is not ready.'));
+    }
+    if (!identical(_documents[docId], doc)) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    final shown = await _request('diff.open', {
+      'docId': docId,
+      'original': original,
+      'mode': mode.wireName,
+    }, timeout: _timeoutFor(original.length + doc.text.length));
+    switch (shown) {
+      case Err<Object?>(:final failure):
+        return Err(failure);
+      case Ok<Object?>(:final value):
+        if (value is! Map<String, Object?> ||
+            value['mode'] is! String ||
+            value['chunks'] is! num) {
+          return const Err(BridgeFailure('The editor sent a malformed diff.'));
+        }
+        final drawn = EditorDiffMode.values
+            .where((m) => m.wireName == value.string('mode'))
+            .firstOrNull;
+        if (drawn == null) {
+          return const Err(BridgeFailure('The editor sent a malformed diff.'));
+        }
+        if (drawn == EditorDiffMode.split) {
+          // The page shows a two-column diff in place of the editor, so
+          // its document is the one on screen, and no other document's
+          // two-column diff is.
+          _activeDocId = docId;
+          _dropSplitDiffs(except: docId);
+        }
+        _documents[docId]?.diff = EditorDiff(original: original, mode: drawn);
+        return Ok(
+          EditorDiffShown(mode: drawn, chunks: value.integer('chunks')),
+        );
+    }
+  }
+
+  /// Stops showing [docId]'s diff (`diff.close`). A document showing none
+  /// is left as it is.
+  Future<Result<void>> closeDiff(String docId) async {
+    final doc = _documents[docId];
+    if (doc == null) {
+      return Err(BridgeFailure('Document $docId is not open.'));
+    }
+    final had = doc.diff != null;
+    doc.diff = null;
+    if (!had || !_ready || (_syncing != null && !await _afterSync())) {
+      return const Ok(null);
+    }
+    return _done(await _request('diff.close', {'docId': docId}));
+  }
+
+  /// The diff [docId] is being shown against, or null for none.
+  EditorDiff? diffOf(String docId) => _documents[docId]?.diff;
+
+  /// A two-column diff stands in for the editor, so another document
+  /// coming into it ends that diff — in the page, and so here (W5).
+  void _dropSplitDiffs({required String except}) {
+    for (final doc in _documents.values) {
+      if (doc.docId != except && doc.diff?.mode == EditorDiffMode.split) {
+        doc.diff = null;
+      }
+    }
   }
 
   // ------------------------------------------------- language features (W5)
@@ -1295,6 +1411,33 @@ final class EditorHost {
     final active = _activeDocId;
     if (active != null && _documents.containsKey(active)) {
       await _request('doc.activate', {'docId': active});
+    }
+    // Phase 7 W5: a diff is part of what the page was showing.
+    for (final doc in documents) {
+      final diff = doc.diff;
+      if (diff == null) {
+        continue;
+      }
+      if (stale()) {
+        return;
+      }
+      if (!identical(_documents[doc.docId], doc)) {
+        continue;
+      }
+      final shown = await _request('diff.open', {
+        'docId': doc.docId,
+        'original': diff.original,
+        'mode': diff.mode.wireName,
+      }, timeout: _timeoutFor(diff.original.length + doc.text.length));
+      if (shown case Err<Object?>(:final failure)) {
+        // The page is not showing it, so neither is the host.
+        doc.diff = null;
+        appLogger.error(
+          _tag,
+          'rediff_failed',
+          fields: {'docId': doc.docId, 'error': failure.message},
+        );
+      }
     }
     if (!stale()) {
       _syncs += 1;

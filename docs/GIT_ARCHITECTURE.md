@@ -170,6 +170,16 @@ A prompt waits 5 minutes; a run that ends withdraws its prompt. Every question s
 - **The explorer's colours** (W4, `application/git/git_file_states.dart`): one map from path to the worst state Git gives it, so a file wears that state's colour with its letter after the name (`M`, `U`, `!`), a folder the worst state under it without a letter, and a renamed file shows at both ends. The colours are `features/git/git_state_look.dart`: conflicted and deleted `danger`, modified `warning`, renamed `info`, added and new `success`.
 - **A folder from shared storage** (W4, decision (a)): the panel says Git works in projects and offers *Import as project*, which copies the folder's `.git` with everything else — including a pack file over the 64 MiB a run's copy allows per file, since the import's limits are 100,000 files and 4 GiB (`storage/FolderCopy.kt`, `CopyLimits.IMPORT`).
 
+### 3.4 What a file is compared with (W5)
+
+`application/git/git_diff_controller.dart` is the piece between Git and the editor; the editor's own half is EDITOR_ARCHITECTURE §11.
+
+- **A tap on a changed file** in the panel opens the file and compares it with **the staged version** while its changes are unstaged (the conflicted ones too), or with **the last commit** once everything in it is staged. A new file — untracked, or added to the index — is compared with nothing, so every line is an addition; a renamed file is read at the name it had; a file deleted from the work tree has nothing to show, and says so instead of opening an empty tab. The comparison is editable: *Revert this change* is an edit of the document, undone with Ctrl+Z and written with Save.
+- **A long press** opens the file alone, as every tap did in W4.
+- **A tap on a file in a commit's sheet** opens that commit's text, read-only, in a tab of its own (`main.js at a1b2c3d`), against **the commit before it** — against nothing for a file the commit added or for a root commit. Two columns on a window over 840 dp, one otherwise.
+- **The reads** are `GitService.fileAt(project, path, revision:)`: `HEAD`, a commit, `<hash>^`, or the index when the revision is null. They run while the file is already open, so a tap shows the file at once and the comparison a moment later; the paths being read are in `GitDiffState.loading`. A read that fails leaves the file open and says why.
+- **Over 512 KiB** (`maxDiffChars`, the line §10 of EDITOR_ARCHITECTURE draws for plain text) nothing is compared: the file is open and the banner says it is too large to compare here. Over 4 MiB `fileAt` itself refuses, as `GitProblem.tooLarge`.
+
 ## 4. Security
 
 - Git's commands run under the runtime's rules (SECURITY §2.1, E1 to E6), plus the host's own: the fixed set of operations, the fixed settings, paths inside the project, no repository found above the projects' folder, and logs without arguments, paths or URLs (§2.1 above).
@@ -205,6 +215,5 @@ GitHub over SSH is recorded, never judged (a network can fail): on every target 
 
 ## 6. Not built yet
 
-- **W5:** diffs in the editor with `@codemirror/merge`; until then a tap on a change opens the file, as the long press does.
-- **W6:** the Git gate on the emulator and the phone, with the budgets.
+- **W6:** the Git gate on the emulator and the phone, with the budgets. G5's own evidence — a diff shown, a change reverted and the file committed, in the real app — is that gate's `git` group; W5 proved its parts in vitest, the Dart tests and the built page's verifier.
 - **Out of scope for Phase 7:** hunk or line staging, interactive rebase, stash, tags, submodules, blame, a history graph, LFS, signing, a host's pull requests and issues, HTTPS through a proxy or with a private CA (PHASE_7_PLAN §8).

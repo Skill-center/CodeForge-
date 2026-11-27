@@ -32,6 +32,11 @@ Map<String, Object?> editorConfiguration(
       'searchMatch': cssHex(colors.warning.withValues(alpha: 0.32)),
       'panelBackground': cssHex(colors.surfacePanel),
       'border': cssHex(colors.borderSubtle),
+      // A diff's lines (Phase 7 W5): the app's own success and danger, laid
+      // over the editor's background rather than replacing it, so the code
+      // on a changed line keeps its contrast.
+      'diffAdded': cssHex(colors.success.withValues(alpha: 0.18)),
+      'diffRemoved': cssHex(colors.danger.withValues(alpha: 0.18)),
       'syntax': {
         'keyword': cssHex(colors.syntaxKeyword),
         'string': cssHex(colors.syntaxString),

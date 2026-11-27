@@ -6,10 +6,10 @@
 ///   behind it is, with *Fetch*, *Pull* and *Push* — each with its
 ///   progress and *Stop*, as Home's clone has (clone_dialog.dart).
 /// - **Changes:** conflicted, staged, unstaged and untracked files, each
-///   with its letter and colour. A tap opens the file (Phase 7 W5 opens
-///   its diff there instead and leaves opening the file to the long
-///   press); the buttons on the row stage it, unstage it, or discard it
-///   after a confirmation that names it.
+///   with its letter and colour. A tap opens the file and shows what
+///   changed in it (Phase 7 W5); a long press opens the file alone. The
+///   buttons on the row stage it, unstage it, or discard it after a
+///   confirmation that names it.
 /// - **The commit box:** the message, *Amend the last commit*, and
 ///   *Commit*, which says why it cannot run rather than failing
 ///   ([commitProblem]): a conflict, nothing staged, no identity, no
@@ -22,7 +22,8 @@
 ///   when changes would be lost), and a delete — forced only after a
 ///   second confirmation for a branch that is not merged.
 /// - **History:** the branch's newest commits; a tap shows the commit's
-///   files, and a tap on one of those opens it.
+///   files, and a tap on one of those opens it as that commit left it,
+///   read-only, against the commit before it (Phase 7 W5).
 ///
 /// A folder from shared storage has no Git (PHASE_7_PLAN §10, decision
 /// (a)): the panel says so and offers *Import as project*, which copies
@@ -41,6 +42,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../application/documents/document_controller.dart';
 import '../../../application/git/git_controller.dart';
+import '../../../application/git/git_diff_controller.dart';
 import '../../../application/git/git_file_states.dart';
 import '../../../application/git/git_panel_controller.dart';
 import '../../../application/providers.dart';
@@ -48,6 +50,7 @@ import '../../../core/errors/failure.dart';
 import '../../../core/files/workspace_location.dart';
 import '../../../core/git/git_errors.dart';
 import '../../../core/git/git_models.dart';
+import '../../../core/platform/breakpoints.dart';
 import '../../../design_system/components/buttons.dart';
 import '../../../design_system/components/feedback.dart';
 import '../../../design_system/tokens/colors.dart';
@@ -119,6 +122,47 @@ class _GitPanelState extends ConsumerState<GitPanel> {
       return;
     }
     if (opened case Err<void>(:final failure)) {
+      _say(failure.message);
+      return;
+    }
+    widget.onFileOpened?.call();
+  }
+
+  /// Opens [file] and shows what changed in it (Phase 7 W5). The file is
+  /// open either way: a comparison that cannot be read is only said.
+  Future<void> _openDiff(GitFileStatus file) async {
+    final shown = await ref
+        .read(gitDiffControllerProvider.notifier)
+        .showChanges(file);
+    if (!mounted) {
+      return;
+    }
+    if (shown case Err<void>(:final failure)) {
+      _say(failure.message);
+      if (failure is FileFailure && failure.problem == FileProblem.notFound) {
+        return;
+      }
+    }
+    widget.onFileOpened?.call();
+  }
+
+  /// Opens [file] as [commit] left it, read-only, beside the comparison
+  /// with the commit before it (Phase 7 W5). Two columns where the window
+  /// is wide enough to read them.
+  Future<void> _openCommitFile(GitCommit commit, GitCommitFile file) async {
+    final width = MediaQuery.sizeOf(context).width;
+    final shown = await ref
+        .read(gitDiffControllerProvider.notifier)
+        .showCommitFile(
+          commit,
+          file,
+          // Two columns need a window wide enough to read them both.
+          wide: formFactorFor(width) == CfFormFactor.expanded,
+        );
+    if (!mounted) {
+      return;
+    }
+    if (shown case Err<void>(:final failure)) {
       _say(failure.message);
       return;
     }
@@ -284,7 +328,7 @@ class _GitPanelState extends ConsumerState<GitPanel> {
       context,
       commit: commit,
       files: () => _panel.commitFiles(commit.hash),
-      onFile: (file) => unawaited(_open(file.path)),
+      onFile: (file) => unawaited(_openCommitFile(commit, file)),
     );
   }
 
@@ -729,7 +773,8 @@ class _GitPanelState extends ConsumerState<GitPanel> {
         return _GitFileRow(
           file: file,
           group: group,
-          onOpen: () => unawaited(_open(file.path)),
+          onOpen: () => unawaited(_openDiff(file)),
+          onOpenFile: () => unawaited(_open(file.path)),
           onStage: () => unawaited(_run(_git.stage([file.path]))),
           onUnstage: () => unawaited(_run(_git.unstage([file.path]))),
           onDiscard: () => unawaited(_discard(file)),
@@ -937,6 +982,7 @@ class _GitFileRow extends StatelessWidget {
     required this.file,
     required this.group,
     required this.onOpen,
+    required this.onOpenFile,
     required this.onStage,
     required this.onUnstage,
     required this.onDiscard,
@@ -944,7 +990,12 @@ class _GitFileRow extends StatelessWidget {
 
   final GitFileStatus file;
   final _GitFileGroup group;
+
+  /// A tap: the file, with what changed in it (Phase 7 W5).
   final VoidCallback onOpen;
+
+  /// A long press: the file by itself.
+  final VoidCallback onOpenFile;
   final VoidCallback onStage;
   final VoidCallback onUnstage;
   final VoidCallback onDiscard;
@@ -975,7 +1026,7 @@ class _GitFileRow extends StatelessWidget {
     return InkWell(
       key: ValueKey('git_file_${file.path}'),
       onTap: onOpen,
-      onLongPress: onOpen,
+      onLongPress: onOpenFile,
       child: Container(
         constraints: const BoxConstraints(minHeight: CfSpacing.minTouchTarget),
         padding: const EdgeInsets.only(left: CfSpacing.lg),

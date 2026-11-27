@@ -9,6 +9,7 @@ import {
   COMPLETION_TRIGGERS,
   DIAGNOSTIC_SEVERITIES,
   DIAGNOSTIC_TAGS,
+  DIFF_MODES,
   type Direction,
   EDITOR_COMMANDS,
   type Envelope,
@@ -19,6 +20,7 @@ import {
   MARKUP_KINDS,
   MAX_COMPLETION_ITEMS,
   MAX_DIAGNOSTICS,
+  MAX_DIFF_CHARS,
   MAX_DOCUMENT_EDITS,
   MAX_EDITED_DOCUMENTS,
   MAX_MESSAGE_CHARS,
@@ -152,6 +154,8 @@ const palette = obj({
   searchMatch: color,
   panelBackground: color,
   border: color,
+  diffAdded: color,
+  diffRemoved: color,
   syntax: obj({
     keyword: color,
     string: color,
@@ -229,6 +233,10 @@ const HOST_TO_EDITOR: Record<string, Check> = {
   'diag.set': obj({ docId, version, items: arrayOf(diagnostic, { max: MAX_DIAGNOSTICS }) }),
   'doc.applyEdits': obj({ documents: arrayOf(documentEdits, { max: MAX_EDITED_DOCUMENTS }) }),
   'probe.read': obj({}, { clear: bool }),
+  // Phase 7 W5. The older text is capped at the line above which a document
+  // opens as plain text: a larger file is offered, not diffed.
+  'diff.open': obj({ docId, original: str({ lfOnly: true, max: MAX_DIFF_CHARS }), mode: oneOf(DIFF_MODES) }),
+  'diff.close': obj({ docId }),
   response: responsePayload,
 };
 

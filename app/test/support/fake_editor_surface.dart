@@ -49,6 +49,7 @@ final class FakeDocument {
     required this.text,
     required this.version,
     required this.language,
+    this.readOnly = false,
     this.anchor,
     this.head,
   });
@@ -56,6 +57,9 @@ final class FakeDocument {
   String text;
   int version;
   String language;
+
+  /// Opened read-only: a commit's text (Phase 7 W5).
+  final bool readOnly;
 
   /// The page's selection: as `doc.open` gave it, then as
   /// [FakeEditorSurface.moveCursor] moved it.
@@ -127,6 +131,11 @@ final class FakeEditorSurface implements EditorSurface {
   /// Each document's rename edits, one entry per `doc.applyEdits` that
   /// changed it: what an undo would take back (Phase 6 W5).
   final Map<String, List<String>> undoStack = {};
+
+  /// The diff each document is shown against (Phase 7 W5): the older text
+  /// and the layout, as `diff.open` asked for them. A document with no
+  /// entry is shown on its own.
+  final Map<String, ({String original, String mode})> diffs = {};
 
   /// What `probe.read` answers (Phase 6 W6: the page's completion
   /// timings), and each read's `clear`, in order.
@@ -251,9 +260,30 @@ final class FakeEditorSurface implements EditorSurface {
             _reportSearch();
           }
         });
+      case 'diff.open':
+        _withDocument(id, payload, (docId, doc) {
+          final mode = payload.string('mode');
+          if (mode == 'split' && !doc.readOnly) {
+            // Like the real page: two columns are for a document nobody
+            // types into (Phase 7 W5).
+            _error(id, 'bad_payload', 'document $docId can be edited');
+            return;
+          }
+          final original = payload.string('original');
+          diffs[docId] = (original: original, mode: mode);
+          _changed();
+          _ok(id, {'mode': mode, 'chunks': _chunks(original, doc.text)});
+        });
+      case 'diff.close':
+        _withDocument(id, payload, (docId, doc) {
+          diffs.remove(docId);
+          _changed();
+          _ok(id);
+        });
       case 'doc.close':
         _withDocument(id, payload, (docId, doc) {
           documents.remove(docId);
+          diffs.remove(docId);
           if (activeDocId == docId) {
             activeDocId = null;
           }
@@ -340,6 +370,28 @@ final class FakeEditorSurface implements EditorSurface {
         // doc.flush: edits are never held back here.
         _ok(id);
     }
+  }
+
+  /// How many runs of lines differ between [original] and [text]: the
+  /// chunk count CodeMirror's merge view reports, counted simply.
+  static int _chunks(String original, String text) {
+    final before = original.split('\n');
+    final after = text.split('\n');
+    var chunks = 0;
+    var i = 0;
+    var changing = false;
+    while (i < before.length || i < after.length) {
+      final a = i < before.length ? before[i] : null;
+      final b = i < after.length ? after[i] : null;
+      if (a == b) {
+        changing = false;
+      } else if (!changing) {
+        changing = true;
+        chunks += 1;
+      }
+      i += 1;
+    }
+    return chunks;
   }
 
   // ---------------------------------------------------------------- search
@@ -549,6 +601,7 @@ final class FakeEditorSurface implements EditorSurface {
       text: payload.string('text'),
       version: payload.integer('version'),
       language: payload.string('language'),
+      readOnly: payload['readOnly'] == true,
       anchor: selection is Map<String, Object?>
           ? selection['anchor'] as int?
           : null,

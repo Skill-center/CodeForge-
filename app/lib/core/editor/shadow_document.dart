@@ -25,6 +25,30 @@ final class EditorSelection {
   Map<String, Object?> toJson() => {'anchor': anchor, 'head': head};
 }
 
+/// How a diff is laid out (Phase 7 W5): one column or two. The wire names
+/// are `diffModes` in protocol.dart, which both sides validate against.
+enum EditorDiffMode {
+  /// One column: the document itself, with the older lines drawn around it
+  /// and *Revert this change* on each change.
+  inline('inline'),
+
+  /// Two columns: the older text beside the document, which must be
+  /// read-only (a commit's file against its parent).
+  split('split');
+
+  const EditorDiffMode(this.wireName);
+
+  final String wireName;
+}
+
+/// The older text a document is shown against, and how (Phase 7 W5).
+final class EditorDiff {
+  const EditorDiff({required this.original, required this.mode});
+
+  final String original;
+  final EditorDiffMode mode;
+}
+
 final class ShadowDocument {
   ShadowDocument({
     required this.docId,
@@ -50,6 +74,10 @@ final class ShadowDocument {
 
   /// The last vertical scroll offset the page reported, in CSS pixels.
   double scrollTop = 0;
+
+  /// The diff the page is showing this document against (Phase 7 W5), or
+  /// null for none. Kept here so a page restart shows it again.
+  EditorDiff? diff;
 
   String get text => _text;
 

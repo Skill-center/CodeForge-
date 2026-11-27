@@ -61,6 +61,9 @@ import type {
   ChangeSetJson,
   ConfigurePayload,
   DiagnosticItem,
+  DiffMode,
+  DiffOpenPayload,
+  DiffResult,
   DocOpenPayload,
   DocumentEdits,
   EditorCommand,
@@ -77,6 +80,7 @@ import type {
 } from '../protocol/types';
 import { cursorLineHighlight } from './active_line';
 import { browserScheduler, ChangeBatcher, type Scheduler } from './batcher';
+import { chunkCount, diffTheme, inlineDiff, SplitDiff } from './diff';
 import { insertIndent } from './indent';
 import { languageExtension } from './languages';
 import { type LanguageHost, LanguageLayer, toLintDiagnostic } from './lsp';
@@ -145,6 +149,8 @@ interface DocEntry {
   history: { canUndo: boolean; canRedo: boolean } | null;
   /** The newest batches sent, by the version each made (`diag.set` maps from them). */
   recent: Array<{ version: number; changes: ChangeSet }>;
+  /** The diff this document shows (Phase 7 W5), or null for none. */
+  diff: { original: string; mode: DiffMode } | null;
 }
 
 /** Tags each document's state with its id, so updates can be attributed. */
@@ -240,6 +246,12 @@ export class EditorController implements LanguageHost {
   private readonly languageSlot = new Compartment();
   private readonly featuresSlot = new Compartment();
   private readonly editableSlot = new Compartment();
+  /** The unified diff of the document in it (Phase 7 W5), empty for none. */
+  private readonly diffSlot = new Compartment();
+
+  /** Where a two-column diff is mounted, beside the hidden main view. */
+  private readonly splitParent: HTMLElement;
+  private split: { docId: string; view: SplitDiff } | null = null;
 
   constructor(private readonly options: ControllerOptions) {
     this.scheduler = options.scheduler ?? browserScheduler;
@@ -255,6 +267,10 @@ export class EditorController implements LanguageHost {
     );
     this.view = new EditorView({ parent: options.parent, state: this.idleState() });
     this.view.scrollDOM.addEventListener('scroll', () => this.scheduleViewState(), { passive: true });
+    this.splitParent = options.parent.appendChild(document.createElement('div'));
+    this.splitParent.className = 'cf-split-diff';
+    this.splitParent.style.height = '100%';
+    this.splitParent.style.display = 'none';
   }
 
   get activeDocId(): string | null {
@@ -263,6 +279,11 @@ export class EditorController implements LanguageHost {
 
   hasDoc(docId: string): boolean {
     return this.docs.has(docId);
+  }
+
+  /** The diff [docId] shows (Phase 7 W5), or null when it shows none. */
+  diffMode(docId: string): DiffMode | null {
+    return this.docs.get(docId)?.diff?.mode ?? null;
   }
 
   // ------------------------------------------------ LanguageHost (Phase 6 W5)
@@ -322,6 +343,10 @@ export class EditorController implements LanguageHost {
         return this.applyEdits((payload as HostToEditor['doc.applyEdits']).documents);
       case 'probe.read':
         return this.timings.read((payload as HostToEditor['probe.read']).clear ?? false);
+      case 'diff.open':
+        return this.openDiff(payload as DiffOpenPayload);
+      case 'diff.close':
+        return this.closeDiff((payload as HostToEditor['diff.close']).docId);
       case 'response':
         // The bridge takes answers to the page's requests before this.
         throw new EditorError('bad_payload', 'a response is not a command');
@@ -348,6 +373,8 @@ export class EditorController implements LanguageHost {
     } else {
       this.view.setState(this.idleState());
     }
+    // A two-column diff is built from the appearance: rebuild it with the new one.
+    this.remountSplit();
   }
 
   open(p: DocOpenPayload): void {
@@ -363,6 +390,7 @@ export class EditorController implements LanguageHost {
       pendingScrollTop: p.scrollTop ?? null,
       history: null,
       recent: [],
+      diff: null,
     };
     entry.state = EditorState.create({
       doc: p.text,
@@ -376,6 +404,9 @@ export class EditorController implements LanguageHost {
   activate(docId: string): void {
     const entry = this.require(docId);
     if (this.activeId === docId) return;
+    // A two-column diff belongs to the document under it: another document
+    // coming into the editor ends it (Phase 7 W5).
+    this.dropSplitUnless(docId);
     this.deactivateCurrent();
     this.activeId = docId;
     this.view.setState(entry.state);
@@ -400,6 +431,7 @@ export class EditorController implements LanguageHost {
   close(docId: string): void {
     this.require(docId);
     this.batcher.flush(docId);
+    if (this.split?.docId === docId) this.unmountSplit();
     if (this.activeId === docId) {
       this.flushViewState();
       this.activeId = null;
@@ -460,6 +492,7 @@ export class EditorController implements LanguageHost {
     } else {
       entry.state = entry.state.update({ effects }).state;
     }
+    if (this.split?.docId === docId) this.remountSplit();
   }
 
   /** Sends pending edits now (all documents when [docId] is omitted). */
@@ -593,6 +626,52 @@ export class EditorController implements LanguageHost {
     }
   }
 
+  // --------------------------------------------------------- diffs (Phase 7 W5)
+
+  /**
+   * Shows [p.docId] against [p.original], the older text (the index, the
+   * last commit, a commit's parent).
+   *
+   * `inline` adds the unified merge extension to the document's own state:
+   * one column, the removed lines drawn above the ones that replaced them,
+   * and *Revert this change* on each change. Reverting is an ordinary edit
+   * of the document, so the host hears it as a change set and the user can
+   * undo it.
+   *
+   * `split` puts the older text beside the document in a second view, which
+   * only a read-only document may ask for: a document the user can edit is
+   * never moved out of its own editor, because that would restart its undo
+   * history and its change sets. Opening a diff on a document showing one
+   * replaces it.
+   */
+  openDiff(p: DiffOpenPayload): DiffResult {
+    const entry = this.require(p.docId);
+    if (p.mode === 'split' && !entry.readOnly) {
+      throw new EditorError('bad_payload', `a split diff needs a read-only document, and ${p.docId} is editable`);
+    }
+    this.closeDiff(p.docId);
+    entry.diff = { original: p.original, mode: p.mode };
+    if (p.mode === 'inline') {
+      this.reconfigureDiff(entry);
+      return { mode: 'inline', chunks: chunkCount(this.stateOf(entry)) };
+    }
+    if (this.activeId !== p.docId) this.activate(p.docId);
+    return { mode: 'split', chunks: this.mountSplit(entry).chunks };
+  }
+
+  /** Stops showing [docId]'s diff; a document showing none is untouched. */
+  closeDiff(docId: string): void {
+    const entry = this.require(docId);
+    if (entry.diff === null) return;
+    const wasSplit = entry.diff.mode === 'split';
+    entry.diff = null;
+    if (wasSplit) {
+      this.unmountSplit();
+    } else {
+      this.reconfigureDiff(entry);
+    }
+  }
+
   gotoLine(line: number, column?: number): { line: number; position: number } {
     this.requireActive();
     const doc = this.view.state.doc;
@@ -629,6 +708,7 @@ export class EditorController implements LanguageHost {
     this.flush();
     if (this.searchStateTimer !== null) this.scheduler.clear(this.searchStateTimer);
     this.searchStateTimer = null;
+    this.unmountSplit();
     this.view.destroy();
   }
 
@@ -681,12 +761,86 @@ export class EditorController implements LanguageHost {
     prev.scroll = this.view.scrollSnapshot();
   }
 
+  /** The live state of [entry]: the view's while it is active. */
+  private stateOf(entry: DocEntry): EditorState {
+    return this.activeId === entry.id ? this.view.state : entry.state;
+  }
+
+  /** The unified diff extension for [entry], empty unless it shows one. */
+  private diffExtension(entry: DocEntry): Extension {
+    return entry.diff !== null && entry.diff.mode === 'inline' ? inlineDiff(entry.diff.original, !entry.readOnly) : [];
+  }
+
+  /** Puts [entry]'s diff extension in, or takes it out, live or stored. */
+  private reconfigureDiff(entry: DocEntry): void {
+    const effects = this.diffSlot.reconfigure(this.diffExtension(entry));
+    if (this.activeId === entry.id) {
+      this.view.dispatch({ effects });
+    } else {
+      entry.state = entry.state.update({ effects }).state;
+    }
+  }
+
+  /** Shows the two-column diff of [entry], hiding the main view under it. */
+  private mountSplit(entry: DocEntry): SplitDiff {
+    const diff = entry.diff;
+    if (diff === null) throw new EditorError('internal', `document ${entry.id} has no diff`);
+    this.unmountSplit();
+    const view = new SplitDiff({
+      parent: this.splitParent,
+      original: diff.original,
+      text: this.stateOf(entry).doc.toString(),
+      extensions: [
+        lineNumbers(),
+        highlightSpecialChars(),
+        languageExtension(entry.language),
+        ...this.configExtensions(),
+        EditorView.contentAttributes.of({ 'aria-label': 'Diff' }),
+      ],
+    });
+    this.split = { docId: entry.id, view };
+    this.view.dom.style.display = 'none';
+    this.splitParent.style.display = '';
+    return view;
+  }
+
+  /** Ends a two-column diff unless it belongs to [docId], and forgets it. */
+  private dropSplitUnless(docId: string): void {
+    const open = this.split;
+    if (open === null || open.docId === docId) return;
+    const entry = this.docs.get(open.docId);
+    if (entry !== undefined) entry.diff = null;
+    this.unmountSplit();
+  }
+
+  /** Takes the two-column diff down and brings the main view back. */
+  private unmountSplit(): void {
+    if (this.split === null) return;
+    this.split.view.destroy();
+    this.split = null;
+    this.splitParent.style.display = 'none';
+    this.view.dom.style.display = '';
+    this.view.requestMeasure();
+  }
+
+  /** Rebuilds a two-column diff after the appearance or language changed. */
+  private remountSplit(): void {
+    const open = this.split;
+    if (open === null) return;
+    const entry = this.docs.get(open.docId);
+    if (entry === undefined || entry.diff === null) {
+      this.unmountSplit();
+      return;
+    }
+    this.mountSplit(entry);
+  }
+
   private reconfigure(entry: DocEntry): void {
     entry.configGen = this.configGen;
     const c = this.config;
     this.view.dispatch({
       effects: [
-        this.themeSlot.reconfigure(forgeTheme(c.palette)),
+        this.themeSlot.reconfigure([forgeTheme(c.palette), diffTheme(c.palette)]),
         this.fontSlot.reconfigure(fontSizeTheme(c.fontSize)),
         this.wrapSlot.reconfigure(c.lineWrapping ? EditorView.lineWrapping : []),
         this.tabSlot.reconfigure(EditorState.tabSize.of(c.tabSize)),
@@ -697,7 +851,7 @@ export class EditorController implements LanguageHost {
   private configExtensions(): Extension[] {
     const c = this.config;
     return [
-      this.themeSlot.of(forgeTheme(c.palette)),
+      this.themeSlot.of([forgeTheme(c.palette), diffTheme(c.palette)]),
       this.fontSlot.of(fontSizeTheme(c.fontSize)),
       this.wrapSlot.of(c.lineWrapping ? EditorView.lineWrapping : []),
       this.tabSlot.of(EditorState.tabSize.of(c.tabSize)),
@@ -740,6 +894,8 @@ export class EditorController implements LanguageHost {
       this.languageSlot.of(languageExtension(entry.language)),
       // Phase 6 W5: completion, diagnostics, the symbol menu.
       this.featuresSlot.of(this.language.extensions(entry.language)),
+      // Phase 7 W5: the unified diff, when this document shows one.
+      this.diffSlot.of(this.diffExtension(entry)),
       this.editableSlot.of(editableExtension(entry.readOnly)),
       ...this.configExtensions(),
       // Code is not prose: keep the IME from autocorrecting or capitalising.

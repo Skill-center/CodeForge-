@@ -46,6 +46,10 @@ class EditorPane extends ConsumerWidget {
     final activePath = documents.activePath;
     final activeDoc = documents.active;
     final canSave = activeDoc?.dirty ?? false;
+    // A tab is its file's name, except a revision tab, which says which
+    // commit it holds (Phase 7 W5).
+    String labelOf(String path) =>
+        documents.documents[path]?.name ?? pathBaseName(path);
 
     // The pane gets whatever height the layout leaves it — tiny while the
     // soft keyboard is up on a short landscape phone — so it must never
@@ -123,6 +127,15 @@ class EditorPane extends ConsumerWidget {
             !conflictNotice &&
             !deletedNotice &&
             height >= largeFileRoom;
+        // What the document is being compared with (Phase 7 W5): it is
+        // the last to take room, and waits while anything else is up.
+        final diffNotice =
+            activeDoc?.diff != null &&
+            !journalBanner &&
+            !conflictNotice &&
+            !deletedNotice &&
+            !largeFileNotice &&
+            height >= largeFileRoom;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -132,7 +145,8 @@ class EditorPane extends ConsumerWidget {
                   for (final path in documents.openPaths)
                     CfTab(
                       id: path,
-                      label: pathBaseName(path),
+                      // A revision tab says which commit it is from.
+                      label: labelOf(path),
                       dirty: documents.documents[path]?.dirty ?? false,
                       deleted:
                           documents.documents[path]?.deletedOnDisk ?? false,
@@ -176,6 +190,8 @@ class EditorPane extends ConsumerWidget {
             if (deletedNotice) _DeletedNotice(path: activeDoc.path),
             if (largeFileNotice && activeDoc != null)
               _LargeFileNotice(path: activeDoc.path),
+            if (diffNotice && activeDoc != null)
+              _DiffNotice(path: activeDoc.path, diff: activeDoc.diff!),
             if (findOpen)
               ClipRect(
                 // Keyed like the editor body: when a banner and the toolbar
@@ -259,6 +275,50 @@ class _LargeFileNotice extends ConsumerWidget {
           actionLabel: 'Highlight anyway',
           onAction: () => documents().highlightAnyway(path),
           onDismiss: () => documents().dismissLargeFileNotice(path),
+        ),
+      ),
+    );
+  }
+}
+
+/// What the document at [path] is being compared with (Phase 7 W5,
+/// EDITOR_ARCHITECTURE §11), and the way out of the comparison. A file
+/// too large to compare says that instead: it is open, only not compared.
+/// At most [EditorPane.largeFileBannerExtent] tall, like the others.
+class _DiffNotice extends ConsumerWidget {
+  const _DiffNotice({required this.path, required this.diff});
+
+  final String path;
+  final DocumentDiff diff;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tooLarge = diff.tooLarge;
+    final changes = diff.chunks == 1 ? '1 change' : '${diff.chunks} changes';
+    final String message;
+    if (tooLarge) {
+      message =
+          'This file is too large to compare here, so it is open as it is '
+          'now. Run git diff in the terminal to see what changed.';
+    } else if (diff.chunks == 0) {
+      message = 'Nothing differs from ${diff.against}.';
+    } else {
+      message = 'Showing $changes against ${diff.against}.';
+    }
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxHeight: EditorPane.largeFileBannerExtent,
+      ),
+      child: SingleChildScrollView(
+        primary: false,
+        padding: const EdgeInsets.all(CfSpacing.sm),
+        child: CfBanner(
+          key: const ValueKey('diff_notice'),
+          kind: tooLarge ? CfBannerKind.warning : CfBannerKind.info,
+          message: message,
+          actionLabel: 'Stop comparing',
+          onAction: () =>
+              ref.read(documentControllerProvider.notifier).hideDiff(path),
         ),
       ),
     );
