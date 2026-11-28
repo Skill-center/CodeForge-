@@ -326,7 +326,7 @@ Gate 42659207710 measured the same files with the policy in place (`large_files.
 - **Opening and saving** grow with the size, whatever the language. In this run, opening took about 0.6 s at 5 MiB and 1.1 s at 10 MiB, about half of it on the app's side (reading and decoding, in a debug build).
 - The session store's costs at these sizes are in ADR-0008.
 
-## 11. Diffs in the editor (as built in Phase 7 W5)
+## 11. Diffs in the editor (as built in Phase 7 W5, with the revert command in W6)
 
 A diff is not a view of its own: it is a way of showing a document that is already open. The document keeps its id, its undo history, its journal and its tab, so everything the diff offers is an ordinary edit, and *Revert this change* is undone with Ctrl+Z and written with Save like any other.
 
@@ -345,6 +345,8 @@ Two more host → editor types, with fixtures both sides run (`editor/test/fixtu
 
 - `diff.open {docId, original, mode}` — `original` is the older text, `\n` only and at most `MAX_DIFF_CHARS` (512 KiB, the same line §10 draws for plain text); `mode` is `inline` or `split`. It is answered with `{mode, chunks}`: the layout drawn and how many changes it found. A document already showing a diff takes the new one. `split` for a document that can be edited is refused as `bad_payload`.
 - `diff.close {docId}` — the document stays open, with every change made through the diff. Closing a diff that is not there is not an error.
+
+**And one command** (W6): `cmd.exec {command: 'revertChunk'}` makes the edit the *Revert this change* button makes, for a test that cannot reach a button inside the WebView. It takes the change the cursor is in, else the first one after it, else the first of all, and calls `rejectChunk` at that chunk's position on the document's side (`chunk.fromB`); it answers false when no diff is shown or nothing is left to revert. What the host hears is an ordinary `doc.changed`, and Ctrl+Z takes it back, because it is the same edit the button makes. It is in `EDITOR_COMMANDS`, in the controller's `COMMANDS` and in Dart's `editorCommands`, like every other command.
 
 `DIFF_MODES` and `MAX_DIFF_CHARS` exist in `editor/src/protocol/types.ts` and as `diffModes` and `maxDiffChars` in `app/lib/core/editor/protocol.dart`; the cross-language contract tests check both lists, and `maxDiffChars` is asserted equal to `plainTextAboveChars`.
 
@@ -369,4 +371,4 @@ The pane's banner (`diff_notice` in `editor_pane.dart`) says *Showing 2 changes 
 
 ### The bundle
 
-`editor.html` is 876.2 KiB, **319.6 KiB gzipped** against the 1.5 MiB budget (`tool/verify_bundle.mjs` reports 327,307 B of 1,572,864 B); the merge view cost 10,315 B gzipped, 2.1 % of the budget. The verifier also drives the built page: it opens a diff, checks that one *Revert this change* button is offered, clicks it, and checks that the older text came back as one `doc.changed` the host hears.
+`editor.html` is 876.2 KiB, **319.6 KiB gzipped** against the 1.5 MiB budget (`tool/verify_bundle.mjs` reports 327,307 B of 1,572,864 B); the merge view cost 10,315 B gzipped, 2.1 % of the budget. The verifier also drives the built page: it opens a diff, checks that one *Revert this change* button is offered, clicks it, and checks that the older text came back as one `doc.changed` the host hears. Since W6 it also runs `revertChunk` on the built page — the same older text back as one change, and a read-only document refusing it — so the command the Git gate leans on is proved in the bundle that ships, not only in vitest.

@@ -213,7 +213,16 @@ W1's figures, through the launcher alone, are in ADR-0016: the phone's p95 of th
 
 GitHub over SSH is recorded, never judged (a network can fail): on every target its host key was asked about with the **published** ED25519 fingerprint, CodeForge's key was offered, and GitHub refused the unknown key, in 104–938 ms on the emulators and 1,185 ms on the phone.
 
+### The app's own figures (W6)
+
+The measures above are git's and the host's. W6 measures what the user waits for: the panel's own refresh, and Flutter's frames while Git runs, in the real app on a 10,000-file repository in folders of 100 (`app/integration_test/git_measure.dart`, shared by the gate's `git` group and Test Lab's phone).
+
+- **A status** is the panel's refresh, timed 20 times, with the files untracked, clean, and with a hundred changed. The budget is the owner's: within **500 ms at p95 on the Pixel 8a** (PHASE_7_PLAN §10, item 4).
+- **The frames** while a commit, a clone and a status run, with a progress bar laid over the app so every frame is drawn (`terminal_measure.dart`'s `withFramesDrawn`): at most **5 % over 32 ms and none frozen**, the terminal flood's rule.
+- **A clone's time**, its file count, and the app's and its renderers' PSS before and after, recorded.
+
+`tool/ci/gate_results.py` holds the phone's run to those budgets (`git_phone_*_under_budget=1`, `git_phone_frozen_frames=0`); on the emulator the same file runs again and its figures are recorded, never judged, since an emulator's frames are not a phone's.
+
 ## 6. Not built yet
 
-- **W6:** the Git gate on the emulator and the phone, with the budgets. G5's own evidence — a diff shown, a change reverted and the file committed, in the real app — is that gate's `git` group; W5 proved its parts in vitest, the Dart tests and the built page's verifier.
 - **Out of scope for Phase 7:** hunk or line staging, interactive rebase, stash, tags, submodules, blame, a history graph, LFS, signing, a host's pull requests and issues, HTTPS through a proxy or with a private CA (PHASE_7_PLAN §8).
