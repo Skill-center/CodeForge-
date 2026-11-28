@@ -24,47 +24,51 @@ Got dependencies!
 20 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart
-Running Gradle task 'assembleDebug'...                             16.9s
+Running Gradle task 'assembleDebug'...                             18.5s
 ✓ Built build/app/outputs/flutter-apk/app-debug.apk
-Installing build/app/outputs/flutter-apk/app-debug.apk...        2,501ms
+Installing build/app/outputs/flutter-apk/app-debug.apk...        2,318ms
 00:00 +0: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
-GIT_GATE init ms=899 branch=main first_commit_ms=3227
+GIT_GATE init ms=800 branch=main first_commit_ms=2238
 GIT_GATE branch head=work branches=1
 GIT_GATE diff chunks=2 against="the staged version" reverted=1 committed_chars=28
-GIT_GATE server port=39673 start_ms=737
-GIT_GATE clone ms=6922 asked=1 frames=52 slow=52 slow_pct=100.0 frozen=0 p95_ms=458.3 under_budget=0
-GIT_GATE push ms=3020 asked=1 upstream=origin/main
+GIT_GATE server port=34209 start_ms=548
+GIT_GATE clone ms=6422 asked=1 frames=44 slow=44 slow_pct=100.0 frozen=0 p95_ms=445.9 under_budget=0
+GIT_GATE push ms=2998 asked=1 upstream=origin/main
+GIT_GATE pull ms=2132 conflicted=1 resolved=1 merge_parents=2
+GIT_GATE secret files=0 files_read=191 processes=0 processes_read=121 sweeps=14 git_seen=14 clean=1
 git gate server: ended ended null 
+GIT_GATE status_untracked files=10000 n=5 p50_ms=116.9 p95_ms=179.9 max_ms=179.9 min_ms=61.9 under_budget=1
+GIT_GATE large files=10000 written_ms=403 commit_frames=121 slow=121 slow_pct=100.0 frozen=2 p95_ms=385.4 under_budget=0
+GIT_GATE status_clean files=10000 n=20 p50_ms=341.3 p95_ms=537.0 max_ms=571.3 min_ms=172.3 under_budget=0
+GIT_GATE large_status_frames frames=85 slow=85 slow_pct=100.0 frozen=0 p95_ms=212.5 longest_gap_ms=133.3 under_budget=0
 ══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
 The following TestFailure was thrown running a test:
-git -c core.pager=cat -c init.defaultBranch=main -c user.name=CodeForge Gate -c
-user.email=gate@codeforge.invalid -c commit.gpgsign=false -c gc.auto=0 log -1 --format=%P (in
-/data/user/0/dev.codeforge.app/files/workspaces/git-gate-clone): Instance of 'Ok<ExecResult>'
-exit=null failure=badRequest
+Expected: <0>
+  Actual: <2>
+no frozen frame while a commit
 
 When the exception was thrown, this was the stack:
-#0      fail (package:matcher/src/expect/expect.dart:187:31)
-#1      runtimeOk (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_measure.dart:118:5)
+#4      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart:522:7)
 <asynchronous suspension>
-#2      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart:406:30)
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
 <asynchronous suspension>
-#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
-<asynchronous suspension>
-#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
 <asynchronous suspension>
 <asynchronous suspension>
 (elided one frame from package:stack_trace)
 
+This was caught by the test expectation on the following line:
+  file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart line 522
 The test description was:
   git: a repository made, committed and branched; a diff reverted and committed; a clone with a
   token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
 ════════════════════════════════════════════════════════════════════════════════════════════════════
-00:59 +0 -1: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository [E]
+02:26 +0 -1: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository [E]
   Test failed. See exception logs above.
   The test description was: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
   
-00:59 +0 -1: (tearDownAll)
-01:01 +0 -1: Some tests failed.
+02:26 +0 -1: (tearDownAll)
+02:28 +0 -1: Some tests failed.
 
 Failing tests:
   /home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
