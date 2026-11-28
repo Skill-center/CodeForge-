@@ -380,6 +380,7 @@ void main() {
           contains('<<<<<<<'),
         );
         await app.openPanel();
+        await app.reveal('git_abort_merge');
         expect(
           app.shown('git_abort_merge'),
           isTrue,

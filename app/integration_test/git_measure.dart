@@ -34,10 +34,10 @@ import 'package:codeforge/core/errors/failure.dart';
 import 'package:codeforge/core/git/git_models.dart';
 import 'package:codeforge/services/platform/app_directories.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'smoke_test.dart' show pumpUntil;
 import 'terminal_measure.dart' show UiFrames, percentile, withFramesDrawn;
@@ -548,9 +548,78 @@ final class GitDriver {
   /// Whether anything [key] names is on screen.
   bool shown(String key) => find.byKey(ValueKey(key)).evaluate().isNotEmpty;
 
-  /// Taps what [key] names, scrolled into view first.
+  /// The Git keys the app has built, for a failure to say what it saw.
+  List<String> keysShown() {
+    final keys = tester.allWidgets
+        .map((widget) => widget.key)
+        .whereType<ValueKey<String>>()
+        .map((key) => key.value)
+        .where((key) => key.startsWith('git_') || key.startsWith('activity_'))
+        .toList();
+    keys.sort();
+    return keys;
+  }
+
+  /// Brings what [key] names into the tree, where it can be.
+  ///
+  /// The panel's sections are slivers: a row the list has scrolled past
+  /// is not merely off screen, it is not built at all, and
+  /// `ensureVisible` has nothing to work with. So the list is moved,
+  /// a screenful at a time, until the key is built — the top first, then
+  /// the bottom and the screens above it (the commit box sits under
+  /// however many files there are, and 10,000 of them are far away),
+  /// then the screens under the top, then a sweep of the whole list.
+  Future<void> reveal(String key) async {
+    final finder = find.byKey(ValueKey(key));
+    for (var tries = 0; tries < 20 && finder.evaluate().isEmpty; tries++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final list = find.descendant(
+      of: find.byKey(const ValueKey('git_sections')),
+      matching: find.byType(Scrollable),
+    );
+    if (finder.evaluate().isNotEmpty || list.evaluate().isEmpty) {
+      return;
+    }
+    final scroll = tester.state<ScrollableState>(list.first).position;
+    final screen = math.max(scroll.viewportDimension * 0.8, 200.0);
+    final end = scroll.maxScrollExtent;
+    final wheres = <double>[
+      0,
+      end,
+      end - screen,
+      end - screen * 2,
+      screen,
+      screen * 2,
+      screen * 3,
+      for (var part = 1; part < 13; part++) end * part / 13,
+      scroll.maxScrollExtent,
+    ];
+    for (final where in wheres) {
+      scroll.jumpTo(where.clamp(0.0, scroll.maxScrollExtent));
+      await tester.pump(const Duration(milliseconds: 60));
+      if (finder.evaluate().isNotEmpty) {
+        return;
+      }
+    }
+  }
+
+  /// Taps what [key] names, brought into the tree and into view first.
   Future<void> tap(String key) async {
     final finder = find.byKey(ValueKey(key));
+    await reveal(key);
+    if (finder.evaluate().isEmpty &&
+        key.startsWith('git_') &&
+        !shown('git_panel')) {
+      // The panel's sheet closes itself when a file opens, and a dialog
+      // can take it down with it: a key of the panel asked for while it
+      // is down means it has to come back up.
+      await openPanel();
+      await reveal(key);
+    }
+    if (finder.evaluate().isEmpty) {
+      debugPrint('GIT_GATE missing $key; on screen: ${keysShown().join(' ')}');
+    }
     await tester.ensureVisible(finder);
     await tester.pump();
     await tester.tap(finder);
@@ -560,25 +629,43 @@ final class GitDriver {
   /// Taps the one button that reads [text]: an empty state's action has
   /// no key of its own.
   Future<void> tapText(String text) async {
-    await tester.tap(find.text(text));
+    final finder = find.text(text);
+    for (var tries = 0; tries < 20 && finder.evaluate().isEmpty; tries++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.tap(finder);
     await tester.pump(const Duration(milliseconds: 150));
   }
 
   /// Types [text] into the field [key] names.
   Future<void> type(String key, String text) async {
-    await tester.enterText(find.byKey(ValueKey(key)), text);
+    await reveal(key);
+    final finder = find.byKey(ValueKey(key));
+    if (finder.evaluate().isEmpty) {
+      debugPrint('GIT_GATE missing $key; on screen: ${keysShown().join(' ')}');
+    }
+    await tester.ensureVisible(finder);
+    await tester.enterText(finder, text);
     await tester.pump(const Duration(milliseconds: 150));
   }
 
+  /// Waits for what [key] names, looking down the panel's list for it
+  /// first: a row the list has scrolled past is not built, and waiting
+  /// for one that is already there would wait for ever.
   Future<void> waitFor(
     String key, {
     Duration timeout = const Duration(seconds: 60),
-  }) => pumpUntil(
-    tester,
-    () => shown(key),
-    what: 'the $key to be on screen',
-    timeout: timeout,
-  );
+  }) async {
+    if (!shown(key)) {
+      await reveal(key);
+    }
+    await pumpUntil(
+      tester,
+      () => shown(key),
+      what: 'the $key to be on screen',
+      timeout: timeout,
+    );
+  }
 
   Future<void> waitGone(
     String key, {
@@ -594,9 +681,12 @@ final class GitDriver {
   Future<void> openPanel() async {
     if (!shown('git_panel')) {
       await tap('activity_git');
-      // The sheet's own animation, which nothing else waits for.
+      // The sheet's own animation, which nothing else waits for. Until it
+      // is over the list has no height, and a sliver with no room is not
+      // built, so what is in the panel cannot be found yet.
       await tester.pump(const Duration(milliseconds: 400));
       await waitFor('git_panel');
+      await tester.pump(const Duration(milliseconds: 400));
     }
   }
 
