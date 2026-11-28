@@ -700,12 +700,18 @@ final class GitDriver {
   ///
   /// A modal sheet's barrier takes every tap, so the activity bar behind
   /// it cannot be tapped to close it: the sheet's own route is popped,
-  /// which is what the system's back button does.
+  /// which is what the system's back button does. A sheet already on its
+  /// way out — the panel closes itself when a file opens — is still in
+  /// the tree while it slides down, and its route is no longer the one
+  /// on top: popping then would take the page under it with it.
   Future<void> closePanel() async {
     if (_sheet.evaluate().isEmpty) {
       return;
     }
-    Navigator.of(tester.element(_sheet.first)).pop();
+    final route = ModalRoute.of<Object?>(tester.element(_sheet.first));
+    if (route != null && route.isCurrent) {
+      route.navigator?.pop();
+    }
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     await pumpUntil(
