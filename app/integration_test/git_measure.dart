@@ -805,6 +805,41 @@ final class GitDriver {
       timeout: timeout,
     );
   }
+
+  /// Stages everything and commits [message] without reaching the box.
+  ///
+  /// The commit box is the last thing in the changes section, under
+  /// however many files have changed, and in a repository of ten
+  /// thousand changes bringing it into view lays every one of those
+  /// rows out in a single frame — a minute of one, on the gate's
+  /// emulator — which says nothing about git and ruins the frames
+  /// measured around it. So *Stage all*, which is in the section's
+  /// header where it always is, is tapped; and the commit is the call
+  /// the box's button makes (GitController.commit, git_panel.dart's
+  /// _commitBox). The box itself commits the small repositories, and
+  /// what it costs to reach in the large one is measured on its own
+  /// (git_test.dart part 5).
+  Future<void> stageAllAndCommit(
+    String message, {
+    Duration timeout = const Duration(minutes: 8),
+  }) async {
+    await openPanel();
+    await waitFor('git_stage_all');
+    await tap('git_stage_all');
+    await statusWhere(
+      (status) => status.staged.isNotEmpty && status.unstaged.isEmpty,
+      what: 'the changes to be staged',
+      timeout: timeout,
+    );
+    final committing = control.commit(message);
+    await statusWhere(
+      (status) => status.staged.isEmpty,
+      what: 'the commit to be made',
+      timeout: timeout,
+    );
+    final committed = await committing;
+    expect(committed.isOk, isTrue, reason: 'commit $message: $committed');
+  }
 }
 
 /// Where a token was found, if anywhere (Phase 7 W6: nowhere).

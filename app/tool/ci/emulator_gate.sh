@@ -2142,7 +2142,10 @@ echo "::group::Git (Phase 7 W6, G6: a project made a repository, committed and b
 # app's files, the runtime's home, the project and every process's
 # arguments and environment, while git runs and after it; and the
 # 10,000-file repository is staged, committed and refreshed with
-# Flutter's frames measured. The GIT_GATE lines are the evidence; their
+# Flutter's frames measured (the commit box is reached once, timed as
+# `commit_box`, and the commit itself is made the way its button makes
+# it: the box is under all ten thousand rows, and the scroll down to it
+# lays every one of them out). The GIT_GATE lines are the evidence; their
 # times are recorded, never judged here — the budgets are the phone's.
 # The group then runs integration_test/phone_git_test.dart, which Test
 # Lab's phone runs and judges (G6): the status of 10,000 files, the

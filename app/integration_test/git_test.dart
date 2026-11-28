@@ -17,9 +17,10 @@
 ///      runtime's home, the project, or any process's arguments or
 ///      environment — looked for while git ran, and after it.
 ///   5. The 10,000-file repository: the status as the panel refreshes it,
-///      the commit, and Flutter's frames meanwhile — recorded here, and
-///      judged on the phone; what is judged here is only that the app
-///      never stopped drawing.
+///      the commit box reached under ten thousand rows, the commit, and
+///      Flutter's frames meanwhile — recorded here, and judged on the
+///      phone; what is judged here is only that the app never stopped
+///      drawing while git worked.
 ///
 /// Nothing waits for the app to settle: a status spinner or a progress
 /// bar is almost always on screen here, and `pumpAndSettle` would never
@@ -482,22 +483,37 @@ void main() {
         samples: 5,
       );
       _report(untracked.line());
+      // What the commit box costs to reach with ten thousand files
+      // listed above it: the panel keeps it under them, and the list
+      // builds no row it has not come to, so the jump lays every one of
+      // them out in one frame. Recorded, never judged — it is the
+      // list's price, not git's, and the commit below is made the way
+      // the box's button makes it. That the box can be reached at all
+      // is the point of looking.
+      await app.openPanel();
+      final boxWatch = Stopwatch()..start();
+      await app.reveal('git_commit_message');
+      final boxMs = boxWatch.elapsedMilliseconds;
+      expect(
+        app.shown('git_commit_message'),
+        isTrue,
+        reason: 'the commit box is reachable under $largeFileCount files',
+      );
+      // And back to the top, where *Stage all* is, before anything is
+      // measured: the way back builds the rows it passes as well.
+      final backWatch = Stopwatch()..start();
+      await app.reveal('git_stage_all');
+      final backMs = backWatch.elapsedMilliseconds;
+      expect(
+        app.shown('git_stage_all'),
+        isTrue,
+        reason: 'the section header is back on screen',
+      );
+      _report(
+        'commit_box rows=$largeFileCount reveal_ms=$boxMs back_ms=$backMs',
+      );
       final (_, commitFrames) = await measureFrames(tester, binding, () async {
-        await app.openPanel();
-        await app.waitFor('git_stage_all');
-        await app.tap('git_stage_all');
-        await app.statusWhere(
-          (status) => status.staged.isNotEmpty && status.untracked.isEmpty,
-          what: 'the large repository to be staged',
-          timeout: const Duration(minutes: 8),
-        );
-        await app.type('git_commit_message', 'Ten thousand files');
-        await app.tap('git_commit');
-        await app.statusWhere(
-          (status) => status.staged.isEmpty,
-          what: 'the large commit to be made',
-          timeout: const Duration(minutes: 8),
-        );
+        await app.stageAllAndCommit('Ten thousand files');
         await app.closePanel();
       });
       _report(

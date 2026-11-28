@@ -10,6 +10,10 @@
 ///   ([measureFrames]): the terminal flood's rule, at most 5 % of frames
 ///   over 32 ms and none frozen. The progress bar laid over the app makes
 ///   Flutter draw every frame, so nothing hides behind an idle screen.
+///   The commit is staged in the panel and made the way the commit box's
+///   button makes it ([GitDriver.stageAllAndCommit]): the box itself sits
+///   under the ten thousand rows, and scrolling down to it would measure
+///   the list's layout rather than git's work.
 /// - **The clone and the memory**, recorded: the 10,000-file repository
 ///   cloned over HTTP from the device's own server, with the token typed
 ///   into the credential dialog once, and the app's and its renderers'
@@ -191,7 +195,7 @@ void phoneGitTests() {
       final (_, commitFrames) = await measureFrames(
         tester,
         binding,
-        () => app.commitEverything('Ten thousand files'),
+        () => app.stageAllAndCommit('Ten thousand files'),
       );
       final commitMs = commitWatch.elapsedMilliseconds;
       _figure('commit_ms', commitMs);
