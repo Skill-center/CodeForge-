@@ -41,7 +41,6 @@ import 'package:codeforge/services/platform/app_directories.dart';
 import 'package:codeforge/services/runtime/runtime_service.dart';
 import 'package:codeforge/services/storage/drift_session_store.dart'
     show appDatabaseFileName;
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -223,15 +222,11 @@ void main() {
       );
       await app.openPanel();
       await app.tap('git_file_$_notes');
-      await pumpUntil(
-        tester,
-        () {
-          final state = container.read(documentControllerProvider);
-          return state.activePath == _notes &&
-              state.documents[_notes]?.diff != null;
-        },
-        what: "the file's diff to open",
-      );
+      await pumpUntil(tester, () {
+        final state = container.read(documentControllerProvider);
+        return state.activePath == _notes &&
+            state.documents[_notes]?.diff != null;
+      }, what: "the file's diff to open");
       await app.closePanel();
       final diff = container
           .read(documentControllerProvider)
@@ -427,16 +422,20 @@ void main() {
         // ── 4. The token, looked for everywhere ──────────────────────────
         // A fetch runs while the processes are swept: git, its credential
         // helper and the server are all up meanwhile.
-        final (_, sweep) = await sweepWhile(token, [
-          projects.path,
-          await noBackupFilesPath(),
-          await runtimeHome(runtimeService),
-        ], () async {
-          await app.openPanel();
-          await app.tap('git_fetch');
-          await app.waitGone('git_progress_dialog');
-          await app.closePanel();
-        });
+        final (_, sweep) = await sweepWhile(
+          token,
+          [
+            projects.path,
+            await noBackupFilesPath(),
+            await runtimeHome(runtimeService),
+          ],
+          () async {
+            await app.openPanel();
+            await app.tap('git_fetch');
+            await app.waitGone('git_progress_dialog');
+            await app.closePanel();
+          },
+        );
         _report(sweep.line());
         expect(
           sweep.files,

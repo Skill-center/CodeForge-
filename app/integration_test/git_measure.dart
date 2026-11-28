@@ -119,7 +119,7 @@ Future<ExecResult> runtimeOk(
       '$program ${arguments.join(' ')} '
       '(in ${directory ?? 'the runtime home'}): $result '
       '${value == null ? '' : 'exit=${value.exitCode} '
-            'failure=${value.failure?.code} ${value.stderr}'}',
+                'failure=${value.failure?.name} ${value.stderr}'}',
     );
   }
   return value;
@@ -283,12 +283,13 @@ final class GitRemoteServer {
     }
     final servedPath = '${folder.path}/served';
     Directory(servedPath).createSync(recursive: true);
-    await gitOk(
-      runtime,
-      servedPath,
-      ['clone', '-q', '--bare', seedPath, 'repo.git'],
-      timeout: const Duration(minutes: 8),
-    );
+    await gitOk(runtime, servedPath, [
+      'clone',
+      '-q',
+      '--bare',
+      seedPath,
+      'repo.git',
+    ], timeout: const Duration(minutes: 8));
     await gitOk(runtime, '$servedPath/repo.git', [
       'config',
       'http.receivepack',
@@ -302,16 +303,17 @@ final class GitRemoteServer {
     final portFile = File('${folder.path}/port');
     // The runner ends a command after ten minutes at the most, so the
     // server outlives every remote run the gate makes and nothing else.
-    final running = runtime.exec(
-      'python',
-      [script.path, servedPath, portFile.path, credentials.path],
-      timeout: const Duration(minutes: 10),
-    );
+    final running = runtime.exec('python', [
+      script.path,
+      servedPath,
+      portFile.path,
+      credentials.path,
+    ], timeout: const Duration(minutes: 10));
     unawaited(
       running.then((result) {
         final value = result.valueOrNull;
         debugPrint(
-          'git gate server: ended ${value?.failure?.code ?? 'exit'} '
+          'git gate server: ended ${value?.failure?.name ?? 'exit'} '
           '${value?.exitCode} ${value?.stderr.trim() ?? result}',
         );
       }),
@@ -433,8 +435,9 @@ int writeLargeRepository(String root, {int files = largeFileCount}) {
     final name = 'd${folder.toString().padLeft(4, '0')}';
     Directory('$root/$name').createSync(recursive: true);
     for (var file = 0; file < filesPerFolder; file++) {
-      File('$root/$name/f${file.toString().padLeft(2, '0')}.txt')
-          .writeAsStringSync('folder $folder, file $file\n');
+      File(
+        '$root/$name/f${file.toString().padLeft(2, '0')}.txt',
+      ).writeAsStringSync('folder $folder, file $file\n');
     }
   }
   return watch.elapsedMilliseconds;
@@ -448,7 +451,7 @@ final class StatusFigures {
       p95Ms = _round1(percentile(samples, 0.95)),
       maxMs = _round1(samples.fold<double>(0, math.max)),
       minMs = _round1(
-        samples.isEmpty ? 0 : samples.reduce((a, b) => math.min(a, b)),
+        samples.isEmpty ? 0 : samples.reduce(math.min),
       );
 
   final String label;
