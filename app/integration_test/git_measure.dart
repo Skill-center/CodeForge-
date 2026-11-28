@@ -450,9 +450,7 @@ final class StatusFigures {
       p50Ms = _round1(percentile(samples, 0.5)),
       p95Ms = _round1(percentile(samples, 0.95)),
       maxMs = _round1(samples.fold<double>(0, math.max)),
-      minMs = _round1(
-        samples.isEmpty ? 0 : samples.reduce(math.min),
-      );
+      minMs = _round1(samples.isEmpty ? 0 : samples.reduce(math.min));
 
   final String label;
 
