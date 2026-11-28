@@ -1,0 +1,63 @@
+Resolving dependencies...
+Downloading packages...
+  built_collection 5.1.2 (6.0.0 available)
+  built_value 8.13.0 (8.13.1 available)
+  cli_util 0.6.0 (0.6.1 available)
+  code_assets 2.1.0 (2.2.0 available)
+  cupertino_ui 1.1.6 (1.1.7 available)
+  drift 2.35.3 (2.35.4 available)
+  drift_dev 2.35.2 (2.35.3 available)
+  flutter_riverpod 3.4.3 (3.5.0 available)
+  go_router 18.1.3 (18.1.4 available)
+  jni 1.1.2 (1.2.1 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  material_ui 1.10.0 (1.11.1 available)
+  native_toolchain_c 0.19.5 (0.19.6 available)
+  objective_c 9.6.2 (9.6.4 available)
+  pigeon 29.2.0 (30.0.4 available)
+  riverpod 3.4.3 (3.5.0 available)
+  shared_preferences_android 2.5.4 (2.5.5 available)
+  shared_preferences_foundation 2.6.1 (2.6.2 available)
+  sqlite3 3.9.0 (3.9.2 available)
+  test_api 0.7.14 (0.7.15 available)
+Got dependencies!
+20 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart
+Running Gradle task 'assembleDebug'...                             17.5s
+✓ Built build/app/outputs/flutter-apk/app-debug.apk
+Installing build/app/outputs/flutter-apk/app-debug.apk...        2,704ms
+00:00 +0: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
+GIT_GATE init ms=936 branch=main first_commit_ms=2918
+GIT_GATE branch head=work branches=1
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following StateError was thrown running a test:
+Bad state: No element
+
+When the exception was thrown, this was the stack:
+#0      Iterable.single (dart:core/iterable.dart:694:25)
+#1      WidgetController.element (package:flutter_test/src/controller.dart:887:30)
+#2      WidgetController.ensureVisible (package:flutter_test/src/controller.dart:2388:32)
+#3      GitDriver.tap (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_measure.dart:554:18)
+#4      main.<anonymous closure> (file:///home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart:224:17)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1968:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  git: a repository made, committed and branched; a diff reverted and committed; a clone with a
+  token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
+════════════════════════════════════════════════════════════════════════════════════════════════════
+00:29 +0 -1: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository [E]
+  Test failed. See exception logs above.
+  The test description was: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
+  
+00:29 +0 -1: (tearDownAll)
+00:30 +0 -1: Some tests failed.
+
+Failing tests:
+  /home/runner/work/CodeForge-/CodeForge-/app/integration_test/git_test.dart: git: a repository made, committed and branched; a diff reverted and committed; a clone with a token, a push and a conflicting pull; the token nowhere; the 10,000-file repository
