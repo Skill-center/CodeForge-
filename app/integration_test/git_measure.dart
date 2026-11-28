@@ -50,6 +50,17 @@ const double statusBudgetMs = 500;
 /// How many statuses the figures come from.
 const int statusSamples = 20;
 
+/// The longest the app may draw nothing at all, in the emulator.
+///
+/// The frame budgets — under 5% of frames over 32 ms and none frozen —
+/// are the phone's: this gate's emulator is software-rendered, every
+/// frame of it is slow, and the git group records its figures without
+/// judging them (phone_git_test.dart, on Test Lab's Pixel 8a, is what
+/// judges them). What the emulator can still show is an app that
+/// stopped drawing — git left on the UI thread would hold the frames
+/// back for seconds, not for a fraction of one.
+const double hangGapMs = 5000;
+
 /// The large repository: 10,000 files, in folders of 100 (GitTest's shape).
 const int largeFileCount = 10000;
 const int filesPerFolder = 100;
