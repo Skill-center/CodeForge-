@@ -690,12 +690,30 @@ final class GitDriver {
     }
   }
 
+  /// The sheet the panel is in on a phone, if it is in one.
+  Finder get _sheet => find.ancestor(
+    of: find.byKey(const ValueKey('git_panel')),
+    matching: find.byType(DraggableScrollableSheet),
+  );
+
   /// Closes the panel's sheet, where there is one.
+  ///
+  /// A modal sheet's barrier takes every tap, so the activity bar behind
+  /// it cannot be tapped to close it: the sheet's own route is popped,
+  /// which is what the system's back button does.
   Future<void> closePanel() async {
-    if (shown('git_panel') && shown('activity_git')) {
-      await tap('activity_git');
-      await tester.pump(const Duration(milliseconds: 400));
+    if (_sheet.evaluate().isEmpty) {
+      return;
     }
+    Navigator.of(tester.element(_sheet.first)).pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await pumpUntil(
+      tester,
+      () => !shown('git_panel'),
+      what: 'the panel sheet to close',
+      timeout: const Duration(seconds: 30),
+    );
   }
 
   /// Waits for a status that satisfies [ready], with none still running.

@@ -296,8 +296,14 @@ class LspHostTest {
     fun itsMemoryIsSampled() {
         val server = start(Recorder())
         val deadline = System.nanoTime() + 5_000_000_000L
-        while (server.memory == null && System.nanoTime() < deadline) Thread.sleep(20)
-        val memory = server.memory
+        // A sample taken while the launcher is still starting the server
+        // sees one process, not two (CI 46118682499): the sampler takes
+        // another every 100 ms, and the pair is what is asserted.
+        var memory = server.memory
+        while ((memory == null || memory.processes < 2) && System.nanoTime() < deadline) {
+            Thread.sleep(20)
+            memory = server.memory
+        }
         assertNotNull("no memory sample in 5 s", memory)
         assertTrue("the launcher and the server: $memory", memory!!.processes >= 2)
         assertTrue("$memory", memory.rssKib > 0)
