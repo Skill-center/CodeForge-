@@ -221,7 +221,19 @@ The measures above are git's and the host's. W6 measures what the user waits for
 - **The frames** while a commit, a clone and a status run, with a progress bar laid over the app so every frame is drawn (`terminal_measure.dart`'s `withFramesDrawn`): at most **5 % over 32 ms and none frozen**, the terminal flood's rule.
 - **A clone's time**, its file count, and the app's and its renderers' PSS before and after, recorded.
 
-`tool/ci/gate_results.py` holds the phone's run to those budgets (`git_phone_*_under_budget=1`, `git_phone_frozen_frames=0`); on the emulator the same file runs again and its figures are recorded, never judged, since an emulator's frames are not a phone's.
+`tool/ci/gate_results.py` holds the phone's run to those budgets (`git_phone_*_under_budget=1`, `git_phone_frozen_frames=0`); on the emulator the same file runs again and its figures are recorded, never judged, since an emulator's frames are not a phone's. What the emulator does judge is that the app never stopped drawing while git worked: no gap over 5 s between two frames.
+
+**Measured on the gate's emulator** (phase gate 46149418481, a debug build on `pixel_6`; the Pixel 8a's own run is named when it lands):
+
+| In the real app, 10,000 files | p95 |
+|---|---|
+| A status, untracked | 148.9 ms |
+| A status, clean | 498.8 ms |
+| A status, with a hundred changed | 148.4 ms |
+
+No frame froze in any window — 405 frames while the repository was staged and committed, 88 while the clean status ran, 50 while it was cloned — and the longest the app went without drawing was 250 ms. The clone took 6.3 s, the push 1.9 s and the conflicting pull 2.2 s, each asking for the token at most once.
+
+**One cost worth knowing:** the commit box is the last thing in the changes section, under every changed file, and a list builds no row it has not come to. Jumping to the box in a repository of ten thousand changes therefore builds all ten thousand rows in a single frame — **147.8 s** on the gate's emulator, 142.2 s to come back up. Scrolling there by hand costs the same work spread over many frames, so the app stays alive; the gate records the jump (`commit_box`) and stages and commits without it, the way the box's own button does.
 
 ## 6. Not built yet
 
