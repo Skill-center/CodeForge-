@@ -403,21 +403,21 @@ void main() {
           (status) => status.staged.isEmpty && status.conflicted.isEmpty,
           what: 'the merge to be committed',
         );
-        final shownParents = await runtimeOk(runtimeService, 'git', [
-          ...gitHousekeeping,
-          'log',
-          '-1',
-          '--format=%P',
-        ], directory: cloneRoot);
-        final parents = shownParents.stdout.trim().split(RegExp(r'\s+'));
+        // A command of the gate's own cannot run in a project — the
+        // runtime takes its home and its workspace, and a project is
+        // neither — so the merge is read as the app reads it.
+        final history = await git.log(_clone, max: 1);
+        final newest = history.valueOrNull?.firstOrNull;
+        expect(newest, isNotNull, reason: 'the log after the merge: $history');
         expect(
-          parents.length,
+          newest!.parents.length,
           2,
-          reason: 'a merge commit has two parents: ${shownParents.stdout}',
+          reason: 'a merge commit has two parents: ${newest.parents}',
         );
+        expect(newest.subject, 'Merge the two lines');
         _report(
           'pull ms=$pullMs conflicted=1 resolved=1 '
-          'merge_parents=${parents.length}',
+          'merge_parents=${newest.parents.length}',
         );
 
         // ── 4. The token, looked for everywhere ──────────────────────────
@@ -432,8 +432,13 @@ void main() {
           ],
           () async {
             await app.openPanel();
-            await app.tap('git_fetch');
-            await app.waitGone('git_progress_dialog');
+            // Twice: a fetch of this repository is a few hundred
+            // milliseconds, and the sweep must see git running at least
+            // once for its silence to mean anything.
+            for (var fetch = 0; fetch < 2; fetch++) {
+              await app.tap('git_fetch');
+              await app.waitGone('git_progress_dialog');
+            }
             await app.closePanel();
           },
         );

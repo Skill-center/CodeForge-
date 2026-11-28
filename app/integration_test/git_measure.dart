@@ -564,11 +564,12 @@ final class GitDriver {
   ///
   /// The panel's sections are slivers: a row the list has scrolled past
   /// is not merely off screen, it is not built at all, and
-  /// `ensureVisible` has nothing to work with. So the list is moved,
-  /// a screenful at a time, until the key is built — the top first, then
-  /// the bottom and the screens above it (the commit box sits under
-  /// however many files there are, and 10,000 of them are far away),
-  /// then the screens under the top, then a sweep of the whole list.
+  /// `ensureVisible` has nothing to work with. So the list is moved to
+  /// where the key can be and the tree looked at again: the top first,
+  /// then the end (the commit box sits under however many files there
+  /// are, and a list of ten thousand rows only estimates where its end
+  /// is, so it is approached until it stops moving), then the screens
+  /// above the end and under the top, then a sweep of the whole list.
   Future<void> reveal(String key) async {
     final finder = find.byKey(ValueKey(key));
     for (var tries = 0; tries < 20 && finder.evaluate().isEmpty; tries++) {
@@ -583,22 +584,34 @@ final class GitDriver {
     }
     final scroll = tester.state<ScrollableState>(list.first).position;
     final screen = math.max(scroll.viewportDimension * 0.8, 200.0);
+    Future<bool> look(double where) async {
+      scroll.jumpTo(where.clamp(0.0, scroll.maxScrollExtent));
+      await tester.pump(const Duration(milliseconds: 60));
+      return finder.evaluate().isNotEmpty;
+    }
+
+    if (await look(0)) {
+      return;
+    }
+    for (var tries = 0; tries < 6; tries++) {
+      final end = scroll.maxScrollExtent;
+      if (await look(end)) {
+        return;
+      }
+      if (scroll.maxScrollExtent <= end) {
+        break;
+      }
+    }
     final end = scroll.maxScrollExtent;
-    final wheres = <double>[
-      0,
-      end,
+    for (final where in <double>[
       end - screen,
       end - screen * 2,
       screen,
       screen * 2,
       screen * 3,
       for (var part = 1; part < 13; part++) end * part / 13,
-      scroll.maxScrollExtent,
-    ];
-    for (final where in wheres) {
-      scroll.jumpTo(where.clamp(0.0, scroll.maxScrollExtent));
-      await tester.pump(const Duration(milliseconds: 60));
-      if (finder.evaluate().isNotEmpty) {
+    ]) {
+      if (await look(where)) {
         return;
       }
     }
